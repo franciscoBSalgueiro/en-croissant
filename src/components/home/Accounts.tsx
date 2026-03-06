@@ -36,9 +36,7 @@ function Accounts() {
 
   function addChessComSession(alias: string, session: ChessComSession) {
     setSessions((sessions) => {
-      const newSessions = sessions.filter(
-        (s) => s.chessCom?.username !== session.username,
-      );
+      const newSessions = sessions.filter((s) => s.chessCom?.username !== session.username);
       return [
         ...newSessions,
         {
@@ -52,9 +50,7 @@ function Accounts() {
 
   function addLichessSession(alias: string, session: LichessSession) {
     setSessions((sessions) => {
-      const newSessions = sessions.filter(
-        (s) => s.lichess?.username !== session.username,
-      );
+      const newSessions = sessions.filter((s) => s.lichess?.username !== session.username);
       return [
         ...newSessions,
         {
@@ -92,11 +88,7 @@ function Accounts() {
     addLichessSession(p, { accessToken: token, username: username, account });
   }
 
-  async function addLichess(
-    player: string,
-    username: string,
-    withLogin: boolean,
-  ) {
+  async function addLichess(player: string, username: string, withLogin: boolean) {
     if (withLogin) {
       sessionStorage.setItem("lichess_player_alias", player);
       return await commands.authenticate(username);
@@ -126,10 +118,7 @@ function Accounts() {
       />
       {sessions.length > 0 && (
         <Group>
-          <Button
-            rightSection={<IconPlus size="1rem" />}
-            onClick={() => setOpen(true)}
-          >
+          <Button rightSection={<IconPlus size="1rem" />} onClick={() => setOpen(true)}>
             {t("Home.Accounts.Add")}
           </Button>
         </Group>
@@ -165,9 +154,7 @@ function AccountModal({
   const [withLogin, setWithLogin] = useState(false);
 
   const players = new Set(
-    sessions.map(
-      (s) => s.player || s.lichess?.username || s.chessCom?.username || "",
-    ),
+    sessions.map((s) => s.player || s.lichess?.username || s.chessCom?.username || ""),
   );
 
   function addAccount() {
@@ -180,11 +167,7 @@ function AccountModal({
   }
 
   return (
-    <Modal
-      opened={open}
-      onClose={() => setOpen(false)}
-      title={t("Home.Accounts.Add")}
-    >
+    <Modal opened={open} onClose={() => setOpen(false)} title={t("Home.Accounts.Add")}>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -219,12 +202,7 @@ function AccountModal({
                 setSelected={() => setWebsite("chesscom")}
                 Header={
                   <Group>
-                    <img
-                      width={30}
-                      height={30}
-                      src="/chesscom.png"
-                      alt="chess.com"
-                    />
+                    <img width={30} height={30} src="/chesscom.png" alt="chess.com" />
                     Chess.com
                   </Group>
                 }

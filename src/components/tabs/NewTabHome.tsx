@@ -61,12 +61,7 @@ function RecentFileDuePositions({ file }: { file: string }) {
   if (stats.due + stats.unseen === 0) return null;
 
   return (
-    <Badge
-      size="sm"
-      variant="light"
-      color="orange"
-      leftSection={<IconTarget size="0.75rem" />}
-    >
+    <Badge size="sm" variant="light" color="orange" leftSection={<IconTarget size="0.75rem" />}>
       {stats.due + stats.unseen} due
     </Badge>
   );
@@ -87,13 +82,7 @@ function fileTypeIcon(type: RecentFile["type"]) {
   }
 }
 
-function RecentFileRow({
-  file,
-  onOpen,
-}: {
-  file: RecentFile;
-  onOpen: (file: RecentFile) => void;
-}) {
+function RecentFileRow({ file, onOpen }: { file: RecentFile; onOpen: (file: RecentFile) => void }) {
   const displayName = file.name.replace(/\.pgn$/i, "");
 
   return (
@@ -114,17 +103,12 @@ function RecentFileRow({
           <Text size="sm" truncate fw={500}>
             {displayName}
           </Text>
-          {file.type === "repertoire" && (
-            <RecentFileDuePositions file={file.path} />
-          )}
+          {file.type === "repertoire" && <RecentFileDuePositions file={file.path} />}
         </Group>
         <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
           <Tooltip label={dayjs(file.lastOpened).format("YYYY-MM-DD HH:mm")}>
             <Group gap={4} wrap="nowrap">
-              <IconClock
-                size={14}
-                style={{ color: "var(--mantine-color-dimmed)" }}
-              />
+              <IconClock size={14} style={{ color: "var(--mantine-color-dimmed)" }} />
               <Text size="xs" c="dimmed">
                 {dayjs(file.lastOpened).fromNow()}
               </Text>
@@ -278,10 +262,7 @@ export default function NewTabHome({ id }: { id: string }) {
         setTabs={setTabs}
         setActiveTab={setActiveTab}
       />
-      <CreateRepertoireModal
-        opened={openRepertoireModal}
-        setOpened={setOpenRepertoireModal}
-      />
+      <CreateRepertoireModal opened={openRepertoireModal} setOpened={setOpenRepertoireModal} />
       <Stack gap="lg" pt="sm">
         <SimpleGrid cols={{ base: 1, sm: 2, lg: 5 }}>
           {cards.map((card) => (
@@ -296,13 +277,7 @@ export default function NewTabHome({ id }: { id: string }) {
                   </Text>
                 </Box>
 
-                <Button
-                  variant="light"
-                  fullWidth
-                  mt="md"
-                  radius="md"
-                  onClick={card.onClick}
-                >
+                <Button variant="light" fullWidth mt="md" radius="md" onClick={card.onClick}>
                   {card.label}
                 </Button>
               </Stack>
@@ -323,11 +298,7 @@ export default function NewTabHome({ id }: { id: string }) {
             <ScrollArea.Autosize mah={300}>
               <Stack gap={2}>
                 {recentFiles.map((file) => (
-                  <RecentFileRow
-                    key={file.path}
-                    file={file}
-                    onOpen={openRecentFile}
-                  />
+                  <RecentFileRow key={file.path} file={file} onOpen={openRecentFile} />
                 ))}
               </Stack>
             </ScrollArea.Autosize>

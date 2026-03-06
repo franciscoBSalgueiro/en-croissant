@@ -1,10 +1,5 @@
 import { Badge, Box, Group } from "@mantine/core";
-import {
-  IconChevronRight,
-  IconEye,
-  IconTarget,
-  IconTrash,
-} from "@tabler/icons-react";
+import { IconChevronRight, IconEye, IconTarget, IconTrash } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { remove } from "@tauri-apps/plugin-fs";
 import clsx from "clsx";
@@ -23,12 +18,8 @@ import * as classes from "./DirectoryTable.css";
 import type { Directory, FileMetadata } from "./file";
 import { getStats } from "./opening";
 
-function flattenFiles(
-  files: (FileMetadata | Directory)[],
-): (FileMetadata | Directory)[] {
-  return files.flatMap((f) =>
-    f.type === "directory" ? flattenFiles(f.children) : [f],
-  );
+function flattenFiles(files: (FileMetadata | Directory)[]): (FileMetadata | Directory)[] {
+  return files.flatMap((f) => (f.type === "directory" ? flattenFiles(f.children) : [f]));
 }
 
 function recursiveSort(
@@ -219,9 +210,7 @@ function Table({
         scrollbars: "y",
       }}
       idAccessor="path"
-      rowClassName={(record) =>
-        record.path === selected?.path ? classes.selected : ""
-      }
+      rowClassName={(record) => (record.path === selected?.path ? classes.selected : "")}
       sortStatus={sort}
       onRowDoubleClick={({ record }) => {
         if (record.type === "directory") return;
@@ -239,9 +228,7 @@ function Table({
                 {row.type === "directory" && (
                   <IconChevronRight
                     className={clsx(classes.icon, classes.expandIcon, {
-                      [classes.expandIconRotated]: expandedFiles.includes(
-                        row.path,
-                      ),
+                      [classes.expandIconRotated]: expandedFiles.includes(row.path),
                     })}
                   />
                 )}
@@ -346,9 +333,5 @@ function DuePositions({ file }: { file: string }) {
 
   if (stats.due + stats.unseen === 0) return null;
 
-  return (
-    <Badge leftSection={<IconTarget size="1rem" />}>
-      {stats.due + stats.unseen}
-    </Badge>
-  );
+  return <Badge leftSection={<IconTarget size="1rem" />}>{stats.due + stats.unseen}</Badge>;
 }

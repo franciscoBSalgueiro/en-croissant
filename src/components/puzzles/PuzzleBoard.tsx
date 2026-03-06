@@ -8,11 +8,7 @@ import { useAtom, useAtomValue } from "jotai";
 import { useContext, useState } from "react";
 import { useStore } from "zustand";
 import { Chessground } from "@/chessground/Chessground";
-import {
-  jumpToNextPuzzleAtom,
-  moveHighlightAtom,
-  showCoordinatesAtom,
-} from "@/state/atoms";
+import { jumpToNextPuzzleAtom, moveHighlightAtom, showCoordinatesAtom } from "@/state/atoms";
 import { chessboard } from "@/styles/Chessboard.css";
 import { positionFromFen } from "@/utils/chessops";
 import type { Completion, Puzzle } from "@/utils/puzzles";
@@ -148,8 +144,7 @@ function PuzzleBoard({
             color:
               puzzle &&
               equal(position, Array(currentMove).fill(0)) &&
-              (puzzle.completion === "incomplete" ||
-                puzzle.completion === "incorrect")
+              (puzzle.completion === "incomplete" || puzzle.completion === "incorrect")
                 ? turn
                 : undefined,
             dests: dests,
@@ -160,8 +155,7 @@ function PuzzleBoard({
                 const move: NormalMove = { from, to };
                 if (
                   pos?.board.get(from)?.role === "pawn" &&
-                  ((dest[1] === "8" && turn === "white") ||
-                    (dest[1] === "1" && turn === "black"))
+                  ((dest[1] === "8" && turn === "white") || (dest[1] === "1" && turn === "black"))
                 ) {
                   setPendingMove(move);
                 } else {
@@ -171,9 +165,7 @@ function PuzzleBoard({
             },
           }}
           lastMove={
-            moveHighlight && currentNode.move
-              ? chessgroundMove(currentNode.move)
-              : undefined
+            moveHighlight && currentNode.move ? chessgroundMove(currentNode.move) : undefined
           }
           turnColor={turn}
           fen={currentNode.fen}

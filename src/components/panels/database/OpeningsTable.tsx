@@ -9,13 +9,7 @@ import { addPieceSymbol } from "@/utils/annotation";
 import type { Opening } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 
-function OpeningsTable({
-  openings,
-  loading,
-}: {
-  openings: Opening[];
-  loading: boolean;
-}) {
+function OpeningsTable({ openings, loading }: { openings: Opening[]; loading: boolean }) {
   const store = useContext(TreeStateContext)!;
   const makeMove = useStore(store, (s) => s.makeMove);
   const [moveNotationType] = useAtom(moveNotationTypeAtom);
@@ -65,9 +59,7 @@ function OpeningsTable({
                 </Text>
               );
             return (
-              <Text fz="sm">
-                {moveNotationType === "symbols" ? addPieceSymbol(move) : move}
-              </Text>
+              <Text fz="sm">{moveNotationType === "symbols" ? addPieceSymbol(move) : move}</Text>
             );
           },
         },
@@ -79,9 +71,7 @@ function OpeningsTable({
             const percentage = (total / grandTotal) * 100;
             return (
               <Group>
-                {move !== "Total" && (
-                  <Text fz="sm">{percentage.toFixed(0)}%</Text>
-                )}
+                {move !== "Total" && <Text fz="sm">{percentage.toFixed(0)}%</Text>}
                 <Text fz="sm" flex={1} ta="right">
                   {formatNumber(total)}
                 </Text>

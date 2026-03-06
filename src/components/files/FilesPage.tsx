@@ -11,12 +11,7 @@ import {
   Title,
 } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
-import {
-  IconFileDescription,
-  IconPlus,
-  IconSearch,
-  IconX,
-} from "@tabler/icons-react";
+import { IconFileDescription, IconPlus, IconSearch, IconX } from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
 import { readDir, remove } from "@tauri-apps/plugin-fs";
 import { useEffect, useRef, useState } from "react";
@@ -27,31 +22,18 @@ import ConfirmModal from "../common/ConfirmModal";
 import OpenFolderButton from "../common/OpenFolderButton";
 import DirectoryTable from "./DirectoryTable";
 import FileCard from "./FileCard";
-import {
-  type FileMetadata,
-  type FileType,
-  processEntriesRecursively,
-} from "./file";
+import { type FileMetadata, type FileType, processEntriesRecursively } from "./file";
 import { CreateModal, EditModal } from "./Modals";
 
-const FILE_TYPES: FileType[] = [
-  "game",
-  "repertoire",
-  "tournament",
-  "puzzle",
-  "other",
-];
+const FILE_TYPES: FileType[] = ["game", "repertoire", "tournament", "puzzle", "other"];
 
 const useFileDirectory = (dir: string) => {
-  const { data, error, isLoading, mutate } = useSWR(
-    "file-directory",
-    async () => {
-      const entries = await readDir(dir);
-      const allEntries = processEntriesRecursively(dir, entries);
+  const { data, error, isLoading, mutate } = useSWR("file-directory", async () => {
+    const entries = await readDir(dir);
+    const allEntries = processEntriesRecursively(dir, entries);
 
-      return allEntries;
-    },
-  );
+    return allEntries;
+  });
   console.log(error);
   return {
     files: data,
@@ -153,9 +135,7 @@ function FilesPage() {
                 variant="outline"
                 key={type}
                 onChange={(v) =>
-                  setFilter((filter) =>
-                    v ? type : filter === type ? null : filter,
-                  )
+                  setFilter((filter) => (v ? type : filter === type ? null : filter))
                 }
                 checked={filter === type}
               >

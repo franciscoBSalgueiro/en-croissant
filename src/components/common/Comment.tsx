@@ -11,8 +11,7 @@ function normalizeTiptapMarkdown(comment: string) {
 
 function Comment({ comment }: { comment: string }) {
   const normalizedComment = normalizeTiptapMarkdown(comment);
-  const multipleLine =
-    normalizedComment.split("\n").filter((v) => v.trim() !== "").length > 1;
+  const multipleLine = normalizedComment.split("\n").filter((v) => v.trim() !== "").length > 1;
 
   return (
     <Typography
@@ -24,11 +23,8 @@ function Comment({ comment }: { comment: string }) {
     >
       <Markdown
         components={{
-          a: ({ node, ...props }) => (
-            <a {...props} target="_blank" rel="noreferrer" />
-          ),
-          p: ({ node, ...props }) =>
-            multipleLine ? <p {...props} /> : <span {...props} />,
+          a: ({ node, ...props }) => <a {...props} target="_blank" rel="noreferrer" />,
+          p: ({ node, ...props }) => (multipleLine ? <p {...props} /> : <span {...props} />),
         }}
         rehypePlugins={[rehypeRaw, remarkGfm]}
       >

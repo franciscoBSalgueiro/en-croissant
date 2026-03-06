@@ -1,17 +1,8 @@
 import { AppShell } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import {
-  createRootRouteWithContext,
-  Outlet,
-  useNavigate,
-} from "@tanstack/react-router";
+import { createRootRouteWithContext, Outlet, useNavigate } from "@tanstack/react-router";
 import { TauriEvent } from "@tauri-apps/api/event";
-import {
-  Menu,
-  MenuItem,
-  PredefinedMenuItem,
-  Submenu,
-} from "@tauri-apps/api/menu";
+import { Menu, MenuItem, PredefinedMenuItem, Submenu } from "@tauri-apps/api/menu";
 import { appLogDir, resolve } from "@tauri-apps/api/path";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask, message, open } from "@tauri-apps/plugin-dialog";
@@ -44,15 +35,7 @@ type MenuAction = {
   label: string;
   shortcut?: string;
   action?: () => void;
-  item?:
-    | "Hide"
-    | "Copy"
-    | "Cut"
-    | "Paste"
-    | "SelectAll"
-    | "Undo"
-    | "Redo"
-    | "Quit";
+  item?: "Hide" | "Copy" | "Cut" | "Paste" | "SelectAll" | "Undo" | "Redo" | "Quit";
 };
 
 async function createMenu(menuActions: MenuGroup[]) {
@@ -318,9 +301,7 @@ function RootLayout() {
     [t, checkForUpdates, createNewTab, keyMap, openNewFile],
   );
 
-  const { data: menu } = useSWRImmutable(["menu", menuActions], () =>
-    createMenu(menuActions),
-  );
+  const { data: menu } = useSWRImmutable(["menu", menuActions], () => createMenu(menuActions));
 
   useEffect(() => {
     if (!menu) return;
@@ -334,24 +315,19 @@ function RootLayout() {
   }, [menu, isNative]);
 
   useEffect(() => {
-    const unlisten = getCurrentWindow().listen(
-      TauriEvent.DRAG_DROP,
-      (event) => {
-        const payload = event.payload as { paths: string[] };
-        if (payload?.paths) {
-          const pgnFiles = payload.paths.filter((path) =>
-            path.toLowerCase().endsWith(".pgn"),
-          );
+    const unlisten = getCurrentWindow().listen(TauriEvent.DRAG_DROP, (event) => {
+      const payload = event.payload as { paths: string[] };
+      if (payload?.paths) {
+        const pgnFiles = payload.paths.filter((path) => path.toLowerCase().endsWith(".pgn"));
 
-          if (pgnFiles.length > 0) {
-            navigate({ to: "/" });
-            for (const file of pgnFiles) {
-              openFile(file, setTabs, setActiveTab);
-            }
+        if (pgnFiles.length > 0) {
+          navigate({ to: "/" });
+          for (const file of pgnFiles) {
+            openFile(file, setTabs, setActiveTab);
           }
         }
-      },
-    );
+      }
+    });
 
     return () => {
       unlisten.then((fn) => fn());

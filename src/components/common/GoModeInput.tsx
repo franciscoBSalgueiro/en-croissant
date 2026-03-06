@@ -40,23 +40,17 @@ function GoModeInput({
           <NumberInput
             min={1}
             value={v.c}
-            onChange={(v) =>
-              setGoMode({ t: "Depth", c: typeof v === "number" ? v : 1 })
-            }
+            onChange={(v) => setGoMode({ t: "Depth", c: typeof v === "number" ? v : 1 })}
           />
         ))
         .with({ t: "Nodes" }, (v) => (
           <NumberInput
             min={1}
             value={v.c}
-            onChange={(v) =>
-              setGoMode({ t: "Nodes", c: typeof v === "number" ? v : 1 })
-            }
+            onChange={(v) => setGoMode({ t: "Nodes", c: typeof v === "number" ? v : 1 })}
           />
         ))
-        .with({ t: "Time" }, (v) => (
-          <TimeInput value={v.c} setValue={setGoMode} />
-        ))
+        .with({ t: "Time" }, (v) => <TimeInput value={v.c} setValue={setGoMode} />)
         .otherwise(() => null)}
     </Group>
   );

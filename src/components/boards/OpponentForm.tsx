@@ -99,9 +99,7 @@ export function OpponentForm({
       {opponent.type === "human" && (
         <TextInput
           value={opponent.name ?? ""}
-          onChange={(e) =>
-            setOpponent((prev) => ({ ...prev, name: e.target.value }))
-          }
+          onChange={(e) => setOpponent((prev) => ({ ...prev, name: e.target.value }))}
         />
       )}
 
@@ -216,8 +214,7 @@ export function OpponentForm({
               gameMode
               settings={{
                 go: opponent.go,
-                settings:
-                  opponent.engineSettings || opponent.engine.settings || [],
+                settings: opponent.engineSettings || opponent.engine.settings || [],
                 enabled: true,
                 synced: false,
               }}
@@ -228,8 +225,7 @@ export function OpponentForm({
                   }
                   const newSettings = fn({
                     go: prev.go,
-                    settings:
-                      prev.engineSettings || prev.engine?.settings || [],
+                    settings: prev.engineSettings || prev.engine?.settings || [],
                     enabled: true,
                     synced: false,
                   });

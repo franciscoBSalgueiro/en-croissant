@@ -10,10 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type {
-  NameType,
-  ValueType,
-} from "recharts/types/component/DefaultTooltipContent";
+import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
 import type { PlayerGameInfo, StatsData } from "@/bindings";
 import { getTimeControl } from "@/utils/timeControl";
 import ResultsChart from "./ResultsChart";
@@ -49,9 +46,7 @@ function fillMissingMonths(
   return filledData;
 }
 
-function mergeYears(
-  data: { name: string; count: number }[],
-): { name: string; count: number }[] {
+function mergeYears(data: { name: string; count: number }[]): { name: string; count: number }[] {
   const yearCounts: { [year: string]: number } = {};
 
   for (const { name, count } of data) {
@@ -156,8 +151,7 @@ const DateChartTooltip = ({
           backgroundColor: "var(--mantine-color-body)",
           boxShadow: "var(--mantine-shadow-md)",
           borderRadius: "var(--mantine-radius-default)",
-          border:
-            "calc(0.0625rem* var(--mantine-scale)) solid var(--mantine-color-default-border)",
+          border: "calc(0.0625rem* var(--mantine-scale)) solid var(--mantine-color-default-border)",
           padding: "10px",
         }}
       >
@@ -169,11 +163,7 @@ const DateChartTooltip = ({
           }}
         >{`${payload?.[0].name} : ${payload?.[0].value}`}</p>
         <p style={{ fontSize: "0.75rem", margin: "0", color: "grey" }}>
-          Click to{" "}
-          {isYearSelected
-            ? "see the month details"
-            : "return to the years view"}
-          .
+          Click to {isYearSelected ? "see the month details" : "return to the years view"}.
         </p>
       </div>
     );
@@ -182,11 +172,7 @@ const DateChartTooltip = ({
   return null;
 };
 
-function DateChart({
-  dataPerMonth,
-}: {
-  dataPerMonth: { name: string; count: number }[];
-}) {
+function DateChart({ dataPerMonth }: { dataPerMonth: { name: string; count: number }[] }) {
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
 
   let data = fillMissingMonths(dataPerMonth);
@@ -213,21 +199,14 @@ function DateChart({
         <YAxis />
         <Tooltip
           content={(props) => (
-            <DateChartTooltip
-              {...props}
-              isYearSelected={selectedYear === null}
-            />
+            <DateChartTooltip {...props} isYearSelected={selectedYear === null} />
           )}
           cursor={{
             fill: "var(--mantine-color-default-border)",
             stroke: "1px solid var(--chart-grid-color)",
           }}
         />
-        <Bar
-          dataKey="count"
-          fill="var(--mantine-color-blue-filled)"
-          name="Games"
-        />
+        <Bar dataKey="count" fill="var(--mantine-color-blue-filled)" name="Games" />
       </BarChart>
     </ResponsiveContainer>
   );

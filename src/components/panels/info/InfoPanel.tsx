@@ -1,13 +1,4 @@
-import {
-  Accordion,
-  ActionIcon,
-  Box,
-  Group,
-  ScrollArea,
-  Stack,
-  Text,
-  Tooltip,
-} from "@mantine/core";
+import { Accordion, ActionIcon, Box, Group, ScrollArea, Stack, Text, Tooltip } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
@@ -50,11 +41,7 @@ function InfoPanel({ addGame }: { addGame?: () => void }) {
 
   return (
     <Stack h="100%" pl="sm" pt="sm">
-      <GameSelectorAccordion
-        games={games}
-        setGames={setGames}
-        addGame={addGame}
-      />
+      <GameSelectorAccordion games={games} setGames={setGames} addGame={addGame} />
       <ScrollArea offsetScrollbars>
         <FileInfo setGames={setGames} />
         <Stack>
@@ -124,13 +111,9 @@ function GameSelectorAccordion({
     },
   );
 
-  useHotkeys(
-    keyMap.PREVIOUS_GAME.keys,
-    () => setPage(Math.max(0, gameNumber - 1)),
-    {
-      enabled: !!tabFile,
-    },
-  );
+  useHotkeys(keyMap.PREVIOUS_GAME.keys, () => setPage(Math.max(0, gameNumber - 1)), {
+    enabled: !!tabFile,
+  });
 
   if (!tabFile) return null;
   const filePath = tabFile.path;
@@ -147,10 +130,7 @@ function GameSelectorAccordion({
     setState(tree);
 
     setCurrentTab((prev) => {
-      if (
-        prev.gameOrigin.kind !== "file" &&
-        prev.gameOrigin.kind !== "temp_file"
-      ) {
+      if (prev.gameOrigin.kind !== "file" && prev.gameOrigin.kind !== "temp_file") {
         return prev;
       }
       return {
@@ -166,10 +146,7 @@ function GameSelectorAccordion({
   async function deleteGame(index: number) {
     await commands.deleteGame(filePath, index);
     setCurrentTab((prev) => {
-      if (
-        prev.gameOrigin.kind !== "file" &&
-        prev.gameOrigin.kind !== "temp_file"
-      ) {
+      if (prev.gameOrigin.kind !== "file" && prev.gameOrigin.kind !== "temp_file") {
         return prev;
       }
       return {

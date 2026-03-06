@@ -26,14 +26,7 @@ import type { Piece } from "chessops";
 import { makeUci, parseUci } from "chessops";
 import { INITIAL_FEN } from "chessops/fen";
 import { useAtom, useAtomValue } from "jotai";
-import {
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
@@ -83,9 +76,7 @@ function gameResultToOutcome(result: GameResult): Outcome {
 
 type BackendMove = { uci: string; clock: number | null };
 
-function mapBackendMoves(
-  moves: { uci: string; clock: bigint | null }[],
-): BackendMove[] {
+function mapBackendMoves(moves: { uci: string; clock: bigint | null }[]): BackendMove[] {
   return moves.map((m) => ({
     uci: m.uci,
     clock: m.clock !== null ? Number(m.clock) : null,
@@ -110,12 +101,8 @@ function BoardGame() {
     );
   }
 
-  const [player1Settings, setPlayer1Settings] = useAtom(
-    gamePlayer1SettingsAtom,
-  );
-  const [player2Settings, setPlayer2Settings] = useAtom(
-    gamePlayer2SettingsAtom,
-  );
+  const [player1Settings, setPlayer1Settings] = useAtom(gamePlayer1SettingsAtom);
+  const [player2Settings, setPlayer2Settings] = useAtom(gamePlayer2SettingsAtom);
 
   function getPlayers() {
     let isPlayer1White = inputColor === "white";
@@ -153,18 +140,11 @@ function BoardGame() {
   const [logsOpened, toggleLogsOpened] = useToggle();
   const [logsColor, setLogsColor] = useState<"white" | "black">("white");
   const [engineLogs, setEngineLogs] = useState<EngineLog[]>([]);
-  const [openingBookPath, setOpeningBookPath] = useAtom(
-    gameOpeningBookPathAtom,
-  );
-  const [openingBookEnabled, setOpeningBookEnabled] = useAtom(
-    gameOpeningBookEnabledAtom,
-  );
-  const [openingBookMaxPly, setOpeningBookMaxPly] = useAtom(
-    gameOpeningBookMaxPlyAtom,
-  );
+  const [openingBookPath, setOpeningBookPath] = useAtom(gameOpeningBookPathAtom);
+  const [openingBookEnabled, setOpeningBookEnabled] = useAtom(gameOpeningBookEnabledAtom);
+  const [openingBookMaxPly, setOpeningBookMaxPly] = useAtom(gameOpeningBookMaxPlyAtom);
 
-  const hasEngine =
-    players.white.type === "engine" || players.black.type === "engine";
+  const hasEngine = players.white.type === "engine" || players.black.type === "engine";
 
   const isPlayerVsEngine =
     (players.white.type === "human" && players.black.type === "engine") ||
@@ -175,10 +155,7 @@ function BoardGame() {
     let color = logsColor;
     if (players.white.type === "human" && players.black.type === "engine") {
       color = "black";
-    } else if (
-      players.black.type === "human" &&
-      players.white.type === "engine"
-    ) {
+    } else if (players.black.type === "human" && players.white.type === "engine") {
       color = "white";
     }
     const result = await commands.getGameEngineLogs(gameId, color);
@@ -247,9 +224,7 @@ function BoardGame() {
 
   function changeToAnalysisMode() {
     setTabs((prev) =>
-      prev.map((tab) =>
-        tab.value === activeTab ? { ...tab, type: "analysis" } : tab,
-      ),
+      prev.map((tab) => (tab.value === activeTab ? { ...tab, type: "analysis" } : tab)),
     );
   }
 
@@ -422,9 +397,7 @@ function BoardGame() {
     [gameId, gameState],
   );
 
-  const pendingMovesRef = useRef<
-    { uci: string; clock: number | null }[] | null
-  >(null);
+  const pendingMovesRef = useRef<{ uci: string; clock: number | null }[] | null>(null);
   const pendingTimesRef = useRef<{
     white: number | null;
     black: number | null;
@@ -481,12 +454,8 @@ function BoardGame() {
 
     const unlistenClock = events.clockUpdateEvent.listen(({ payload }) => {
       if (payload.gameId !== currentGameId) return;
-      setWhiteTime(
-        payload.whiteTime !== null ? Number(payload.whiteTime) : null,
-      );
-      setBlackTime(
-        payload.blackTime !== null ? Number(payload.blackTime) : null,
-      );
+      setWhiteTime(payload.whiteTime !== null ? Number(payload.whiteTime) : null);
+      setBlackTime(payload.blackTime !== null ? Number(payload.blackTime) : null);
     });
 
     const unlistenGameOver = events.gameOverEvent.listen(({ payload }) => {
@@ -524,19 +493,12 @@ function BoardGame() {
 
           syncTreeWithMovesRef.current(mapBackendMoves(state.moves));
 
-          setWhiteTime(
-            state.whiteTime !== null ? Number(state.whiteTime) : null,
-          );
-          setBlackTime(
-            state.blackTime !== null ? Number(state.blackTime) : null,
-          );
+          setWhiteTime(state.whiteTime !== null ? Number(state.whiteTime) : null);
+          setBlackTime(state.blackTime !== null ? Number(state.blackTime) : null);
 
           if (state.status !== "playing") {
             setGameState("gameOver");
-            if (
-              typeof state.status === "object" &&
-              "finished" in state.status
-            ) {
+            if (typeof state.status === "object" && "finished" in state.status) {
               setResult(gameResultToOutcome(state.status.finished.result));
             }
           }
@@ -558,13 +520,10 @@ function BoardGame() {
     return "none";
   }, [players]);
 
-  const [sameTimeControl, setSameTimeControl] = useAtom(
-    gameSameTimeControlAtom,
-  );
+  const [sameTimeControl, setSameTimeControl] = useAtom(gameSameTimeControlAtom);
 
   const onePlayerIsEngine = players.white.type !== players.black.type;
-  const isEngineVsEngine =
-    players.white.type === "engine" && players.black.type === "engine";
+  const isEngineVsEngine = players.white.type === "engine" && players.black.type === "engine";
 
   function getResignationLosingColor(): "white" | "black" {
     if (isPlayerVsEngine) {
@@ -619,12 +578,8 @@ function BoardGame() {
           disableVariations
           boardRef={boardRef}
           movable={gameState === "settingUp" && editingMode ? "none" : movable}
-          whiteTime={
-            gameState === "playing" ? (whiteTime ?? undefined) : undefined
-          }
-          blackTime={
-            gameState === "playing" ? (blackTime ?? undefined) : undefined
-          }
+          whiteTime={gameState === "playing" ? (whiteTime ?? undefined) : undefined}
+          blackTime={gameState === "playing" ? (blackTime ?? undefined) : undefined}
           onMove={handleHumanMove}
           selectedPiece={selectedPiece}
           cgRef={cgRef}
@@ -639,13 +594,10 @@ function BoardGame() {
               onRefresh={fetchEngineLogs}
               additionalControls={
                 <>
-                  {players.white.type === "engine" &&
-                  players.black.type === "engine" ? (
+                  {players.white.type === "engine" && players.black.type === "engine" ? (
                     <SegmentedControl
                       value={logsColor}
-                      onChange={(value) =>
-                        setLogsColor(value as "white" | "black")
-                      }
+                      onChange={(value) => setLogsColor(value as "white" | "black")}
                       data={[
                         { value: "white", label: "White" },
                         { value: "black", label: "Black" },
@@ -726,9 +678,7 @@ function BoardGame() {
                         <Checkbox
                           label="Enable Opening Book"
                           checked={openingBookEnabled}
-                          onChange={(e) =>
-                            setOpeningBookEnabled(e.currentTarget.checked)
-                          }
+                          onChange={(e) => setOpeningBookEnabled(e.currentTarget.checked)}
                         />
 
                         {openingBookEnabled && (
@@ -746,13 +696,8 @@ function BoardGame() {
                                 min={1}
                                 value={openingBookMaxPly}
                                 onChange={(value) => {
-                                  if (
-                                    typeof value === "number" &&
-                                    Number.isFinite(value)
-                                  ) {
-                                    setOpeningBookMaxPly(
-                                      Math.max(1, Math.trunc(value)),
-                                    );
+                                  if (typeof value === "number" && Number.isFinite(value)) {
+                                    setOpeningBookMaxPly(Math.max(1, Math.trunc(value)));
                                   }
                                 }}
                               />
@@ -792,11 +737,7 @@ function BoardGame() {
                       </Button>
                     )}
                     {gameState === "gameOver" && (
-                      <Button
-                        variant="default"
-                        onClick={handleNewGame}
-                        leftSection={<IconPlus />}
-                      >
+                      <Button variant="default" onClick={handleNewGame} leftSection={<IconPlus />}>
                         New Game
                       </Button>
                     )}

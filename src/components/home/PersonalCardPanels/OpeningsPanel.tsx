@@ -157,20 +157,12 @@ function OpeningsPanel({
               >
                 <Group grow>
                   {white ? (
-                    <OpeningDetail
-                      opening={white}
-                      totalGames={whiteGames}
-                      color="white"
-                    />
+                    <OpeningDetail opening={white} totalGames={whiteGames} color="white" />
                   ) : (
                     <div />
                   )}
                   {black ? (
-                    <OpeningDetail
-                      opening={black}
-                      totalGames={blackGames}
-                      color="black"
-                    />
+                    <OpeningDetail opening={black} totalGames={blackGames} color="black" />
                   ) : (
                     <div />
                   )}
@@ -225,12 +217,7 @@ function OpeningDetail({
         </Text>
         <Text>{(openingRate * 100).toFixed(2)}%</Text>
       </Group>
-      <ResultsChart
-        won={opening.won}
-        draw={opening.draw}
-        lost={opening.lost}
-        size="1.5rem"
-      />
+      <ResultsChart won={opening.won} draw={opening.draw} lost={opening.lost} size="1.5rem" />
     </Stack>
   );
 }

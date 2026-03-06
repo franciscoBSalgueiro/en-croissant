@@ -44,9 +44,7 @@ function AddEngine({
   const { t } = useTranslation();
 
   const [allEngines, setEngines] = useAtom(enginesAtom);
-  const engines = (allEngines ?? []).filter(
-    (e): e is LocalEngine => e.type === "local",
-  );
+  const engines = (allEngines ?? []).filter((e): e is LocalEngine => e.type === "local");
 
   const { os } = usePlatform();
 
@@ -66,8 +64,7 @@ function AddEngine({
     validate: {
       name: (value) => {
         if (!value) return t("Common.RequireName");
-        if (engines.find((e) => e.name === value))
-          return t("Common.NameAlreadyUsed");
+        if (engines.find((e) => e.name === value)) return t("Common.NameAlreadyUsed");
       },
       path: (value) => {
         if (!value) return t("Common.RequirePath");
@@ -105,11 +102,7 @@ function AddEngine({
                 />
               ))}
               {error && (
-                <Alert
-                  icon={<IconAlertCircle size="1rem" />}
-                  title={t("Common.Error")}
-                  color="red"
-                >
+                <Alert icon={<IconAlertCircle size="1rem" />} title={t("Common.Error")} color="red">
                   {t("Engines.Add.ErrorFetch")}
                 </Alert>
               )}
@@ -169,9 +162,7 @@ function CloudCard({ engine }: { engine: RemoteEngine }) {
             {engine.url}
           </Text>
           <Button
-            disabled={
-              (engines ?? []).find((e) => e.type === engine.type) !== undefined
-            }
+            disabled={(engines ?? []).find((e) => e.type === engine.type) !== undefined}
             fullWidth
             size="xs"
             onClick={() => {
@@ -217,10 +208,7 @@ function EngineCard({
     async (id: number, url: string) => {
       setInProgress(true);
       const enginesDir = await getEnginesDir();
-      let path = await resolve(
-        enginesDir,
-        `${url.slice(url.lastIndexOf("/") + 1)}`,
-      );
+      let path = await resolve(enginesDir, `${url.slice(url.lastIndexOf("/") + 1)}`);
       if (url.endsWith(".zip") || url.endsWith(".tar")) {
         path = enginesDir;
       }

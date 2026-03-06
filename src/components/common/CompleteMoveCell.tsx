@@ -53,9 +53,7 @@ function getTranspositions(fen: string, position: number[], root: TreeNode) {
 
   const matchingPositions = map.get(strippedFen) || [];
 
-  return matchingPositions.filter(
-    (targetPosition) => !hasMorePriority(position, targetPosition),
-  );
+  return matchingPositions.filter((targetPosition) => !hasMorePriority(position, targetPosition));
 }
 
 function CompleteMoveCell({
@@ -86,9 +84,7 @@ function CompleteMoveCell({
   const store = useContext(TreeStateContext)!;
   const isStart = useStore(store, (s) => equal(movePath, s.headers.start));
 
-  const isCurrentVariation = useStore(store, (s) =>
-    equal(s.position, movePath),
-  );
+  const isCurrentVariation = useStore(store, (s) => equal(s.position, movePath));
   const transpositions = useStoreWithEqualityFn(
     store,
     (s) => (fen ? getTranspositions(fen, movePath, s.root) : []),

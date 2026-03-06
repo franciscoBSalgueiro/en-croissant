@@ -43,16 +43,8 @@ function GameInfo({
 
   return (
     <Box px="md" pt="md">
-      <FideInfo
-        opened={whiteOpened}
-        setOpened={setWhiteOpened}
-        name={headers.white}
-      />
-      <FideInfo
-        opened={blackOpened}
-        setOpened={setBlackOpened}
-        name={headers.black}
-      />
+      <FideInfo opened={whiteOpened} setOpened={setWhiteOpened} name={headers.white} />
+      <FideInfo opened={blackOpened} setOpened={setBlackOpened} name={headers.black} />
 
       <Group w="100%" wrap="nowrap">
         {!simplified && (
@@ -172,9 +164,7 @@ function GameInfo({
             headers.site.startsWith("https://www.chess.com") ? (
               <a href={headers.site} target="_blank" rel="noreferrer">
                 <Text p="sm" w={90}>
-                  {headers.site.startsWith("https://lichess.org")
-                    ? "Lichess"
-                    : "Chess.com"}
+                  {headers.site.startsWith("https://lichess.org") ? "Lichess" : "Chess.com"}
                 </Text>
               </a>
             ) : (
@@ -224,9 +214,7 @@ function GameInfo({
           <input
             className={classes.textInput}
             placeholder="Unknown ELO"
-            value={
-              headers.white_elo === 0 ? "Unrated" : headers.white_elo || ""
-            }
+            value={headers.white_elo === 0 ? "Unrated" : headers.white_elo || ""}
             onChange={(n) => {
               const val = n.currentTarget.value;
               setHeaders({
@@ -262,9 +250,7 @@ function GameInfo({
           <input
             className={cx(classes.textInput, classes.right)}
             placeholder="Unknown ELO"
-            value={
-              headers.black_elo === 0 ? "Unrated" : headers.black_elo || ""
-            }
+            value={headers.black_elo === 0 ? "Unrated" : headers.black_elo || ""}
             onChange={(n) => {
               const val = n.currentTarget.value;
               setHeaders({

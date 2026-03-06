@@ -59,12 +59,7 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check } from "@tauri-apps/plugin-updater";
 import ErrorComponent from "@/components/ErrorComponent";
-import {
-  getDatabasesDir,
-  getDocumentDir,
-  getEnginesDir,
-  getPuzzlesDir,
-} from "@/utils/directories";
+import { getDatabasesDir, getDocumentDir, getEnginesDir, getPuzzlesDir } from "@/utils/directories";
 import { initUserAgent } from "@/utils/http";
 import { routeTree } from "./routeTree.gen";
 
@@ -136,9 +131,7 @@ const checkForUpdates = async () => {
   }
 };
 
-const preloadReferenceDb = async (
-  store: ReturnType<typeof getDefaultStore>,
-) => {
+const preloadReferenceDb = async (store: ReturnType<typeof getDefaultStore>) => {
   const referenceDb = store.get(referenceDbAtom);
   if (referenceDb) {
     info(`Preloading reference database: ${referenceDb}`);

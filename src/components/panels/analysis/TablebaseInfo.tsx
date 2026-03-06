@@ -1,12 +1,4 @@
-import {
-  Accordion,
-  Badge,
-  Group,
-  Paper,
-  SimpleGrid,
-  Stack,
-  Text,
-} from "@mantine/core";
+import { Accordion, Badge, Group, Paper, SimpleGrid, Stack, Text } from "@mantine/core";
 import { parseUci } from "chessops";
 import { useContext } from "react";
 import { useTranslation } from "react-i18next";
@@ -17,13 +9,7 @@ import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { getTablebaseInfo, type TablebaseCategory } from "@/utils/lichess/api";
 import * as classes from "./TablebaseInfo.css";
 
-function TablebaseInfo({
-  fen,
-  turn,
-}: {
-  fen: string;
-  turn: "white" | "black";
-}) {
+function TablebaseInfo({ fen, turn }: { fen: string; turn: "white" | "black" }) {
   const { t } = useTranslation();
   const store = useContext(TreeStateContext)!;
   const makeMove = useStore(store, (s) => s.makeMove);
@@ -71,9 +57,7 @@ function TablebaseInfo({
                   {t("Common.Error")}: {error}
                 </Text>
               )}
-              {data && (
-                <OutcomeBadge category={data.category} turn={turn} wins />
-              )}
+              {data && <OutcomeBadge category={data.category} turn={turn} wins />}
             </Group>
           </Accordion.Control>
           <Accordion.Panel>
@@ -138,12 +122,8 @@ function OutcomeBadge({
         ? t("Board.Analysis.Tablebase.BlackWins")
         : t("Board.Analysis.Tablebase.WhiteWins"),
     )
-    .with(P.union("draw", "blessed-loss", "cursed-win"), () =>
-      t("Board.Analysis.Tablebase.Draw"),
-    )
-    .with(P.union("unknown", "maybe-win", "maybe-loss"), () =>
-      t("Common.Unknown"),
-    )
+    .with(P.union("draw", "blessed-loss", "cursed-win"), () => t("Board.Analysis.Tablebase.Draw"))
+    .with(P.union("unknown", "maybe-win", "maybe-loss"), () => t("Common.Unknown"))
     .exhaustive();
 
   const color = match(category)
@@ -163,14 +143,11 @@ function OutcomeBadge({
       <Badge autoContrast color={color}>
         {label}
       </Badge>
-      {["blessed-loss", "cursed-win", "maybe-win", "maybe-loss"].includes(
-        category,
-      ) &&
-        wins && (
-          <Text c="dimmed" fz="xs">
-            {t("Board.Analysis.Tablebase.FiftyMoveRule")}
-          </Text>
-        )}
+      {["blessed-loss", "cursed-win", "maybe-win", "maybe-loss"].includes(category) && wins && (
+        <Text c="dimmed" fz="xs">
+          {t("Board.Analysis.Tablebase.FiftyMoveRule")}
+        </Text>
+      )}
     </Group>
   );
 }

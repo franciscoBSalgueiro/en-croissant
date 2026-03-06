@@ -1,12 +1,4 @@
-import {
-  ActionIcon,
-  Divider,
-  Group,
-  Paper,
-  ScrollArea,
-  Stack,
-  Tooltip,
-} from "@mantine/core";
+import { ActionIcon, Divider, Group, Paper, ScrollArea, Stack, Tooltip } from "@mantine/core";
 import { IconTrash, IconZoomCheck } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
@@ -76,8 +68,7 @@ function GameCard({
                     mutate();
                     globalMutate(
                       (key) =>
-                        Array.isArray(key) &&
-                        (key[0] === "players" || key[0] === "tournaments"),
+                        Array.isArray(key) && (key[0] === "players" || key[0] === "tournaments"),
                       undefined,
                       { revalidate: true },
                     );

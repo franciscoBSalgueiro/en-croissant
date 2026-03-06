@@ -5,18 +5,11 @@ import useSWRImmutable from "swr/immutable";
 import { useStore } from "zustand";
 import { Chessground } from "@/chessground/Chessground";
 import { parsePGN } from "@/utils/chess";
-import {
-  type GameHeaders,
-  getNodeAtPath,
-  type TreeState,
-} from "@/utils/treeReducer";
+import { type GameHeaders, getNodeAtPath, type TreeState } from "@/utils/treeReducer";
 import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
 import OpeningName from "../common/OpeningName";
-import {
-  TreeStateContext,
-  TreeStateProvider,
-} from "../common/TreeStateContext";
+import { TreeStateContext, TreeStateProvider } from "../common/TreeStateContext";
 
 function GamePreviewWrapper({
   pgn,

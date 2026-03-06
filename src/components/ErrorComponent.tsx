@@ -1,13 +1,4 @@
-import {
-  Anchor,
-  Button,
-  Code,
-  CopyButton,
-  Group,
-  Stack,
-  Text,
-  Title,
-} from "@mantine/core";
+import { Anchor, Button, Code, CopyButton, Group, Stack, Text, Title } from "@mantine/core";
 import { useNavigate } from "@tanstack/react-router";
 import { Trans, useTranslation } from "react-i18next";
 
@@ -41,11 +32,7 @@ export default function ErrorComponent({ error }: { error: unknown }) {
             )}
           </CopyButton>
         )}
-        <Button
-          onClick={() =>
-            navigate({ to: "/" }).then(() => window.location.reload())
-          }
-        >
+        <Button onClick={() => navigate({ to: "/" }).then(() => window.location.reload())}>
           {t("Menu.View.Reload")}
         </Button>
       </Group>
@@ -60,12 +47,7 @@ export default function ErrorComponent({ error }: { error: unknown }) {
                 target="_blank"
               />
             ),
-            discord: (
-              <Anchor
-                href="https://discord.com/invite/tdYzfDbSSW"
-                target="_blank"
-              />
-            ),
+            discord: <Anchor href="https://discord.com/invite/tdYzfDbSSW" target="_blank" />,
           }}
         />
       </Text>

@@ -30,21 +30,10 @@ function ConvertButton({
     getProgress();
   }, []);
   return (
-    <Box
-      className={classes.card}
-      component="button"
-      type="button"
-      onClick={() => setOpen(true)}
-    >
+    <Box className={classes.card} component="button" type="button" onClick={() => setOpen(true)}>
       <Stack gap={0} justify="center" w="100%" h="100%">
         <Text mb={10}>{t("Common.AddNew")}</Text>
-        <Box>
-          {loading ? (
-            <Loader variant="dots" size="1.3rem" />
-          ) : (
-            <IconPlus size="1.3rem" />
-          )}
-        </Box>
+        <Box>{loading ? <Loader variant="dots" size="1.3rem" /> : <IconPlus size="1.3rem" />}</Box>
 
         {progress && loading && (
           <Box style={{ display: "flex", justifyContent: "space-around" }}>

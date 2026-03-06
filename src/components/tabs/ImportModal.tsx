@@ -107,14 +107,9 @@ export default function ImportModal({
             };
           }
           const tree = await parsePGN(input);
-          const originKind = (await isInTempDir(fileInfo.path))
-            ? "temp_file"
-            : "file";
+          const originKind = (await isInTempDir(fileInfo.path)) ? "temp_file" : "file";
           setCurrentTab((prev) => {
-            sessionStorage.setItem(
-              prev.value,
-              JSON.stringify({ version: 0, state: tree }),
-            );
+            sessionStorage.setItem(prev.value, JSON.stringify({ version: 0, state: tree }));
             return {
               ...prev,
               name: getGameName(tree.headers),
@@ -135,10 +130,7 @@ export default function ImportModal({
             });
           }
         } else {
-          const tempFile = await resolve(
-            await tempDir(),
-            `import_${Date.now()}.pgn`,
-          );
+          const tempFile = await resolve(await tempDir(), `import_${Date.now()}.pgn`);
           await writeTextFile(tempFile, pgn);
           await openFile(tempFile, setTabs, setActiveTab);
         }
@@ -170,10 +162,7 @@ export default function ImportModal({
 
       const tree = await parsePGN(pgn);
       setCurrentTab((prev) => {
-        sessionStorage.setItem(
-          prev.value,
-          JSON.stringify({ version: 0, state: tree }),
-        );
+        sessionStorage.setItem(prev.value, JSON.stringify({ version: 0, state: tree }));
         return {
           ...prev,
           name: getGameName(tree.headers),
@@ -195,10 +184,7 @@ export default function ImportModal({
       setCurrentTab((prev) => {
         const tree = defaultTree(parsedFen);
         tree.headers.fen = parsedFen;
-        sessionStorage.setItem(
-          prev.value,
-          JSON.stringify({ version: 0, state: tree }),
-        );
+        sessionStorage.setItem(prev.value, JSON.stringify({ version: 0, state: tree }));
         return {
           ...prev,
           name: t("Home.Card.AnalysisBoard.Title"),

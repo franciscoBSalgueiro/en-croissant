@@ -17,18 +17,8 @@ function FileInput({
   disabled?: boolean;
 } & Omit<InputWrapperProps, "children">) {
   return (
-    <Input.Wrapper
-      withAsterisk={withAsterisk}
-      label={label}
-      description={description}
-      {...props}
-    >
-      <Input
-        component="button"
-        type="button"
-        onClick={onClick}
-        disabled={disabled}
-      >
+    <Input.Wrapper withAsterisk={withAsterisk} label={label} description={description} {...props}>
+      <Input component="button" type="button" onClick={onClick} disabled={disabled}>
         <Text lineClamp={1}>{filename}</Text>
       </Input>
     </Input.Wrapper>

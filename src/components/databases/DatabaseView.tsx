@@ -1,10 +1,5 @@
 import { ActionIcon, Box, Group, Stack, Tabs, Title } from "@mantine/core";
-import {
-  IconArrowBackUp,
-  IconChess,
-  IconTrophy,
-  IconUser,
-} from "@tabler/icons-react";
+import { IconArrowBackUp, IconChess, IconTrophy, IconUser } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import GameTable from "@/components/databases/GameTable";
@@ -41,9 +36,7 @@ function DatabaseView() {
             <Tabs
               value={mode}
               onChange={(value) =>
-                setActiveTab(
-                  (value ?? "games") as DatabaseViewStore["activeTab"],
-                )
+                setActiveTab((value ?? "games") as DatabaseViewStore["activeTab"])
               }
               flex={1}
               style={{
@@ -56,41 +49,20 @@ function DatabaseView() {
                 <Tabs.Tab leftSection={<IconChess size="1rem" />} value="games">
                   {t("Common.Games")}
                 </Tabs.Tab>
-                <Tabs.Tab
-                  leftSection={<IconUser size="1rem" />}
-                  value="players"
-                >
+                <Tabs.Tab leftSection={<IconUser size="1rem" />} value="players">
                   {t("Databases.Card.Players")}
                 </Tabs.Tab>
-                <Tabs.Tab
-                  leftSection={<IconTrophy size="1rem" />}
-                  value="tournaments"
-                >
+                <Tabs.Tab leftSection={<IconTrophy size="1rem" />} value="tournaments">
                   {t("Databases.Settings.Events")}
                 </Tabs.Tab>
               </Tabs.List>
-              <Tabs.Panel
-                value="games"
-                flex={1}
-                style={{ overflow: "hidden" }}
-                pt="md"
-              >
+              <Tabs.Panel value="games" flex={1} style={{ overflow: "hidden" }} pt="md">
                 <GameTable />
               </Tabs.Panel>
-              <Tabs.Panel
-                value="players"
-                flex={1}
-                style={{ overflow: "hidden" }}
-                pt="md"
-              >
+              <Tabs.Panel value="players" flex={1} style={{ overflow: "hidden" }} pt="md">
                 <PlayerTable />
               </Tabs.Panel>
-              <Tabs.Panel
-                value="tournaments"
-                flex={1}
-                style={{ overflow: "hidden" }}
-                pt="md"
-              >
+              <Tabs.Panel value="tournaments" flex={1} style={{ overflow: "hidden" }} pt="md">
                 <TournamentTable />
               </Tabs.Panel>
             </Tabs>

@@ -27,9 +27,7 @@ function PlayerCard({ player, file }: { player: Player; file: string }) {
           </Center>
         </Paper>
       )}
-      {info && (
-        <PersonalPlayerCard name={player.name!} info={info} isDatabase />
-      )}
+      {info && <PersonalPlayerCard name={player.name!} info={info} isDatabase />}
     </>
   );
 }

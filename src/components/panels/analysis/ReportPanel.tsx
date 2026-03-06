@@ -81,10 +81,7 @@ function ReportPanel() {
         )}
 
         <Paper withBorder p="md">
-          <EvalChart
-            isAnalysing={inProgress}
-            startAnalysis={toggleReportingMode}
-          />
+          <EvalChart isAnalysing={inProgress} startAnalysis={toggleReportingMode} />
         </Paper>
 
         <GameStats {...stats} />
@@ -165,15 +162,7 @@ const GameStats = memo(
   },
 );
 
-function AccuracyCard({
-  color,
-  cpl,
-  accuracy,
-}: {
-  color: string;
-  cpl: number;
-  accuracy: number;
-}) {
+function AccuracyCard({ color, cpl, accuracy }: { color: string; cpl: number; accuracy: number }) {
   const { t } = useTranslation();
 
   return (

@@ -23,24 +23,12 @@ function getCastlingRights(setup: Setup) {
     const blackKingSquare = getCastlingSquare(setup, "b", "k");
     const blackQueenSquare = getCastlingSquare(setup, "b", "q");
     whiteCastling = {
-      k:
-        whiteKingSquare !== undefined
-          ? setup.castlingRights.has(whiteKingSquare)
-          : false,
-      q:
-        whiteQueenSquare !== undefined
-          ? setup.castlingRights.has(whiteQueenSquare)
-          : false,
+      k: whiteKingSquare !== undefined ? setup.castlingRights.has(whiteKingSquare) : false,
+      q: whiteQueenSquare !== undefined ? setup.castlingRights.has(whiteQueenSquare) : false,
     };
     blackCastling = {
-      k:
-        blackKingSquare !== undefined
-          ? setup.castlingRights.has(blackKingSquare)
-          : false,
-      q:
-        blackQueenSquare !== undefined
-          ? setup.castlingRights.has(blackQueenSquare)
-          : false,
+      k: blackKingSquare !== undefined ? setup.castlingRights.has(blackKingSquare) : false,
+      q: blackQueenSquare !== undefined ? setup.castlingRights.has(blackQueenSquare) : false,
     };
   }
 
@@ -67,32 +55,20 @@ function FenInput({ currentFen }: { currentFen: string }) {
   return <FenInputInner currentFen={currentFen} setup={setup} />;
 }
 
-function FenInputInner({
-  currentFen,
-  setup,
-}: {
-  currentFen: string;
-  setup: Setup;
-}) {
+function FenInputInner({ currentFen, setup }: { currentFen: string; setup: Setup }) {
   const { t } = useTranslation();
 
   const store = useContext(TreeStateContext)!;
   const setFen = useStore(store, (s) => s.setFen);
 
-  const { whiteCastling, blackCastling } = useMemo(
-    () => getCastlingRights(setup),
-    [setup],
-  );
+  const { whiteCastling, blackCastling } = useMemo(() => getCastlingRights(setup), [setup]);
 
   const setCastlingRights = useCallback(
     (color: "w" | "b", side: "q" | "k", value: boolean) => {
       if (setup) {
         const castlingSquare = getCastlingSquare(setup, color, side);
         if (castlingSquare !== undefined) {
-          setup.castlingRights = setup.castlingRights.set(
-            castlingSquare,
-            value,
-          );
+          setup.castlingRights = setup.castlingRights.set(castlingSquare, value);
           setFen(makeFen(setup));
         }
       }
@@ -103,41 +79,22 @@ function FenInputInner({
   useEffect(() => {
     let newCastlingRights = SquareSet.empty();
     if (whiteCastling.q) {
-      newCastlingRights = newCastlingRights.set(
-        getCastlingSquare(setup, "w", "q")!,
-        true,
-      );
+      newCastlingRights = newCastlingRights.set(getCastlingSquare(setup, "w", "q")!, true);
     }
     if (blackCastling.q) {
-      newCastlingRights = newCastlingRights.set(
-        getCastlingSquare(setup, "b", "q")!,
-        true,
-      );
+      newCastlingRights = newCastlingRights.set(getCastlingSquare(setup, "b", "q")!, true);
     }
     if (whiteCastling.k) {
-      newCastlingRights = newCastlingRights.set(
-        getCastlingSquare(setup, "w", "k")!,
-        true,
-      );
+      newCastlingRights = newCastlingRights.set(getCastlingSquare(setup, "w", "k")!, true);
     }
     if (blackCastling.k) {
-      newCastlingRights = newCastlingRights.set(
-        getCastlingSquare(setup, "b", "k")!,
-        true,
-      );
+      newCastlingRights = newCastlingRights.set(getCastlingSquare(setup, "b", "k")!, true);
     }
     const newFen = makeFen({ ...setup, castlingRights: newCastlingRights });
     if (newFen !== currentFen) {
       setFen(newFen);
     }
-  }, [
-    blackCastling,
-    setCastlingRights,
-    setup,
-    whiteCastling,
-    setFen,
-    currentFen,
-  ]);
+  }, [blackCastling, setCastlingRights, setup, whiteCastling, setFen, currentFen]);
 
   return (
     <Stack gap="sm">
@@ -162,10 +119,7 @@ function FenInputInner({
               value={setup?.turn || "white"}
               onChange={(value) => {
                 if (setup) {
-                  const newFen = swapMove(
-                    currentFen,
-                    value as "white" | "black",
-                  );
+                  const newFen = swapMove(currentFen, value as "white" | "black");
                   setFen(newFen);
                 }
               }}
@@ -178,17 +132,13 @@ function FenInputInner({
             <Checkbox
               label="O-O"
               checked={whiteCastling.k}
-              onChange={(e) =>
-                setCastlingRights("w", "k", e.currentTarget.checked)
-              }
+              onChange={(e) => setCastlingRights("w", "k", e.currentTarget.checked)}
               disabled={!setup}
             />
             <Checkbox
               label="O-O-O"
               checked={whiteCastling.q}
-              onChange={(e) =>
-                setCastlingRights("w", "q", e.currentTarget.checked)
-              }
+              onChange={(e) => setCastlingRights("w", "q", e.currentTarget.checked)}
               disabled={!setup}
             />
           </Stack>
@@ -197,17 +147,13 @@ function FenInputInner({
             <Checkbox
               label="O-O"
               checked={blackCastling.k}
-              onChange={(e) =>
-                setCastlingRights("b", "k", e.currentTarget.checked)
-              }
+              onChange={(e) => setCastlingRights("b", "k", e.currentTarget.checked)}
               disabled={!setup}
             />
             <Checkbox
               label="O-O-O"
               checked={blackCastling.q}
-              onChange={(e) =>
-                setCastlingRights("b", "q", e.currentTarget.checked)
-              }
+              onChange={(e) => setCastlingRights("b", "q", e.currentTarget.checked)}
               disabled={!setup}
             />
           </Stack>

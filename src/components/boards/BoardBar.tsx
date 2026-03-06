@@ -9,29 +9,11 @@ interface BoardBarProps {
   children?: ReactNode;
 }
 
-export function BoardBar({
-  name,
-  rating,
-  onNameClick,
-  height,
-  children,
-}: BoardBarProps) {
+export function BoardBar({ name, rating, onNameClick, height, children }: BoardBarProps) {
   return (
-    <Group
-      ml="2.5rem"
-      mr="xs"
-      h={height}
-      justify="space-between"
-      wrap="nowrap"
-      align="flex-end"
-    >
+    <Group ml="2.5rem" mr="xs" h={height} justify="space-between" wrap="nowrap" align="flex-end">
       <Group gap={6} align="baseline">
-        <Text
-          fw="bold"
-          size="md"
-          style={{ cursor: "pointer" }}
-          onClick={onNameClick}
-        >
+        <Text fw="bold" size="md" style={{ cursor: "pointer" }} onClick={onNameClick}>
           {name !== "?" && name}
         </Text>
         {rating && (

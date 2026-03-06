@@ -162,12 +162,7 @@ function TopBar({ menuActions }: { menuActions: MenuGroup[] }) {
       </Box>
       <Box>
         <Group gap={0} data-tauri-drag-region>
-          <Center
-            h="2.25rem"
-            w={45}
-            onClick={() => appWindow.minimize()}
-            className={classes.icon}
-          >
+          <Center h="2.25rem" w={45} onClick={() => appWindow.minimize()} className={classes.icon}>
             <IconMinimize />
           </Center>
           <Center
@@ -178,12 +173,7 @@ function TopBar({ menuActions }: { menuActions: MenuGroup[] }) {
           >
             {isMaximized ? <IconMaximize /> : <IconSquare />}
           </Center>
-          <Center
-            h="2.25rem"
-            w={45}
-            onClick={() => appWindow.close()}
-            className={classes.close}
-          >
+          <Center h="2.25rem" w={45} onClick={() => appWindow.close()} className={classes.close}>
             <IconX />
           </Center>
         </Group>

@@ -32,13 +32,9 @@ const LichessOptionsPanel = () => {
     "classical",
     "correspondence",
   ];
-  const ratings: LichessRating[] = [
-    0, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2500,
-  ];
+  const ratings: LichessRating[] = [0, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2500];
 
-  function mapTimeControl(
-    speed: LichessGameSpeed,
-  ): ToggleButtonGroupOption<LichessGameSpeed> {
+  function mapTimeControl(speed: LichessGameSpeed): ToggleButtonGroupOption<LichessGameSpeed> {
     const name = `${speed.charAt(0).toUpperCase()}${speed.slice(1)}`;
     const icon = match(speed)
       .with("ultraBullet", () => <IconChevronsRight />)
@@ -56,9 +52,7 @@ const LichessOptionsPanel = () => {
     };
   }
 
-  function mapRatingOption(
-    rating: LichessRating,
-  ): ToggleButtonGroupOption<LichessRating> {
+  function mapRatingOption(rating: LichessRating): ToggleButtonGroupOption<LichessRating> {
     const name = rating === 0 ? "400" : rating.toString();
     return {
       content: <span>{name}</span>,
@@ -146,9 +140,7 @@ const LichessOptionsPanel = () => {
           label="Player"
           placeholder="Player's username"
           value={options.player ?? ""}
-          onChange={(e) =>
-            setOptions({ ...options, player: e.currentTarget.value })
-          }
+          onChange={(e) => setOptions({ ...options, player: e.currentTarget.value })}
         />
         <Select
           label="Color"
@@ -158,9 +150,7 @@ const LichessOptionsPanel = () => {
             { label: "Black", value: "black" },
           ]}
           value={options.color}
-          onChange={(v) =>
-            setOptions({ ...options, color: v as "white" | "black" })
-          }
+          onChange={(v) => setOptions({ ...options, color: v as "white" | "black" })}
           clearable={false}
         />
       </Group>
