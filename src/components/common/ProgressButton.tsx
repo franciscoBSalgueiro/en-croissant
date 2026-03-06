@@ -1,23 +1,14 @@
-import { Box, Button, Progress, useMantineTheme } from "@mantine/core";
-import {
-  type EventCallback,
-  type UnlistenFn,
-  listen,
-} from "@tauri-apps/api/event";
-import { memo, useEffect, useState } from "react";
+import { ActionIcon, Box, Button, Group, Progress } from "@mantine/core";
+import { IconX } from "@tabler/icons-react";
+import { memo, useCallback, useEffect } from "react";
+import { useProgress } from "@/hooks/useProgress";
 import * as classes from "./ProgressButton.css";
 
-type Payload = {
-  id: string;
-  progress: number;
-  finished: boolean;
-};
-
-type Props<T> = {
+type Props = {
   id: string;
   initInstalled: boolean;
-  progressEvent: { listen: (handler: EventCallback<T>) => Promise<UnlistenFn> };
   onClick: (id: string) => void;
+  onCancel?: () => void;
   leftIcon?: React.ReactNode;
   labels: {
     completed: string;
@@ -31,61 +22,59 @@ type Props<T> = {
   setInProgress: (inProgress: boolean) => void;
 };
 
-function ProgressButton<T extends Payload>({
+function ProgressButton({
   id,
   initInstalled,
-  progressEvent,
   onClick,
+  onCancel,
   leftIcon,
   labels,
   disabled,
   redoable,
   inProgress,
   setInProgress,
-}: Props<T>) {
-  const [progress, setProgress] = useState(0);
-  const [completed, setCompleted] = useState(initInstalled);
+}: Props) {
+  const { progress, finished, isActive, clear } = useProgress(id);
+  const completed = initInstalled || finished;
+
+  const showProgress = isActive || inProgress;
 
   useEffect(() => {
-    const unlisten = progressEvent.listen(async ({ payload }) => {
-      if (payload.id !== id) return;
-      if (payload.finished) {
-        setInProgress(false);
-        setCompleted(true);
-        setProgress(0);
-      } else {
-        setProgress(payload.progress);
-      }
-    });
-    return () => {
-      unlisten.then((f) => f());
-    };
-  }, [id]);
+    if (finished) {
+      setInProgress(false);
+    }
+  }, [finished, setInProgress]);
+
+  const handleCancel = useCallback(() => {
+    if (onCancel) {
+      onCancel();
+    }
+    clear();
+    setInProgress(false);
+  }, [onCancel, clear, setInProgress]);
 
   let label: string;
   if (completed) {
     label = labels.completed;
   } else {
-    if (progress === 0 && !inProgress) label = labels.action;
+    if (progress === 0 && !showProgress) label = labels.action;
     else if (progress === 100) label = labels.finalizing ?? labels.inProgress;
     else label = labels.inProgress;
   }
-  const theme = useMantineTheme();
 
   return (
-    <>
+    <Group gap="xs" wrap="nowrap">
       <Button
         fullWidth
         onClick={() => {
           onClick(id);
         }}
-        color={completed ? "green" : theme.primaryColor}
-        disabled={inProgress || (completed && !redoable) || disabled}
+        disabled={showProgress || (completed && !redoable) || disabled}
         leftSection={<Box className={classes.label}>{leftIcon}</Box>}
         autoContrast
       >
         <span className={classes.label}>{label}</span>
-        {progress !== 0 && (
+        {!completed && progress !== 0 && (
           <Progress
             pos="absolute"
             h="100%"
@@ -95,7 +84,17 @@ function ProgressButton<T extends Payload>({
           />
         )}
       </Button>
-    </>
+      {showProgress && onCancel && (
+        <ActionIcon
+          variant="default"
+          size="lg"
+          onClick={handleCancel}
+          title="Cancel"
+        >
+          <IconX size="1rem" />
+        </ActionIcon>
+      )}
+    </Group>
   );
 }
 

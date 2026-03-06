@@ -1,9 +1,3 @@
-import { commands } from "@/bindings";
-import type { DatabaseInfo } from "@/bindings";
-import { sessionsAtom } from "@/state/atoms";
-import { getChessComAccount } from "@/utils/chess.com/api";
-import { getDatabases } from "@/utils/db";
-import { getLichessAccount } from "@/utils/lichess/api";
 import {
   Autocomplete,
   Button,
@@ -18,21 +12,84 @@ import { IconPlus } from "@tabler/icons-react";
 import { listen } from "@tauri-apps/api/event";
 import { useAtom, useAtomValue } from "jotai";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import type { DatabaseInfo } from "@/bindings";
+import { commands } from "@/bindings";
+import { sessionsAtom } from "@/state/atoms";
+import { getChessComAccount } from "@/utils/chess.com/api";
+import { getDatabases } from "@/utils/db";
+import { getLichessAccount } from "@/utils/lichess/api";
+import type { ChessComSession, LichessSession } from "@/utils/session";
 import AccountCards from "../common/AccountCards";
 import GenericCard from "../common/GenericCard";
 import LichessLogo from "./LichessLogo";
 
 function Accounts() {
-  const [, setSessions] = useAtom(sessionsAtom);
-  const isListesning = useRef(false);
+  const { t } = useTranslation();
+  const [sessions, setSessions] = useAtom(sessionsAtom);
+  const isListening = useRef(false);
   const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
   useEffect(() => {
     getDatabases().then((dbs) => setDatabases(dbs));
   }, []);
   const [open, setOpen] = useState(false);
 
-  async function login(username: string) {
-    await commands.authenticate(username);
+  function addChessComSession(alias: string, session: ChessComSession) {
+    setSessions((sessions) => {
+      const newSessions = sessions.filter(
+        (s) => s.chessCom?.username !== session.username,
+      );
+      return [
+        ...newSessions,
+        {
+          chessCom: session,
+          player: alias,
+          updatedAt: Date.now(),
+        },
+      ];
+    });
+  }
+
+  function addLichessSession(alias: string, session: LichessSession) {
+    setSessions((sessions) => {
+      const newSessions = sessions.filter(
+        (s) => s.lichess?.username !== session.username,
+      );
+      return [
+        ...newSessions,
+        {
+          lichess: session,
+          player: alias,
+          updatedAt: Date.now(),
+        },
+      ];
+    });
+  }
+
+  async function addChessCom(player: string, username: string) {
+    const p = player !== "" ? player : username;
+    const stats = await getChessComAccount(username);
+    if (!stats) {
+      return;
+    }
+    addChessComSession(p, { username, stats });
+  }
+
+  async function addLichessNoLogin(player: string, username: string) {
+    const p = player !== "" ? player : username;
+    const account = await getLichessAccount({ username });
+    if (!account) return;
+    addLichessSession(p, { username, account });
+  }
+
+  async function onLichessAuthentication(token: string) {
+    const player = sessionStorage.getItem("lichess_player_alias") || "";
+    sessionStorage.removeItem("lichess_player_alias");
+    const account = await getLichessAccount({ token });
+    if (!account) return;
+    const username = account.username;
+    const p = player !== "" ? player : username;
+    addLichessSession(p, { accessToken: token, username: username, account });
   }
 
   async function addLichess(
@@ -40,45 +97,20 @@ function Accounts() {
     username: string,
     withLogin: boolean,
   ) {
-    const p = player !== "" ? player : username;
     if (withLogin) {
-      login(username);
-    } else {
-      const account = await getLichessAccount({
-        username,
-      });
-      if (!account) return;
-      setSessions((sessions) => {
-        const newSessions = sessions.filter(
-          (s) => s.lichess?.username !== username,
-        );
-        return [
-          ...newSessions,
-          { lichess: { username, account }, player: p, updatedAt: Date.now() },
-        ];
-      });
+      sessionStorage.setItem("lichess_player_alias", player);
+      return await commands.authenticate(username);
     }
+    return await addLichessNoLogin(player, username);
   }
 
   useEffect(() => {
     async function listen_for_code() {
-      if (isListesning.current) return;
-      isListesning.current = true;
+      if (isListening.current) return;
+      isListening.current = true;
       await listen<string>("access_token", async (event) => {
         const token = event.payload;
-        const account = await getLichessAccount({ token });
-        if (!account) return;
-        setSessions((sessions) => [
-          ...sessions,
-          {
-            lichess: {
-              accessToken: token,
-              account,
-              username: account.username,
-            },
-            updatedAt: Date.now(),
-          },
-        ]);
+        await onLichessAuthentication(token);
       });
     }
 
@@ -87,38 +119,26 @@ function Accounts() {
 
   return (
     <>
-      <AccountCards databases={databases} setDatabases={setDatabases} />
-      <Group>
-        <Button
-          rightSection={<IconPlus size="1rem" />}
-          onClick={() => setOpen(true)}
-        >
-          Add Account
-        </Button>
-      </Group>
+      <AccountCards
+        databases={databases}
+        setDatabases={setDatabases}
+        onAddAccount={() => setOpen(true)}
+      />
+      {sessions.length > 0 && (
+        <Group>
+          <Button
+            rightSection={<IconPlus size="1rem" />}
+            onClick={() => setOpen(true)}
+          >
+            {t("Home.Accounts.Add")}
+          </Button>
+        </Group>
+      )}
       <AccountModal
         open={open}
         setOpen={setOpen}
         addLichess={addLichess}
-        addChessCom={(player, username) => {
-          getChessComAccount(username).then((stats) => {
-            const p = player !== "" ? player : username;
-            if (!stats) return;
-            setSessions((sessions) => {
-              const newSessions = sessions.filter(
-                (s) => s.chessCom?.username !== username,
-              );
-              return [
-                ...newSessions,
-                {
-                  chessCom: { username, stats },
-                  player: p,
-                  updatedAt: Date.now(),
-                },
-              ];
-            });
-          });
-        }}
+        addChessCom={addChessCom}
       />
     </>
   );
@@ -137,6 +157,7 @@ function AccountModal({
   addLichess: (player: string, username: string, withLogin: boolean) => void;
   addChessCom: (player: string, username: string) => void;
 }) {
+  const { t } = useTranslation();
   const sessions = useAtomValue(sessionsAtom);
   const [username, setUsername] = useState("");
   const [player, setPlayer] = useState<string>("");
@@ -159,7 +180,11 @@ function AccountModal({
   }
 
   return (
-    <Modal opened={open} onClose={() => setOpen(false)} title="Add Account">
+    <Modal
+      opened={open}
+      onClose={() => setOpen(false)}
+      title={t("Home.Accounts.Add")}
+    >
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -168,13 +193,14 @@ function AccountModal({
       >
         <Stack>
           <Autocomplete
-            label="Name"
+            label={t("Home.Accounts.PlayerName")}
+            description={t("Home.Accounts.PlayerName.Desc")}
             data={Array.from(players)}
             value={player}
             onChange={(value) => setPlayer(value)}
-            placeholder="Select player"
+            placeholder={t("Home.Accounts.SelectPlayer")}
           />
-          <InputWrapper label="Website" required>
+          <InputWrapper label={t("Home.Accounts.Website")} required>
             <Group grow>
               <GenericCard
                 id={"lichess"}
@@ -207,22 +233,22 @@ function AccountModal({
           </InputWrapper>
 
           <TextInput
-            label="Username"
-            placeholder="Enter your username"
+            label={t("Home.Accounts.Username")}
+            placeholder={t("Home.Accounts.EnterUsername")}
             required
             value={username}
             onChange={(e) => setUsername(e.currentTarget.value)}
           />
           {website === "lichess" && (
             <Checkbox
-              label="Login with browser"
-              description="Allows faster game downloads"
+              label={t("Home.Accounts.LoginWithBrowser")}
+              description={t("Home.Accounts.LoginWithBrowser.Desc")}
               checked={withLogin}
               onChange={(e) => setWithLogin(e.currentTarget.checked)}
             />
           )}
           <Button mt="1rem" type="submit">
-            Add
+            {t("Common.Add")}
           </Button>
         </Stack>
       </form>

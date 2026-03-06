@@ -1,8 +1,8 @@
-import { soundVolumeAtom } from "@/state/atoms";
-import { playSound } from "@/utils/sound";
 import { Slider } from "@mantine/core";
 import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
+import { soundVolumeAtom } from "@/state/atoms";
+import { playSound } from "@/utils/sound";
 
 export default function VolumeSlider() {
   const [volume, setVolume] = useAtom(soundVolumeAtom);

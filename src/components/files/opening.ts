@@ -1,9 +1,15 @@
+import type { SetStateAction } from "react";
+import {
+  type Card,
+  createEmptyCard,
+  fsrs,
+  type Grade,
+  generatorParameters,
+} from "ts-fsrs";
+import { z } from "zod";
 import type { PracticeData } from "@/state/atoms";
 import { isPrefix } from "@/utils/misc";
 import { type TreeNode, treeIterator } from "@/utils/treeReducer";
-import type { SetStateAction } from "react";
-import { type Card, createEmptyCard, fsrs, generatorParameters } from "ts-fsrs";
-import { z } from "zod";
 
 const params = generatorParameters({ enable_fuzz: true });
 
@@ -67,16 +73,18 @@ export function getStats(positions: Position[]) {
     nextDue: null,
     total: positions.length,
   };
+  const now = new Date();
   for (const card of positions) {
+    const dueDate = new Date(card.card.due);
     if (card.card.reps === 0) {
       stats.unseen++;
-    } else if (card.card.due < new Date()) {
+    } else if (dueDate <= now) {
       stats.due++;
     } else {
       stats.practiced++;
-    }
-    if (!stats.nextDue || card.card.due < stats.nextDue) {
-      stats.nextDue = card.card.due;
+      if (!stats.nextDue || dueDate < stats.nextDue) {
+        stats.nextDue = dueDate;
+      }
     }
   }
   return stats;
@@ -116,4 +124,59 @@ export function updateCardPerformance(
       logs: data.logs,
     };
   });
+}
+
+export function syncDeck(
+  existing: Position[],
+  tree: TreeNode,
+  color: "white" | "black",
+  start: number[],
+): { positions: Position[]; added: number; removed: number } {
+  const freshPositions = buildFromTree(tree, color, start);
+
+  const existingByFen = new Map<string, Position>();
+  for (const pos of existing) {
+    existingByFen.set(pos.fen, pos);
+  }
+
+  let added = 0;
+  const merged: Position[] = [];
+  for (const pos of freshPositions) {
+    const prev = existingByFen.get(pos.fen);
+    if (prev) {
+      merged.push({ ...prev, answer: pos.answer });
+    } else {
+      merged.push(pos);
+      added++;
+    }
+  }
+
+  const freshFens = new Set(freshPositions.map((p) => p.fen));
+  const removed = existing.filter((p) => !freshFens.has(p.fen)).length;
+
+  return { positions: merged, added, removed };
+}
+
+export function getNextReviewTimes(card: Card): Record<Grade, Date> {
+  const schedulingCards = f.repeat(card, new Date());
+  return {
+    1: schedulingCards[1].card.due,
+    2: schedulingCards[2].card.due,
+    3: schedulingCards[3].card.due,
+    4: schedulingCards[4].card.due,
+  };
+}
+
+export function formatReviewInterval(dueDate: Date): string {
+  const now = new Date();
+  const diffMs = dueDate.getTime() - now.getTime();
+  const diffMin = Math.round(diffMs / 60000);
+  const diffHrs = Math.round(diffMs / 3600000);
+  const diffDays = Math.round(diffMs / 86400000);
+
+  if (diffMin < 1) return "< 1m";
+  if (diffMin < 60) return `${diffMin}m`;
+  if (diffHrs < 24) return `${diffHrs}h`;
+  if (diffDays < 30) return `${diffDays}d`;
+  return `${Math.round(diffDays / 30)}mo`;
 }

@@ -1,6 +1,6 @@
-import { vars } from "@/styles/theme";
 import { rem } from "@mantine/core";
 import { style } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme";
 
 export const icon = style({
   width: rem(13),

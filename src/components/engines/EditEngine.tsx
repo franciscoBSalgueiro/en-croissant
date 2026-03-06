@@ -1,8 +1,8 @@
-import { enginesAtom } from "@/state/atoms";
-import type { LocalEngine } from "@/utils/engines";
 import { useForm } from "@mantine/form";
 import { useAtom } from "jotai";
 import { useTranslation } from "react-i18next";
+import { enginesAtom } from "@/state/atoms";
+import type { LocalEngine } from "@/utils/engines";
 import EngineForm from "./EngineForm";
 
 export default function EditEngine({
@@ -19,7 +19,9 @@ export default function EditEngine({
     validate: {
       name: (value) => {
         if (!value) return "Name is required";
-        if (engines.find((e) => e.name === value && e !== initialEngine))
+        if (
+          (engines ?? []).find((e) => e.name === value && e !== initialEngine)
+        )
           return "Name already used";
       },
       path: (value) => {

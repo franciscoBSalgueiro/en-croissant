@@ -46,3 +46,21 @@ globalStyle("cg-board square.oc.move-dest:hover", {
   },
   borderRadius: 0,
 });
+
+globalStyle("*", {
+  userSelect: "none",
+  WebkitUserSelect: "none",
+});
+
+globalStyle(":focus", {
+  outline: "none",
+});
+
+globalStyle("html, body", {
+  overscrollBehavior: "none",
+  overflow: "auto",
+});
+
+globalStyle(".mantine-ScrollArea-viewport", {
+  overscrollBehavior: "none",
+});

@@ -1,6 +1,6 @@
 import type { Chess } from "chessops";
 import { match } from "ts-pattern";
-import { type GameHeaders, type TreeNode, getNodeAtPath } from "./treeReducer";
+import { type GameHeaders, getNodeAtPath, type TreeNode } from "./treeReducer";
 
 function calculateProgress(
   root: TreeNode,

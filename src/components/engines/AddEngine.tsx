@@ -1,14 +1,3 @@
-import { events, commands } from "@/bindings";
-import { enginesAtom } from "@/state/atoms";
-import {
-  type LocalEngine,
-  type RemoteEngine,
-  requiredEngineSettings,
-  useDefaultEngines,
-} from "@/utils/engines";
-import { usePlatform } from "@/utils/files";
-import { formatBytes } from "@/utils/format";
-import { unwrap } from "@/utils/unwrap";
 import {
   Alert,
   Box,
@@ -20,16 +9,28 @@ import {
   Modal,
   Paper,
   ScrollArea,
-  Stack,
+  SimpleGrid,
   Tabs,
   Text,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconAlertCircle, IconDatabase, IconTrophy } from "@tabler/icons-react";
-import { appDataDir, join, resolve } from "@tauri-apps/api/path";
+import { join, resolve } from "@tauri-apps/api/path";
 import { useAtom } from "jotai";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { commands } from "@/bindings";
+import { enginesAtom } from "@/state/atoms";
+import { getEnginesDir } from "@/utils/directories";
+import {
+  type LocalEngine,
+  type RemoteEngine,
+  requiredEngineSettings,
+  useDefaultEngines,
+} from "@/utils/engines";
+import { usePlatform } from "@/utils/files";
+import { formatBytes } from "@/utils/format";
+import { unwrap } from "@/utils/unwrap";
 import ProgressButton from "../common/ProgressButton";
 import EngineForm from "./EngineForm";
 
@@ -43,7 +44,7 @@ function AddEngine({
   const { t } = useTranslation();
 
   const [allEngines, setEngines] = useAtom(enginesAtom);
-  const engines = allEngines.filter(
+  const engines = (allEngines ?? []).filter(
     (e): e is LocalEngine => e.type === "local",
   );
 
@@ -54,6 +55,7 @@ function AddEngine({
   const form = useForm<LocalEngine>({
     initialValues: {
       type: "local",
+      id: crypto.randomUUID(),
       version: "",
       name: "",
       path: "",
@@ -78,6 +80,7 @@ function AddEngine({
       opened={opened}
       onClose={() => setOpened(false)}
       title={t("Engines.Add.Title")}
+      size="80%"
     >
       <Tabs defaultValue="download">
         <Tabs.List>
@@ -91,8 +94,8 @@ function AddEngine({
               <Loader />
             </Center>
           )}
-          <ScrollArea.Autosize mah={500} offsetScrollbars>
-            <Stack>
+          <ScrollArea.Autosize mah={720} offsetScrollbars>
+            <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="sm">
               {defaultEngines?.map((engine, i) => (
                 <EngineCard
                   engine={engine}
@@ -110,13 +113,14 @@ function AddEngine({
                   {t("Engines.Add.ErrorFetch")}
                 </Alert>
               )}
-            </Stack>
+            </SimpleGrid>
           </ScrollArea.Autosize>
         </Tabs.Panel>
         <Tabs.Panel value="cloud" pt="xs">
-          <Stack>
+          <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="sm">
             <CloudCard
               engine={{
+                id: crypto.randomUUID(),
                 name: "ChessDB",
                 type: "chessdb",
                 url: "https://chessdb.cn",
@@ -124,12 +128,13 @@ function AddEngine({
             />
             <CloudCard
               engine={{
+                id: crypto.randomUUID(),
                 name: "Lichess Cloud",
                 type: "lichess",
                 url: "https://lichess.org",
               }}
             />
-          </Stack>
+          </SimpleGrid>
         </Tabs.Panel>
         <Tabs.Panel value="local" pt="xs">
           <EngineForm
@@ -153,22 +158,28 @@ function CloudCard({ engine }: { engine: RemoteEngine }) {
   return (
     <Paper withBorder radius="md" p={0} key={engine.name}>
       <Group wrap="nowrap" gap={0} grow>
-        <Box p="md" flex={1}>
+        <Box p="sm" flex={1}>
           <Text tt="uppercase" c="dimmed" fw={700} size="xs">
             ENGINE
           </Text>
-          <Text fw="bold">{engine.name}</Text>
+          <Text fw="bold" size="sm">
+            {engine.name}
+          </Text>
           <Text size="xs" c="dimmed" mb="xs">
             {engine.url}
           </Text>
           <Button
-            disabled={engines.find((e) => e.type === engine.type) !== undefined}
+            disabled={
+              (engines ?? []).find((e) => e.type === engine.type) !== undefined
+            }
             fullWidth
+            size="xs"
             onClick={() => {
               setEngines(async (prev) => [
                 ...(await prev),
                 {
                   ...engine,
+                  id: crypto.randomUUID(),
                   type: engine.type,
                   loaded: true,
                   settings: [
@@ -205,30 +216,27 @@ function EngineCard({
   const downloadEngine = useCallback(
     async (id: number, url: string) => {
       setInProgress(true);
+      const enginesDir = await getEnginesDir();
       let path = await resolve(
-        await appDataDir(),
-        "engines",
+        enginesDir,
         `${url.slice(url.lastIndexOf("/") + 1)}`,
       );
       if (url.endsWith(".zip") || url.endsWith(".tar")) {
-        path = await resolve(await appDataDir(), "engines");
+        path = enginesDir;
       }
       await commands.downloadFile(`engine_${id}`, url, path, null, null, null);
-      let appDataDirPath = await appDataDir();
-      if (appDataDirPath.endsWith("/") || appDataDirPath.endsWith("\\")) {
-        appDataDirPath = appDataDirPath.slice(0, -1);
+      let enginesDirPath = enginesDir;
+      if (enginesDirPath.endsWith("/") || enginesDirPath.endsWith("\\")) {
+        enginesDirPath = enginesDirPath.slice(0, -1);
       }
-      const enginePath = await join(
-        appDataDirPath,
-        "engines",
-        ...engine.path.split("/"),
-      );
+      const enginePath = await join(enginesDirPath, ...engine.path.split("/"));
       await commands.setFileAsExecutable(enginePath);
       const config = unwrap(await commands.getEngineConfig(enginePath));
       setEngines(async (prev) => [
         ...(await prev),
         {
           ...engine,
+          id: crypto.randomUUID(),
           type: "local",
           path: enginePath,
           loaded: true,
@@ -249,28 +257,27 @@ function EngineCard({
     <Paper withBorder radius="md" p={0} key={engine.name}>
       <Group wrap="nowrap" gap={0} grow>
         {engine.image && (
-          <Box w="2rem" px="xs">
+          <Box w="1.75rem" px="xs">
             <Image src={engine.image} alt={engine.name} fit="contain" />
           </Box>
         )}
-        <Box p="md" flex={1}>
+        <Box p="sm" flex={1}>
           <Text tt="uppercase" c="dimmed" fw={700} size="xs">
             ENGINE
           </Text>
-          <Text fw="bold" mb="xs">
+          <Text fw="bold" size="sm" mb="xs">
             {engine.name} {engine.version}
           </Text>
-          <Group wrap="nowrap" gap="xs">
+          <Group wrap="nowrap" gap="xs" fz="xs">
             <IconTrophy size="1rem" />
             <Text size="xs">{`${engine.elo} ELO`}</Text>
           </Group>
-          <Group wrap="nowrap" gap="xs" mb="xs">
+          <Group wrap="nowrap" gap="xs" mb="xs" fz="xs">
             <IconDatabase size="1rem" />
             <Text size="xs">{formatBytes(engine.downloadSize ?? 0)}</Text>
           </Group>
           <ProgressButton
             id={`engine_${engineId}`}
-            progressEvent={events.downloadProgress}
             initInstalled={initInstalled}
             labels={{
               completed: t("Common.Installed"),
@@ -278,7 +285,10 @@ function EngineCard({
               inProgress: t("Common.Downloading"),
               finalizing: t("Common.Extracting"),
             }}
-            onClick={() => downloadEngine(engineId, engine.downloadLink!)}
+            onClick={() => {
+              if (!engine.downloadLink) return;
+              downloadEngine(engineId, engine.downloadLink);
+            }}
             inProgress={inProgress}
             setInProgress={setInProgress}
           />

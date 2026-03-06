@@ -1,11 +1,11 @@
-import { TreeStateContext } from "@/components/common/TreeStateContext";
-import { getCastlingSquare, swapMove } from "@/utils/chessops";
 import { Button, Checkbox, Group, Select, Stack, Text } from "@mantine/core";
 import { type Setup, SquareSet } from "chessops";
 import { EMPTY_FEN, INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
 import { memo, useCallback, useContext, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
+import { getCastlingSquare, swapMove } from "@/utils/chessops";
 import FenSearch from "./FenSearch";
 
 type Castlingrights = {
@@ -51,9 +51,6 @@ function getCastlingRights(setup: Setup) {
 }
 
 function FenInput({ currentFen }: { currentFen: string }) {
-  const store = useContext(TreeStateContext)!;
-  const setFen = useStore(store, (s) => s.setFen);
-
   const [setup, error] = useMemo(
     () =>
       parseFen(currentFen).unwrap(
@@ -66,6 +63,21 @@ function FenInput({ currentFen }: { currentFen: string }) {
   if (!setup) {
     return <Text>{error.message}</Text>;
   }
+
+  return <FenInputInner currentFen={currentFen} setup={setup} />;
+}
+
+function FenInputInner({
+  currentFen,
+  setup,
+}: {
+  currentFen: string;
+  setup: Setup;
+}) {
+  const { t } = useTranslation();
+
+  const store = useContext(TreeStateContext)!;
+  const setFen = useStore(store, (s) => s.setFen);
 
   const { whiteCastling, blackCastling } = useMemo(
     () => getCastlingRights(setup),
@@ -114,10 +126,18 @@ function FenInput({ currentFen }: { currentFen: string }) {
         true,
       );
     }
-    setFen(makeFen({ ...setup, castlingRights: newCastlingRights }));
-  }, [blackCastling, setCastlingRights, setup, whiteCastling, setFen]);
-
-  const { t } = useTranslation();
+    const newFen = makeFen({ ...setup, castlingRights: newCastlingRights });
+    if (newFen !== currentFen) {
+      setFen(newFen);
+    }
+  }, [
+    blackCastling,
+    setCastlingRights,
+    setup,
+    whiteCastling,
+    setFen,
+    currentFen,
+  ]);
 
   return (
     <Stack gap="sm">

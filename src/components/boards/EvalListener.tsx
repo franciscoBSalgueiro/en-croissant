@@ -1,10 +1,19 @@
-import { events, type EngineOptions, type GoMode } from "@/bindings";
+import { parseUci } from "chessops";
+import { INITIAL_FEN, makeFen } from "chessops/fen";
+import equal from "fast-deep-equal";
+import { useAtom, useAtomValue } from "jotai";
+import { startTransition, useContext, useEffect, useMemo } from "react";
+import { match } from "ts-pattern";
+import { useStore } from "zustand";
+import { useShallow } from "zustand/react/shallow";
+import { type EngineOptions, events, type GoMode } from "@/bindings";
 import {
   activeTabAtom,
   currentThreatAtom,
   engineMovesFamily,
   engineProgressFamily,
   enginesAtom,
+  firstEngineWithLinesFamily,
   tabEngineSettingsFamily,
 } from "@/state/atoms";
 import { getVariationLine } from "@/utils/chess";
@@ -18,26 +27,17 @@ import {
 } from "@/utils/engines";
 import { getBestMoves as lichessGetBestMoves } from "@/utils/lichess/api";
 import { useThrottledEffect } from "@/utils/misc";
-import { parseUci } from "chessops";
-import { INITIAL_FEN, makeFen } from "chessops/fen";
-import equal from "fast-deep-equal";
-import { useAtom, useAtomValue } from "jotai";
-import { startTransition, useContext, useEffect, useMemo } from "react";
-import { match } from "ts-pattern";
-import { useStore } from "zustand";
-import { useShallow } from "zustand/react/shallow";
 import { TreeStateContext } from "../common/TreeStateContext";
 
 function EvalListener() {
   const [engines] = useAtom(enginesAtom);
   const threat = useAtomValue(currentThreatAtom);
   const store = useContext(TreeStateContext)!;
-  const is960 = useStore(store, (s) => s.headers.variant === "Chess960");
   const fen = useStore(store, (s) => s.root.fen);
 
   const moves = useStore(
     store,
-    useShallow((s) => getVariationLine(s.root, s.position, is960)),
+    useShallow((s) => getVariationLine(s.root, s.position)),
   );
 
   const [pos, error] = positionFromFen(fen);
@@ -70,24 +70,34 @@ function EvalListener() {
     [fen, moves, threat, finalFen],
   );
 
-  return engines.map((e) => (
-    <EngineListener
-      key={e.name}
-      engine={e}
-      isGameOver={isGameOver}
-      finalFen={finalFen || ""}
-      searchingFen={searchingFen}
-      searchingMoves={searchingMoves}
-      fen={fen}
-      moves={moves}
-      threat={threat}
-      chess960={is960}
-    />
-  ));
+  const firstEngineWithLines = useAtomValue(
+    firstEngineWithLinesFamily({
+      fen: searchingFen,
+      gameMoves: searchingMoves,
+    }),
+  );
+
+  return (engines ?? [])
+    .filter((e) => e.loaded)
+    .map((e) => (
+      <EngineListener
+        key={e.id}
+        engine={e}
+        firstEngineWithLines={firstEngineWithLines}
+        isGameOver={isGameOver}
+        finalFen={finalFen || ""}
+        searchingFen={searchingFen}
+        searchingMoves={searchingMoves}
+        fen={fen}
+        moves={moves}
+        threat={threat}
+      />
+    ));
 }
 
 function EngineListener({
   engine,
+  firstEngineWithLines,
   isGameOver,
   finalFen,
   searchingFen,
@@ -95,9 +105,9 @@ function EngineListener({
   fen,
   moves,
   threat,
-  chess960,
 }: {
   engine: Engine;
+  firstEngineWithLines: string | null;
   isGameOver: boolean;
   finalFen: string;
   searchingFen: string;
@@ -105,22 +115,21 @@ function EngineListener({
   fen: string;
   moves: string[];
   threat: boolean;
-  chess960: boolean;
 }) {
   const store = useContext(TreeStateContext)!;
   const setScore = useStore(store, (s) => s.setScore);
   const activeTab = useAtomValue(activeTabAtom);
 
   const [, setProgress] = useAtom(
-    engineProgressFamily({ engine: engine.name, tab: activeTab! }),
+    engineProgressFamily({ engine: engine.id, tab: activeTab! }),
   );
 
   const [, setEngineVariation] = useAtom(
-    engineMovesFamily({ engine: engine.name, tab: activeTab! }),
+    engineMovesFamily({ engine: engine.id, tab: activeTab! }),
   );
   const [settings] = useAtom(
     tabEngineSettingsFamily({
-      engineName: engine.name,
+      engineId: engine.id,
       defaultSettings: engine.settings ?? undefined,
       defaultGo: engine.go ?? undefined,
       tab: activeTab!,
@@ -131,7 +140,7 @@ function EngineListener({
     const unlisten = events.bestMovesPayload.listen(({ payload }) => {
       const ev = payload.bestLines;
       if (
-        payload.engine === engine.name &&
+        payload.engine === engine.id &&
         payload.tab === activeTab &&
         payload.fen === searchingFen &&
         equal(payload.moves, searchingMoves) &&
@@ -150,7 +159,11 @@ function EngineListener({
             return newMap;
           });
           setProgress(payload.progress);
-          setScore(ev[0].score);
+          const shouldSetScore =
+            firstEngineWithLines === engine.id || firstEngineWithLines === null;
+          if (shouldSetScore) {
+            setScore(ev[0].score);
+          }
         });
       }
     });
@@ -164,8 +177,9 @@ function EngineListener({
     isGameOver,
     searchingFen,
     JSON.stringify(searchingMoves),
-    engine.name,
+    engine.id,
     setEngineVariation,
+    firstEngineWithLines,
   ]);
 
   const getBestMoves = useMemo(
@@ -195,9 +209,6 @@ function EngineListener({
               name: s.name,
               value: s.value?.toString() || "",
             })) ?? [];
-          if (chess960 && !options.find((o) => o.name === "UCI_Chess960")) {
-            options.push({ name: "UCI_Chess960", value: "true" });
-          }
           getBestMoves(activeTab!, settings.go, {
             moves: searchingMoves,
             fen: searchingFen,

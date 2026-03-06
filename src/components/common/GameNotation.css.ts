@@ -1,5 +1,5 @@
-import { vars } from "@/styles/theme";
 import { style } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme";
 
 export const variationBorder = style({
   borderLeft: "2px solid #404040",
@@ -17,4 +17,26 @@ export const lineBeforeVariation = style({
     marginLeft: -5,
     marginTop: 16,
   },
+});
+
+export const moveTableMoveNumber = style({
+  width: 36,
+  textAlign: "center",
+  fontSize: "0.8rem",
+  fontWeight: 600,
+  opacity: 0.6,
+  verticalAlign: "middle",
+  [vars.darkSelector]: {
+    color: "#aaa",
+  },
+  [vars.lightSelector]: {
+    color: "#666",
+  },
+});
+
+export const moveTableCell = style({
+  padding: 0,
+  verticalAlign: "middle",
+  overflow: "hidden",
+  minWidth: 0,
 });

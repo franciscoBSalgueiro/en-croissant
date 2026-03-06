@@ -1,15 +1,20 @@
-import type { Outcome } from "@/bindings";
-import type { GameHeaders } from "@/utils/treeReducer";
 import { Box, Group, Select, SimpleGrid, Text } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import cx from "clsx";
 import dayjs from "dayjs";
 import { memo, useContext, useState } from "react";
-import { useStore } from "zustand";
+import { useTranslation } from "react-i18next";
+import { createStore, useStore } from "zustand";
+import type { Outcome } from "@/bindings";
+import type { GameHeaders } from "@/utils/treeReducer";
 import FideInfo from "../databases/FideInfo";
-import { ContentEditable } from "../tabs/ContentEditable";
 import * as classes from "./GameInfo.css";
+import { InlineInput } from "./InlineInput";
 import { TreeStateContext } from "./TreeStateContext";
+
+const EMPTY_STORE = createStore(() => ({
+  setHeaders: () => {},
+}));
 
 function GameInfo({
   headers,
@@ -20,10 +25,10 @@ function GameInfo({
   simplified?: boolean;
   changeTitle?: (title: string) => void;
 }) {
-  const store = useContext(TreeStateContext);
-  const disabled = store === null;
-  const setHeaders =
-    store !== null ? useStore(store, (s) => s.setHeaders) : () => {};
+  const { t } = useTranslation();
+  const store = useContext(TreeStateContext) || EMPTY_STORE;
+  const disabled = store === EMPTY_STORE;
+  const setHeaders = useStore(store, (s) => s.setHeaders);
 
   const date = headers.date
     ? dayjs(headers.date, "YYYY.MM.DD").isValid()
@@ -62,16 +67,11 @@ function GameInfo({
           </Text>
         )}
         <Group wrap="nowrap" justify={simplified ? "start" : "center"} w="100%">
-          <ContentEditable
+          <InlineInput
             disabled={disabled}
-            html={event}
-            data-placeholder={
-              simplified ? "Enter Opening Title" : "Unknown Event"
-            }
-            className={cx(
-              classes.contentEditable,
-              !event && classes.contentEditablePlaceholder,
-            )}
+            value={event}
+            placeholder={simplified ? "Enter Opening Title" : "Unknown Event"}
+            className={classes.input}
             onChange={(e) => {
               setHeaders({
                 ...headers,
@@ -85,7 +85,7 @@ function GameInfo({
           {headers.round && headers.round !== "?" && (
             <>
               {"-"}
-              <Group gap={0} className={classes.textInput} wrap="nowrap">
+              <Group gap={0} wrap="nowrap">
                 <Text c="dimmed" size="sm" mr="xs">
                   Round
                 </Text>
@@ -120,7 +120,7 @@ function GameInfo({
       </Group>
       {simplified && (
         <Group gap={4}>
-          <Text size="sm">opening for</Text>
+          <Text size="sm">{t("GameInfo.OpeningFor")}</Text>
 
           <Select
             allowDeselect={false}
@@ -143,11 +143,11 @@ function GameInfo({
             data={[
               {
                 value: "white",
-                label: "White",
+                label: t("Fen.White"),
               },
               {
                 value: "black",
-                label: "Black",
+                label: t("Fen.Black"),
               },
             ]}
           />
@@ -178,13 +178,11 @@ function GameInfo({
                 </Text>
               </a>
             ) : (
-              <ContentEditable
-                className={cx(
-                  classes.contentEditable,
-                  !site && classes.contentEditablePlaceholder,
-                )}
-                data-placeholder="Unknown Site"
-                html={site}
+              <InlineInput
+                className={classes.input}
+                placeholder="Unknown Site"
+                value={site}
+                onFocus={(e) => e.target.select()}
                 onChange={(e) =>
                   setHeaders({
                     ...headers,
@@ -226,13 +224,21 @@ function GameInfo({
           <input
             className={classes.textInput}
             placeholder="Unknown ELO"
-            value={headers.white_elo || ""}
-            onChange={(n) =>
+            value={
+              headers.white_elo === 0 ? "Unrated" : headers.white_elo || ""
+            }
+            onChange={(n) => {
+              const val = n.currentTarget.value;
               setHeaders({
                 ...headers,
-                white_elo: Number.parseInt(n.currentTarget.value),
-              })
-            }
+                white_elo:
+                  val.toLowerCase() === "unrated" || val === "-"
+                    ? 0
+                    : val === "" || Number.isNaN(Number.parseInt(val))
+                      ? undefined
+                      : Number.parseInt(val),
+              });
+            }}
             disabled={disabled}
           />
           <Select
@@ -256,13 +262,21 @@ function GameInfo({
           <input
             className={cx(classes.textInput, classes.right)}
             placeholder="Unknown ELO"
-            value={headers.black_elo || ""}
-            onChange={(n) =>
+            value={
+              headers.black_elo === 0 ? "Unrated" : headers.black_elo || ""
+            }
+            onChange={(n) => {
+              const val = n.currentTarget.value;
               setHeaders({
                 ...headers,
-                black_elo: Number.parseInt(n.currentTarget.value),
-              })
-            }
+                black_elo:
+                  val.toLowerCase() === "unrated" || val === "-"
+                    ? 0
+                    : val === "" || Number.isNaN(Number.parseInt(val))
+                      ? undefined
+                      : Number.parseInt(val),
+              });
+            }}
             disabled={disabled}
           />
         </SimpleGrid>

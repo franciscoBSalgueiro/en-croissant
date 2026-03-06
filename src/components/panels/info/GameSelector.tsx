@@ -1,10 +1,3 @@
-import { commands } from "@/bindings";
-import ConfirmModal from "@/components/common/ConfirmModal";
-import { fontSizeAtom } from "@/state/atoms";
-import { parsePGN } from "@/utils/chess";
-import { formatNumber } from "@/utils/format";
-import { getGameName } from "@/utils/treeReducer";
-import { unwrap } from "@/utils/unwrap";
 import { ActionIcon, Box, Group, ScrollArea, Text } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { IconX } from "@tabler/icons-react";
@@ -12,6 +5,13 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import cx from "clsx";
 import { useAtomValue } from "jotai";
 import { useCallback, useEffect, useRef } from "react";
+import { commands } from "@/bindings";
+import ConfirmModal from "@/components/common/ConfirmModal";
+import { fontSizeAtom } from "@/state/atoms";
+import { parsePGN } from "@/utils/chess";
+import { formatNumber } from "@/utils/format";
+import { getGameName } from "@/utils/treeReducer";
+import { unwrap } from "@/utils/unwrap";
 import * as classes from "./GameSelector.css";
 
 export default function GameSelector({
@@ -141,33 +141,35 @@ function GameRow({
       <Group
         style={style}
         justify="space-between"
-        pr="xl"
+        wrap="nowrap"
+        gap="xs"
         className={cx(classes.row, {
           [classes.active]: index === activePage,
         })}
+        onClick={() => {
+          setPage(index);
+        }}
       >
-        <Text
-          fz="sm"
-          truncate
-          maw={600}
-          onClick={() => {
-            setPage(index);
-          }}
-          flex={1}
-        >
-          {formatNumber(index + 1)}. {game}
+        <Text fz="xs" className={classes.index}>
+          {formatNumber(index + 1)}
+        </Text>
+        <Text fz="sm" truncate flex={1} lh="sm">
+          {game || "..."}
         </Text>
         {deleteGame && (
-          <Group>
-            <ActionIcon
-              onClick={() => toggleDelete()}
-              variant="outline"
-              color="red"
-              size="1rem"
-            >
-              <IconX />
-            </ActionIcon>
-          </Group>
+          <ActionIcon
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleDelete();
+            }}
+            variant="subtle"
+            color="red"
+            size="xs"
+            mr="xs"
+            className={classes.deleteBtn}
+          >
+            <IconX size={12} />
+          </ActionIcon>
         )}
       </Group>
     </>

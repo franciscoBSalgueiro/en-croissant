@@ -1,12 +1,7 @@
-import { commands } from "@/bindings";
-import type { DatabaseInfo } from "@/bindings";
-import { referenceDbAtom, selectedDatabaseAtom } from "@/state/atoms";
-import { type SuccessDatabaseInfo, getDatabases } from "@/utils/db";
-import { formatBytes, formatNumber } from "@/utils/format";
-import { unwrap } from "@/utils/unwrap";
 import {
   Box,
   Button,
+  Center,
   Checkbox,
   Divider,
   Group,
@@ -18,8 +13,9 @@ import {
   Skeleton,
   Stack,
   Text,
-  TextInput,
   Textarea,
+  TextInput,
+  ThemeIcon,
   Title,
   Tooltip,
 } from "@mantine/core";
@@ -31,6 +27,13 @@ import { useAtom } from "jotai";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
+import type { DatabaseInfo } from "@/bindings";
+import { commands } from "@/bindings";
+import { referenceDbAtom, storedDatabasesDirAtom } from "@/state/atoms";
+import { useActiveDatabaseViewStore } from "@/state/store/database";
+import { getDatabases, type SuccessDatabaseInfo } from "@/utils/db";
+import { formatBytes, formatNumber } from "@/utils/format";
+import { unwrap } from "@/utils/unwrap";
 import ConfirmModal from "../common/ConfirmModal";
 import GenericCard from "../common/GenericCard";
 import OpenFolderButton from "../common/OpenFolderButton";
@@ -54,7 +57,12 @@ export default function DatabasesPage() {
     () => (databases ?? []).find((db) => db.file === selected) ?? null,
     [databases, selected],
   );
-  const [, setStorageSelected] = useAtom(selectedDatabaseAtom);
+  const [databaseDir] = useAtom(storedDatabasesDirAtom);
+  // const [, setStorageSelected] = useAtom(selectedDatabaseAtom);
+  const setActiveDatabase = useActiveDatabaseViewStore(
+    (store) => store.setDatabase,
+  );
+
   const [referenceDatabase, setReferenceDatabase] = useAtom(referenceDbAtom);
   const isReference = referenceDatabase === selectedDatabase?.file;
 
@@ -80,7 +88,8 @@ export default function DatabasesPage() {
         opened={deleteModal}
         onClose={toggleDeleteModal}
         onConfirm={() => {
-          commands.deleteDatabase(selectedDatabase?.file!).then(() => {
+          if (!selectedDatabase) return;
+          commands.deleteDatabase(selectedDatabase.file).then(() => {
             mutate();
             setSelected(null);
           });
@@ -98,7 +107,7 @@ export default function DatabasesPage() {
 
       <Group align="baseline" pl="lg" py="sm">
         <Title>{t("Databases.Title")}</Title>
-        <OpenFolderButton base="AppDir" folder="db" />
+        <OpenFolderButton base="Database" folder={databaseDir} />
       </Group>
 
       <Group
@@ -137,7 +146,8 @@ export default function DatabasesPage() {
                         databaseId: item.title,
                       },
                     });
-                    setStorageSelected(item);
+                    setActiveDatabase(item);
+                    //setStorageSelected(item);
                   }}
                   Header={
                     <Group wrap="nowrap" justify="space-between">
@@ -189,28 +199,37 @@ export default function DatabasesPage() {
           </SimpleGrid>
         </ScrollArea>
 
-        <Paper withBorder p="md" h="100%">
-          {selectedDatabase === null ? (
-            <Text ta="center">No database selected</Text>
-          ) : (
+        {selectedDatabase === null ? (
+          <Paper withBorder style={{ borderWidth: 2 }} p="md" h="100%">
+            <Center h="100%">
+              <Stack align="center" gap="sm">
+                <ThemeIcon size={80} radius="100%" variant="light" color="gray">
+                  <IconDatabase size={40} />
+                </ThemeIcon>
+                <Text c="dimmed" fw={500} size="lg">
+                  {t("Databases.NoSelection")}
+                </Text>
+              </Stack>
+            </Center>
+          </Paper>
+        ) : (
+          <Paper withBorder style={{ borderWidth: 2 }} p="md" h="100%">
             <ScrollArea h="100%" offsetScrollbars>
               <Stack>
                 {selectedDatabase.type === "error" ? (
                   <>
                     <Text fz="lg" fw="bold">
-                      There was an error loading this database
+                      {t("Databases.LoadError.Title")}
                     </Text>
 
                     <Text>
                       <Text td="underline" span>
-                        Reason:
+                        {t("Common.Reason")}:
                       </Text>
                       {` ${selectedDatabase.error}`}
                     </Text>
 
-                    <Text>
-                      Check if the file exists and that it is not corrupted.
-                    </Text>
+                    <Text>{t("Databases.LoadError.Description")}</Text>
                   </>
                 ) : (
                   <>
@@ -251,7 +270,7 @@ export default function DatabasesPage() {
                           {t("Databases.Card.Players")}
                         </Text>
                         <Text fw={700} size="lg">
-                          {formatNumber(selectedDatabase.player_count)}
+                          {formatNumber(selectedDatabase.player_count - 1)}
                         </Text>
                       </Stack>
                       <Stack gap={0} justify="center" ta="center">
@@ -259,7 +278,7 @@ export default function DatabasesPage() {
                           {t("Databases.Settings.Events")}
                         </Text>
                         <Text fw={700} size="lg">
-                          {formatNumber(selectedDatabase.event_count)}
+                          {formatNumber(selectedDatabase.event_count - 1)}
                         </Text>
                       </Stack>
                     </Group>
@@ -268,9 +287,8 @@ export default function DatabasesPage() {
                       {selectedDatabase.type === "success" && (
                         <Button
                           component={Link}
-                          to="/databases/$databaseId"
-                          params={{ databaseId: selectedDatabase.title }}
-                          onClick={() => setStorageSelected(selectedDatabase)}
+                          to={`/databases/${selectedDatabase.title}`}
+                          onClick={() => setActiveDatabase(selectedDatabase)}
                           fullWidth
                           variant="default"
                           size="lg"
@@ -351,8 +369,8 @@ export default function DatabasesPage() {
                 </Group>
               </Stack>
             </ScrollArea>
-          )}
-        </Paper>
+          </Paper>
+        )}
       </Group>
     </Stack>
   );
@@ -448,7 +466,7 @@ function PlayerMerger({
       <Text fz="sm">{t("Databases.Settings.MergePlayers.Desc")}</Text>
       <Group grow>
         <PlayerSearchInput
-          label="Player 1"
+          label={t("Databases.Player.One")}
           file={selectedDatabase.file}
           setValue={setPlayer1}
         />
@@ -460,7 +478,7 @@ function PlayerMerger({
           {t("Databases.Settings.Merge")}
         </Button>
         <PlayerSearchInput
-          label="Player 2"
+          label={t("Databases.Player.Two")}
           file={selectedDatabase.file}
           setValue={setPlayer2}
         />

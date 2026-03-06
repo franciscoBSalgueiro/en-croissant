@@ -1,7 +1,7 @@
-import { getOpening } from "@/utils/chess";
 import { Text } from "@mantine/core";
 import { useContext, useEffect, useState } from "react";
 import { useStore } from "zustand";
+import { getOpening } from "@/utils/chess";
 import { TreeStateContext } from "./TreeStateContext";
 
 function OpeningName() {
@@ -15,7 +15,7 @@ function OpeningName() {
   }, [root, position]);
 
   return (
-    <Text style={{ userSelect: "text" }} fz="sm" h="1.5rem">
+    <Text style={{ userSelect: "text" }} fz="sm">
       {openingName}
     </Text>
   );

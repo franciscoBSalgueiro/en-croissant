@@ -22,3 +22,10 @@ globalStyle(
     },
   },
 );
+
+globalStyle(
+  `${chessboard} > .cg-wrap > cg-container > cg-board > square.current-premove`,
+  {
+    backgroundColor: "rgba(20, 30, 85, 0.5) !important",
+  },
+);

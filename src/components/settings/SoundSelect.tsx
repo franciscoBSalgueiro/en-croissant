@@ -1,5 +1,3 @@
-import { soundCollectionAtom } from "@/state/atoms";
-import { playSound } from "@/utils/sound";
 import {
   Combobox,
   Group,
@@ -10,6 +8,9 @@ import {
   useCombobox,
 } from "@mantine/core";
 import { useAtom } from "jotai";
+import { useTranslation } from "react-i18next";
+import { soundCollectionAtom } from "@/state/atoms";
+import { playSound } from "@/utils/sound";
 
 type Item = {
   label: string;
@@ -38,6 +39,7 @@ function SelectOption({ label }: { label: string }) {
 }
 
 export default function SoundSelect() {
+  const { t } = useTranslation();
   const combobox = useCombobox({
     onDropdownClose: () => combobox.resetSelectedOption(),
   });
@@ -74,7 +76,7 @@ export default function SoundSelect() {
           {selected ? (
             <SelectOption label={selected.label} />
           ) : (
-            <Input.Placeholder>Pick value</Input.Placeholder>
+            <Input.Placeholder>{t("Common.PickValue")}</Input.Placeholder>
           )}
         </InputBase>
       </Combobox.Target>

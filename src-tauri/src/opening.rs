@@ -10,7 +10,7 @@ use crate::error::Error;
 
 #[derive(Debug, Clone)]
 struct Opening {
-    eco: String,
+    _eco: String,
     name: String,
     setup: Setup,
     pgn: Option<String>,
@@ -62,6 +62,17 @@ pub fn get_opening_from_name(name: &str) -> Result<String, Error> {
         .ok_or_else(|| Error::NoOpeningFound)
 }
 
+#[tauri::command]
+#[specta::specta]
+pub fn get_opening_from_fens(fens: Vec<String>) -> Result<String, Error> {
+    for fen in fens.into_iter().rev() {
+        if let Ok(opening) = get_opening_from_fen(&fen) {
+            return Ok(opening);
+        }
+    }
+    Err(Error::NoOpeningFound)
+}
+
 pub fn get_opening_from_setup(setup: Setup) -> Result<String, Error> {
     OPENINGS
         .iter()
@@ -109,13 +120,13 @@ lazy_static! {
 
         let mut positions = vec![
             Opening {
-                eco: "Extra".to_string(),
+                _eco: "Extra".to_string(),
                 name: "Starting Position".to_string(),
                 setup: Setup::default(),
                 pgn: None,
             },
             Opening {
-                eco: "Extra".to_string(),
+                _eco: "Extra".to_string(),
                 name: "Empty Board".to_string(),
                 setup: Setup::empty(),
                 pgn: None,
@@ -133,7 +144,7 @@ lazy_static! {
                     }
                 }
                 positions.push(Opening {
-                    eco: record.eco,
+                    _eco: record.eco,
                     name: record.name,
                     setup: pos.into_setup(EnPassantMode::Legal),
                     pgn: Some(record.pgn),
@@ -147,7 +158,7 @@ lazy_static! {
             let record: FischerRandomRecord = result.expect("Failed to deserialize opening");
             let fen: Fen = record.fen.parse().expect("Failed to parse fen");
             positions.push(Opening {
-                eco: "FRC".to_string(),
+                _eco: "FRC".to_string(),
                 name: record.name,
                 setup: fen.into_setup(),
                 pgn: None,

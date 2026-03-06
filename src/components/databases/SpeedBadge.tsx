@@ -1,6 +1,6 @@
-import type { Speed } from "@/utils/db";
 import { Badge, type DefaultMantineColor } from "@mantine/core";
 import { match } from "ts-pattern";
+import type { Speed } from "@/utils/db";
 
 function SpeeedBadge({ speed }: { speed: Speed }) {
   const color: DefaultMantineColor = match(speed)

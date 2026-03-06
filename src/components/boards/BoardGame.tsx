@@ -1,16 +1,3 @@
-import { events, type GoMode, commands } from "@/bindings";
-import {
-  activeTabAtom,
-  currentGameStateAtom,
-  currentPlayersAtom,
-  enginesAtom,
-  tabsAtom,
-} from "@/state/atoms";
-import { getMainLine } from "@/utils/chess";
-import { positionFromFen } from "@/utils/chessops";
-import type { TimeControlField } from "@/utils/clock";
-import type { LocalEngine } from "@/utils/engines";
-import { type GameHeaders, treeIteratorMainLine } from "@/utils/treeReducer";
 import {
   ActionIcon,
   Box,
@@ -18,269 +5,101 @@ import {
   Checkbox,
   Divider,
   Group,
-  InputWrapper,
+  NumberInput,
   Paper,
   Portal,
   ScrollArea,
   SegmentedControl,
-  Select,
   Stack,
   Text,
-  TextInput,
 } from "@mantine/core";
+import { useToggle } from "@mantine/hooks";
 import {
   IconArrowsExchange,
+  IconFileText,
   IconPlus,
+  IconX,
   IconZoomCheck,
 } from "@tabler/icons-react";
-import { parseUci } from "chessops";
+import { open } from "@tauri-apps/plugin-dialog";
+import type { Piece } from "chessops";
+import { makeUci, parseUci } from "chessops";
 import { INITIAL_FEN } from "chessops/fen";
-import equal from "fast-deep-equal";
 import { useAtom, useAtomValue } from "jotai";
 import {
-  Suspense,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
+import type { Outcome } from "@/bindings";
+import {
+  commands,
+  type EngineLog,
+  events,
+  type GameConfig,
+  type GameResult,
+  type PlayerConfig,
+} from "@/bindings";
+import type { ChessgroundRef } from "@/chessground/Chessground";
+import {
+  activeTabAtom,
+  currentGameIdAtom,
+  currentGameStateAtom,
+  currentPlayersAtom,
+  gameInputColorAtom,
+  gameOpeningBookEnabledAtom,
+  gameOpeningBookMaxPlyAtom,
+  gameOpeningBookPathAtom,
+  gamePlayer1SettingsAtom,
+  gamePlayer2SettingsAtom,
+  gameSameTimeControlAtom,
+  tabsAtom,
+} from "@/state/atoms";
+import { positionFromFen } from "@/utils/chessops";
+import type { GameHeaders } from "@/utils/treeReducer";
+import { unwrap } from "@/utils/unwrap";
+import EngineLogsView from "../common/EngineLogsView";
+import FileInput from "../common/FileInput";
 import GameInfo from "../common/GameInfo";
 import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
-import TimeInput from "../common/TimeInput";
 import { TreeStateContext } from "../common/TreeStateContext";
-import EngineSettingsForm from "../panels/analysis/EngineSettingsForm";
 import Board from "./Board";
+import BoardControls from "./BoardControls";
+import EditingCard from "./EditingCard";
+import { OpponentForm, type OpponentSettings } from "./OpponentForm";
 
-function EnginesSelect({
-  engine,
-  setEngine,
-}: {
-  engine: LocalEngine | null;
-  setEngine: (engine: LocalEngine | null) => void;
-}) {
-  const engines = useAtomValue(enginesAtom).filter(
-    (e): e is LocalEngine => e.type === "local",
-  );
-
-  useEffect(() => {
-    if (engines.length > 0 && engine === null) {
-      setEngine(engines[0]);
-    }
-  }, [engine, engines[0], setEngine]);
-
-  return (
-    <Suspense>
-      <Select
-        label="Engine"
-        allowDeselect={false}
-        data={engines?.map((engine) => ({
-          label: engine.name,
-          value: engine.path,
-        }))}
-        value={engine?.path ?? ""}
-        onChange={(e) => {
-          setEngine(engines.find((engine) => engine.path === e) ?? null);
-        }}
-      />
-    </Suspense>
-  );
+function gameResultToOutcome(result: GameResult): Outcome {
+  if (result.type === "whiteWins") return "1-0";
+  if (result.type === "blackWins") return "0-1";
+  return "1/2-1/2";
 }
 
-export type OpponentSettings =
-  | {
-      type: "human";
-      timeControl?: TimeControlField;
-      name?: string;
-    }
-  | {
-      type: "engine";
-      timeControl?: TimeControlField;
-      engine: LocalEngine | null;
-      go: GoMode;
-    };
+type BackendMove = { uci: string; clock: number | null };
 
-function OpponentForm({
-  sameTimeControl,
-  opponent,
-  setOpponent,
-  setOtherOpponent,
-}: {
-  sameTimeControl: boolean;
-  opponent: OpponentSettings;
-  setOpponent: React.Dispatch<React.SetStateAction<OpponentSettings>>;
-  setOtherOpponent: React.Dispatch<React.SetStateAction<OpponentSettings>>;
-}) {
-  function updateType(type: "engine" | "human") {
-    if (type === "human") {
-      setOpponent((prev) => ({
-        ...prev,
-        type: "human",
-        name: "Player",
-      }));
-    } else {
-      setOpponent((prev) => ({
-        ...prev,
-        type: "engine",
-        engine: null,
-        go: {
-          t: "Depth",
-          c: 24,
-        },
-      }));
-    }
-  }
-
-  return (
-    <Stack flex={1}>
-      <SegmentedControl
-        data={[
-          { value: "human", label: "Human" },
-          { value: "engine", label: "Engine" },
-        ]}
-        value={opponent.type}
-        onChange={(v) => updateType(v as "human" | "engine")}
-      />
-
-      {opponent.type === "human" && (
-        <TextInput
-          label="Name"
-          value={opponent.name ?? ""}
-          onChange={(e) =>
-            setOpponent((prev) => ({ ...prev, name: e.target.value }))
-          }
-        />
-      )}
-
-      {opponent.type === "engine" && (
-        <EnginesSelect
-          engine={opponent.engine}
-          setEngine={(engine) => setOpponent((prev) => ({ ...prev, engine }))}
-        />
-      )}
-
-      <Divider variant="dashed" label="Time Settings" />
-      <SegmentedControl
-        data={["Time", "Unlimited"]}
-        value={opponent.timeControl ? "Time" : "Unlimited"}
-        onChange={(v) => {
-          setOpponent((prev) => ({
-            ...prev,
-            timeControl: v === "Time" ? DEFAULT_TIME_CONTROL : undefined,
-          }));
-          if (sameTimeControl) {
-            setOtherOpponent((prev) => ({
-              ...prev,
-              timeControl: v === "Time" ? DEFAULT_TIME_CONTROL : undefined,
-            }));
-          }
-        }}
-      />
-      <Group grow wrap="nowrap">
-        {opponent.timeControl && (
-          <>
-            <InputWrapper label="Time">
-              <TimeInput
-                defaultType="m"
-                value={opponent.timeControl.seconds}
-                setValue={(v) => {
-                  setOpponent((prev) => ({
-                    ...prev,
-                    timeControl: {
-                      seconds: v.t === "Time" ? v.c : 0,
-                      increment: prev.timeControl?.increment ?? 0,
-                    },
-                  }));
-                  if (sameTimeControl) {
-                    setOtherOpponent((prev) => ({
-                      ...prev,
-                      timeControl: {
-                        seconds: v.t === "Time" ? v.c : 0,
-                        increment: prev.timeControl?.increment ?? 0,
-                      },
-                    }));
-                  }
-                }}
-              />
-            </InputWrapper>
-            <InputWrapper label="Increment">
-              <TimeInput
-                defaultType="s"
-                value={opponent.timeControl.increment ?? 0}
-                setValue={(v) => {
-                  setOpponent((prev) => ({
-                    ...prev,
-                    timeControl: {
-                      seconds: prev.timeControl?.seconds ?? 0,
-                      increment: v.t === "Time" ? v.c : 0,
-                    },
-                  }));
-                  if (sameTimeControl) {
-                    setOtherOpponent((prev) => ({
-                      ...prev,
-                      timeControl: {
-                        seconds: prev.timeControl?.seconds ?? 0,
-                        increment: v.t === "Time" ? v.c : 0,
-                      },
-                    }));
-                  }
-                }}
-              />
-            </InputWrapper>
-          </>
-        )}
-      </Group>
-
-      {opponent.type === "engine" && (
-        <Stack>
-          {opponent.engine && !opponent.timeControl && (
-            <EngineSettingsForm
-              engine={opponent.engine}
-              remote={false}
-              gameMode
-              settings={{
-                go: opponent.go,
-                settings: opponent.engine.settings || [],
-                enabled: true,
-                synced: false,
-              }}
-              setSettings={(fn) =>
-                setOpponent((prev) => {
-                  if (prev.type === "human") {
-                    return prev;
-                  }
-                  const newSettings = fn({
-                    go: prev.go,
-                    settings: prev.engine?.settings || [],
-                    enabled: true,
-                    synced: false,
-                  });
-                  return { ...prev, ...newSettings };
-                })
-              }
-              minimal={true}
-            />
-          )}
-        </Stack>
-      )}
-    </Stack>
-  );
+function mapBackendMoves(
+  moves: { uci: string; clock: bigint | null }[],
+): BackendMove[] {
+  return moves.map((m) => ({
+    uci: m.uci,
+    clock: m.clock !== null ? Number(m.clock) : null,
+  }));
 }
-
-const DEFAULT_TIME_CONTROL: TimeControlField = {
-  seconds: 180_000,
-  increment: 2_000,
-};
 
 function BoardGame() {
+  const { t } = useTranslation();
   const activeTab = useAtomValue(activeTabAtom);
 
-  const [inputColor, setInputColor] = useState<"white" | "random" | "black">(
-    "white",
-  );
+  const [editingMode, toggleEditingMode] = useToggle();
+  const [selectedPiece, setSelectedPiece] = useState<Piece | null>(null);
+
+  const [inputColor, setInputColor] = useAtom(gameInputColorAtom);
   function cycleColor() {
     setInputColor((prev) =>
       match(prev)
@@ -291,25 +110,24 @@ function BoardGame() {
     );
   }
 
-  const [player1Settings, setPlayer1Settings] = useState<OpponentSettings>({
-    type: "human",
-    name: "Player",
-    timeControl: DEFAULT_TIME_CONTROL,
-  });
-  const [player2Settings, setPlayer2Settings] = useState<OpponentSettings>({
-    type: "human",
-    name: "Player",
-    timeControl: DEFAULT_TIME_CONTROL,
-  });
+  const [player1Settings, setPlayer1Settings] = useAtom(
+    gamePlayer1SettingsAtom,
+  );
+  const [player2Settings, setPlayer2Settings] = useAtom(
+    gamePlayer2SettingsAtom,
+  );
 
   function getPlayers() {
-    let white = inputColor === "white" ? player1Settings : player2Settings;
-    let black = inputColor === "black" ? player1Settings : player2Settings;
+    let isPlayer1White = inputColor === "white";
+
     if (inputColor === "random") {
-      white = Math.random() > 0.5 ? player1Settings : player2Settings;
-      black = white === player1Settings ? player2Settings : player1Settings;
+      isPlayer1White = Math.random() > 0.5;
     }
-    return { white, black };
+
+    return {
+      white: isPlayer1White ? player1Settings : player2Settings,
+      black: isPlayer1White ? player2Settings : player1Settings,
+    };
   }
 
   const store = useContext(TreeStateContext)!;
@@ -319,11 +137,113 @@ function BoardGame() {
   const setHeaders = useStore(store, (s) => s.setHeaders);
   const setResult = useStore(store, (s) => s.setResult);
   const appendMove = useStore(store, (s) => s.appendMove);
+  const resetTree = useStore(store, (s) => s.reset);
 
   const [, setTabs] = useAtom(tabsAtom);
 
   const boardRef = useRef(null);
+  const cgRef = useRef<ChessgroundRef>(null);
   const [gameState, setGameState] = useAtom(currentGameStateAtom);
+  const [players, setPlayers] = useAtom(currentPlayersAtom);
+
+  const [whiteTime, setWhiteTime] = useState<number | null>(null);
+  const [blackTime, setBlackTime] = useState<number | null>(null);
+  const [gameId, setGameId] = useAtom(currentGameIdAtom);
+
+  const [logsOpened, toggleLogsOpened] = useToggle();
+  const [logsColor, setLogsColor] = useState<"white" | "black">("white");
+  const [engineLogs, setEngineLogs] = useState<EngineLog[]>([]);
+  const [openingBookPath, setOpeningBookPath] = useAtom(
+    gameOpeningBookPathAtom,
+  );
+  const [openingBookEnabled, setOpeningBookEnabled] = useAtom(
+    gameOpeningBookEnabledAtom,
+  );
+  const [openingBookMaxPly, setOpeningBookMaxPly] = useAtom(
+    gameOpeningBookMaxPlyAtom,
+  );
+
+  const hasEngine =
+    players.white.type === "engine" || players.black.type === "engine";
+
+  const isPlayerVsEngine =
+    (players.white.type === "human" && players.black.type === "engine") ||
+    (players.black.type === "human" && players.white.type === "engine");
+
+  const fetchEngineLogs = useCallback(async () => {
+    if (!gameId || !hasEngine) return;
+    let color = logsColor;
+    if (players.white.type === "human" && players.black.type === "engine") {
+      color = "black";
+    } else if (
+      players.black.type === "human" &&
+      players.white.type === "engine"
+    ) {
+      color = "white";
+    }
+    const result = await commands.getGameEngineLogs(gameId, color);
+    if (result.status === "ok") {
+      setEngineLogs(result.data);
+    }
+  }, [gameId, logsColor, hasEngine, players.white.type, players.black.type]);
+
+  useEffect(() => {
+    if (logsOpened) {
+      fetchEngineLogs();
+    }
+  }, [logsOpened, fetchEngineLogs]);
+
+  const syncTreeWithMoves = useCallback(
+    (backendMoves: BackendMove[]) => {
+      const treeMoves: string[] = [];
+      let node = root;
+      while (node.children.length > 0) {
+        node = node.children[0];
+        if (node.move) {
+          treeMoves.push(makeUci(node.move));
+        }
+      }
+
+      let needsReset = false;
+      for (let i = 0; i < treeMoves.length; i++) {
+        if (i >= backendMoves.length || treeMoves[i] !== backendMoves[i].uci) {
+          needsReset = true;
+          break;
+        }
+      }
+
+      if (needsReset) {
+        setFen(root.fen);
+        for (const move of backendMoves) {
+          const parsed = parseUci(move.uci);
+          if (parsed) {
+            appendMove({
+              payload: parsed,
+              clock: move.clock !== null ? Number(move.clock) : undefined,
+            });
+          }
+        }
+        return true;
+      }
+
+      if (backendMoves.length > treeMoves.length) {
+        for (let i = treeMoves.length; i < backendMoves.length; i++) {
+          const move = backendMoves[i];
+          const parsed = parseUci(move.uci);
+          if (parsed) {
+            appendMove({
+              payload: parsed,
+              clock: move.clock !== null ? Number(move.clock) : undefined,
+            });
+          }
+        }
+        return true;
+      }
+
+      return false;
+    },
+    [root, setFen, appendMove],
+  );
 
   function changeToAnalysisMode() {
     setTabs((prev) =>
@@ -332,98 +252,298 @@ function BoardGame() {
       ),
     );
   }
-  const mainLine = Array.from(treeIteratorMainLine(root));
-  const lastNode = mainLine[mainLine.length - 1].node;
-  const moves = useMemo(
-    () => getMainLine(root, headers.variant === "Chess960"),
-    [root, headers],
-  );
 
   const [pos, error] = useMemo(() => {
-    return positionFromFen(lastNode.fen);
-  }, [lastNode.fen]);
-
-  useEffect(() => {
-    if (pos?.isEnd()) {
-      setGameState("gameOver");
+    let node = root;
+    while (node.children.length > 0) {
+      node = node.children[0];
     }
-  }, [pos, setGameState]);
+    return positionFromFen(node.fen);
+  }, [root]);
 
-  const [players, setPlayers] = useAtom(currentPlayersAtom);
-
-  useEffect(() => {
-    if (pos && gameState === "playing") {
-      if (headers.result !== "*") {
-        setGameState("gameOver");
-        return;
-      }
-      const currentTurn = pos.turn;
-      const player = currentTurn === "white" ? players.white : players.black;
-
-      if (player.type === "engine" && player.engine) {
-        commands.getBestMoves(
-          currentTurn,
-          player.engine.path,
-          activeTab + currentTurn,
-          player.timeControl
-            ? {
-                t: "PlayersTime",
-                c: {
-                  white: whiteTime ?? 0,
-                  black: blackTime ?? 0,
-                  winc: player.timeControl.increment ?? 0,
-                  binc: player.timeControl.increment ?? 0,
-                },
-              }
-            : player.go,
-          {
-            fen: root.fen,
-            moves: moves,
-            extraOptions: (player.engine.settings || [])
-              .filter((s) => s.name !== "MultiPV")
-              .map((s) => ({
-                ...s,
-                value: s.value?.toString() ?? "",
-              })),
-          },
-        );
-      }
+  function toPlayerConfig(settings: OpponentSettings): PlayerConfig {
+    if (settings.type === "human") {
+      return {
+        type: "human",
+        name: settings.name ?? "Player",
+      };
     }
-  }, [
-    gameState,
-    pos,
-    players,
-    headers.result,
-    setGameState,
-    activeTab,
-    root.fen,
-    moves,
-  ]);
-
-  const [whiteTime, setWhiteTime] = useState<number | null>(null);
-  const [blackTime, setBlackTime] = useState<number | null>(null);
-
-  useEffect(() => {
-    const unlisten = events.bestMovesPayload.listen(({ payload }) => {
-      const ev = payload.bestLines;
-      if (
-        payload.progress === 100 &&
-        payload.engine === pos?.turn &&
-        payload.tab === activeTab + pos.turn &&
-        payload.fen === root.fen &&
-        equal(payload.moves, moves) &&
-        !pos?.isEnd()
-      ) {
-        appendMove({
-          payload: parseUci(ev[0].uciMoves[0])!,
-          clock: (pos.turn === "white" ? whiteTime : blackTime) ?? undefined,
-        });
-      }
-    });
-    return () => {
-      unlisten.then((f) => f());
+    return {
+      type: "engine",
+      name: settings.engine?.name ?? "Engine",
+      path: settings.engine?.path ?? "",
+      options: (settings.engineSettings ?? settings.engine?.settings ?? [])
+        .filter((s) => s.name !== "MultiPV")
+        .map((s) => ({
+          name: s.name,
+          value: s.value?.toString() ?? "",
+        })),
+      go: settings.timeControl ? null : settings.go,
     };
-  }, [activeTab, appendMove, pos, root.fen, moves, whiteTime, blackTime]);
+  }
+
+  function getTreeMoves(): string[] {
+    const moves: string[] = [];
+    let node = root;
+    while (node.children.length > 0) {
+      node = node.children[0];
+      if (node.move) {
+        moves.push(makeUci(node.move));
+      }
+    }
+    return moves;
+  }
+
+  async function startGame() {
+    const playerSettings = getPlayers();
+    setPlayers(playerSettings);
+
+    const newGameId = `${activeTab}-game`;
+    setGameId(newGameId);
+
+    const initialMoves = getTreeMoves();
+
+    const config: GameConfig = {
+      white: toPlayerConfig(playerSettings.white),
+      black: toPlayerConfig(playerSettings.black),
+      whiteTimeControl: playerSettings.white.timeControl
+        ? {
+            initialTime: playerSettings.white.timeControl.seconds,
+            increment: playerSettings.white.timeControl.increment ?? 0,
+          }
+        : null,
+      blackTimeControl: playerSettings.black.timeControl
+        ? {
+            initialTime: playerSettings.black.timeControl.seconds,
+            increment: playerSettings.black.timeControl.increment ?? 0,
+          }
+        : null,
+      initialFen: root.fen === INITIAL_FEN ? null : root.fen,
+      initialMoves,
+      openingBook:
+        openingBookEnabled && openingBookPath
+          ? { path: openingBookPath, maxPly: Math.max(1, openingBookMaxPly) }
+          : null,
+    } as GameConfig;
+
+    try {
+      const result = await commands.startGame(newGameId, config);
+      const state = unwrap(result);
+
+      setWhiteTime(state.whiteTime !== null ? Number(state.whiteTime) : null);
+      setBlackTime(state.blackTime !== null ? Number(state.blackTime) : null);
+
+      setGameState("playing");
+
+      setFen(state.initialFen);
+      for (const move of mapBackendMoves(state.moves)) {
+        const parsed = parseUci(move.uci);
+        if (parsed) {
+          appendMove({
+            payload: parsed,
+            clock: move.clock ?? undefined,
+          });
+        }
+      }
+
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10).replace(/-/g, ".");
+      const timeStr = now.toISOString().slice(11, 19);
+
+      const whiteIsEngine = playerSettings.white.type === "engine";
+      const blackIsEngine = playerSettings.black.type === "engine";
+      let eventStr = "Casual Game";
+      if (whiteIsEngine && blackIsEngine) {
+        eventStr = "Engine Match";
+      } else if (whiteIsEngine || blackIsEngine) {
+        eventStr = "Player vs Engine";
+      } else {
+        eventStr = "Player Match";
+      }
+
+      const formatTimeControl = (settings: OpponentSettings): string => {
+        if (!settings.timeControl) return "-";
+        const seconds = settings.timeControl.seconds / 1000;
+        const increment = (settings.timeControl.increment ?? 0) / 1000;
+        return increment ? `${seconds}+${increment}` : `${seconds}`;
+      };
+
+      const whiteTimeControl = formatTimeControl(playerSettings.white);
+      const blackTimeControl = formatTimeControl(playerSettings.black);
+      const sameTimeControl = whiteTimeControl === blackTimeControl;
+
+      const newHeaders: Partial<GameHeaders> = {
+        white: state.whitePlayer,
+        black: state.blackPlayer,
+        event: eventStr,
+        site: "En Croissant",
+        date: dateStr,
+        time: timeStr,
+        time_control: undefined,
+      };
+
+      if (sameTimeControl) {
+        if (whiteTimeControl !== "-") {
+          newHeaders.time_control = whiteTimeControl;
+        }
+      } else {
+        newHeaders.white_time_control = whiteTimeControl;
+        newHeaders.black_time_control = blackTimeControl;
+      }
+
+      setHeaders({
+        ...headers,
+        ...newHeaders,
+        fen: state.initialFen,
+      });
+
+      setTabs((prev) =>
+        prev.map((tab) =>
+          tab.value === activeTab
+            ? { ...tab, name: `${state.whitePlayer} vs. ${state.blackPlayer}` }
+            : tab,
+        ),
+      );
+    } catch (err) {
+      console.error("Failed to start game:", err);
+    }
+  }
+
+  const handleHumanMove = useCallback(
+    async (uci: string) => {
+      if (!gameId || gameState !== "playing") return;
+
+      try {
+        const result = await commands.makeGameMove(gameId, uci);
+      } catch (err) {
+        console.error("Failed to make move:", err);
+      }
+    },
+    [gameId, gameState],
+  );
+
+  const pendingMovesRef = useRef<
+    { uci: string; clock: number | null }[] | null
+  >(null);
+  const pendingTimesRef = useRef<{
+    white: number | null;
+    black: number | null;
+  } | null>(null);
+  const throttleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const THROTTLE_MS = 150;
+
+  const syncTreeWithMovesRef = useRef(syncTreeWithMoves);
+  syncTreeWithMovesRef.current = syncTreeWithMoves;
+
+  const applyPendingUpdates = useCallback(() => {
+    if (pendingMovesRef.current) {
+      syncTreeWithMovesRef.current(pendingMovesRef.current);
+      pendingMovesRef.current = null;
+    }
+    if (pendingTimesRef.current) {
+      setWhiteTime(pendingTimesRef.current.white);
+      setBlackTime(pendingTimesRef.current.black);
+      pendingTimesRef.current = null;
+    }
+    throttleTimerRef.current = null;
+
+    setTimeout(() => {
+      cgRef.current?.playPremove();
+    }, 0);
+  }, []);
+
+  const scheduleUpdate = useCallback(() => {
+    if (!throttleTimerRef.current) {
+      throttleTimerRef.current = setTimeout(applyPendingUpdates, THROTTLE_MS);
+    }
+  }, [applyPendingUpdates]);
+
+  const onTakeBack = useCallback(async () => {
+    if (!gameId || gameState !== "playing") return;
+    const result = await commands.takeBackGameMove(gameId);
+  }, [gameId, gameState]);
+
+  useEffect(() => {
+    if (gameState !== "playing" || !gameId) return;
+
+    const currentGameId = gameId;
+
+    const unlistenMove = events.gameMoveEvent.listen(({ payload }) => {
+      if (payload.gameId !== currentGameId) return;
+
+      pendingMovesRef.current = mapBackendMoves(payload.moves);
+      pendingTimesRef.current = {
+        white: payload.whiteTime !== null ? Number(payload.whiteTime) : null,
+        black: payload.blackTime !== null ? Number(payload.blackTime) : null,
+      };
+      scheduleUpdate();
+    });
+
+    const unlistenClock = events.clockUpdateEvent.listen(({ payload }) => {
+      if (payload.gameId !== currentGameId) return;
+      setWhiteTime(
+        payload.whiteTime !== null ? Number(payload.whiteTime) : null,
+      );
+      setBlackTime(
+        payload.blackTime !== null ? Number(payload.blackTime) : null,
+      );
+    });
+
+    const unlistenGameOver = events.gameOverEvent.listen(({ payload }) => {
+      if (payload.gameId !== currentGameId) return;
+
+      if (throttleTimerRef.current) {
+        clearTimeout(throttleTimerRef.current);
+        throttleTimerRef.current = null;
+      }
+      pendingMovesRef.current = null;
+      pendingTimesRef.current = null;
+
+      syncTreeWithMovesRef.current(mapBackendMoves(payload.moves));
+
+      setGameState("gameOver");
+      setResult(gameResultToOutcome(payload.result));
+    });
+
+    return () => {
+      if (throttleTimerRef.current) {
+        clearTimeout(throttleTimerRef.current);
+        throttleTimerRef.current = null;
+      }
+      unlistenMove.then((f) => f());
+      unlistenClock.then((f) => f());
+      unlistenGameOver.then((f) => f());
+    };
+  }, [gameId, gameState, scheduleUpdate, setGameState, setResult]);
+
+  useEffect(() => {
+    if (gameState === "playing" && gameId) {
+      commands.getGameState(gameId).then((result) => {
+        if (result.status === "ok") {
+          const state = result.data;
+
+          syncTreeWithMovesRef.current(mapBackendMoves(state.moves));
+
+          setWhiteTime(
+            state.whiteTime !== null ? Number(state.whiteTime) : null,
+          );
+          setBlackTime(
+            state.blackTime !== null ? Number(state.blackTime) : null,
+          );
+
+          if (state.status !== "playing") {
+            setGameState("gameOver");
+            if (
+              typeof state.status === "object" &&
+              "finished" in state.status
+            ) {
+              setResult(gameResultToOutcome(state.status.finished.result));
+            }
+          }
+        }
+      });
+    }
+  }, [gameId, gameState, setGameState, setResult]);
 
   const movable = useMemo(() => {
     if (players.white.type === "human" && players.black.type === "human") {
@@ -438,274 +558,299 @@ function BoardGame() {
     return "none";
   }, [players]);
 
-  const [sameTimeControl, setSameTimeControl] = useState(true);
+  const [sameTimeControl, setSameTimeControl] = useAtom(
+    gameSameTimeControlAtom,
+  );
 
-  const [intervalId, setIntervalId] = useState<ReturnType<
-    typeof setInterval
-  > | null>(null);
+  const onePlayerIsEngine = players.white.type !== players.black.type;
+  const isEngineVsEngine =
+    players.white.type === "engine" && players.black.type === "engine";
 
-  useEffect(() => {
-    if (intervalId) {
-      clearInterval(intervalId);
-      setIntervalId(null);
+  function getResignationLosingColor(): "white" | "black" {
+    if (isPlayerVsEngine) {
+      return players.white.type === "human" ? "white" : "black";
     }
-  }, [pos?.turn]);
-
-  useEffect(() => {
-    if (gameState === "playing" && whiteTime !== null && whiteTime <= 0) {
-      setGameState("gameOver");
-      setResult("0-1");
-    }
-  }, [gameState, whiteTime, setGameState, setResult]);
-
-  useEffect(() => {
-    if (gameState !== "playing") {
-      if (intervalId) {
-        clearInterval(intervalId);
-        setIntervalId(null);
-      }
-    }
-  }, [gameState, intervalId]);
-
-  useEffect(() => {
-    if (gameState === "playing" && blackTime !== null && blackTime <= 0) {
-      setGameState("gameOver");
-      setResult("1-0");
-    }
-  }, [gameState, blackTime, setGameState, setResult]);
-
-  function decrementTime() {
-    if (gameState === "playing") {
-      if (pos?.turn === "white" && whiteTime !== null) {
-        setWhiteTime((prev) => prev! - 100);
-      } else if (pos?.turn === "black" && blackTime !== null) {
-        setBlackTime((prev) => prev! - 100);
-      }
-    }
+    return pos?.turn === "white" ? "white" : "black";
   }
 
-  function startGame() {
-    setGameState("playing");
+  async function handleAbort() {
+    if (!gameId) return;
+    await commands.abortGame(gameId);
+    setGameState("gameOver");
+    setResult("*");
+  }
 
-    const players = getPlayers();
+  async function handleResign() {
+    if (!gameId) return;
+    const losingColor = getResignationLosingColor();
+    await commands.resignGame(gameId, losingColor);
+  }
 
-    if (players.white.timeControl) {
-      setWhiteTime(players.white.timeControl.seconds);
-    }
+  async function handleNewGame() {
+    setGameId(null);
+    setGameState("settingUp");
+    setWhiteTime(null);
+    setBlackTime(null);
+    resetTree();
+  }
 
-    if (players.black.timeControl) {
-      setBlackTime(players.black.timeControl.seconds);
-    }
-
-    setPlayers(players);
-
-    const newHeaders: Partial<GameHeaders> = {
-      white:
-        (players.white.type === "human"
-          ? players.white.name
-          : players.white.engine?.name) ?? "?",
-      black:
-        (players.black.type === "human"
-          ? players.black.name
-          : players.black.engine?.name) ?? "?",
-      time_control: undefined,
-    };
-
-    if (players.white.timeControl || players.black.timeControl) {
-      if (sameTimeControl && players.white.timeControl) {
-        newHeaders.time_control = `${players.white.timeControl.seconds / 1000}`;
-        if (players.white.timeControl.increment) {
-          newHeaders.time_control += `+${
-            players.white.timeControl.increment / 1000
-          }`;
-        }
-      } else {
-        if (players.white.timeControl) {
-          newHeaders.white_time_control = `${players.white.timeControl.seconds / 1000}`;
-          if (players.white.timeControl.increment) {
-            newHeaders.white_time_control += `+${
-              players.white.timeControl.increment / 1000
-            }`;
-          }
-        }
-        if (players.black.timeControl) {
-          newHeaders.black_time_control = `${players.black.timeControl.seconds / 1000}`;
-          if (players.black.timeControl.increment) {
-            newHeaders.black_time_control += `+${
-              players.black.timeControl.increment / 1000
-            }`;
-          }
-        }
-      }
-    }
-
-    setHeaders({
-      ...headers,
-      ...newHeaders,
-      fen: root.fen,
+  async function handleSelectOpeningBook() {
+    const selected = await open({
+      multiple: false,
+      filters: [
+        {
+          name: "Opening Book",
+          extensions: ["pgn", "epd", "bin", "zip"],
+        },
+      ],
     });
 
-    setTabs((prev) =>
-      prev.map((tab) => {
-        const whiteName =
-          players.white.type === "human"
-            ? players.white.name
-            : (players.white.engine?.name ?? "?");
-
-        const blackName =
-          players.black.type === "human"
-            ? players.black.name
-            : (players.black.engine?.name ?? "?");
-
-        return tab.value === activeTab
-          ? {
-              ...tab,
-              name: `${whiteName} vs. ${blackName}`,
-            }
-          : tab;
-      }),
-    );
-  }
-
-  useEffect(() => {
-    if (gameState === "playing" && !intervalId) {
-      const intervalId = setInterval(decrementTime, 100);
-      if (pos?.turn === "black" && whiteTime !== null) {
-        setWhiteTime(
-          (prev) => prev! + (players.white.timeControl?.increment ?? 0),
-        );
-      }
-      if (pos?.turn === "white" && blackTime !== null) {
-        setBlackTime((prev) => {
-          if (pos?.fullmoves === 1) {
-            return prev!;
-          }
-
-          return prev! + (players.black.timeControl?.increment ?? 0);
-        });
-      }
-      setIntervalId(intervalId);
+    if (typeof selected === "string") {
+      setOpeningBookPath(selected);
     }
-  }, [gameState, intervalId, pos?.turn]);
-
-  const onePlayerIsEngine =
-    (players.white.type === "engine" || players.black.type === "engine") &&
-    players.white.type !== players.black.type;
+  }
 
   return (
     <>
       <Portal target="#left" style={{ height: "100%" }}>
         <Board
-          dirty={false}
-          editingMode={false}
-          toggleEditingMode={() => undefined}
-          viewOnly={gameState !== "playing"}
+          editingMode={gameState === "settingUp" && editingMode}
+          viewOnly={gameState !== "playing" && !editingMode}
           disableVariations
           boardRef={boardRef}
-          canTakeBack={onePlayerIsEngine}
-          movable={movable}
+          movable={gameState === "settingUp" && editingMode ? "none" : movable}
           whiteTime={
             gameState === "playing" ? (whiteTime ?? undefined) : undefined
           }
           blackTime={
             gameState === "playing" ? (blackTime ?? undefined) : undefined
           }
+          onMove={handleHumanMove}
+          selectedPiece={selectedPiece}
+          cgRef={cgRef}
+          enablePremoves={isPlayerVsEngine && gameState === "playing"}
         />
       </Portal>
       <Portal target="#topRight" style={{ height: "100%", overflow: "hidden" }}>
         <Paper withBorder shadow="sm" p="md" h="100%">
-          {gameState === "settingUp" && (
-            <ScrollArea h="100%" offsetScrollbars>
-              <Stack>
-                <Group>
-                  <Text flex={1} ta="center" fz="lg" fw="bold">
-                    {match(inputColor)
-                      .with("white", () => "White")
-                      .with("random", () => "Random")
-                      .with("black", () => "Black")
-                      .exhaustive()}
-                  </Text>
-                  <ActionIcon onClick={cycleColor}>
-                    <IconArrowsExchange />
+          {logsOpened ? (
+            <EngineLogsView
+              logs={engineLogs}
+              onRefresh={fetchEngineLogs}
+              additionalControls={
+                <>
+                  {players.white.type === "engine" &&
+                  players.black.type === "engine" ? (
+                    <SegmentedControl
+                      value={logsColor}
+                      onChange={(value) =>
+                        setLogsColor(value as "white" | "black")
+                      }
+                      data={[
+                        { value: "white", label: "White" },
+                        { value: "black", label: "Black" },
+                      ]}
+                    />
+                  ) : (
+                    <div />
+                  )}
+                  <ActionIcon flex={0} onClick={() => toggleLogsOpened()}>
+                    <IconX size="1.2rem" />
                   </ActionIcon>
-                  <Text flex={1} ta="center" fz="lg" fw="bold">
-                    {match(inputColor)
-                      .with("white", () => "Black")
-                      .with("random", () => "Random")
-                      .with("black", () => "White")
-                      .exhaustive()}
-                  </Text>
-                </Group>
-                <Box flex={1}>
-                  <Group style={{ alignItems: "start" }}>
-                    <OpponentForm
-                      sameTimeControl={sameTimeControl}
-                      opponent={player1Settings}
-                      setOpponent={setPlayer1Settings}
-                      setOtherOpponent={setPlayer2Settings}
-                    />
-                    <Divider orientation="vertical" />
-                    <OpponentForm
-                      sameTimeControl={sameTimeControl}
-                      opponent={player2Settings}
-                      setOpponent={setPlayer2Settings}
-                      setOtherOpponent={setPlayer1Settings}
-                    />
+                </>
+              }
+            />
+          ) : (
+            <>
+              {gameState === "settingUp" && (
+                <ScrollArea h="100%" offsetScrollbars>
+                  <Stack>
+                    <Group>
+                      <Text flex={1} ta="center" fz="lg" fw="bold">
+                        {match(inputColor)
+                          .with("white", () => "White")
+                          .with("random", () => "Random")
+                          .with("black", () => "Black")
+                          .exhaustive()}
+                      </Text>
+                      <ActionIcon onClick={cycleColor}>
+                        <IconArrowsExchange />
+                      </ActionIcon>
+                      <Text flex={1} ta="center" fz="lg" fw="bold">
+                        {match(inputColor)
+                          .with("white", () => "Black")
+                          .with("random", () => "Random")
+                          .with("black", () => "White")
+                          .exhaustive()}
+                      </Text>
+                    </Group>
+                    <Box flex={1}>
+                      <Group style={{ alignItems: "start" }}>
+                        <OpponentForm
+                          sameTimeControl={sameTimeControl}
+                          opponent={player1Settings}
+                          setOpponent={setPlayer1Settings}
+                          setOtherOpponent={setPlayer2Settings}
+                        />
+                        <Divider orientation="vertical" />
+                        <OpponentForm
+                          sameTimeControl={sameTimeControl}
+                          opponent={player2Settings}
+                          setOpponent={setPlayer2Settings}
+                          setOtherOpponent={setPlayer1Settings}
+                        />
+                      </Group>
+                    </Box>
+
+                    <Paper withBorder p="sm">
+                      <Stack>
+                        <Checkbox
+                          label={t("Board.Opponent.SameTimeControl")}
+                          checked={sameTimeControl}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setSameTimeControl(checked);
+                            if (checked) {
+                              setPlayer2Settings((prev) => ({
+                                ...prev,
+                                timeControl: player1Settings.timeControl,
+                                timeUnit: player1Settings.timeUnit,
+                                incrementUnit: player1Settings.incrementUnit,
+                              }));
+                            }
+                          }}
+                        />
+
+                        <Divider variant="dashed" />
+
+                        <Checkbox
+                          label="Enable Opening Book"
+                          checked={openingBookEnabled}
+                          onChange={(e) =>
+                            setOpeningBookEnabled(e.currentTarget.checked)
+                          }
+                        />
+
+                        {openingBookEnabled && (
+                          <>
+                            <FileInput
+                              label="Opening book (.pgn/.epd/.bin/.zip)"
+                              description={t("Import.PGN.ClickToSelect")}
+                              filename={openingBookPath}
+                              onClick={handleSelectOpeningBook}
+                            />
+                            {openingBookPath?.includes(".bin") && (
+                              <NumberInput
+                                label="Polyglot max plies"
+                                description="Maximum number of plies from the starting position that the opening book will be used for."
+                                min={1}
+                                value={openingBookMaxPly}
+                                onChange={(value) => {
+                                  if (
+                                    typeof value === "number" &&
+                                    Number.isFinite(value)
+                                  ) {
+                                    setOpeningBookMaxPly(
+                                      Math.max(1, Math.trunc(value)),
+                                    );
+                                  }
+                                }}
+                              />
+                            )}
+                          </>
+                        )}
+                      </Stack>
+                    </Paper>
+
+                    <Group>
+                      <Button
+                        onClick={startGame}
+                        fullWidth
+                        variant="light"
+                        disabled={error !== null}
+                      >
+                        {t("Board.Opponent.StartGame")}
+                      </Button>
+                    </Group>
+                  </Stack>
+                </ScrollArea>
+              )}
+              {(gameState === "playing" || gameState === "gameOver") && (
+                <Stack h="100%">
+                  <Box flex={1}>
+                    <GameInfo headers={headers} />
+                  </Box>
+                  <Group grow>
+                    {gameState === "playing" && (
+                      <Button
+                        variant="default"
+                        color="red"
+                        onClick={isEngineVsEngine ? handleAbort : handleResign}
+                        leftSection={<IconX />}
+                      >
+                        {isEngineVsEngine ? "Abort" : "Resign"}
+                      </Button>
+                    )}
+                    {gameState === "gameOver" && (
+                      <Button
+                        variant="default"
+                        onClick={handleNewGame}
+                        leftSection={<IconPlus />}
+                      >
+                        New Game
+                      </Button>
+                    )}
+                    <Button
+                      variant="default"
+                      onClick={() => changeToAnalysisMode()}
+                      leftSection={<IconZoomCheck />}
+                    >
+                      Analyze
+                    </Button>
+
+                    {hasEngine && (
+                      <Button
+                        variant="default"
+                        onClick={() => toggleLogsOpened()}
+                        leftSection={<IconFileText size="1rem" />}
+                      >
+                        Engine Logs
+                      </Button>
+                    )}
                   </Group>
-                </Box>
-
-                <Checkbox
-                  label="Same time control"
-                  checked={sameTimeControl}
-                  onChange={(e) => setSameTimeControl(e.target.checked)}
-                />
-
-                <Group>
-                  <Button onClick={startGame} disabled={error !== null}>
-                    Start game
-                  </Button>
-                </Group>
-              </Stack>
-            </ScrollArea>
-          )}
-          {(gameState === "playing" || gameState === "gameOver") && (
-            <Stack h="100%">
-              <Box flex={1}>
-                <GameInfo headers={headers} />
-              </Box>
-              <Group grow>
-                <Button
-                  onClick={() => {
-                    setGameState("settingUp");
-                    setWhiteTime(null);
-                    setBlackTime(null);
-                    setFen(INITIAL_FEN);
-                    setHeaders({
-                      ...headers,
-                      result: "*",
-                    });
-                  }}
-                  leftSection={<IconPlus />}
-                >
-                  New Game
-                </Button>
-                <Button
-                  variant="default"
-                  onClick={() => changeToAnalysisMode()}
-                  leftSection={<IconZoomCheck />}
-                >
-                  Analyze
-                </Button>
-              </Group>
-            </Stack>
+                </Stack>
+              )}
+            </>
           )}
         </Paper>
       </Portal>
       <Portal target="#bottomRight" style={{ height: "100%" }}>
-        <Stack h="100%" gap="xs">
-          <GameNotation topBar />
-          <MoveControls />
-        </Stack>
+        {gameState === "settingUp" && editingMode ? (
+          <EditingCard
+            boardRef={boardRef}
+            setEditingMode={toggleEditingMode}
+            selectedPiece={selectedPiece}
+            setSelectedPiece={setSelectedPiece}
+          />
+        ) : (
+          <Stack h="100%" gap="xs">
+            <GameNotation
+              topBar
+              controls={
+                <BoardControls
+                  editingMode={gameState === "settingUp" && editingMode}
+                  toggleEditingMode={toggleEditingMode}
+                  dirty={false}
+                  canTakeBack={onePlayerIsEngine}
+                  onTakeBack={onTakeBack}
+                  disableVariations
+                  allowEditing={gameState === "settingUp"}
+                />
+              }
+            />
+            <MoveControls />
+          </Stack>
+        )}
       </Portal>
     </>
   );

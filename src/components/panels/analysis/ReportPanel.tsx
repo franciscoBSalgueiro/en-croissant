@@ -1,20 +1,19 @@
-import { events } from "@/bindings";
-import EvalChart from "@/components/common/EvalChart";
-import ProgressButton from "@/components/common/ProgressButton";
-import { TreeStateContext } from "@/components/common/TreeStateContext";
-import { activeTabAtom } from "@/state/atoms";
-import { ANNOTATION_INFO, isBasicAnnotation } from "@/utils/annotation";
-import { getGameStats, getMainLine } from "@/utils/chess";
 import { Grid, Group, Paper, ScrollArea, Stack, Text } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { IconZoomCheck } from "@tabler/icons-react";
 import cx from "clsx";
 import equal from "fast-deep-equal";
 import { useAtomValue } from "jotai";
-import React, { Suspense, useState } from "react";
-import { memo, useContext, useMemo } from "react";
+import React, { memo, useCallback, useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
+import { commands } from "@/bindings";
+import EvalChart from "@/components/common/EvalChart";
+import ProgressButton from "@/components/common/ProgressButton";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
+import { activeTabAtom } from "@/state/atoms";
+import { ANNOTATION_INFO, isBasicAnnotation } from "@/utils/annotation";
+import { getGameStats, getMainLine } from "@/utils/chess";
 import { label } from "./AnalysisPanel.css";
 import ReportModal from "./ReportModal";
 
@@ -28,64 +27,66 @@ function ReportPanel() {
   const headers = useStore(store, (s) => s.headers);
 
   const [reportingMode, toggleReportingMode] = useToggle();
-  const [inProgress, setInProgress] = useState(false);
+
+  const inProgress = useStore(store, (s) => s.report.inProgress);
+  const setInProgress = useStore(store, (s) => s.setReportInProgress);
 
   const stats = useMemo(() => getGameStats(root), [root]);
 
+  const handleCancel = useCallback(() => {
+    commands.cancelAnalysis(`report_${activeTab}`);
+  }, [activeTab]);
+
   return (
     <ScrollArea offsetScrollbars>
-      <Suspense>
-        <ReportModal
-          tab={activeTab!}
-          initialFen={root.fen}
-          moves={getMainLine(root, headers.variant === "Chess960")}
-          is960={headers.variant === "Chess960"}
-          reportingMode={reportingMode}
-          toggleReportingMode={toggleReportingMode}
+      <ReportModal
+        tab={activeTab!}
+        initialFen={root.fen}
+        moves={getMainLine(root)}
+        reportingMode={reportingMode}
+        toggleReportingMode={toggleReportingMode}
+        setInProgress={setInProgress}
+      />
+      <Stack mb="lg" gap="0.4rem" mr="xs">
+        <ProgressButton
+          id={`report_${activeTab}`}
+          redoable
+          disabled={root.children.length === 0}
+          leftIcon={<IconZoomCheck size="0.875rem" />}
+          onClick={() => toggleReportingMode()}
+          onCancel={handleCancel}
+          initInstalled={false}
+          labels={{
+            action: t("Board.Analysis.GenerateReport"),
+            completed: t("Board.Analysis.ReportGenerated"),
+            inProgress: t("Board.Analysis.GeneratingReport"),
+          }}
+          inProgress={inProgress}
           setInProgress={setInProgress}
         />
-      </Suspense>
-      <Stack mb="lg" gap="0.4rem" mr="xs">
-        <Group grow style={{ textAlign: "center" }}>
-          {stats.whiteAccuracy && stats.blackAccuracy && (
-            <>
-              <AccuracyCard
-                color={t("Common.WHITE")}
-                accuracy={stats.whiteAccuracy}
-                cpl={stats.whiteCPL}
-              />
-              <AccuracyCard
-                color={t("Common.BLACK")}
-                accuracy={stats.blackAccuracy}
-                cpl={stats.blackCPL}
-              />
-            </>
-          )}
-          <div>
-            <ProgressButton
-              id={`report_${activeTab}`}
-              redoable
-              disabled={root.children.length === 0}
-              leftIcon={<IconZoomCheck size="0.875rem" />}
-              onClick={() => toggleReportingMode()}
-              initInstalled={false}
-              progressEvent={events.reportProgress}
-              labels={{
-                action: t("Board.Analysis.GenerateReport"),
-                completed: t("Board.Analysis.ReportGenerated"),
-                inProgress: t("Board.Analysis.GeneratingReport"),
-              }}
-              inProgress={inProgress}
-              setInProgress={setInProgress}
+
+        {stats.whiteAccuracy > 0 && stats.blackAccuracy > 0 && (
+          <Group grow>
+            <AccuracyCard
+              color={t("Common.WHITE")}
+              accuracy={stats.whiteAccuracy}
+              cpl={stats.whiteCPL}
             />
-          </div>
-        </Group>
+            <AccuracyCard
+              color={t("Common.BLACK")}
+              accuracy={stats.blackAccuracy}
+              cpl={stats.blackCPL}
+            />
+          </Group>
+        )}
+
         <Paper withBorder p="md">
           <EvalChart
             isAnalysing={inProgress}
             startAnalysis={toggleReportingMode}
           />
         </Paper>
+
         <GameStats {...stats} />
       </Stack>
     </ScrollArea>
@@ -103,7 +104,7 @@ const GameStats = memo(
 
     return (
       <Paper withBorder>
-        <Grid columns={11} justify="space-between" p="md">
+        <Grid columns={12} align="center" p="md">
           {Object.keys(ANNOTATION_INFO)
             .filter((a) => isBasicAnnotation(a))
             .map((annotation) => {
@@ -115,7 +116,7 @@ const GameStats = memo(
                 <React.Fragment key={annotation}>
                   <Grid.Col
                     className={cx(w > 0 && label)}
-                    span={4}
+                    span={3}
                     style={{ textAlign: "center" }}
                     c={w > 0 ? color : undefined}
                     onClick={() => {
@@ -126,7 +127,11 @@ const GameStats = memo(
                   >
                     {w}
                   </Grid.Col>
-                  <Grid.Col span={1} c={w + b > 0 ? color : undefined}>
+                  <Grid.Col
+                    span={2}
+                    style={{ textAlign: "center", fontWeight: "bold" }}
+                    c={w + b > 0 ? color : undefined}
+                  >
                     {annotation}
                   </Grid.Col>
                   <Grid.Col span={4} c={w + b > 0 ? color : undefined}>
@@ -134,7 +139,8 @@ const GameStats = memo(
                   </Grid.Col>
                   <Grid.Col
                     className={cx(b > 0 && label)}
-                    span={2}
+                    span={3}
+                    style={{ textAlign: "center" }}
                     c={b > 0 ? color : undefined}
                     onClick={() => {
                       if (b > 0) {

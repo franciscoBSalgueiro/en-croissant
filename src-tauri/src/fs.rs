@@ -7,7 +7,6 @@ use std::{
 use log::info;
 use reqwest::{header::HeaderMap, Client};
 use specta::Type;
-use tauri_specta::Event;
 
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
@@ -15,13 +14,8 @@ use std::os::unix::fs::PermissionsExt;
 use futures_util::StreamExt;
 
 use crate::error::Error;
-
-#[derive(Clone, Type, serde::Serialize, Event)]
-pub struct DownloadProgress {
-    pub progress: f32,
-    pub id: String,
-    pub finished: bool,
-}
+use crate::progress::update_progress;
+use crate::AppState;
 
 #[tauri::command]
 #[specta::specta]
@@ -30,6 +24,7 @@ pub async fn download_file(
     url: String,
     path: PathBuf,
     app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
     token: Option<String>,
     finalize: Option<bool>,
     total_size: Option<u32>,
@@ -62,13 +57,7 @@ pub async fn download_file(
         downloaded += chunk.len() as u64;
         if let Some(total_size) = total_size {
             let progress = ((downloaded as f32 / total_size as f32) * 100.0).min(100.0);
-            // println!("Downloaded {}%", progress);
-            DownloadProgress {
-                progress,
-                id: id.clone(),
-                finished: false,
-            }
-            .emit(&app)?;
+            update_progress(&state.progress_state, &app, id.clone(), progress, false)?;
         }
     }
 
@@ -86,12 +75,7 @@ pub async fn download_file(
     }
 
     if finalize {
-        DownloadProgress {
-            progress: 100.0,
-            id,
-            finished: true,
-        }
-        .emit(&app)?;
+        update_progress(&state.progress_state, &app, id, 100.0, true)?;
     }
     // remove_file(&path).await;
     Ok(())

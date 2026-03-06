@@ -1,13 +1,13 @@
-import {
-  type BestMoves,
-  type EngineOptions,
-  type GoMode,
-  commands,
-} from "@/bindings";
 import { fetch } from "@tauri-apps/plugin-http";
 import type { Platform } from "@tauri-apps/plugin-os";
 import useSWR from "swr";
 import { z } from "zod";
+import {
+  type BestMoves,
+  commands,
+  type EngineOptions,
+  type GoMode,
+} from "@/bindings";
 import { unwrap } from "./unwrap";
 
 export const requiredEngineSettings = ["MultiPV", "Threads", "Hash"];
@@ -41,6 +41,7 @@ export type EngineSettings = z.infer<typeof engineSettingsSchema>;
 
 const localEngineSchema = z.object({
   type: z.literal("local"),
+  id: z.string().default(() => crypto.randomUUID()),
   name: z.string(),
   version: z.string(),
   path: z.string(),
@@ -54,10 +55,11 @@ const localEngineSchema = z.object({
   settings: engineSettingsSchema.nullish(),
 });
 
-export type LocalEngine = z.infer<typeof localEngineSchema>;
+export type LocalEngine = z.output<typeof localEngineSchema>;
 
 const remoteEngineSchema = z.object({
   type: z.enum(["chessdb", "lichess"]),
+  id: z.string().default(() => crypto.randomUUID()),
   name: z.string(),
   url: z.string(),
   image: z.string().nullish(),
@@ -67,19 +69,19 @@ const remoteEngineSchema = z.object({
   settings: engineSettingsSchema.nullish(),
 });
 
-export type RemoteEngine = z.infer<typeof remoteEngineSchema>;
+export type RemoteEngine = z.output<typeof remoteEngineSchema>;
 
 export const engineSchema = z.union([localEngineSchema, remoteEngineSchema]);
-export type Engine = z.infer<typeof engineSchema>;
+export type Engine = z.output<typeof engineSchema>;
 
 export function stopEngine(engine: LocalEngine, tab: string): Promise<void> {
-  return commands.stopEngine(engine.path, tab).then((r) => {
+  return commands.stopEngine(engine.id, tab).then((r) => {
     unwrap(r);
   });
 }
 
 export function killEngine(engine: LocalEngine, tab: string): Promise<void> {
-  return commands.killEngine(engine.path, tab).then((r) => {
+  return commands.killEngine(engine.id, tab).then((r) => {
     unwrap(r);
   });
 }
@@ -91,7 +93,7 @@ export function getBestMoves(
   options: EngineOptions,
 ): Promise<[number, BestMoves[]] | null> {
   return commands
-    .getBestMoves(engine.name, engine.path, tab, goMode, options)
+    .getBestMoves(engine.id, engine.path, tab, goMode, options)
     .then((r) => unwrap(r));
 }
 
@@ -110,10 +112,7 @@ export function useDefaultEngines(os: Platform | undefined, opened: boolean) {
         throw new Error("Failed to fetch engines");
       }
       return (await data.json()).filter(
-        (e: {
-          os: Platform;
-          bmi2: boolean;
-        }) => e.os === os && e.bmi2 === bmi2,
+        (e: { os: Platform; bmi2: boolean }) => e.os === os && e.bmi2 === bmi2,
       );
     },
   );

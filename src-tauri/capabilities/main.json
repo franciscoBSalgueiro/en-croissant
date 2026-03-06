@@ -37,8 +37,8 @@
                 "https://api.chess.com/**",
                 "https://www.chess.com/**",
                 "https://lichess.org/**",
-                "https://explorer.lichess.ovh/**",
-                "https://tablebase.lichess.ovh/**",
+                "https://explorer.lichess.org/**",
+                "https://tablebase.lichess.org/**",
                 "https://www.chessdb.cn/**"
             ]
         }

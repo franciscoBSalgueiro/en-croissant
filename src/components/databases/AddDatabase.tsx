@@ -1,11 +1,3 @@
-import { events, type DatabaseInfo, commands } from "@/bindings";
-import {
-  type SuccessDatabaseInfo,
-  getDatabases,
-  useDefaultDatabases,
-} from "@/utils/db";
-import { capitalize, formatBytes, formatNumber } from "@/utils/format";
-import { unwrap } from "@/utils/unwrap";
 import {
   Alert,
   Box,
@@ -17,6 +9,7 @@ import {
   Modal,
   Paper,
   ScrollArea,
+  SimpleGrid,
   Stack,
   Tabs,
   Text,
@@ -26,9 +19,19 @@ import { useForm } from "@mantine/form";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { appDataDir, resolve } from "@tauri-apps/api/path";
 import { open } from "@tauri-apps/plugin-dialog";
+import { useAtom } from "jotai";
 import { type Dispatch, type SetStateAction, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { KeyedMutator } from "swr";
+import { commands, type DatabaseInfo } from "@/bindings";
+import { storedDatabasesDirAtom } from "@/state/atoms";
+import {
+  getDatabases,
+  type SuccessDatabaseInfo,
+  useDefaultDatabases,
+} from "@/utils/db";
+import { capitalize, formatBytes, formatNumber } from "@/utils/format";
+import { unwrap } from "@/utils/unwrap";
 import FileInput from "../common/FileInput";
 import ProgressButton from "../common/ProgressButton";
 
@@ -46,11 +49,13 @@ function AddDatabase({
   setDatabases: KeyedMutator<DatabaseInfo[]>;
 }) {
   const { t } = useTranslation();
+  const [databaseDir] = useAtom(storedDatabasesDirAtom);
+
   const { defaultDatabases, error, isLoading } = useDefaultDatabases(opened);
 
   async function convertDB(path: string, title: string, description?: string) {
     setLoading(true);
-    const dbPath = await resolve(await appDataDir(), "db", `${title}.db3`);
+    const dbPath = await resolve(databaseDir, `${title}.db3`);
     unwrap(
       await commands.convertPgn(path, dbPath, null, title, description ?? null),
     );
@@ -84,6 +89,7 @@ function AddDatabase({
       opened={opened}
       onClose={() => setOpened(false)}
       title={t("Databases.Add.Title")}
+      size="80%"
     >
       <Tabs defaultValue="web">
         <Tabs.List>
@@ -97,7 +103,7 @@ function AddDatabase({
             </Center>
           )}
           <ScrollArea.Autosize h={500} offsetScrollbars>
-            <Stack>
+            <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="sm">
               {defaultDatabases?.map((db, i) => (
                 <DatabaseCard
                   database={db}
@@ -105,10 +111,7 @@ function AddDatabase({
                   key={i}
                   setDatabases={setDatabases}
                   initInstalled={databases.some(
-                    (e) =>
-                      e.type === "success" &&
-                      db.type === "success" &&
-                      e.title === db.title,
+                    (e) => e.type === "success" && e.title === db.title,
                   )}
                 />
               ))}
@@ -121,7 +124,7 @@ function AddDatabase({
                   {"Failed to fetch the database's info from the server."}
                 </Alert>
               )}
-            </Stack>
+            </SimpleGrid>
           </ScrollArea.Autosize>
         </Tabs.Panel>
         <Tabs.Panel value="local" pt="xs">
@@ -175,7 +178,7 @@ function AddDatabase({
             />
 
             <Button fullWidth mt="xl" type="submit">
-              Convert
+              {t("Databases.Add.Convert")}
             </Button>
           </form>
         </Tabs.Panel>
@@ -196,12 +199,13 @@ function DatabaseCard({
   initInstalled: boolean;
 }) {
   const { t } = useTranslation();
+  const [databaseDir] = useAtom(storedDatabasesDirAtom);
 
   const [inProgress, setInProgress] = useState<boolean>(false);
 
   async function downloadDatabase(id: number, url: string, name: string) {
     setInProgress(true);
-    const path = await resolve(await appDataDir(), "db", `${name}.db3`);
+    const path = await resolve(databaseDir, `${name}.db3`);
     await commands.downloadFile(`db_${id}`, url, path, null, null, null);
     setDatabases(await getDatabases());
   }
@@ -243,7 +247,6 @@ function DatabaseCard({
           </Group>
           <ProgressButton
             id={`db_${databaseId}`}
-            progressEvent={events.downloadProgress}
             initInstalled={initInstalled}
             labels={{
               completed: t("Common.Installed"),

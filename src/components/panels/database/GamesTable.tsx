@@ -1,19 +1,21 @@
-import type { NormalizedGame } from "@/bindings";
-import { activeTabAtom, tabsAtom } from "@/state/atoms";
-import { createTab } from "@/utils/tabs";
 import { ActionIcon, Text, useMantineTheme } from "@mantine/core";
 import { IconEye } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
 import { DataTable } from "mantine-datatable";
 import { memo } from "react";
+import type { NormalizedGame } from "@/bindings";
+import { activeTabAtom, tabsAtom } from "@/state/atoms";
+import { createTab } from "@/utils/tabs";
 
 function GamesTable({
   games,
   loading,
+  databasePath,
 }: {
   games: NormalizedGame[];
   loading: boolean;
+  databasePath?: string | null;
 }) {
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
@@ -44,6 +46,13 @@ function GamesTable({
                   setActiveTab,
                   pgn: game.moves,
                   headers: game,
+                  gameOrigin: databasePath
+                    ? {
+                        kind: "database",
+                        database: databasePath,
+                        gameId: game.id,
+                      }
+                    : undefined,
                 });
                 navigate({ to: "/" });
               }}
@@ -60,7 +69,7 @@ function GamesTable({
                 {white}
               </Text>
               <Text size="xs" c="dimmed">
-                {white_elo}
+                {white_elo === 0 ? "Unrated" : white_elo}
               </Text>
             </div>
           ),
@@ -73,7 +82,7 @@ function GamesTable({
                 {black}
               </Text>
               <Text size="xs" c="dimmed">
-                {black_elo}
+                {black_elo === 0 ? "Unrated" : black_elo}
               </Text>
             </div>
           ),

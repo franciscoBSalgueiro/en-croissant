@@ -10,15 +10,6 @@ pub enum Error {
     Zip(#[from] zip::result::ZipError),
 
     #[error(transparent)]
-    BincodeEncode(#[from] bincode::error::EncodeError),
-
-    #[error(transparent)]
-    BincodeDecode(#[from] bincode::error::DecodeError),
-
-    #[error(transparent)]
-    XmlDeserialize(#[from] quick_xml::de::DeError),
-
-    #[error(transparent)]
     ParseInt(#[from] std::num::ParseIntError),
 
     #[error(transparent)]
@@ -66,26 +57,41 @@ pub enum Error {
     #[error("No moves found")]
     NoMovesFound,
 
-    #[error("Lower or upper bound")]
-    LowerOrUpperBound,
-
-    #[error("Search stopped")]
-    SearchStopped,
-
     #[error("Missing reference database")]
     MissingReferenceDatabase,
 
     #[error("No opening found")]
     NoOpeningFound,
 
-    #[error("No match found")]
-    NoMatchFound,
-
     #[error("No puzzles")]
     NoPuzzles,
 
     #[error("Players aren't the same. They have played against each other")]
     NotDistinctPlayers,
+
+    #[error("Game not found: {0}")]
+    GameNotFound(String),
+
+    #[error("Game not in progress")]
+    GameNotInProgress,
+
+    #[error("Not human's turn")]
+    NotHumanTurn,
+
+    #[error("Not engine's turn")]
+    NotEngineTurn,
+
+    #[error("Invalid color: {0}")]
+    InvalidColor(String),
+
+    #[error("Engine not initialized")]
+    EngineNotInitialized,
+
+    #[error("Engine disconnected")]
+    EngineDisconnected,
+
+    #[error("Analysis cancelled")]
+    AnalysisCancelled,
 }
 
 impl serde::Serialize for Error {

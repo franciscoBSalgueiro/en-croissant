@@ -17,7 +17,7 @@ jobs:
             args: '--target aarch64-apple-darwin --bundles dmg'
           - platform: 'macos-latest' # for Intel based macs.
             args: '--target x86_64-apple-darwin --bundles dmg'
-          - platform: 'ubuntu-22.04'
+          - platform: 'ubuntu-24.04'
             args: ''
           - platform: 'windows-latest'
             args: '--bundles nsis'
@@ -27,10 +27,19 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-22.04'
+        if: matrix.platform == 'ubuntu-24.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-0=2.44.0-2 \
+            libwebkit2gtk-4.1-dev=2.44.0-2 \
+            libjavascriptcoregtk-4.1-0=2.44.0-2 \
+            libjavascriptcoregtk-4.1-dev=2.44.0-2 \
+            gir1.2-javascriptcoregtk-4.1=2.44.0-2 \
+            gir1.2-webkit2-4.1=2.44.0-2 \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
 
       - name: Rust setup
         uses: dtolnay/rust-toolchain@stable
@@ -46,7 +55,7 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 10
 
       - name: Sync node version and setup cache
         uses: actions/setup-node@v4

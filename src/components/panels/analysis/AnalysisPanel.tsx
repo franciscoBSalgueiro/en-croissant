@@ -1,16 +1,3 @@
-import { TreeStateContext } from "@/components/common/TreeStateContext";
-import {
-  activeTabAtom,
-  allEnabledAtom,
-  currentAnalysisTabAtom,
-  currentExpandedEnginesAtom,
-  enableAllAtom,
-  engineMovesFamily,
-  enginesAtom,
-} from "@/state/atoms";
-import { getVariationLine } from "@/utils/chess";
-import { getPiecesCount, hasCaptures, positionFromFen } from "@/utils/chessops";
-import type { Engine } from "@/utils/engines";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import {
   Accordion,
@@ -34,10 +21,36 @@ import {
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
-import { memo, useContext, useDeferredValue, useMemo } from "react";
+import {
+  memo,
+  startTransition,
+  useContext,
+  useDeferredValue,
+  useMemo,
+  useOptimistic,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
+import {
+  activeTabAtom,
+  allEnabledAtom,
+  currentAnalysisTabAtom,
+  currentExpandedEnginesAtom,
+  enableAllAtom,
+  engineMovesFamily,
+  enginesAtom,
+} from "@/state/atoms";
+import { getVariationLine } from "@/utils/chess";
+import {
+  getPiecesCount,
+  hasCaptures,
+  isOp1,
+  positionFromFen,
+} from "@/utils/chessops";
+import type { Engine } from "@/utils/engines";
+import { getInitials } from "@/utils/format";
 import BestMoves, { arrowColors } from "./BestMoves";
 import EngineSelection from "./EngineSelection";
 import LogsPanel from "./LogsPanel";
@@ -55,10 +68,9 @@ function AnalysisPanel() {
     store,
     useShallow((s) => s.currentNode().fen),
   );
-  const is960 = useMemo(() => headers.variant === "Chess960", [headers]);
   const moves = useStore(
     store,
-    useShallow((s) => getVariationLine(s.root, s.position, is960)),
+    useShallow((s) => getVariationLine(s.root, s.position)),
   );
   const currentNodeHalfMoves = useStore(
     store,
@@ -66,15 +78,18 @@ function AnalysisPanel() {
   );
 
   const [engines, setEngines] = useAtom(enginesAtom);
+  const [optimisticEngines, setOptimisticEngines] = useOptimistic<
+    Engine[],
+    Engine[]
+  >(engines ?? [], (_, newEngines) => newEngines);
+
   const loadedEngines = useMemo(
-    () => engines.filter((e) => e.loaded),
-    [engines],
+    () => optimisticEngines.filter((e) => e.loaded),
+    [optimisticEngines],
   );
 
   const [, enable] = useAtom(enableAllAtom);
-  const allEnabledLoader = useAtomValue(allEnabledAtom);
-  const allEnabled =
-    allEnabledLoader.state === "hasData" && allEnabledLoader.data;
+  const allEnabled = useAtomValue(allEnabledAtom);
 
   const [tab, setTab] = useAtom(currentAnalysisTabAtom);
   const [expanded, setExpanded] = useAtom(currentExpandedEnginesAtom);
@@ -83,7 +98,7 @@ function AnalysisPanel() {
   const navigate = useNavigate();
 
   return (
-    <Stack h="100%">
+    <Stack h="100%" pl="sm">
       <Tabs
         h="100%"
         orientation="vertical"
@@ -109,6 +124,7 @@ function AnalysisPanel() {
             display: tab === "engines" ? "flex" : "none",
             flexDirection: "column",
           }}
+          pt="sm"
         >
           <ScrollArea
             offsetScrollbars
@@ -118,7 +134,8 @@ function AnalysisPanel() {
           >
             {pos &&
               (getPiecesCount(pos) <= 7 ||
-                (getPiecesCount(pos) === 8 && hasCaptures(pos))) && (
+                (getPiecesCount(pos) === 8 &&
+                  (hasCaptures(pos) || isOp1(pos)))) && (
                 <>
                   <TablebaseInfo fen={currentNodeFen} turn={pos.turn} />
                   <Space h="sm" />
@@ -126,32 +143,26 @@ function AnalysisPanel() {
               )}
             {loadedEngines.length > 1 && (
               <Paper withBorder p="xs" flex={1}>
-                <Group w="100%">
-                  <Stack w="6rem" gap="xs">
-                    <Text ta="center" fw="bold">
-                      {t("Board.Analysis.Summary")}
-                    </Text>
-                    <Button
-                      rightSection={
-                        allEnabled ? (
-                          <IconPlayerPause size="1.2rem" />
-                        ) : (
-                          <IconChevronsRight size="1.2rem" />
-                        )
-                      }
-                      variant={allEnabled ? "filled" : "default"}
-                      onClick={() => enable(!allEnabled)}
-                    >
-                      {allEnabled ? t("Common.Stop") : t("Common.Run")}
-                    </Button>
-                  </Stack>
-                  <Group grow flex={1}>
+                <Group w="100%" gap="xs" wrap="nowrap">
+                  <ActionIcon
+                    size="lg"
+                    variant="default"
+                    onClick={() => enable(!allEnabled)}
+                  >
+                    {allEnabled ? (
+                      <IconPlayerPause size="1.25rem" />
+                    ) : (
+                      <IconChevronsRight size="1.25rem" />
+                    )}
+                  </ActionIcon>
+                  <Group grow flex={1} gap="xs">
                     {loadedEngines.map((engine, i) => (
                       <EngineSummary
                         key={engine.name}
                         engine={engine}
                         fen={rootFen}
                         moves={moves}
+                        shorten={loadedEngines.length > 3}
                         i={i}
                       />
                     ))}
@@ -164,8 +175,7 @@ function AnalysisPanel() {
                 variant="separated"
                 multiple
                 chevronSize={0}
-                defaultValue={loadedEngines.map((e) => e.name)}
-                value={expanded}
+                value={expanded ?? loadedEngines.map((e) => e.name)}
                 onChange={(v) => setExpanded(v)}
                 styles={{
                   label: {
@@ -178,27 +188,23 @@ function AnalysisPanel() {
                 }}
               >
                 <DragDropContext
-                  onDragEnd={({ destination, source }) =>
-                    destination?.index !== undefined &&
-                    setEngines(async (prev) => {
-                      const result = Array.from(await prev);
-                      const prevLoaded = result.filter((e) => e.loaded);
-                      const [removed] = prevLoaded.splice(source.index, 1);
-                      prevLoaded.splice(destination.index, 0, removed);
-
-                      result.forEach((e, i) => {
-                        if (e.loaded) {
-                          result[i] = prevLoaded.shift()!;
-                        }
-                      });
-                      return result;
-                    })
-                  }
+                  onDragEnd={({ destination, source }) => {
+                    if (destination?.index === undefined) return;
+                    startTransition(async () => {
+                      const reordered = reorderEngines(
+                        optimisticEngines,
+                        source.index,
+                        destination!.index,
+                      );
+                      setOptimisticEngines(reordered);
+                      await setEngines(reordered);
+                    });
+                  }}
                 >
                   <Droppable droppableId="droppable" direction="vertical">
                     {(provided) => (
                       <div ref={provided.innerRef} {...provided.droppableProps}>
-                        <Stack w="100%">
+                        <Stack w="100%" gap="xs">
                           {loadedEngines.map((engine, i) => (
                             <Draggable
                               key={engine.name + i.toString()}
@@ -244,7 +250,7 @@ function AnalysisPanel() {
                   }}
                   leftSection={<IconSettings size="0.875rem" />}
                 >
-                  Manage Engines
+                  {t("Board.Analysis.ManageEngines")}
                 </Button>
                 <Popover width={250} position="top-end" shadow="md">
                   <Popover.Target>
@@ -288,20 +294,41 @@ function AnalysisPanel() {
   );
 }
 
+function reorderEngines(
+  engines: Engine[],
+  sourceIndex: number,
+  destinationIndex: number,
+): Engine[] {
+  const result = Array.from(engines);
+  const loaded = result.filter((e) => e.loaded);
+  const [removed] = loaded.splice(sourceIndex, 1);
+  loaded.splice(destinationIndex, 0, removed);
+
+  result.forEach((e, i) => {
+    if (e.loaded) {
+      result[i] = loaded.shift()!;
+    }
+  });
+
+  return result;
+}
+
 function EngineSummary({
   engine,
   fen,
   moves,
+  shorten,
   i,
 }: {
   engine: Engine;
   fen: string;
   moves: string[];
+  shorten: boolean;
   i: number;
 }) {
   const activeTab = useAtomValue(activeTabAtom);
   const [ev] = useAtom(
-    engineMovesFamily({ engine: engine.name, tab: activeTab! }),
+    engineMovesFamily({ engine: engine.id, tab: activeTab! }),
   );
 
   const curEval = useDeferredValue(
@@ -310,14 +337,19 @@ function EngineSummary({
   const score = curEval && curEval.length > 0 ? curEval[0].score : null;
 
   return (
-    <Card withBorder c={arrowColors[i]?.strong} p="xs">
-      <Stack gap="xs" align="center">
+    <Card withBorder c={arrowColors[i]?.strong} py={4} px="xs">
+      <Group gap="xs" wrap="nowrap" justify="center">
         <Text
           fw="bold"
           fz="xs"
-          style={{ textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+          style={{
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+          }}
         >
-          {engine.name}
+          {(shorten && engine.name.length > 3) || engine.name.length > 10
+            ? `${getInitials(engine.name)}.`
+            : engine.name}
         </Text>
         {score ? (
           <ScoreBubble size="sm" score={score} />
@@ -326,7 +358,7 @@ function EngineSummary({
             ???
           </Text>
         )}
-      </Stack>
+      </Group>
     </Card>
   );
 }

@@ -1,20 +1,19 @@
+import { resolve } from "@tauri-apps/api/path";
+import { readDir } from "@tauri-apps/plugin-fs";
+import { fetch } from "@tauri-apps/plugin-http";
+import useSWR from "swr";
 import {
+  commands,
   type DatabaseInfo,
   type GameQuery,
-  type MonthData,
   type NormalizedGame,
   type Player,
   type PlayerQuery,
   type PuzzleDatabaseInfo,
   type QueryResponse,
-  type Results,
-  commands,
 } from "@/bindings";
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
-import { appDataDir, resolve } from "@tauri-apps/api/path";
-import { BaseDirectory, readDir } from "@tauri-apps/plugin-fs";
-import { fetch } from "@tauri-apps/plugin-http";
-import useSWR from "swr";
+import { getDatabasesDir } from "@/utils/directories";
 import { unwrap } from "./unwrap";
 
 export type SuccessDatabaseInfo = Extract<DatabaseInfo, { type: "success" }>;
@@ -91,7 +90,8 @@ export async function query_players(
 }
 
 export async function getDatabases(): Promise<DatabaseInfo[]> {
-  const files = await readDir("db", { baseDir: BaseDirectory.AppData });
+  const dbDir = await getDatabasesDir();
+  const files = await readDir(dbDir);
   const dbs = files.filter((file) => file.name?.endsWith(".db3"));
   return (await Promise.allSettled(dbs.map((db) => getDatabase(db.name))))
     .filter((r) => r.status === "fulfilled")
@@ -99,8 +99,8 @@ export async function getDatabases(): Promise<DatabaseInfo[]> {
 }
 
 async function getDatabase(name: string): Promise<DatabaseInfo> {
-  const appDataDirPath = await appDataDir();
-  const path = await resolve(appDataDirPath, "db", name);
+  const dbDir = await getDatabasesDir();
+  const path = await resolve(dbDir, name);
   const res = await commands.getDbInfo(path);
   if (res.status === "ok") {
     return {
@@ -170,15 +170,6 @@ export async function getTournamentGames(file: string, id: number) {
   });
 }
 
-export interface PlayerGameInfo {
-  won: number;
-  lost: number;
-  draw: number;
-  data_per_month: [string, MonthData][];
-  white_openings: [string, Results][];
-  black_openings: [string, Results][];
-}
-
 export async function searchPosition(options: LocalOptions, tab: string) {
   const res = await commands.searchPosition(
     options.path!,
@@ -191,6 +182,7 @@ export async function searchPosition(options: LocalOptions, tab: string) {
       },
       start_date: options.start_date,
       end_date: options.end_date,
+      wanted_result: options.result,
     },
     tab,
   );

@@ -1,3 +1,4 @@
+"use no memo";
 import { AppShellSection, Stack, Tooltip } from "@mantine/core";
 import {
   type Icon,
@@ -21,13 +22,13 @@ interface NavbarLinkProps {
 }
 
 function NavbarLink({ url, icon: Icon, label }: NavbarLinkProps) {
-  const matcesRoute = useMatchRoute();
+  const match = useMatchRoute();
   return (
     <Tooltip label={label} position="right">
       <Link
         to={url}
         className={cx(classes.link, {
-          [classes.active]: matcesRoute({ to: url, fuzzy: true }),
+          [classes.active]: match({ to: url, fuzzy: true }) !== false,
         })}
       >
         <Icon size="1.5rem" stroke={1.5} />

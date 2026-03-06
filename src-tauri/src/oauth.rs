@@ -72,6 +72,7 @@ pub async fn authenticate(
         .add_extra_param("username", username)
         .set_pkce_challenge(state.auth.pkce.0.clone())
         .url();
+    #[allow(deprecated)] // TODO: migrate to tauri-plugin-opener
     app.shell().open(auth_url, None)?;
     let _server_handle = tauri::async_runtime::spawn(async move { run_server(app).await });
     Ok(())

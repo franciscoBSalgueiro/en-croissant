@@ -1,17 +1,15 @@
-import { TreeStateContext } from "@/components/common/TreeStateContext";
-import { spellCheckAtom } from "@/state/atoms";
-import { getNodeAtPath } from "@/utils/treeReducer";
 import { RichTextEditor } from "@mantine/tiptap";
-import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
-import Underline from "@tiptap/extension-underline";
+import { Markdown } from "@tiptap/markdown";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useAtomValue } from "jotai";
 import { useContext } from "react";
 import { useTranslation } from "react-i18next";
-import { Markdown } from "tiptap-markdown";
 import { useStore } from "zustand";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
+import { spellCheckAtom } from "@/state/atoms";
+import { getNodeAtPath } from "@/utils/treeReducer";
 
 function AnnotationEditor() {
   const { t } = useTranslation();
@@ -25,29 +23,48 @@ function AnnotationEditor() {
   const spellCheck = useAtomValue(spellCheckAtom);
   const editor = useEditor(
     {
+      autofocus: "end",
       extensions: [
-        StarterKit,
-        Underline,
-        Link.configure({
-          autolink: true,
-          openOnClick: false,
+        StarterKit.configure({
+          link: {
+            autolink: true,
+            openOnClick: false,
+          },
         }),
-        Markdown.configure({
-          linkify: true,
-        }),
+        Markdown,
         Placeholder.configure({ placeholder: t("Board.Annotate.WriteHere") }),
       ],
-      content: currentNode.comment,
+      content: currentNode.comment || null,
+      contentType: "markdown",
       onUpdate: ({ editor }) => {
-        const comment = editor.storage.markdown.getMarkdown();
-        setComment(comment);
+        setComment(editor.getMarkdown());
       },
     },
     [position.join(",")],
   );
 
   return (
-    <RichTextEditor editor={editor} spellCheck={spellCheck}>
+    <RichTextEditor
+      editor={editor}
+      spellCheck={spellCheck}
+      labels={{
+        boldControlLabel: t("RichText.Bold"),
+        italicControlLabel: t("RichText.Italic"),
+        underlineControlLabel: t("RichText.Underline"),
+        strikeControlLabel: t("RichText.Strike"),
+        clearFormattingControlLabel: t("RichText.ClearFormatting"),
+        h1ControlLabel: t("RichText.H1"),
+        h2ControlLabel: t("RichText.H2"),
+        h3ControlLabel: t("RichText.H3"),
+        h4ControlLabel: t("RichText.H4"),
+        blockquoteControlLabel: t("RichText.Quote"),
+        hrControlLabel: t("RichText.HLine"),
+        bulletListControlLabel: t("RichText.BulletList"),
+        orderedListControlLabel: t("RichText.NumberedList"),
+        linkControlLabel: t("RichText.Link"),
+        unlinkControlLabel: t("RichText.RemoveLink"),
+      }}
+    >
       <RichTextEditor.Toolbar>
         <RichTextEditor.ControlsGroup>
           <RichTextEditor.Bold />

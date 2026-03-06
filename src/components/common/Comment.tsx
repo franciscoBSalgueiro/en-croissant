@@ -1,19 +1,25 @@
-import { TypographyStylesProvider } from "@mantine/core";
+import { Typography } from "@mantine/core";
+import { memo } from "react";
 
 import Markdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 
-export function Comment({ comment }: { comment: string }) {
+function normalizeTiptapMarkdown(comment: string) {
+  return comment.replace(/\+\+([\s\S]+?)\+\+/g, "<u>$1</u>");
+}
+
+function Comment({ comment }: { comment: string }) {
+  const normalizedComment = normalizeTiptapMarkdown(comment);
   const multipleLine =
-    comment.split("\n").filter((v) => v.trim() !== "").length > 1;
+    normalizedComment.split("\n").filter((v) => v.trim() !== "").length > 1;
 
   return (
-    <TypographyStylesProvider
+    <Typography
       pl={0}
       mx={4}
       style={{
-        display: multipleLine ? "block" : "inline-block",
+        display: multipleLine ? "block" : "inline",
       }}
     >
       <Markdown
@@ -21,11 +27,15 @@ export function Comment({ comment }: { comment: string }) {
           a: ({ node, ...props }) => (
             <a {...props} target="_blank" rel="noreferrer" />
           ),
+          p: ({ node, ...props }) =>
+            multipleLine ? <p {...props} /> : <span {...props} />,
         }}
         rehypePlugins={[rehypeRaw, remarkGfm]}
       >
-        {comment}
+        {normalizedComment}
       </Markdown>
-    </TypographyStylesProvider>
+    </Typography>
   );
 }
+
+export default memo(Comment);

@@ -6,7 +6,7 @@ import {
   SegmentedControl,
   useMantineColorScheme,
 } from "@mantine/core";
-import { IconMoon, IconSun } from "@tabler/icons-react";
+import { IconDeviceDesktop, IconMoon, IconSun } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 
 export default function ThemeButton() {
@@ -20,6 +20,15 @@ export default function ThemeButton() {
         value={colorScheme}
         onChange={(value) => setColorScheme(value as MantineColorScheme)}
         data={[
+          {
+            value: "auto",
+            label: (
+              <Center>
+                <IconDeviceDesktop size="1rem" stroke={1.5} />
+                <Box ml={10}>{t("Settings.Appearance.Theme.Auto")}</Box>
+              </Center>
+            ),
+          },
           {
             value: "light",
             label: (

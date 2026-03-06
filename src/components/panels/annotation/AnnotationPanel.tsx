@@ -1,10 +1,3 @@
-import { TreeStateContext } from "@/components/common/TreeStateContext";
-import {
-  ANNOTATION_INFO,
-  type Annotation,
-  isBasicAnnotation,
-} from "@/utils/annotation";
-import { getNodeAtPath } from "@/utils/treeReducer";
 import {
   ActionIcon,
   Collapse,
@@ -21,6 +14,13 @@ import { atom, useAtom } from "jotai";
 import { memo, useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
+import { TreeStateContext } from "@/components/common/TreeStateContext";
+import {
+  ANNOTATION_INFO,
+  type Annotation,
+  isBasicAnnotation,
+} from "@/utils/annotation";
+import { getNodeAtPath } from "@/utils/treeReducer";
 import AnnotationEditor from "./AnnotationEditor";
 
 const SymbolButton = memo(function SymbolButton({
@@ -57,7 +57,19 @@ const showMoreSymbolsAtom = atom(false);
 
 const BASIC = ["!!", "!", "!?", "?!", "?", "??"] as const;
 const ADVANTAGE = ["+-", "±", "⩲", "=", "∞", "⩱", "∓", "-+"] as const;
-const EXTRA = ["N", "↑↑", "↑", "→", "⇆", "=∞", "⊕", "∆", "□", "⨀"] as const;
+const EXTRA = [
+  "N",
+  "↑↑",
+  "↑",
+  "→",
+  "⇆",
+  "=∞",
+  "⊕",
+  "∆",
+  "□",
+  "⨀",
+  "⊗",
+] as const;
 
 function AnnotationPanel() {
   const store = useContext(TreeStateContext)!;
@@ -65,10 +77,11 @@ function AnnotationPanel() {
   const position = useStore(store, (s) => s.position);
   const currentNode = getNodeAtPath(root, position);
   const [showMoreSymbols, setShowMoreSymbols] = useAtom(showMoreSymbolsAtom);
+
   return (
-    <Stack h="100%" gap={0}>
+    <Stack h="100%" gap={0} py="sm">
       <Stack gap={0}>
-        <Group grow>
+        <Group grow px="sm">
           {BASIC.map((annotation) => {
             return (
               <SymbolButton
@@ -96,7 +109,7 @@ function AnnotationPanel() {
         />
       </Stack>
 
-      <Collapse in={showMoreSymbols}>
+      <Collapse in={showMoreSymbols} px="sm">
         <Stack mb="md">
           <Group grow>
             {ADVANTAGE.map((annotation) => (
@@ -119,7 +132,7 @@ function AnnotationPanel() {
         </Stack>
       </Collapse>
 
-      <ScrollArea offsetScrollbars>
+      <ScrollArea offsetScrollbars pl="sm">
         <AnnotationEditor />
       </ScrollArea>
     </Stack>

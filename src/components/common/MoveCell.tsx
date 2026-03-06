@@ -1,13 +1,13 @@
-import { moveNotationTypeAtom } from "@/state/atoms";
+import { Box, rgba, useMantineTheme } from "@mantine/core";
+import { IconFlag } from "@tabler/icons-react";
+import { useAtom } from "jotai";
+import type { ReactNode, RefObject } from "react";
+import { currentShowCommentsAtom, moveNotationTypeAtom } from "@/state/atoms";
 import {
   ANNOTATION_INFO,
   type Annotation,
   addPieceSymbol,
 } from "@/utils/annotation";
-import { Box, rgba, useMantineTheme } from "@mantine/core";
-import { IconFlag } from "@tabler/icons-react";
-import { useAtom } from "jotai";
-import { type ForwardedRef, forwardRef } from "react";
 import * as classes from "./MoveCell.css";
 
 interface MoveCellProps {
@@ -17,15 +17,17 @@ interface MoveCellProps {
   move: string;
   onClick: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
+  fullWidth?: boolean;
+  rightAccessory?: ReactNode;
+  ref?: RefObject<HTMLButtonElement>;
 }
 
-const MoveCell = forwardRef(function MoveCell(
-  props: MoveCellProps,
-  ref: ForwardedRef<HTMLButtonElement>,
-) {
+function MoveCell(props: MoveCellProps) {
   const [moveNotationType] = useAtom(moveNotationTypeAtom);
+  const [showComments] = useAtom(currentShowCommentsAtom);
+  const visualAnnotation = showComments ? props.annotations[0] : "";
 
-  const color = ANNOTATION_INFO[props.annotations[0]]?.color || "gray";
+  const color = ANNOTATION_INFO[visualAnnotation]?.color || "gray";
   const theme = useMantineTheme();
   const hoverOpacity = props.isCurrentVariation ? 0.25 : 0.1;
   let baseLight = theme.colors.gray[8];
@@ -51,9 +53,9 @@ const MoveCell = forwardRef(function MoveCell(
 
   return (
     <Box
-      ref={ref}
+      ref={props.ref}
       component="button"
-      className={classes.cell}
+      className={`${classes.cell} ${props.fullWidth ? classes.cellFullWidth : ""}`}
       style={{
         "--light-color": baseLight,
         "--light-hover-color": hoverLight,
@@ -65,11 +67,22 @@ const MoveCell = forwardRef(function MoveCell(
       onClick={props.onClick}
       onContextMenu={props.onContextMenu}
     >
-      {props.isStart && <IconFlag style={{ marginRight: 5 }} size="0.875rem" />}
-      {moveNotationType === "symbols" ? addPieceSymbol(props.move) : props.move}
-      {props.annotations.join("")}
+      <Box component="span" className={classes.moveText}>
+        {props.isStart && (
+          <IconFlag style={{ marginRight: 5 }} size="0.875rem" />
+        )}
+        {moveNotationType === "symbols"
+          ? addPieceSymbol(props.move)
+          : props.move}
+        {showComments ? props.annotations.join("") : ""}
+      </Box>
+      {props.rightAccessory && (
+        <Box component="span" className={classes.rightAccessory}>
+          {props.rightAccessory}
+        </Box>
+      )}
     </Box>
   );
-});
+}
 
 export default MoveCell;

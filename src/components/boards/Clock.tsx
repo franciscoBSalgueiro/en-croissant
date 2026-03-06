@@ -1,9 +1,9 @@
-import { positionFromFen } from "@/utils/chessops";
-import { getClockInfo } from "@/utils/clock";
 import { Paper, Progress, Text } from "@mantine/core";
 import { useContext } from "react";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
+import { positionFromFen } from "@/utils/chessops";
+import { getClockInfo } from "@/utils/clock";
 import { TreeStateContext } from "../common/TreeStateContext";
 import * as classes from "./Clock.css";
 

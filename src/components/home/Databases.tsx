@@ -1,13 +1,30 @@
-import { events, type MonthData, type Results, commands } from "@/bindings";
-import type { DatabaseInfo as PlainDatabaseInfo, Player } from "@/bindings";
-import { sessionsAtom } from "@/state/atoms";
-import { type PlayerGameInfo, getDatabases, query_players } from "@/utils/db";
-import type { Session } from "@/utils/session";
-import { unwrap } from "@/utils/unwrap";
-import { Flex, Progress, Select, Text } from "@mantine/core";
+import {
+  Center,
+  Loader,
+  Paper,
+  Progress,
+  Select,
+  Stack,
+  Text,
+  ThemeIcon,
+  Title,
+} from "@mantine/core";
+import { IconDatabaseOff } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import useSWRImmutable from "swr/immutable";
+import type {
+  DatabaseInfo as PlainDatabaseInfo,
+  PlayerGameInfo,
+} from "@/bindings";
+import { commands, events } from "@/bindings";
+import { sessionsAtom } from "@/state/atoms";
+import { activeDatabaseViewStore } from "@/state/store/database";
+import { getDatabases, query_players } from "@/utils/db";
+import type { Session } from "@/utils/session";
+import { unwrap } from "@/utils/unwrap";
+import { DatabaseViewStateContext } from "../databases/DatabaseViewStateContext";
 import PersonalPlayerCard from "./PersonalCard";
 
 type DatabaseInfo = PlainDatabaseInfo & {
@@ -39,71 +56,8 @@ interface PersonalInfo {
   info: PlayerGameInfo;
 }
 
-function sumGamesPlayed(lists: [string, Results][][]) {
-  const openingCounts = new Map<string, Results>();
-
-  for (const list of lists) {
-    for (const [opening, count] of list) {
-      const prev = openingCounts.get(opening) || { won: 0, draw: 0, lost: 0 };
-      openingCounts.set(opening, {
-        won: prev.won + count.won,
-        draw: prev.draw + count.draw,
-        lost: prev.lost + count.lost,
-      });
-    }
-  }
-
-  return Array.from(openingCounts.entries()).sort(
-    (a, b) =>
-      b[1].won + b[1].draw + b[1].lost - a[1].won - a[1].draw - a[1].lost,
-  );
-}
-
-function joinMonthData(data: [string, MonthData][][]) {
-  const monthCounts = new Map<string, MonthData & { avg_count: number }>();
-
-  for (const list of data) {
-    for (const [month, monthData] of list) {
-      if (monthCounts.has(month)) {
-        const oldData = monthCounts.get(month);
-        if (oldData) {
-          monthCounts.set(month, {
-            count: oldData.count + monthData.count,
-            avg_elo: oldData.avg_elo + monthData.avg_elo,
-            avg_count: oldData.avg_count + 1,
-          });
-        }
-      } else {
-        monthCounts.set(month, { ...monthData, avg_count: 1 });
-      }
-    }
-  }
-  for (const [month, monthData] of monthCounts) {
-    monthCounts.set(month, {
-      count: monthData.count,
-      avg_elo: monthData.avg_elo / monthData.avg_count,
-      avg_count: monthData.avg_count,
-    });
-  }
-
-  return Array.from(monthCounts.entries()).sort((a, b) =>
-    a[0].localeCompare(b[0]),
-  );
-}
-
-function combinePlayerInfo(playerInfos: PlayerGameInfo[]) {
-  const combined: PlayerGameInfo = {
-    won: playerInfos.reduce((acc, i) => acc + i.won, 0),
-    lost: playerInfos.reduce((acc, i) => acc + i.lost, 0),
-    draw: playerInfos.reduce((acc, i) => acc + i.draw, 0),
-    data_per_month: joinMonthData(playerInfos.map((i) => i.data_per_month)),
-    white_openings: sumGamesPlayed(playerInfos.map((i) => i.white_openings)),
-    black_openings: sumGamesPlayed(playerInfos.map((i) => i.black_openings)),
-  };
-  return combined;
-}
-
 function Databases() {
+  const { t } = useTranslation();
   const sessions = useAtomValue(sessionsAtom);
 
   const players = Array.from(
@@ -198,43 +152,94 @@ function Databases() {
   return (
     <>
       {isLoading && databases && (
-        <>
-          <Text ta="center" fw="bold" my="auto" fz="lg">
-            Processing Games...
-          </Text>
-
-          <Progress value={progress} />
-        </>
+        <Paper
+          h="100%"
+          shadow="sm"
+          p="md"
+          withBorder
+          style={{
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <Center h="100%">
+            <Stack w="100%" maw={400} align="center" gap="md">
+              <ThemeIcon size={80} radius="100%" variant="light" color="blue">
+                <Loader color="blue" type="bars" />
+              </ThemeIcon>
+              <Title order={3}>{t("Home.Databases.ProcessingGames")}</Title>
+              <Progress
+                w="100%"
+                value={progress}
+                animated
+                striped
+                size="md"
+                radius="xl"
+              />
+              <Text fw="bold" fz="sm" c="dimmed">
+                {Math.round(progress)}%
+              </Text>
+            </Stack>
+          </Center>
+        </Paper>
       )}
-      {error && <Text ta="center">Error loading databases: {error}</Text>}
+      {error && (
+        <Text ta="center">{t("Home.Databases.ErrorLoading", { error })}</Text>
+      )}
       {personalInfo &&
         (personalInfo.length === 0 ? (
-          <>
-            <Flex justify="center">
-              <Select
-                value={name}
-                data={players}
-                onChange={(e) => setName(e || "")}
-                clearable={false}
-                fw="bold"
-                styles={{
-                  input: {
-                    textAlign: "center",
-                    fontSize: "1.25rem",
-                  },
-                }}
-              />
-            </Flex>
-            <Text ta="center" fw="bold" my="auto" fz="lg">
-              No databases found
-            </Text>
-          </>
+          <Paper
+            h="100%"
+            shadow="sm"
+            p="md"
+            withBorder
+            style={{
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <Center h="100%">
+              <Stack align="center" gap="md">
+                <ThemeIcon size={80} radius="100%" variant="light" color="blue">
+                  <IconDatabaseOff size={40} />
+                </ThemeIcon>
+                <Title order={3}>{t("Home.Databases.Empty.Title")}</Title>
+                <Text c="dimmed" ta="center" maw={400}>
+                  {t("Home.Databases.Empty.Description")}
+                </Text>
+
+                <Select
+                  value={name}
+                  data={players}
+                  onChange={(e) => setName(e || "")}
+                  clearable={false}
+                  allowDeselect={false}
+                  fw="bold"
+                  styles={{
+                    input: {
+                      textAlign: "center",
+                      fontSize: "1.25rem",
+                    },
+                  }}
+                  mt="md"
+                />
+              </Stack>
+            </Center>
+          </Paper>
         ) : (
-          <PersonalPlayerCard
-            name={name}
-            setName={setName}
-            info={combinePlayerInfo(personalInfo.map((i) => i.info))}
-          />
+          <DatabaseViewStateContext.Provider value={activeDatabaseViewStore}>
+            <PersonalPlayerCard
+              name={name}
+              setName={setName}
+              info={{
+                site_stats_data: personalInfo.flatMap(
+                  (i) => i.info.site_stats_data,
+                ),
+              }}
+            />
+          </DatabaseViewStateContext.Provider>
         ))}
     </>
   );

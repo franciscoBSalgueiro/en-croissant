@@ -1,3 +1,22 @@
+import {
+  Alert,
+  Group,
+  ScrollArea,
+  SegmentedControl,
+  Select,
+  Stack,
+  Tabs,
+  Text,
+} from "@mantine/core";
+import { useDebouncedValue } from "@mantine/hooks";
+import { Link } from "@tanstack/react-router";
+import { useAtom, useAtomValue } from "jotai";
+import { memo, useContext, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import useSWR from "swr/immutable";
+import { match } from "ts-pattern";
+import { useStore } from "zustand";
+import { commands } from "@/bindings";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
   currentDbTabAtom,
@@ -7,8 +26,9 @@ import {
   lichessOptionsAtom,
   masterOptionsAtom,
   referenceDbAtom,
+  sessionsAtom,
 } from "@/state/atoms";
-import { type Opening, searchPosition } from "@/utils/db";
+import { getDatabases, type Opening, searchPosition } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 import {
   convertToNormalized,
@@ -19,22 +39,6 @@ import type {
   LichessGamesOptions,
   MasterGamesOptions,
 } from "@/utils/lichess/explorer";
-import {
-  Alert,
-  Group,
-  ScrollArea,
-  SegmentedControl,
-  Stack,
-  Tabs,
-  Text,
-} from "@mantine/core";
-import { useDebouncedValue } from "@mantine/hooks";
-import { useAtom, useAtomValue } from "jotai";
-import { memo, useContext, useEffect } from "react";
-import { useTranslation } from "react-i18next";
-import useSWR from "swr/immutable";
-import { match } from "ts-pattern";
-import { useStore } from "zustand";
 import DatabaseLoader from "./DatabaseLoader";
 import GamesTable from "./GamesTable";
 import NoDatabaseWarning from "./NoDatabaseWarning";
@@ -45,8 +49,18 @@ import MasterOptionsPanel from "./options/MastersOptionsPanel";
 
 type DBType =
   | { type: "local"; options: LocalOptions }
-  | { type: "lch_all"; options: LichessGamesOptions; fen: string }
-  | { type: "lch_master"; options: MasterGamesOptions; fen: string };
+  | {
+      type: "lch_all";
+      options: LichessGamesOptions;
+      fen: string;
+      token: string;
+    }
+  | {
+      type: "lch_master";
+      options: MasterGamesOptions;
+      fen: string;
+      token: string;
+    };
 
 export type LocalOptions = {
   path: string | null;
@@ -56,6 +70,7 @@ export type LocalOptions = {
   color: "white" | "black";
   start_date?: string;
   end_date?: string;
+  result: "any" | "whitewon" | "draw" | "blackwon";
 };
 
 function sortOpenings(openings: Opening[]) {
@@ -66,8 +81,8 @@ function sortOpenings(openings: Opening[]) {
 
 async function fetchOpening(db: DBType, tab: string) {
   return match(db)
-    .with({ type: "lch_all" }, async ({ fen, options }) => {
-      const data = await getLichessGames(fen, options);
+    .with({ type: "lch_all" }, async ({ fen, options, token }) => {
+      const data = await getLichessGames(fen, options, token);
       return {
         openings: data.moves.map((move) => ({
           move: move.san,
@@ -80,8 +95,8 @@ async function fetchOpening(db: DBType, tab: string) {
         ),
       };
     })
-    .with({ type: "lch_master" }, async ({ fen, options }) => {
-      const data = await getMasterGames(fen, options);
+    .with({ type: "lch_master" }, async ({ fen, options, token }) => {
+      const data = await getMasterGames(fen, options, token);
       return {
         openings: data.moves.map((move) => ({
           move: move.san,
@@ -110,12 +125,24 @@ function DatabasePanel() {
 
   const store = useContext(TreeStateContext)!;
   const fen = useStore(store, (s) => s.currentNode().fen);
-  const referenceDatabase = useAtomValue(referenceDbAtom);
+  const [referenceDatabase, setReferenceDatabase] = useAtom(referenceDbAtom);
+  const sessions = useAtomValue(sessionsAtom);
   const [debouncedFen] = useDebouncedValue(fen, 50);
   const [lichessOptions, setLichessOptions] = useAtom(lichessOptionsAtom);
   const [masterOptions, setMasterOptions] = useAtom(masterOptionsAtom);
   const [localOptions, setLocalOptions] = useAtom(currentLocalOptionsAtom);
   const [db, setDb] = useAtom(currentDbTypeAtom);
+  const explorerToken = sessions.find((session) => session.lichess?.accessToken)
+    ?.lichess?.accessToken;
+  const missingExplorerToken = db !== "local" && !explorerToken;
+
+  const { data: databases } = useSWR(db === "local" ? "databases" : null, () =>
+    getDatabases(),
+  );
+
+  const dbSelectData = (databases ?? [])
+    .filter((d) => d.type === "success")
+    .map((d) => ({ value: d.file, label: d.title || d.filename }));
 
   useEffect(() => {
     if (db === "local") {
@@ -138,11 +165,13 @@ function DatabasePanel() {
       type: v,
       options: lichessOptions,
       fen: debouncedFen,
+      token: explorerToken ?? "",
     }))
     .with("lch_master", (v) => ({
       type: v,
       options: masterOptions,
       fen: debouncedFen,
+      token: explorerToken ?? "",
     }))
     .exhaustive();
 
@@ -153,32 +182,53 @@ function DatabasePanel() {
     data: openingData,
     isLoading,
     error,
-  } = useSWR(tabType !== "options" ? dbType : null, async (dbType: DBType) => {
-    return fetchOpening(dbType, tab?.value || "");
-  });
+  } = useSWR(
+    tabType !== "options" && !missingExplorerToken ? dbType : null,
+    async (dbType: DBType) => {
+      return fetchOpening(dbType, tab?.value || "");
+    },
+  );
 
   const grandTotal = openingData?.openings?.reduce(
     (acc, curr) => acc + curr.black + curr.white + curr.draw,
     0,
   );
 
-  return (
-    <Stack h="100%" gap={0}>
-      <Group justify="space-between" w="100%">
-        <SegmentedControl
-          data={[
-            { label: t("Board.Database.Local"), value: "local" },
-            { label: t("Board.Database.LichessAll"), value: "lch_all" },
-            { label: t("Board.Database.LichessMaster"), value: "lch_master" },
-          ]}
-          value={db}
-          onChange={(value) =>
-            setDb(value as "local" | "lch_all" | "lch_master")
-          }
-        />
+  const header = (
+    <>
+      <Group justify="space-between" w="100%" wrap="nowrap">
+        <Group>
+          <SegmentedControl
+            data={[
+              { label: t("Board.Database.Local"), value: "local" },
+              { label: t("Board.Database.LichessAll"), value: "lch_all" },
+              { label: t("Board.Database.LichessMaster"), value: "lch_master" },
+            ]}
+            value={db}
+            onChange={(value) =>
+              setDb(value as "local" | "lch_all" | "lch_master")
+            }
+          />
+
+          {db === "local" && (
+            <Select
+              data={dbSelectData}
+              value={referenceDatabase}
+              onChange={async (value) => {
+                await commands.clearGames();
+                setReferenceDatabase(value);
+              }}
+              placeholder={t("Board.Database.SelectReference")}
+              size="sm"
+              flex={1}
+              maw={200}
+              allowDeselect={false}
+            />
+          )}
+        </Group>
 
         {tabType !== "options" && (
-          <Text>
+          <Text style={{ whiteSpace: "nowrap" }}>
             {t("Board.Database.Matches", {
               matches: formatNumber(
                 Math.max(grandTotal || 0, openingData?.games.length || 0),
@@ -187,9 +237,12 @@ function DatabasePanel() {
           </Text>
         )}
       </Group>
-
       <DatabaseLoader isLoading={isLoading} tab={tab?.value ?? null} />
+    </>
+  );
 
+  return (
+    <Stack h="100%" gap={0}>
       <Tabs
         defaultValue="stats"
         orientation="vertical"
@@ -213,17 +266,39 @@ function DatabasePanel() {
           <Tabs.Tab value="options">{t("Board.Database.Options")}</Tabs.Tab>
         </Tabs.List>
 
-        <PanelWithError value="stats" error={error} type={db}>
+        <PanelWithError
+          value="stats"
+          error={error}
+          type={db}
+          header={header}
+          missingExplorerToken={missingExplorerToken}
+        >
           <OpeningsTable
             openings={openingData?.openings || []}
             loading={isLoading}
           />
         </PanelWithError>
-        <PanelWithError value="games" error={error} type={db}>
-          <GamesTable games={openingData?.games || []} loading={isLoading} />
+        <PanelWithError
+          value="games"
+          error={error}
+          type={db}
+          header={header}
+          missingExplorerToken={missingExplorerToken}
+        >
+          <GamesTable
+            games={openingData?.games || []}
+            loading={isLoading}
+            databasePath={dbType.type === "local" ? dbType.options.path : null}
+          />
         </PanelWithError>
-        <PanelWithError value="options" error={error} type={db}>
-          <ScrollArea h="100%" offsetScrollbars>
+        <PanelWithError
+          value="options"
+          error={error}
+          type={db}
+          header={header}
+          missingExplorerToken={missingExplorerToken}
+        >
+          <ScrollArea flex={1} offsetScrollbars pt="sm">
             {match(db)
               .with("local", () => (
                 <LocalOptionsPanel boardFen={debouncedFen} />
@@ -242,19 +317,38 @@ function PanelWithError(props: {
   value: string;
   error: string;
   type: string;
+  header: React.ReactNode;
   children: React.ReactNode;
+  missingExplorerToken: boolean;
 }) {
   const referenceDatabase = useAtomValue(referenceDbAtom);
+  const { t } = useTranslation();
   let children = props.children;
   if (props.type === "local" && !referenceDatabase) {
     children = <NoDatabaseWarning />;
+  }
+  if (props.missingExplorerToken && props.type !== "local") {
+    children = (
+      <Alert color="yellow">
+        {t("Board.Database.ExplorerAuthRequired1")}{" "}
+        <Link to="/accounts">Users</Link>{" "}
+        {t("Board.Database.ExplorerAuthRequired2")}
+      </Alert>
+    );
   }
   if (props.error && props.type !== "local") {
     children = <Alert color="red">{props.error.toString()}</Alert>;
   }
 
   return (
-    <Tabs.Panel pt="xs" value={props.value} flex={1}>
+    <Tabs.Panel
+      py="xs"
+      px="sm"
+      value={props.value}
+      flex={1}
+      style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}
+    >
+      {props.header}
       {children}
     </Tabs.Panel>
   );

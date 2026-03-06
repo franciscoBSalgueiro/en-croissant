@@ -1,5 +1,5 @@
-import { vars } from "@/styles/theme";
 import { style } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme";
 
 export const card = style({
   cursor: "pointer",
@@ -8,21 +8,25 @@ export const card = style({
   borderRadius: vars.radius.md,
   borderWidth: 2,
   borderColor: "transparent",
+  boxShadow: vars.shadows.xs,
 
   [vars.lightSelector]: {
     backgroundColor: vars.colors.white,
+    borderColor: vars.colors.gray[2],
   },
   [vars.darkSelector]: {
     backgroundColor: vars.colors.dark[6],
+    borderColor: vars.colors.dark[4],
   },
   ":hover": {
+    boxShadow: vars.shadows.md,
     [vars.lightSelector]: {
-      backgroundColor: vars.colors.gray[0],
-      borderColor: vars.colors.gray[6],
+      backgroundColor: vars.colors.white,
+      borderColor: vars.colors.gray[4],
     },
     [vars.darkSelector]: {
-      backgroundColor: vars.colors.dark[6],
-      borderColor: vars.colors.gray[6],
+      backgroundColor: vars.colors.dark[5],
+      borderColor: vars.colors.dark[3],
     },
   },
 });
@@ -52,6 +56,7 @@ export const error = style({
 
 export const selected = style({
   borderColor: "var(--mantine-primary-color-filled) !important",
+  boxShadow: `${vars.shadows.md} !important`,
 
   ":hover": {
     borderColor: "var(--mantine-primary-color-filled)",

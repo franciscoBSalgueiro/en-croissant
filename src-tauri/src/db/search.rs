@@ -1,15 +1,19 @@
-use dashmap::{mapref::entry::Entry, DashMap};
+use dashmap::DashMap;
 use diesel::prelude::*;
 use log::info;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use shakmaty::{fen::Fen, san::SanPlus, Bitboard, ByColor, Chess, FromSetup, Position, Setup};
+use shakmaty::{
+    fen::Fen, san::SanPlus, Bitboard, ByColor, CastlingMode, Chess, FromSetup, Position, Setup,
+};
 use specta::Type;
 use std::{
+    cmp::Reverse,
+    collections::BinaryHeap,
     path::PathBuf,
     sync::{
         atomic::{AtomicUsize, Ordering},
-        Mutex,
+        Arc, Mutex,
     },
     time::Instant,
 };
@@ -17,14 +21,19 @@ use tauri::Emitter;
 
 use crate::{
     db::{
-        encoding::decode_move, get_db_or_create, get_material_count, get_pawn_home, models::*,
-        normalize_games, schema::*, ConnectionOptions, MaterialCount,
+        encoding::{decode_move, iter_mainline_move_bytes},
+        get_db_or_create, get_material_count, get_pawn_home,
+        models::*,
+        normalize_games,
+        schema::*,
+        search_index::{get_index_path, GameResult, MmapSearchIndex, SearchGameEntryRef},
+        ConnectionOptions, MaterialCount,
     },
     error::Error,
     AppState,
 };
 
-use super::GameQueryJs;
+use super::GameQuery;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct ExactData {
@@ -48,8 +57,10 @@ pub enum PositionQuery {
 
 impl PositionQuery {
     pub fn exact_from_fen(fen: &str) -> Result<PositionQuery, Error> {
-        let position: Chess =
-            Fen::from_ascii(fen.as_bytes())?.into_position(shakmaty::CastlingMode::Chess960)?;
+        let fen = Fen::from_ascii(fen.as_bytes())?;
+        let setup = fen.into_setup();
+        let castling_mode = CastlingMode::detect(&setup);
+        let position: Chess = setup.position(castling_mode)?;
         let pawn_home = get_pawn_home(position.board());
         let material = get_material_count(position.board());
         Ok(PositionQuery::Exact(ExactData {
@@ -88,7 +99,7 @@ impl PositionQuery {
     fn matches(&self, position: &Chess) -> bool {
         match self {
             PositionQuery::Exact(ref data) => {
-                data.position.board() == position.board() && data.position.turn() == position.turn()
+                data.position.turn() == position.turn() && data.position.board() == position.board()
             }
             PositionQuery::Partial(ref data) => {
                 let query_board = &data.piece_positions.board;
@@ -152,38 +163,61 @@ pub struct PositionStats {
 }
 
 fn get_move_after_match(
-    move_blob: &Vec<u8>,
-    fen: &Option<String>,
+    move_blob: &[u8],
+    fen: &Option<&str>,
     query: &PositionQuery,
 ) -> Result<Option<String>, Error> {
     let mut chess = if let Some(fen) = fen {
         let fen = Fen::from_ascii(fen.as_bytes())?;
-        Chess::from_setup(fen.into_setup(), shakmaty::CastlingMode::Chess960)?
+        let setup = fen.into_setup();
+        let castling_mode = CastlingMode::detect(&setup);
+        Chess::from_setup(setup, castling_mode)?
     } else {
         Chess::default()
     };
 
     if query.matches(&chess) {
-        if move_blob.is_empty() {
+        let mut mainline = iter_mainline_move_bytes(move_blob).peekable();
+        if mainline.peek().is_none() {
             return Ok(Some("*".to_string()));
         }
-        let next_move = decode_move(move_blob[0], &chess).unwrap();
+        let Some(next_byte) = mainline.peek().copied() else {
+            return Ok(Some("*".to_string()));
+        };
+        let Some(next_move) = decode_move(next_byte, &chess) else {
+            return Ok(None);
+        };
         let san = SanPlus::from_move(chess, &next_move);
         return Ok(Some(san.to_string()));
     }
 
-    for (i, byte) in move_blob.iter().enumerate() {
-        let m = decode_move(*byte, &chess).unwrap();
-        chess.play_unchecked(&m);
-        let board = chess.board();
-        if !query.is_reachable_by(&get_material_count(board), get_pawn_home(board)) {
+    let mut mainline = iter_mainline_move_bytes(move_blob).peekable();
+
+    while let Some(byte) = mainline.next() {
+        let Some(m) = decode_move(byte, &chess) else {
             return Ok(None);
+        };
+        chess.play_unchecked(&m);
+
+        let is_irreversible =
+            m.is_capture() || m.role() == shakmaty::Role::Pawn || m.is_promotion();
+
+        if is_irreversible {
+            let board = chess.board();
+            if !query.is_reachable_by(&get_material_count(board), get_pawn_home(board)) {
+                return Ok(None);
+            }
         }
         if query.matches(&chess) {
-            if i == move_blob.len() - 1 {
+            if mainline.peek().is_none() {
                 return Ok(Some("*".to_string()));
             }
-            let next_move = decode_move(move_blob[i + 1], &chess).unwrap();
+            let Some(next_byte) = mainline.peek().copied() else {
+                return Ok(Some("*".to_string()));
+            };
+            let Some(next_move) = decode_move(next_byte, &chess) else {
+                return Ok(None);
+            };
             let san = SanPlus::from_move(chess, &next_move);
             return Ok(Some(san.to_string()));
         }
@@ -202,163 +236,206 @@ pub struct ProgressPayload {
 #[specta::specta]
 pub async fn search_position(
     file: PathBuf,
-    query: GameQueryJs,
+    query: GameQuery,
     app: tauri::AppHandle,
     tab_id: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(Vec<PositionStats>, Vec<NormalizedGame>), Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
+    let collision_lock = {
+        let entry = state
+            .search_collisions
+            .entry((query.clone(), file.clone()))
+            .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())));
+        entry.value().clone()
+    };
+
+    let _guard = collision_lock.lock().await;
+
     if let Some(pos) = state.line_cache.get(&(query.clone(), file.clone())) {
         return Ok(pos.clone());
     }
 
-    // start counting the time
     let start = Instant::now();
     info!("start loading games");
 
     let permit = state.new_request.acquire().await.unwrap();
-    let mut games = state.db_cache.lock().unwrap();
 
-    if games.is_empty() {
-        *games = games::table
-            .select((
-                games::id,
-                games::white_id,
-                games::black_id,
-                games::date,
-                games::result,
-                games::moves,
-                games::fen,
-                games::pawn_home,
-                games::white_material,
-                games::black_material,
-            ))
-            .load(db)?;
+    let mmap_index = {
+        let mut cache = state.db_cache.lock().unwrap();
+        if cache.is_none() {
+            let index_path = get_index_path(&file);
 
-        info!("got {} games: {:?}", games.len(), start.elapsed());
-    }
+            if !MmapSearchIndex::is_valid(&index_path) {
+                info!("Search index not found, generating automatically...");
+                drop(cache);
+                if let Err(e) = super::generate_search_index(&file, &state) {
+                    return Err(Error::Io(std::io::Error::other(format!(
+                        "Failed to generate search index: {}",
+                        e
+                    ))));
+                }
+                cache = state.db_cache.lock().unwrap();
+            }
+
+            info!("Loading games from mmap binary search index");
+            match MmapSearchIndex::open(&index_path) {
+                Ok(index) => {
+                    info!(
+                        "Opened mmap index with {} games: {:?}",
+                        index.len(),
+                        start.elapsed()
+                    );
+                    *cache = Some(index);
+                }
+                Err(e) => {
+                    return Err(Error::Io(e));
+                }
+            }
+        }
+        cache.as_ref().unwrap().clone()
+    };
+
+    let game_count = mmap_index.len();
+
+    info!(
+        "Ready to search {} games: {:?}",
+        game_count,
+        start.elapsed()
+    );
 
     let openings: DashMap<String, PositionStats> = DashMap::new();
-    let sample_games: Mutex<Vec<i32>> = Mutex::new(Vec::new());
+    const MAX_SAMPLES: usize = 10;
+    // Min-heap of (elo_key, game_id) to track top-rated sample games.
+    // Using Reverse so peek() returns the entry with the lowest ELO,
+    // which we can evict when a higher-rated game is found.
+    let top_games: Mutex<BinaryHeap<Reverse<(i16, i32)>>> =
+        Mutex::new(BinaryHeap::with_capacity(MAX_SAMPLES + 1));
 
     let processed = AtomicUsize::new(0);
 
-    println!("start search on {tab_id}");
+    let parsed_position_query: Option<PositionQuery> = if let Some(pq) = &query.position {
+        Some(convert_position_query(pq.clone())?)
+    } else {
+        None
+    };
 
-    games.par_iter().for_each(
-        |(
-            id,
-            white_id,
-            black_id,
-            date,
-            result,
-            game,
-            fen,
-            end_pawn_home,
-            white_material,
-            black_material,
-        )| {
-            if state.new_request.available_permits() == 0 {
+    let wanted_result = query.wanted_result.as_ref().and_then(|r| match r.as_str() {
+        "whitewon" => Some(GameResult::WhiteWin),
+        "blackwon" => Some(GameResult::BlackWin),
+        "draw" => Some(GameResult::Draw),
+        _ => None,
+    });
+
+    info!("start search on {tab_id}");
+
+    let process_entry = |entry: SearchGameEntryRef<'_>| {
+        let index = processed.fetch_add(1, Ordering::Relaxed) + 1;
+        if index.is_multiple_of(50000) {
+            let _ = app.emit(
+                "search_progress",
+                ProgressPayload {
+                    progress: (index as f64 / game_count as f64) * 100.0,
+                    id: tab_id.clone(),
+                    finished: false,
+                },
+            );
+        }
+
+        if let Some(white) = query.player1 {
+            if white != entry.white_id {
                 return;
             }
+        }
+
+        if let Some(black) = query.player2 {
+            if black != entry.black_id {
+                return;
+            }
+        }
+
+        if let Some(wanted) = wanted_result {
+            if entry.result != wanted {
+                return;
+            }
+        }
+
+        if let Some(start_date) = &query.start_date {
+            if let Some(date) = entry.date {
+                if date < start_date.as_str() {
+                    return;
+                }
+            }
+        }
+
+        if let Some(end_date) = &query.end_date {
+            if let Some(date) = entry.date {
+                if date > end_date.as_str() {
+                    return;
+                }
+            }
+        }
+
+        if let Some(position_query) = &parsed_position_query {
             let end_material: MaterialCount = ByColor {
-                white: *white_material as u8,
-                black: *black_material as u8,
+                white: entry.white_material,
+                black: entry.black_material,
             };
-            processed.fetch_add(1, Ordering::Relaxed);
-            let index = processed.load(Ordering::Relaxed);
-            if (index + 1) % 10000 == 0 {
-                info!("{} games processed: {:?}", index + 1, start.elapsed());
-                app.emit(
-                    "search_progress",
-                    ProgressPayload {
-                        progress: (index as f64 / games.len() as f64) * 100.0,
-                        id: tab_id.clone(),
-                        finished: false,
-                    },
-                )
-                .unwrap();
-            }
-
-            if let Some(start_date) = &query.start_date {
-                if let Some(date) = date {
-                    if date < start_date {
-                        return;
-                    }
-                }
-            }
-
-            if let Some(end_date) = &query.end_date {
-                if let Some(date) = date {
-                    if date > end_date {
-                        return;
-                    }
-                }
-            }
-
-            if let Some(white) = query.player1 {
-                if white != *white_id {
-                    return;
-                }
-            }
-
-            if let Some(black) = query.player2 {
-                if black != *black_id {
-                    return;
-                }
-            }
-
-            if let Some(position_query) = &query.position {
-                let position_query =
-                    convert_position_query(position_query.clone()).expect("Invalid position query");
-                if position_query.can_reach(&end_material, *end_pawn_home as u16) {
-                    if let Ok(Some(m)) = get_move_after_match(game, fen, &position_query) {
-                        if sample_games.lock().unwrap().len() < 10 {
-                            sample_games.lock().unwrap().push(*id);
-                        }
-                        let entry = openings.entry(m);
-                        match entry {
-                            Entry::Occupied(mut e) => {
-                                let opening = e.get_mut();
-                                match result.as_deref() {
-                                    Some("1-0") => opening.white += 1,
-                                    Some("0-1") => opening.black += 1,
-                                    Some("1/2-1/2") => opening.draw += 1,
-                                    _ => (),
-                                }
-                            }
-                            Entry::Vacant(e) => {
-                                let mut opening = PositionStats {
-                                    black: 0,
-                                    white: 0,
-                                    draw: 0,
-                                    move_: e.key().to_string(),
-                                };
-                                match result.as_deref() {
-                                    Some("1-0") => opening.white = 1,
-                                    Some("0-1") => opening.black = 1,
-                                    Some("1/2-1/2") => opening.draw = 1,
-                                    _ => (),
-                                }
-                                e.insert(opening);
-                            }
+            if position_query.can_reach(&end_material, entry.pawn_home) {
+                if let Ok(Some(m)) = get_move_after_match(entry.moves, &entry.fen, position_query) {
+                    let elo_key = entry.white_elo.max(entry.black_elo);
+                    let mut heap = top_games.lock().unwrap();
+                    if heap.len() < MAX_SAMPLES {
+                        heap.push(Reverse((elo_key, entry.id)));
+                    } else if let Some(&Reverse((min_elo, _))) = heap.peek() {
+                        if elo_key > min_elo {
+                            heap.pop();
+                            heap.push(Reverse((elo_key, entry.id)));
                         }
                     }
+                    drop(heap);
+
+                    openings
+                        .entry(m)
+                        .and_modify(|opening| match entry.result {
+                            GameResult::WhiteWin => opening.white += 1,
+                            GameResult::BlackWin => opening.black += 1,
+                            GameResult::Draw => opening.draw += 1,
+                            GameResult::Other | GameResult::None => opening.draw += 1,
+                        })
+                        .or_insert_with(|| PositionStats {
+                            black: i32::from(entry.result == GameResult::BlackWin),
+                            white: i32::from(entry.result == GameResult::WhiteWin),
+                            draw: i32::from(
+                                entry.result == GameResult::Draw
+                                    || entry.result == GameResult::Other
+                                    || entry.result == GameResult::None,
+                            ),
+                            move_: String::new(),
+                        });
                 }
             }
-        },
-    );
+        }
+    };
 
-    let openings: Vec<PositionStats> = openings.into_iter().map(|(_, v)| v).collect();
-    let ids: Vec<i32> = sample_games.lock().unwrap().clone();
+    mmap_index.par_iter().for_each(process_entry);
+
+    let openings: Vec<PositionStats> = openings
+        .into_iter()
+        .map(|(k, mut v)| {
+            v.move_ = k;
+            v
+        })
+        .collect();
+    let ids: Vec<i32> = top_games
+        .into_inner()
+        .unwrap()
+        .into_iter()
+        .map(|Reverse((_, id))| id)
+        .collect();
 
     info!("finished search in {:?}", start.elapsed());
-
-    if state.new_request.available_permits() == 0 {
-        drop(permit);
-        return Err(Error::SearchStopped);
-    }
 
     let (white_players, black_players) = diesel::alias!(players as white, players as black);
     let games: Vec<(Game, Player, Player, Event, Site)> = games::table
@@ -367,96 +444,117 @@ pub async fn search_position(
         .inner_join(events::table.on(games::event_id.eq(events::id)))
         .inner_join(sites::table.on(games::site_id.eq(sites::id)))
         .filter(games::id.eq_any(ids))
+        .order((games::white_elo.desc(), games::black_elo.desc()))
         .load(db)?;
     let normalized_games = normalize_games(games);
+    let file_path = file.clone();
 
-    state
-        .line_cache
-        .insert((query, file), (openings.clone(), normalized_games.clone()));
+    state.line_cache.insert(
+        (query.clone(), file),
+        (openings.clone(), normalized_games.clone()),
+    );
+
+    state.search_collisions.remove(&(query, file_path));
+
+    drop(permit);
 
     Ok((openings, normalized_games))
 }
 
 pub async fn is_position_in_db(
     file: PathBuf,
-    query: GameQueryJs,
+    query: GameQuery,
     state: tauri::State<'_, AppState>,
 ) -> Result<bool, Error> {
-    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    let collision_lock = {
+        let entry = state
+            .search_collisions
+            .entry((query.clone(), file.clone()))
+            .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())));
+        entry.value().clone()
+    };
+
+    let _guard = collision_lock.lock().await;
 
     if let Some(pos) = state.line_cache.get(&(query.clone(), file.clone())) {
         return Ok(!pos.0.is_empty());
     }
 
-    // start counting the time
+    let parsed_position_query: Option<PositionQuery> = if let Some(pq) = &query.position {
+        Some(convert_position_query(pq.clone())?)
+    } else {
+        None
+    };
+
     let start = Instant::now();
-    info!("start loading games");
+    info!("start loading games for is_position_in_db");
 
     let permit = state.new_request.acquire().await.unwrap();
-    let mut games = state.db_cache.lock().unwrap();
 
-    if games.is_empty() {
-        *games = games::table
-            .select((
-                games::id,
-                games::white_id,
-                games::black_id,
-                games::date,
-                games::result,
-                games::moves,
-                games::fen,
-                games::pawn_home,
-                games::white_material,
-                games::black_material,
-            ))
-            .load(db)?;
+    let mmap_index = {
+        let mut cache = state.db_cache.lock().unwrap();
+        if cache.is_none() {
+            let index_path = get_index_path(&file);
 
-        info!("got {} games: {:?}", games.len(), start.elapsed());
-    }
-
-    let exists = games.par_iter().any(
-        |(
-            _id,
-            _white_id,
-            _black_id,
-            _date,
-            _result,
-            game,
-            fen,
-            end_pawn_home,
-            white_material,
-            black_material,
-        )| {
-            if state.new_request.available_permits() == 0 {
-                return false;
+            if !MmapSearchIndex::is_valid(&index_path) {
+                info!("Search index not found, generating automatically...");
+                drop(cache);
+                if let Err(e) = super::generate_search_index(&file, &state) {
+                    return Err(Error::Io(std::io::Error::other(format!(
+                        "Failed to generate search index: {}",
+                        e
+                    ))));
+                }
+                cache = state.db_cache.lock().unwrap();
             }
-            let end_material: MaterialCount = ByColor {
-                white: *white_material as u8,
-                black: *black_material as u8,
-            };
-            if let Some(position_query) = &query.position {
-                let position_query =
-                    convert_position_query(position_query.clone()).expect("Invalid position query");
-                position_query.can_reach(&end_material, *end_pawn_home as u16)
-                    && get_move_after_match(game, fen, &position_query)
-                        .unwrap_or(None)
-                        .is_some()
-            } else {
-                false
+
+            info!("Loading games from mmap binary search index");
+            match MmapSearchIndex::open(&index_path) {
+                Ok(index) => {
+                    info!(
+                        "Opened mmap index with {} games: {:?}",
+                        index.len(),
+                        start.elapsed()
+                    );
+                    *cache = Some(index);
+                }
+                Err(e) => {
+                    return Err(Error::Io(e));
+                }
             }
-        },
-    );
+        }
+        cache.as_ref().unwrap().clone()
+    };
+
+    let check_entry = |entry: SearchGameEntryRef<'_>| -> bool {
+        let end_material: MaterialCount = ByColor {
+            white: entry.white_material,
+            black: entry.black_material,
+        };
+        if let Some(position_query) = &parsed_position_query {
+            position_query.can_reach(&end_material, entry.pawn_home)
+                && get_move_after_match(entry.moves, &entry.fen, position_query)
+                    .unwrap_or(None)
+                    .is_some()
+        } else {
+            false
+        }
+    };
+
+    let exists = mmap_index.par_iter().any(check_entry);
+
     info!("finished search in {:?}", start.elapsed());
-    if state.new_request.available_permits() == 0 {
-        drop(permit);
-        return Err(Error::SearchStopped);
-    }
 
     if !exists {
-        state.line_cache.insert((query, file), (vec![], vec![]));
+        state
+            .line_cache
+            .insert((query.clone(), file.clone()), (vec![], vec![]));
     }
 
+    state.search_collisions.remove(&(query, file));
+
     drop(permit);
+
     Ok(exists)
 }
 

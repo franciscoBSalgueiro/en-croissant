@@ -1,14 +1,16 @@
 use std::{
     fmt::Display,
     path::PathBuf,
-    process::Stdio,
-    sync::Arc,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
     time::{Duration, Instant},
 };
 
 use derivative::Derivative;
 use governor::{Quota, RateLimiter};
-use log::{error, info};
+use log::{info, warn};
 use nonzero_ext::*;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
@@ -17,11 +19,7 @@ use shakmaty::{
 };
 use specta::Type;
 use tauri_specta::Event;
-use tokio::{
-    io::{AsyncBufReadExt, AsyncWriteExt, BufReader, Lines},
-    process::{Child, ChildStdin, ChildStdout, Command},
-    sync::Mutex,
-};
+use tokio::sync::Mutex;
 use vampirc_uci::{
     parse_one,
     uci::{Score, ScoreValue},
@@ -29,21 +27,17 @@ use vampirc_uci::{
 };
 
 use crate::{
-    db::{is_position_in_db, GameQueryJs, PositionQueryJs},
+    db::{is_position_in_db, GameQuery, PositionQueryJs},
+    engine::{
+        parse_fen_and_apply_moves, BaseEngine, EngineLog, EngineOption, EngineReader, GoMode,
+    },
     error::Error,
+    progress::update_progress,
     AppState,
 };
 
-#[derive(Debug, Clone, Serialize, Type)]
-#[serde(tag = "type", content = "value", rename_all = "camelCase")]
-pub enum EngineLog {
-    Gui(String),
-    Engine(String),
-}
-
-#[derive(Debug)]
 pub struct EngineProcess {
-    stdin: ChildStdin,
+    base: BaseEngine,
     last_depth: u32,
     best_moves: Vec<BestMoves>,
     last_best_moves: Vec<BestMoves>,
@@ -53,70 +47,30 @@ pub struct EngineProcess {
     go_mode: GoMode,
     running: bool,
     real_multipv: u16,
-    logs: Vec<EngineLog>,
     start: Instant,
 }
 
 impl EngineProcess {
-    async fn new(path: PathBuf) -> Result<(Self, Lines<BufReader<ChildStdout>>), Error> {
-        let mut command = Command::new(&path);
-        command.current_dir(path.parent().unwrap());
-        command
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
-
-        #[cfg(target_os = "windows")]
-        command.creation_flags(CREATE_NO_WINDOW);
-
-        let mut child = command.spawn()?;
-
-        let mut logs = Vec::new();
-
-        let mut stdin = child.stdin.take().ok_or(Error::NoStdin)?;
-
-        tokio::spawn(async move {
-            let mut stderr = BufReader::new(child.stderr.take().unwrap()).lines();
-            while let Some(line) = stderr.next_line().await.unwrap() {
-                error!("{}", &line);
-            }
-        });
-
-        let mut lines = BufReader::new(child.stdout.take().ok_or(Error::NoStdout)?).lines();
-
-        let _ = stdin.write_all("uci\n".as_bytes()).await;
-        logs.push(EngineLog::Gui("uci\n".to_string()));
-        while let Some(line) = lines.next_line().await? {
-            logs.push(EngineLog::Engine(line.clone()));
-            if line == "uciok" {
-                let _ = stdin.write_all("isready\n".as_bytes()).await;
-                logs.push(EngineLog::Gui("isready\n".to_string()));
-                while let Some(line_is_ready) = lines.next_line().await? {
-                    logs.push(EngineLog::Engine(line_is_ready.clone()));
-                    if line_is_ready == "readyok" {
-                        break;
-                    }
-                }
-                break;
-            }
-        }
+    async fn new(path: PathBuf) -> Result<(Self, EngineReader), Error> {
+        let mut base = BaseEngine::spawn(path).await?;
+        base.init_uci().await?;
+        let reader = base.take_reader().ok_or(Error::EngineDisconnected)?;
 
         Ok((
             Self {
-                stdin,
+                base,
                 last_depth: 0,
                 best_moves: Vec::new(),
                 last_best_moves: Vec::new(),
                 last_progress: 0.0,
                 last_event_sent: None,
-                logs,
                 options: EngineOptions::default(),
                 real_multipv: 0,
                 go_mode: GoMode::Infinite,
                 running: false,
                 start: Instant::now(),
             },
-            lines,
+            reader,
         ))
     }
 
@@ -124,24 +78,24 @@ impl EngineProcess {
     where
         T: Display,
     {
-        let msg = format!("setoption name {} value {}\n", name, value);
-        self.stdin.write_all(msg.as_bytes()).await?;
-        self.logs.push(EngineLog::Gui(msg));
-
-        Ok(())
+        self.base.set_option(name, value).await
     }
 
     async fn set_options(&mut self, options: EngineOptions) -> Result<(), Error> {
+        let fen_changed = options.fen != self.options.fen;
         let fen: Fen = options.fen.parse()?;
-        let mut pos: Chess = match fen.into_position(CastlingMode::Chess960) {
-            Ok(p) => p,
-            Err(e) => e.ignore_too_much_material()?,
-        };
-        for m in &options.moves {
-            let uci = UciMove::from_ascii(m.as_bytes())?;
-            let mv = uci.to_move(&pos)?;
-            pos.play_unchecked(&mv);
+        let setup = fen.as_setup();
+        let castling_mode = CastlingMode::detect(setup);
+        let pos = parse_fen_and_apply_moves(&options.fen, &options.moves)?;
+
+        if fen_changed {
+            if castling_mode.is_chess960() {
+                self.set_option("UCI_Chess960", "true").await?;
+            } else {
+                self.set_option("UCI_Chess960", "false").await?;
+            }
         }
+
         let multipv = options
             .extra_options
             .iter()
@@ -152,12 +106,12 @@ impl EngineProcess {
         self.real_multipv = multipv.min(pos.legal_moves().len() as u16);
 
         for option in &options.extra_options {
-            if !self.options.extra_options.contains(option) {
+            if !self.options.extra_options.contains(option) && option.name != "UCI_Chess960" {
                 self.set_option(&option.name, &option.value).await?;
             }
         }
 
-        if options.fen != self.options.fen || options.moves != self.options.moves {
+        if fen_changed || options.moves != self.options.moves {
             self.set_position(&options.fen, &options.moves).await?;
         }
         self.last_depth = 0;
@@ -167,41 +121,16 @@ impl EngineProcess {
         Ok(())
     }
 
-    async fn set_position(&mut self, fen: &str, moves: &[String]) -> Result<(), Error> {
-        let msg = if moves.is_empty() {
-            format!("position fen {}\n", fen)
-        } else {
-            format!("position fen {} moves {}\n", fen, moves.join(" "))
-        };
-
-        self.stdin.write_all(msg.as_bytes()).await?;
+    async fn set_position(&mut self, fen: &str, moves: &Vec<String>) -> Result<(), Error> {
+        self.base.set_position(fen, moves).await?;
         self.options.fen = fen.to_string();
-        self.options.moves = moves.to_vec();
-        self.logs.push(EngineLog::Gui(msg));
+        self.options.moves = moves.clone();
         Ok(())
     }
 
     async fn go(&mut self, mode: &GoMode) -> Result<(), Error> {
         self.go_mode = mode.clone();
-        let msg = match mode {
-            GoMode::Depth(depth) => format!("go depth {}\n", depth),
-            GoMode::Time(time) => format!("go movetime {}\n", time),
-            GoMode::Nodes(nodes) => format!("go nodes {}\n", nodes),
-            GoMode::PlayersTime(PlayersTime {
-                white,
-                black,
-                winc,
-                binc,
-            }) => {
-                format!(
-                    "go wtime {} btime {} winc {} binc {}\n",
-                    white, black, winc, binc
-                )
-            }
-            GoMode::Infinite => "go infinite\n".to_string(),
-        };
-        self.stdin.write_all(msg.as_bytes()).await?;
-        self.logs.push(EngineLog::Gui(msg));
+        self.base.go(mode).await?;
         self.running = true;
         self.start = Instant::now();
         self.last_event_sent = None;
@@ -209,29 +138,20 @@ impl EngineProcess {
     }
 
     async fn stop(&mut self) -> Result<(), Error> {
-        self.stdin.write_all(b"stop\n").await?;
-        self.logs.push(EngineLog::Gui("stop\n".to_string()));
+        self.base.stop().await?;
         self.running = false;
         Ok(())
     }
 
     async fn kill(&mut self) -> Result<(), Error> {
-        self.stdin.write_all(b"quit\n").await?;
-        self.logs.push(EngineLog::Gui("quit\n".to_string()));
+        self.base.quit().await?;
         self.running = false;
         Ok(())
     }
-}
 
-#[cfg(target_os = "windows")]
-const CREATE_NO_WINDOW: u32 = 0x08000000;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct AnalysisCacheKey {
-    pub tab: String,
-    pub fen: String,
-    pub engine: String,
-    pub multipv: u16,
+    pub fn kill_sync(&mut self) {
+        self.base.kill_sync();
+    }
 }
 
 #[derive(Clone, Serialize, Debug, Derivative, Type)]
@@ -280,15 +200,7 @@ fn parse_uci_attrs(
 ) -> Result<BestMoves, Error> {
     let mut best_moves = BestMoves::default();
 
-    let mut pos: Chess = match fen.clone().into_position(CastlingMode::Chess960) {
-        Ok(p) => p,
-        Err(e) => e.ignore_too_much_material()?,
-    };
-    for m in moves {
-        let uci = UciMove::from_ascii(m.as_bytes())?;
-        let mv = uci.to_move(&pos)?;
-        pos.play_unchecked(&mv);
-    }
+    let mut pos = parse_fen_and_apply_moves(&fen.to_string(), moves)?;
     let turn = pos.turn();
 
     for a in attrs {
@@ -332,36 +244,6 @@ fn parse_uci_attrs(
     Ok(best_moves)
 }
 
-fn start_engine(path: PathBuf) -> Result<Child, Error> {
-    let mut command = Command::new(&path);
-    command.current_dir(path.parent().unwrap());
-    command
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-
-    #[cfg(target_os = "windows")]
-    command.creation_flags(CREATE_NO_WINDOW);
-
-    let child = command.spawn()?;
-
-    Ok(child)
-}
-
-fn get_handles(child: &mut Child) -> Result<(ChildStdin, Lines<BufReader<ChildStdout>>), Error> {
-    let stdin = child.stdin.take().ok_or(Error::NoStdin)?;
-    let stdout = child.stdout.take().ok_or(Error::NoStdout)?;
-    let stdout = BufReader::new(stdout).lines();
-    Ok((stdin, stdout))
-}
-
-async fn send_command(stdin: &mut ChildStdin, command: impl AsRef<str>) {
-    stdin
-        .write_all(command.as_ref().as_bytes())
-        .await
-        .expect("Failed to write command");
-}
-
 #[derive(Deserialize, Debug, Clone, Type, Derivative, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
 #[derivative(Default)]
@@ -369,30 +251,6 @@ pub struct EngineOptions {
     pub fen: String,
     pub moves: Vec<String>,
     pub extra_options: Vec<EngineOption>,
-}
-
-#[derive(Deserialize, Debug, Clone, Type, PartialEq, Eq)]
-pub struct EngineOption {
-    name: String,
-    value: String,
-}
-
-#[derive(Deserialize, Debug, Clone, Type, PartialEq, Eq)]
-#[serde(tag = "t", content = "c")]
-pub enum GoMode {
-    PlayersTime(PlayersTime),
-    Depth(u32),
-    Time(u32),
-    Nodes(u32),
-    Infinite,
-}
-
-#[derive(Deserialize, Debug, Clone, Type, PartialEq, Eq)]
-pub struct PlayersTime {
-    white: u32,
-    black: u32,
-    winc: u32,
-    binc: u32,
 }
 
 #[tauri::command]
@@ -455,7 +313,7 @@ pub async fn get_engine_logs(
     let key = (tab, engine);
     if let Some(process) = state.engine_processes.get(&key) {
         let process = process.lock().await;
-        Ok(process.logs.clone())
+        Ok(process.base.get_logs())
     } else {
         Ok(Vec::new())
     }
@@ -474,7 +332,7 @@ pub async fn get_best_moves(
 ) -> Result<Option<(f32, Vec<BestMoves>)>, Error> {
     let path = PathBuf::from(&engine);
 
-    let key = (tab.clone(), engine.clone());
+    let key = (tab.clone(), id.clone());
 
     if state.engine_processes.contains_key(&key) {
         {
@@ -520,63 +378,75 @@ pub async fn get_best_moves(
                 let mut proc = process.lock().await;
                 match parse_one(&line) {
                     UciMessage::Info(attrs) => {
-                        if let Ok(best_moves) =
-                            parse_uci_attrs(attrs, &proc.options.fen.parse()?, &proc.options.moves)
+                        match parse_uci_attrs(attrs, &proc.options.fen.parse()?, &proc.options.moves)
                         {
-                            let multipv = best_moves.multipv;
-                            let cur_depth = best_moves.depth;
-                            let cur_nodes = best_moves.nodes;
-                            if multipv as usize == proc.best_moves.len() + 1 {
-                                proc.best_moves.push(best_moves);
-                                if multipv == proc.real_multipv {
-                                    if proc.best_moves.iter().all(|x| x.depth == cur_depth)
-                                        && cur_depth >= proc.last_depth
-                                        && lim.check().is_ok()
-                                    {
-                                        let progress = match proc.go_mode {
-                                            GoMode::Depth(depth) => {
-                                                (cur_depth as f64 / depth as f64) * 100.0
+                            Ok(best_moves) => {
+                                if best_moves.score.lower_bound == Some(true)
+                                    || best_moves.score.upper_bound == Some(true)
+                                {
+                                    continue;
+                                }
+                                let multipv = best_moves.multipv;
+                                let cur_depth = best_moves.depth;
+                                let cur_nodes = best_moves.nodes;
+                                if multipv as usize == proc.best_moves.len() + 1 {
+                                    proc.best_moves.push(best_moves);
+                                    if multipv == proc.real_multipv {
+                                        if proc.best_moves.iter().all(|x| x.depth == cur_depth)
+                                            && cur_depth >= proc.last_depth
+                                            && lim.check().is_ok()
+                                        {
+                                            let progress = match proc.go_mode {
+                                                GoMode::Depth(depth) => {
+                                                    (cur_depth as f64 / depth as f64) * 100.0
+                                                }
+                                                GoMode::Time(time) => {
+                                                    (proc.start.elapsed().as_millis() as f64
+                                                        / time as f64)
+                                                        * 100.0
+                                                }
+                                                GoMode::Nodes(nodes) => {
+                                                    (cur_nodes as f64 / nodes as f64) * 100.0
+                                                }
+                                                GoMode::PlayersTime(_) => 99.99,
+                                                GoMode::Infinite => 99.99,
+                                            };
+                                            let best_moves_payload = BestMovesPayload {
+                                                best_lines: proc.best_moves.clone(),
+                                                engine: id.to_string(),
+                                                tab: tab.to_string(),
+                                                fen: proc.options.fen.clone(),
+                                                moves: proc.options.moves.clone(),
+                                                progress,
+                                            };
+                                            if proc.last_event_sent.map_or(
+                                                proc.start.elapsed() < min_time_before_first_info,
+                                                |t| t.elapsed() < min_time_before_subsequent_info,
+                                            ) {
+                                                // Skip passing on this event (for now), to avoid spamming the UI:
+                                                // Case 1: We have not given any updates yet, but this one is too early to pass on
+                                                // Case 2: We have recently given a update, hold this one back for now
+                                                last_best_moves_payload = Some(best_moves_payload);
+                                            } else {
+                                                proc.last_event_sent = Some(Instant::now());
+                                                best_moves_payload.emit(&app)?;
+                                                last_best_moves_payload = None;
                                             }
-                                            GoMode::Time(time) => {
-                                                (proc.start.elapsed().as_millis() as f64
-                                                    / time as f64)
-                                                    * 100.0
-                                            }
-                                            GoMode::Nodes(nodes) => {
-                                                (cur_nodes as f64 / nodes as f64) * 100.0
-                                            }
-                                            GoMode::PlayersTime(_) => 99.99,
-                                            GoMode::Infinite => 99.99,
-                                        };
-                                        let best_moves_payload = BestMovesPayload {
-                                            best_lines: proc.best_moves.clone(),
-                                            engine: id.to_string(),
-                                            tab: tab.to_string(),
-                                            fen: proc.options.fen.clone(),
-                                            moves: proc.options.moves.clone(),
-                                            progress,
-                                        };
-                                        if proc.last_event_sent.map_or(
-                                            proc.start.elapsed() < min_time_before_first_info,
-                                            |t| t.elapsed() < min_time_before_subsequent_info,
-                                        ) {
-                                            // Skip passing on this event (for now), to avoid spamming the UI:
-                                            // Case 1: We have not given any updates yet, but this one is too early to pass on
-                                            // Case 2: We have recently given a update, hold this one back for now
-                                            last_best_moves_payload = Some(best_moves_payload);
-                                        } else {
-                                            proc.last_event_sent = Some(Instant::now());
-                                            best_moves_payload.emit(&app)?;
-                                            last_best_moves_payload = None;
-                                        }
 
-                                        proc.last_depth = cur_depth;
-                                        proc.last_best_moves = proc.best_moves.clone();
-                                        proc.last_progress = progress as f32;
+                                            proc.last_depth = cur_depth;
+                                            proc.last_best_moves = proc.best_moves.clone();
+                                            proc.last_progress = progress as f32;
+                                        }
+                                        proc.best_moves.clear();
                                     }
-                                    proc.best_moves.clear();
                                 }
                             }
+                            Err(e) => match e {
+                                Error::NoMovesFound => {}
+                                _ => {
+                                    warn!("Failed to parse info line: {}, error: {:?}", line, e);
+                                }
+                            },
                         }
                     }
                     UciMessage::BestMove { .. } => {
@@ -594,7 +464,7 @@ pub async fn get_best_moves(
                     }
                     _ => {}
                 }
-                proc.logs.push(EngineLog::Engine(line));
+                proc.base.log_engine(&line);
             }
             Err(_) => {
                 // Timeout expired, check if we should now send the stored last_best_moves_info
@@ -643,11 +513,13 @@ pub struct AnalysisOptions {
     pub reversed: bool,
 }
 
-#[derive(Clone, Type, serde::Serialize, Event)]
-pub struct ReportProgress {
-    pub progress: f64,
-    pub id: String,
-    pub finished: bool,
+#[tauri::command]
+#[specta::specta]
+pub async fn cancel_analysis(id: String, state: tauri::State<'_, AppState>) -> Result<(), Error> {
+    if let Some(flag) = state.analysis_cancel_flags.get(&id) {
+        flag.store(true, Ordering::SeqCst);
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -661,32 +533,45 @@ pub async fn analyze_game(
     state: tauri::State<'_, AppState>,
     app: tauri::AppHandle,
 ) -> Result<Vec<MoveAnalysis>, Error> {
+    let cancel_flag = Arc::new(AtomicBool::new(false));
+    state
+        .analysis_cancel_flags
+        .insert(id.clone(), cancel_flag.clone());
+
     let path = PathBuf::from(&engine);
     let mut analysis: Vec<MoveAnalysis> = Vec::new();
 
     let (mut proc, mut reader) = EngineProcess::new(path).await?;
 
     let fen = Fen::from_ascii(options.fen.as_bytes())?;
+    let setup = fen.as_setup().clone();
+    let castling_mode = CastlingMode::detect(&setup);
+    println!("Castling mode: {:?}", castling_mode);
 
-    let mut chess: Chess = fen.clone().into_position(CastlingMode::Chess960)?;
+    let mut chess: Chess = setup.position(castling_mode)?;
     let mut fens: Vec<(Fen, Vec<String>, bool)> = vec![(fen, vec![], false)];
 
-    options.moves.iter().enumerate().for_each(|(i, m)| {
-        let uci = UciMove::from_ascii(m.as_bytes()).unwrap();
-        let m = uci.to_move(&chess).unwrap();
-        let previous_pos = chess.clone();
-        chess.play_unchecked(&m);
-        let current_pos = chess.clone();
-        if !chess.is_game_over() {
-            let prev_eval = naive_eval(&previous_pos);
-            let cur_eval = -naive_eval(&current_pos);
-            fens.push((
-                Fen::from_position(current_pos, EnPassantMode::Legal),
-                options.moves.clone().into_iter().take(i + 1).collect(),
-                prev_eval > cur_eval + 100,
-            ));
-        }
-    });
+    options
+        .moves
+        .iter()
+        .enumerate()
+        .try_for_each(|(i, m)| -> Result<(), Error> {
+            let uci = UciMove::from_ascii(m.as_bytes())?;
+            let m = uci.to_move(&chess)?;
+            let previous_pos = chess.clone();
+            chess.play_unchecked(&m);
+            let current_pos = chess.clone();
+            if !chess.is_game_over() {
+                let prev_eval = naive_eval(&previous_pos);
+                let cur_eval = -naive_eval(&current_pos);
+                fens.push((
+                    Fen::from_position(current_pos, EnPassantMode::Legal),
+                    options.moves.clone().into_iter().take(i + 1).collect(),
+                    prev_eval > cur_eval + 100,
+                ));
+            }
+            Ok(())
+        })?;
 
     if options.reversed {
         fens.reverse();
@@ -695,12 +580,19 @@ pub async fn analyze_game(
     let mut novelty_found = false;
 
     for (i, (_, moves, _)) in fens.iter().enumerate() {
-        ReportProgress {
-            progress: (i as f64 / fens.len() as f64) * 100.0,
-            id: id.clone(),
-            finished: false,
+        if cancel_flag.load(Ordering::SeqCst) {
+            proc.kill().await?;
+            state.analysis_cancel_flags.remove(&id);
+            return Err(Error::AnalysisCancelled);
         }
-        .emit(&app)?;
+
+        update_progress(
+            &state.progress_state,
+            &app,
+            id.clone(),
+            (i as f32 / fens.len() as f32) * 100.0,
+            false,
+        )?;
 
         let mut extra_options = uci_options.clone();
         if !extra_options.iter().any(|x| x.name == "MultiPV") {
@@ -776,7 +668,7 @@ pub async fn analyze_game(
             if let Some(reference) = options.reference_db.clone() {
                 analysis.novelty = !is_position_in_db(
                     reference,
-                    GameQueryJs::new().position(query.clone()).clone(),
+                    GameQuery::new().position(query.clone()).clone(),
                     state.clone(),
                 )
                 .await?;
@@ -788,12 +680,8 @@ pub async fn analyze_game(
             }
         }
     }
-    ReportProgress {
-        progress: 100.0,
-        id: id.clone(),
-        finished: true,
-    }
-    .emit(&app)?;
+    update_progress(&state.progress_state, &app, id.clone(), 100.0, true)?;
+    state.analysis_cancel_flags.remove(&id);
     Ok(analysis)
 }
 
@@ -945,30 +833,29 @@ pub struct EngineConfig {
 #[tauri::command]
 #[specta::specta]
 pub async fn get_engine_config(path: PathBuf) -> Result<EngineConfig, Error> {
-    let mut child = start_engine(path)?;
-    let (mut stdin, mut stdout) = get_handles(&mut child)?;
+    let mut base = BaseEngine::spawn(path).await?;
 
-    send_command(&mut stdin, "uci\n").await;
+    base.send("uci").await?;
 
     let mut config = EngineConfig::default();
 
-    loop {
-        if let Some(line) = stdout.next_line().await? {
-            if let UciMessage::Id {
-                name: Some(name),
-                author: _,
-            } = parse_one(&line)
-            {
-                config.name = name;
-            }
-            if let UciMessage::Option(opt) = parse_one(&line) {
-                config.options.push(opt);
-            }
-            if let UciMessage::UciOk = parse_one(&line) {
-                break;
-            }
+    let reader = base.reader_mut().ok_or(Error::EngineDisconnected)?;
+    while let Some(line) = reader.next_line().await? {
+        if let UciMessage::Id {
+            name: Some(name),
+            author: _,
+        } = parse_one(&line)
+        {
+            config.name = name;
+        }
+        if let UciMessage::Option(opt) = parse_one(&line) {
+            config.options.push(opt);
+        }
+        if let UciMessage::UciOk = parse_one(&line) {
+            break;
         }
     }
     println!("{:?}", config);
+    base.quit().await?;
     Ok(config)
 }

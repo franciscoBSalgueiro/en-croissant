@@ -1,24 +1,22 @@
-import { Chessground } from "@/chessground/Chessground";
-import { jumpToNextPuzzleAtom, showCoordinatesAtom } from "@/state/atoms";
-import { chessboard } from "@/styles/Chessboard.css";
-import { positionFromFen } from "@/utils/chessops";
-import type { Completion, Puzzle } from "@/utils/puzzles";
-import { getNodeAtPath, treeIteratorMainLine } from "@/utils/treeReducer";
 import { Box } from "@mantine/core";
 import { useElementSize, useForceUpdate } from "@mantine/hooks";
-import {
-  Chess,
-  type Move,
-  type NormalMove,
-  makeUci,
-  parseSquare,
-} from "chessops";
+import { type Move, makeUci, type NormalMove, parseSquare } from "chessops";
 import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { parseFen } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { useAtom, useAtomValue } from "jotai";
 import { useContext, useState } from "react";
 import { useStore } from "zustand";
+import { Chessground } from "@/chessground/Chessground";
+import {
+  jumpToNextPuzzleAtom,
+  moveHighlightAtom,
+  showCoordinatesAtom,
+} from "@/state/atoms";
+import { chessboard } from "@/styles/Chessboard.css";
+import { positionFromFen } from "@/utils/chessops";
+import type { Completion, Puzzle } from "@/utils/puzzles";
+import { getNodeAtPath, treeIteratorMainLine } from "@/utils/treeReducer";
 import PromotionModal from "../boards/PromotionModal";
 import { TreeStateContext } from "../common/TreeStateContext";
 
@@ -38,6 +36,7 @@ function PuzzleBoard({
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
   const position = useStore(store, (s) => s.position);
+  const moveHighlight = useAtomValue(moveHighlightAtom);
   const makeMove = useStore(store, (s) => s.makeMove);
   const makeMoves = useStore(store, (s) => s.makeMoves);
   const reset = useForceUpdate();
@@ -66,7 +65,7 @@ function PuzzleBoard({
     }
   }
   const orientation = puzzle?.fen
-    ? Chess.fromSetup(parseFen(puzzle.fen).unwrap()).unwrap().turn === "white"
+    ? parseFen(puzzle.fen).unwrap().turn === "white"
       ? "black"
       : "white"
     : "white";
@@ -141,14 +140,16 @@ function PuzzleBoard({
           animation={{
             enabled: true,
           }}
-          coordinates={showCoordinates}
+          coordinates={showCoordinates !== "no"}
+          coordinatesOnSquares={showCoordinates === "all"}
           orientation={orientation}
           movable={{
             free: false,
             color:
               puzzle &&
               equal(position, Array(currentMove).fill(0)) &&
-              puzzle.completion === "incomplete"
+              (puzzle.completion === "incomplete" ||
+                puzzle.completion === "incorrect")
                 ? turn
                 : undefined,
             dests: dests,
@@ -170,11 +171,13 @@ function PuzzleBoard({
             },
           }}
           lastMove={
-            currentNode.move ? chessgroundMove(currentNode.move) : undefined
+            moveHighlight && currentNode.move
+              ? chessgroundMove(currentNode.move)
+              : undefined
           }
           turnColor={turn}
           fen={currentNode.fen}
-          check={pos?.isCheck()}
+          check={moveHighlight && pos?.isCheck()}
         />
       </Box>
     </Box>

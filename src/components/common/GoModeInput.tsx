@@ -1,7 +1,7 @@
-import type { GoMode } from "@/bindings";
 import { Group, NumberInput, SegmentedControl } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
+import type { GoMode } from "@/bindings";
 import TimeInput from "./TimeInput";
 
 function GoModeInput({

@@ -1,5 +1,5 @@
-import { vars } from "@/styles/theme";
 import { style } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme";
 
 export const cell = style({
   all: "unset",
@@ -10,6 +10,8 @@ export const cell = style({
   borderRadius: 4,
   whiteSpace: "nowrap",
   cursor: "pointer",
+  boxSizing: "border-box",
+  maxWidth: "100%",
   [vars.lightSelector]: {
     color: "var(--light-color)",
     backgroundColor: "var(--light-bg)",
@@ -26,4 +28,28 @@ export const cell = style({
       backgroundColor: "var(--dark-hover-color)",
     },
   },
+});
+
+export const cellFullWidth = style({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 8,
+  width: "100%",
+  minWidth: 0,
+  textAlign: "left",
+  borderRadius: 0,
+});
+
+export const moveText = style({
+  display: "inline-flex",
+  alignItems: "center",
+  minWidth: 0,
+  flexGrow: 1,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+});
+
+export const rightAccessory = style({
+  flexShrink: 0,
 });

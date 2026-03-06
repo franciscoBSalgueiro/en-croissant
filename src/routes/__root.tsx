@@ -1,18 +1,11 @@
-import type { Dirs } from "@/App";
-import AboutModal from "@/components/About";
-import { SideBar } from "@/components/Sidebar";
-import TopBar from "@/components/TopBar";
-import { activeTabAtom, nativeBarAtom, tabsAtom } from "@/state/atoms";
-import { keyMapAtom } from "@/state/keybinds";
-import { openFile } from "@/utils/files";
-import { createTab } from "@/utils/tabs";
 import { AppShell } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
-  Outlet,
   createRootRouteWithContext,
+  Outlet,
   useNavigate,
 } from "@tanstack/react-router";
+import { TauriEvent } from "@tauri-apps/api/event";
 import {
   Menu,
   MenuItem,
@@ -22,8 +15,8 @@ import {
 import { appLogDir, resolve } from "@tauri-apps/api/path";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask, message, open } from "@tauri-apps/plugin-dialog";
-import { relaunch } from "@tauri-apps/plugin-process";
-import { exit } from "@tauri-apps/plugin-process";
+import { platform } from "@tauri-apps/plugin-os";
+import { exit, relaunch } from "@tauri-apps/plugin-process";
 import { open as shellOpen } from "@tauri-apps/plugin-shell";
 import { check } from "@tauri-apps/plugin-updater";
 import { useAtom, useAtomValue } from "jotai";
@@ -32,6 +25,14 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import useSWRImmutable from "swr/immutable";
 import { match } from "ts-pattern";
+import type { Dirs } from "@/App";
+import AboutModal from "@/components/About";
+import { SideBar } from "@/components/Sidebar";
+import TopBar from "@/components/TopBar";
+import { activeTabAtom, nativeBarAtom, tabsAtom } from "@/state/atoms";
+import { keyMapAtom } from "@/state/keybinds";
+import { openFile } from "@/utils/files";
+import { createTab } from "@/utils/tabs";
 
 type MenuGroup = {
   label: string;
@@ -43,6 +44,15 @@ type MenuAction = {
   label: string;
   shortcut?: string;
   action?: () => void;
+  item?:
+    | "Hide"
+    | "Copy"
+    | "Cut"
+    | "Paste"
+    | "SelectAll"
+    | "Undo"
+    | "Redo"
+    | "Quit";
 };
 
 async function createMenu(menuActions: MenuGroup[]) {
@@ -57,6 +67,13 @@ async function createMenu(menuActions: MenuGroup[]) {
               }),
             )
             .otherwise(() => {
+              if (option.item) {
+                return PredefinedMenuItem.new({
+                  text: option.label,
+                  item: option.item,
+                });
+              }
+
               return MenuItem.new({
                 id: option.id,
                 text: option.label,
@@ -117,7 +134,7 @@ function RootLayout() {
   const checkForUpdates = useCallback(async () => {
     const update = await check();
     if (update) {
-      const yes = await ask("Do you want to install them now?", {
+      const yes = await ask("Do you want to install the new version now?", {
         title: "New version available",
       });
       if (yes) {
@@ -129,14 +146,97 @@ function RootLayout() {
     }
   }, []);
 
+  const openSettings = useCallback(async () => {
+    navigate({ to: "/settings" });
+  }, [navigate]);
+
   const [keyMap] = useAtom(keyMapAtom);
 
   useHotkeys(keyMap.NEW_TAB.keys, createNewTab);
   useHotkeys(keyMap.OPEN_FILE.keys, openNewFile);
   const [opened, setOpened] = useState(false);
 
+  const isMacOS = platform() === "macos";
+
+  const aboutOption = {
+    label: t("Menu.Help.About"),
+    id: "about",
+    action: () => setOpened(true),
+  };
+
+  const checkForUpdatesOption = {
+    label: t("Menu.Help.CheckUpdate"),
+    id: "check_for_updates",
+    action: checkForUpdates,
+  };
+
+  const appMenu: MenuGroup = {
+    label: "Application Menu",
+    options: [
+      {
+        label: t("Menu.Application.About", {
+          defaultValue: t("Menu.Help.About"),
+        }),
+        id: aboutOption.id,
+        action: aboutOption.action,
+      },
+      checkForUpdatesOption,
+      { label: "divider" },
+      {
+        label: t("SideBar.Settings") + "...",
+        id: "settings",
+        shortcut: "cmd+,",
+        action: openSettings,
+      },
+      {
+        label: t("Menu.Application.Hide"),
+        item: "Hide",
+      },
+      { label: "divider" },
+      {
+        label: t("Menu.Application.Quit", {
+          defaultValue: t("Menu.File.Exit"),
+        }),
+        item: "Quit",
+      },
+    ],
+  };
+
+  const macOSEditMenu: MenuGroup = {
+    label: t("Menu.Edit"),
+    options: [
+      {
+        label: t("Menu.Edit.Undo"),
+        item: "Undo",
+      },
+      {
+        label: t("Menu.Edit.Redo"),
+        item: "Redo",
+      },
+      { label: "divider" },
+      {
+        label: t("Menu.Edit.Copy"),
+        item: "Copy",
+      },
+      {
+        label: t("Menu.Edit.Cut"),
+        item: "Cut",
+      },
+      {
+        label: t("Menu.Edit.Paste"),
+        item: "Paste",
+      },
+      { label: "divider" },
+      {
+        label: t("Menu.Edit.SelectAll"),
+        item: "SelectAll",
+      },
+    ],
+  };
+
   const menuActions: MenuGroup[] = useMemo(
     () => [
+      ...(isMacOS ? [appMenu] : []),
       {
         label: t("Menu.File"),
         options: [
@@ -152,13 +252,18 @@ function RootLayout() {
             shortcut: keyMap.OPEN_FILE.keys,
             action: openNewFile,
           },
-          {
-            label: t("Menu.File.Exit"),
-            id: "exit",
-            action: () => exit(0),
-          },
+          ...(!isMacOS
+            ? [
+                {
+                  label: t("Menu.File.Exit"),
+                  id: "exit",
+                  action: () => exit(0),
+                },
+              ]
+            : []),
         ],
       },
+      ...(!isMacOS ? [] : [macOSEditMenu]),
       {
         label: t("Menu.View"),
         options: [
@@ -206,16 +311,7 @@ function RootLayout() {
             },
           },
           { label: "divider" },
-          {
-            label: t("Menu.Help.CheckUpdate"),
-            id: "check_for_updates",
-            action: checkForUpdates,
-          },
-          {
-            label: t("Menu.Help.About"),
-            id: "about",
-            action: () => setOpened(true),
-          },
+          ...(!isMacOS ? [checkForUpdatesOption, aboutOption] : []),
         ],
       },
     ],
@@ -228,7 +324,7 @@ function RootLayout() {
 
   useEffect(() => {
     if (!menu) return;
-    if (isNative) {
+    if (isNative || import.meta.env.VITE_PLATFORM !== "win32") {
       menu.setAsAppMenu();
       getCurrentWindow().setDecorations(true);
     } else {
@@ -237,6 +333,31 @@ function RootLayout() {
     }
   }, [menu, isNative]);
 
+  useEffect(() => {
+    const unlisten = getCurrentWindow().listen(
+      TauriEvent.DRAG_DROP,
+      (event) => {
+        const payload = event.payload as { paths: string[] };
+        if (payload?.paths) {
+          const pgnFiles = payload.paths.filter((path) =>
+            path.toLowerCase().endsWith(".pgn"),
+          );
+
+          if (pgnFiles.length > 0) {
+            navigate({ to: "/" });
+            for (const file of pgnFiles) {
+              openFile(file, setTabs, setActiveTab);
+            }
+          }
+        }
+      },
+    );
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [navigate, setTabs, setActiveTab]);
+
   return (
     <AppShell
       navbar={{
@@ -244,10 +365,10 @@ function RootLayout() {
         breakpoint: 0,
       }}
       header={
-        isNative
+        isNative || import.meta.env.VITE_PLATFORM !== "win32"
           ? undefined
           : {
-              height: "2.5rem",
+              height: "2.25rem",
             }
       }
       styles={{
@@ -258,7 +379,7 @@ function RootLayout() {
       }}
     >
       <AboutModal opened={opened} setOpened={setOpened} />
-      {!isNative && (
+      {!isNative && import.meta.env.VITE_PLATFORM === "win32" && (
         <AppShell.Header>
           <TopBar menuActions={menuActions} />
         </AppShell.Header>

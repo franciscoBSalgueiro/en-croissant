@@ -1,17 +1,23 @@
-import { commands } from "@/bindings";
-import { activeTabAtom, tabsAtom } from "@/state/atoms";
-import { keyMapAtom } from "@/state/keybinds";
-import { type Tab, createTab, genID } from "@/utils/tabs";
-import { unwrap } from "@/utils/unwrap";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import { ActionIcon, ScrollArea, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
-import { atom, useAtom, useAtomValue } from "jotai";
-import { useCallback, useEffect, useTransition } from "react";
+import { useAtom, useAtomValue } from "jotai";
+import { type ReactNode, startTransition, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Mosaic, type MosaicNode } from "react-mosaic-component";
 import { match } from "ts-pattern";
+import { commands } from "@/bindings";
+import { activeTabAtom, tabsAtom } from "@/state/atoms";
+import { keyMapAtom } from "@/state/keybinds";
+import {
+  createTab,
+  genID,
+  getTabFile,
+  isPersistentGameOrigin,
+  type Tab,
+} from "@/utils/tabs";
+import { unwrap } from "@/utils/unwrap";
 import BoardAnalysis from "../boards/BoardAnalysis";
 import BoardGame from "../boards/BoardGame";
 import { TreeStateProvider } from "../common/TreeStateContext";
@@ -23,6 +29,7 @@ import NewTabHome from "./NewTabHome";
 import "react-mosaic-component/react-mosaic-component.css";
 
 import "@/styles/react-mosaic.css";
+import { platform } from "@tauri-apps/plugin-os";
 import { atomWithStorage } from "jotai/utils";
 import * as classes from "./BoardsPage.css";
 
@@ -41,14 +48,19 @@ export default function BoardsPage() {
         setActiveTab,
       });
     }
-  }, [tabs, setActiveTab, setTabs]);
+  }, [tabs, setActiveTab, setTabs, t]);
 
   const closeTab = useCallback(
     async (value: string | null, forced?: boolean) => {
       if (value !== null) {
         const closedTab = tabs.find((tab) => tab.value === value);
         const tabState = JSON.parse(sessionStorage.getItem(value) || "{}");
-        if (tabState && closedTab?.file && tabState.state.dirty && !forced) {
+        if (
+          tabState &&
+          isPersistentGameOrigin(closedTab) &&
+          tabState.state.dirty &&
+          !forced
+        ) {
           toggleSaveModal();
           return;
         }
@@ -56,19 +68,20 @@ export default function BoardsPage() {
           const index = tabs.findIndex((tab) => tab.value === value);
           if (tabs.length > 1) {
             if (index === tabs.length - 1) {
-              setActiveTab(tabs[index - 1].value);
+              startTransition(() => setActiveTab(tabs[index - 1].value));
             } else {
-              setActiveTab(tabs[index + 1].value);
+              startTransition(() => setActiveTab(tabs[index + 1].value));
             }
           } else {
-            setActiveTab(null);
+            startTransition(() => setActiveTab(null));
           }
         }
         setTabs((prev) => prev.filter((tab) => tab.value !== value));
         unwrap(await commands.killEngines(value));
+        await commands.abortGame(`${value}-game`);
       }
     },
-    [tabs, activeTab, setTabs, toggleSaveModal, setActiveTab],
+    [tabs, activeTab, setTabs, toggleSaveModal, setActiveTab, startTransition],
   );
 
   function selectTab(index: number) {
@@ -121,15 +134,40 @@ export default function BoardsPage() {
             name: tab.name,
             value: id,
             type: tab.type,
+            gameOrigin: tab.gameOrigin,
           },
         ]);
-        setActiveTab(id);
+        startTransition(() => setActiveTab(id));
       }
     },
-    [tabs, setTabs, setActiveTab],
+    [tabs, setTabs, setActiveTab, startTransition],
   );
 
+  useEffect(() => {
+    if (platform() !== "macos") return;
+
+    const handler = (e: KeyboardEvent) => {
+      if (e.metaKey && e.key.toLowerCase() === "w") {
+        e.preventDefault();
+        e.stopPropagation();
+        closeTab(activeTab);
+      }
+    };
+
+    window.addEventListener("keydown", handler, { capture: true });
+
+    return () =>
+      window.removeEventListener("keydown", handler, { capture: true });
+  }, [closeTab]);
+
   const keyMap = useAtomValue(keyMapAtom);
+
+  const handleSetActiveTab = useCallback(
+    (v: string) => {
+      startTransition(() => setActiveTab(v));
+    },
+    [setActiveTab, startTransition],
+  );
   useHotkeys([
     [keyMap.CLOSE_TAB.keys, () => closeTab(activeTab)],
     [keyMap.CYCLE_TABS.keys, () => cycleTabs()],
@@ -155,112 +193,102 @@ export default function BoardsPage() {
   ]);
 
   return (
-    <>
-      <Tabs
-        value={activeTab}
-        onChange={(v) => setActiveTab(v)}
-        keepMounted={false}
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          height: "100%",
-          width: "100%",
-        }}
-      >
-        <ScrollArea h="3.75rem" px="md" pt="sm" scrollbarSize={8}>
-          <DragDropContext
-            onDragEnd={({ destination, source }) =>
-              destination?.index !== undefined &&
-              setTabs((prev) => {
-                const result = Array.from(prev);
-                const [removed] = result.splice(source.index, 1);
-                result.splice(destination.index, 0, removed);
-                return result;
-              })
-            }
-          >
-            <Droppable droppableId="droppable" direction="horizontal">
-              {(provided) => (
-                <div
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
-                  style={{ display: "flex" }}
+    <Tabs
+      value={activeTab}
+      onChange={(v) => setActiveTab(v)}
+      keepMounted={false}
+      className={classes.tabsContainer}
+    >
+      <ScrollArea scrollbarSize={6} className={classes.tabsHeader}>
+        <DragDropContext
+          onDragEnd={({ destination, source }) =>
+            destination?.index !== undefined &&
+            setTabs((prev) => {
+              const result = Array.from(prev);
+              const [removed] = result.splice(source.index, 1);
+              result.splice(destination.index, 0, removed);
+              return result;
+            })
+          }
+        >
+          <Droppable droppableId="droppable" direction="horizontal">
+            {(provided) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                style={{ display: "flex" }}
+              >
+                {tabs.map((tab, i) => (
+                  <Draggable key={tab.value} draggableId={tab.value} index={i}>
+                    {(provided) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
+                      >
+                        <BoardTab
+                          tab={tab}
+                          setActiveTab={handleSetActiveTab}
+                          closeTab={closeTab}
+                          renameTab={renameTab}
+                          duplicateTab={duplicateTab}
+                          selected={activeTab === tab.value}
+                        />
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+                <ActionIcon
+                  variant="default"
+                  radius={0}
+                  onClick={() =>
+                    createTab({
+                      tab: {
+                        name: t("Tab.NewTab"),
+                        type: "new",
+                      },
+                      setTabs,
+                      setActiveTab,
+                    })
+                  }
+                  classNames={{
+                    root: classes.newTab,
+                  }}
                 >
-                  {tabs.map((tab, i) => (
-                    <Draggable
-                      key={tab.value}
-                      draggableId={tab.value}
-                      index={i}
-                    >
-                      {(provided) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                        >
-                          <BoardTab
-                            tab={tab}
-                            setActiveTab={setActiveTab}
-                            closeTab={closeTab}
-                            renameTab={renameTab}
-                            duplicateTab={duplicateTab}
-                            selected={activeTab === tab.value}
-                          />
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                  <ActionIcon
-                    variant="default"
-                    onClick={() =>
-                      createTab({
-                        tab: {
-                          name: t("Tab.NewTab"),
-                          type: "new",
-                        },
-                        setTabs,
-                        setActiveTab,
-                      })
-                    }
-                    size="lg"
-                    classNames={{
-                      root: classes.newTab,
-                    }}
-                  >
-                    <IconPlus />
-                  </ActionIcon>
-                </div>
-              )}
-            </Droppable>
-          </DragDropContext>
-        </ScrollArea>
-        {tabs.map((tab) => (
-          <Tabs.Panel
-            key={tab.value}
-            value={tab.value}
-            h="100%"
-            w="100%"
-            pb="sm"
-            px="sm"
-          >
-            <TabSwitch
-              tab={tab}
-              saveModalOpened={saveModalOpened}
-              toggleSaveModal={toggleSaveModal}
-              closeTab={closeTab}
-              activeTab={activeTab}
-            />
-          </Tabs.Panel>
-        ))}
-      </Tabs>
-    </>
+                  <IconPlus />
+                </ActionIcon>
+                <div className={classes.tabsFiller} />
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
+      </ScrollArea>
+      {tabs.map((tab) => (
+        <Tabs.Panel
+          key={tab.value}
+          value={tab.value}
+          h="100%"
+          w="100%"
+          pb="sm"
+          px="xs"
+        >
+          <TabSwitch
+            tab={tab}
+            saveModalOpened={saveModalOpened}
+            toggleSaveModal={toggleSaveModal}
+            closeTab={closeTab}
+            activeTab={activeTab}
+          />
+        </Tabs.Panel>
+      ))}
+    </Tabs>
   );
 }
 
 type ViewId = "left" | "topRight" | "bottomRight";
 
-const fullLayout: { [viewId: string]: JSX.Element } = {
+const fullLayout: { [viewId: string]: ReactNode } = {
   left: <div id="left" />,
   topRight: <div id="topRight" />,
   bottomRight: <div id="bottomRight" />,

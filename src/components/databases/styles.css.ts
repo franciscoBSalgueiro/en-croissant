@@ -1,5 +1,5 @@
-import { vars } from "@/styles/theme";
 import { style } from "@vanilla-extract/css";
+import { vars } from "@/styles/theme";
 
 export const selected = style({
   [vars.lightSelector]: {

@@ -1,7 +1,7 @@
-import type { BestMoves, EngineOptions, GoMode, ScoreValue } from "@/bindings";
 import { fetch } from "@tauri-apps/plugin-http";
 import { parseUci } from "chessops";
 import { makeFen } from "chessops/fen";
+import type { BestMoves, EngineOptions, GoMode, ScoreValue } from "@/bindings";
 import { positionFromFen } from "../chessops";
 
 const endpoint = "https://www.chessdb.cn/cdb.php";
@@ -140,6 +140,7 @@ async function queryBest(fen: string) {
   const url = new URL(endpoint);
   url.searchParams.append("action", "querypv");
   url.searchParams.append("json", "1");
+  url.searchParams.append("stable", "1");
   url.searchParams.append("board", fen);
   const res = (await (await fetch(url.toString())).json()) as BestResponse;
 

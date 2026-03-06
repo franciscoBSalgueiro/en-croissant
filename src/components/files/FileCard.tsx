@@ -1,22 +1,23 @@
-import { commands } from "@/bindings";
-import { activeTabAtom, tabsAtom } from "@/state/atoms";
-import { capitalize } from "@/utils/format";
-import { createTab } from "@/utils/tabs";
-import { unwrap } from "@/utils/unwrap";
 import {
   ActionIcon,
   Badge,
   Box,
+  Divider,
   Group,
   Stack,
   Text,
   Tooltip,
 } from "@mantine/core";
-import { IconEdit, IconEye } from "@tabler/icons-react";
+import { IconEdit, IconZoomCheck } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { commands } from "@/bindings";
+import { activeTabAtom, tabsAtom } from "@/state/atoms";
+import { openFile } from "@/utils/files";
+import { capitalize } from "@/utils/format";
+import { unwrap } from "@/utils/unwrap";
 import GamePreview from "../databases/GamePreview";
 import GameSelector from "../panels/info/GameSelector";
 import type { FileMetadata } from "./file";
@@ -55,16 +56,9 @@ function FileCard({
   }, [selected, page]);
 
   async function openGame() {
-    createTab({
-      tab: {
-        name: selected.name || "Untitled",
-        type: "analysis",
-      },
-      setTabs,
-      setActiveTab,
-      pgn: selectedGame || "",
-      fileInfo: selected,
+    await openFile(selected, setTabs, setActiveTab, {
       gameNumber: page,
+      pgn: selectedGame || "",
     });
     navigate({ to: "/" });
   }
@@ -79,16 +73,17 @@ function FileCard({
           {t(`Files.FileType.${capitalize(selected.metadata.type)}`)}
         </Badge>
       </Stack>
+      <Divider />
 
-      <Group align="center" grow>
+      <Group align="center" grow px="xs">
         <Group>
           <Tooltip label={t("Common.Open")}>
-            <ActionIcon onClick={openGame}>
-              <IconEye />
+            <ActionIcon size="sm" onClick={openGame}>
+              <IconZoomCheck />
             </ActionIcon>
           </Tooltip>
           <Tooltip label={t("Files.EditMetadata")}>
-            <ActionIcon onClick={() => toggleEditModal()}>
+            <ActionIcon size="sm" onClick={() => toggleEditModal()}>
               <IconEdit />
             </ActionIcon>
           </Tooltip>
@@ -102,6 +97,7 @@ function FileCard({
       {selectedGame && (
         <>
           <Box h={0} flex={1}>
+            <Divider />
             <GameSelector
               setGames={setGames}
               games={games}
@@ -110,8 +106,9 @@ function FileCard({
               setPage={setPage}
               total={selected.numGames}
             />
+            <Divider />
           </Box>
-          <Box h="55%">
+          <Box h="55%" px="xs" pb="xs">
             <GamePreview pgn={selectedGame} />
           </Box>
         </>

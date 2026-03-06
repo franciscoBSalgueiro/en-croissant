@@ -1,11 +1,13 @@
-import { type PuzzleDatabaseInfo, commands } from "@/bindings";
-import { appDataDir, resolve } from "@tauri-apps/api/path";
-import { BaseDirectory, readDir } from "@tauri-apps/plugin-fs";
+import { resolve } from "@tauri-apps/api/path";
+import { readDir } from "@tauri-apps/plugin-fs";
+import { commands, type PuzzleDatabaseInfo } from "@/bindings";
+import { getPuzzlesDir } from "@/utils/directories";
 import { unwrap } from "./unwrap";
 
 export type Completion = "correct" | "incorrect" | "incomplete";
 
 export interface Puzzle {
+  id: number;
   fen: string;
   moves: string[];
   rating: number;
@@ -13,16 +15,19 @@ export interface Puzzle {
   popularity: number;
   nb_plays: number;
   completion: Completion;
+  timeSpent?: number;
+  themes?: string[];
 }
 
 async function getPuzzleDatabase(name: string): Promise<PuzzleDatabaseInfo> {
-  const appDataDirPath = await appDataDir();
-  const path = await resolve(appDataDirPath, "puzzles", name);
+  const puzzlesDir = await getPuzzlesDir();
+  const path = await resolve(puzzlesDir, name);
   return unwrap(await commands.getPuzzleDbInfo(path));
 }
 
 export async function getPuzzleDatabases(): Promise<PuzzleDatabaseInfo[]> {
-  const files = await readDir("puzzles", { baseDir: BaseDirectory.AppData });
+  const puzzlesDir = await getPuzzlesDir();
+  const files = await readDir(puzzlesDir);
   const dbs = files.filter((file) => file.name?.endsWith(".db3"));
   return (await Promise.allSettled(dbs.map((db) => getPuzzleDatabase(db.name))))
     .filter((r) => r.status === "fulfilled")

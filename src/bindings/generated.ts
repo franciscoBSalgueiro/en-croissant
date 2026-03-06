@@ -13,14 +13,6 @@ async closeSplashscreen() : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async findFidePlayer(player: string) : Promise<Result<FidePlayer | null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("find_fide_player", { player }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
 async getBestMoves(id: string, engine: string, tab: string, goMode: GoMode, options: EngineOptions) : Promise<Result<[number, BestMoves[]] | null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_best_moves", { id, engine, tab, goMode, options }) };
@@ -32,6 +24,14 @@ async getBestMoves(id: string, engine: string, tab: string, goMode: GoMode, opti
 async analyzeGame(id: string, engine: string, goMode: GoMode, options: AnalysisOptions, uciOptions: EngineOption[]) : Promise<Result<MoveAnalysis[], string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("analyze_game", { id, engine, goMode, options, uciOptions }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async cancelAnalysis(id: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cancel_analysis", { id }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -72,9 +72,9 @@ async getEngineLogs(engine: string, tab: string) : Promise<Result<EngineLog[], s
 async memorySize() : Promise<number> {
     return await TAURI_INVOKE("memory_size");
 },
-async getPuzzle(file: string, minRating: number, maxRating: number) : Promise<Result<Puzzle, string>> {
+async getPuzzle(file: string, minRating: number, maxRating: number, theme: string | null) : Promise<Result<Puzzle, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_puzzle", { file, minRating, maxRating }) };
+    return { status: "ok", data: await TAURI_INVOKE("get_puzzle", { file, minRating, maxRating, theme }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -91,6 +91,14 @@ async searchOpeningName(query: string) : Promise<Result<OutOpening[], string>> {
 async getOpeningFromFen(fen: string) : Promise<Result<string, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_opening_from_fen", { fen }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getOpeningFromFens(fens: string[]) : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_opening_from_fens", { fens }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -254,6 +262,14 @@ async deleteDbGame(file: string, gameId: number) : Promise<Result<null, string>>
     else return { status: "error", error: e  as any };
 }
 },
+async writeDbGame(file: string, gameId: number, pgn: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("write_db_game", { file, gameId, pgn }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async deleteDatabase(file: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("delete_database", { file }) };
@@ -278,17 +294,9 @@ async authenticate(username: string) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async writeGame(file: string, n: number, pgn: string) : Promise<Result<null, string>> {
+async writeGame(filePath: string, n: number, pgn: string) : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("write_game", { file, n, pgn }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async downloadFideDb() : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("download_fide_db") };
+    return { status: "ok", data: await TAURI_INVOKE("write_game", { filePath, n, pgn }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -318,7 +326,7 @@ async getDbInfo(file: string) : Promise<Result<DatabaseInfo, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async getGames(file: string, query: GameQueryJs) : Promise<Result<QueryResponse<NormalizedGame[]>, string>> {
+async getGames(file: string, query: GameQuery) : Promise<Result<QueryResponse<NormalizedGame[]>, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_games", { file, query }) };
 } catch (e) {
@@ -326,7 +334,7 @@ async getGames(file: string, query: GameQueryJs) : Promise<Result<QueryResponse<
     else return { status: "error", error: e  as any };
 }
 },
-async searchPosition(file: string, query: GameQueryJs, tabId: string) : Promise<Result<[PositionStats[], NormalizedGame[]], string>> {
+async searchPosition(file: string, query: GameQuery, tabId: string) : Promise<Result<[PositionStats[], NormalizedGame[]], string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("search_position", { file, query, tabId }) };
 } catch (e) {
@@ -349,6 +357,108 @@ async getPuzzleDbInfo(file: string) : Promise<Result<PuzzleDatabaseInfo, string>
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async getPuzzleThemes(file: string) : Promise<Result<string[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_puzzle_themes", { file }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getThemesForPuzzle(file: string, puzzleId: number) : Promise<Result<string[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_themes_for_puzzle", { file, puzzleId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async deletePuzzleDatabase(file: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("delete_puzzle_database", { file }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async startGame(gameId: string, config: GameConfig) : Promise<Result<GameState, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("start_game", { gameId, config }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getGameState(gameId: string) : Promise<Result<GameState, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_game_state", { gameId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async makeGameMove(gameId: string, uci: string) : Promise<Result<GameState, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("make_game_move", { gameId, uci }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async takeBackGameMove(gameId: string) : Promise<Result<GameState, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("take_back_game_move", { gameId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async resignGame(gameId: string, color: string) : Promise<Result<GameState, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("resign_game", { gameId, color }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async abortGame(gameId: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("abort_game", { gameId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getGameEngineLogs(gameId: string, color: string) : Promise<Result<EngineLog[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_game_engine_logs", { gameId, color }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async preloadReferenceDb(file: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("preload_reference_db", { file }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getProgress(id: string) : Promise<ProgressItem | null> {
+    return await TAURI_INVOKE("get_progress", { id });
+},
+async clearProgress(id: string) : Promise<void> {
+    await TAURI_INVOKE("clear_progress", { id });
+},
+async getSoundServerPort() : Promise<Result<number, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_sound_server_port") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -357,14 +467,18 @@ async getPuzzleDbInfo(file: string) : Promise<Result<PuzzleDatabaseInfo, string>
 
 export const events = __makeEvents__<{
 bestMovesPayload: BestMovesPayload,
+clockUpdateEvent: ClockUpdateEvent,
 databaseProgress: DatabaseProgress,
-downloadProgress: DownloadProgress,
-reportProgress: ReportProgress
+gameMoveEvent: GameMoveEvent,
+gameOverEvent: GameOverEvent,
+progressEvent: ProgressEvent
 }>({
 bestMovesPayload: "best-moves-payload",
+clockUpdateEvent: "clock-update-event",
 databaseProgress: "database-progress",
-downloadProgress: "download-progress",
-reportProgress: "report-progress"
+gameMoveEvent: "game-move-event",
+gameOverEvent: "game-over-event",
+progressEvent: "progress-event"
 })
 
 /** user-defined constants **/
@@ -376,37 +490,47 @@ reportProgress: "report-progress"
 export type AnalysisOptions = { fen: string; moves: string[]; annotateNovelties: boolean; referenceDb: string | null; reversed: boolean }
 export type BestMoves = { nodes: number; depth: number; score: Score; uciMoves: string[]; sanMoves: string[]; multipv: number; nps: number }
 export type BestMovesPayload = { bestLines: BestMoves[]; engine: string; tab: string; fen: string; moves: string[]; progress: number }
-export type DatabaseInfo = { title: string; description: string; player_count: number; event_count: number; game_count: number; storage_size: number; filename: string; indexed: boolean }
+export type ClockUpdateEvent = { gameId: string; whiteTime: bigint | null; blackTime: bigint | null }
+export type DatabaseInfo = { title: string; description: string; player_count: number; event_count: number; game_count: number; storage_size: bigint; filename: string; indexed: boolean }
 export type DatabaseProgress = { id: string; progress: number }
-export type DownloadProgress = { progress: number; id: string; finished: boolean }
+export type DrawReason = "stalemate" | "insufficientMaterial" | "threefoldRepetition" | "fiftyMoveRule" | "agreement"
 export type EngineConfig = { name: string; options: UciOptionConfig[] }
 export type EngineLog = { type: "gui"; value: string } | { type: "engine"; value: string }
 export type EngineOption = { name: string; value: string }
 export type EngineOptions = { fen: string; moves: string[]; extraOptions: EngineOption[] }
 export type Event = { id: number; name: string | null }
-export type FidePlayer = { fideid: number; name: string; country: string; sex: string; title: string | null; w_title: string | null; o_title: string | null; foa_title: string | null; rating: number | null; games: number | null; k: number | null; rapid_rating: number | null; rapid_games: number | null; rapid_k: number | null; blitz_rating: number | null; blitz_games: number | null; blitz_k: number | null; birthday: number | null; flag: string | null }
 export type FileMetadata = { last_modified: number }
-export type GameQueryJs = { options?: QueryOptions<GameSort> | null; player1?: number | null; player2?: number | null; tournament_id?: number | null; start_date?: string | null; end_date?: string | null; range1?: [number, number] | null; range2?: [number, number] | null; sides?: Sides | null; outcome?: string | null; position?: PositionQueryJs | null }
+export type GameConfig = { white: PlayerConfig; black: PlayerConfig; whiteTimeControl: TimeControl | null; blackTimeControl: TimeControl | null; initialFen: string | null; initialMoves?: string[]; openingBook: OpeningBookConfig | null }
+export type GameEndReason = "checkmate" | "timeout" | "resignation" | "abandonment"
+export type GameMove = { uci: string; san: string; fenAfter: string; clock: bigint | null; whiteTime: bigint | null; blackTime: bigint | null }
+export type GameMoveEvent = { gameId: string; moves: GameMove[]; fen: string; whiteTime: bigint | null; blackTime: bigint | null }
+export type GameOutcome = "Won" | "Drawn" | "Lost"
+export type GameOverEvent = { gameId: string; result: GameResult; moves: GameMove[] }
+export type GameQuery = { options?: QueryOptions<GameSort> | null; player1?: number | null; player2?: number | null; tournament_id?: number | null; start_date?: string | null; end_date?: string | null; range1?: [number, number] | null; range2?: [number, number] | null; sides?: Sides | null; outcome?: string | null; position?: PositionQueryJs | null; wanted_result?: string | null }
+export type GameResult = { type: "whiteWins"; reason: GameEndReason } | { type: "blackWins"; reason: GameEndReason } | { type: "draw"; reason: DrawReason }
 export type GameSort = "id" | "date" | "whiteElo" | "blackElo" | "ply_count"
+export type GameState = { gameId: string; status: GameStatus; initialFen: string; moves: GameMove[]; currentFen: string; ply: number; turn: string; whiteTime: bigint | null; blackTime: bigint | null; whitePlayer: string; blackPlayer: string }
+export type GameStatus = "playing" | { finished: { result: GameResult } }
 export type GoMode = { t: "PlayersTime"; c: PlayersTime } | { t: "Depth"; c: number } | { t: "Time"; c: number } | { t: "Nodes"; c: number } | { t: "Infinite" }
-export type MonthData = { count: number; avg_elo: number }
 export type MoveAnalysis = { best: BestMoves[]; novelty: boolean; is_sacrifice: boolean }
 export type NormalizedGame = { id: number; fen: string; event: string; event_id: number; site: string; site_id: number; date?: string | null; time?: string | null; round?: string | null; white: string; white_id: number; white_elo?: number | null; black: string; black_id: number; black_elo?: number | null; result: Outcome; time_control?: string | null; eco?: string | null; ply_count?: number | null; moves: string }
+export type OpeningBookConfig = { path: string; maxPly?: bigint }
 export type OutOpening = { name: string; fen: string }
 export type Outcome = "1-0" | "0-1" | "1/2-1/2" | "*"
 export type Player = { id: number; name: string | null; elo: number | null }
-export type PlayerGameInfo = { won: number; lost: number; draw: number; data_per_month: ([string, MonthData])[]; white_openings: ([string, Results])[]; black_openings: ([string, Results])[] }
+export type PlayerConfig = { type: "human"; name: string } | { type: "engine"; name: string; path: string; options?: EngineOption[]; go: GoMode | null }
+export type PlayerGameInfo = { site_stats_data: SiteStatsData[] }
 export type PlayerQuery = { options: QueryOptions<PlayerSort>; name?: string | null; range?: [number, number] | null }
 export type PlayerSort = "id" | "name" | "elo"
 export type PlayersTime = { white: number; black: number; winc: number; binc: number }
 export type PositionQueryJs = { fen: string; type_: string }
 export type PositionStats = { move: string; white: number; draw: number; black: number }
+export type ProgressEvent = { id: string; progress: number; finished: boolean }
+export type ProgressItem = { id: string; progress: number; finished: boolean }
 export type Puzzle = { id: number; fen: string; moves: string; rating: number; rating_deviation: number; popularity: number; nb_plays: number }
-export type PuzzleDatabaseInfo = { title: string; description: string; puzzleCount: number; storageSize: number; path: string }
+export type PuzzleDatabaseInfo = { title: string; description: string; puzzleCount: number; storageSize: bigint; path: string }
 export type QueryOptions<SortT> = { skipCount: boolean; page?: number | null; pageSize?: number | null; sort: SortT; direction: SortDirection }
 export type QueryResponse<T> = { data: T; count: number | null }
-export type ReportProgress = { progress: number; id: string; finished: boolean }
-export type Results = { won: number; lost: number; draw: number }
 export type Score = { value: ScoreValue; 
 /**
  * The probability of each result (win, draw, loss).
@@ -422,7 +546,10 @@ export type ScoreValue =
  */
 { type: "mate"; value: number }
 export type Sides = "BlackWhite" | "WhiteBlack" | "Any"
+export type SiteStatsData = { site: string; player: string; data: StatsData[] }
 export type SortDirection = "asc" | "desc"
+export type StatsData = { date: string; is_player_white: boolean; player_elo: number; result: GameOutcome; time_control: string; opening: string }
+export type TimeControl = { initialTime: bigint; increment: bigint }
 export type Token = { type: "ParenOpen" } | { type: "ParenClose" } | { type: "Comment"; value: string } | { type: "San"; value: string } | { type: "Header"; value: { tag: string; value: string } } | { type: "Nag"; value: string } | { type: "Outcome"; value: string }
 export type TournamentQuery = { options: QueryOptions<TournamentSort>; name: string | null }
 export type TournamentSort = "id" | "name"
