@@ -5,14 +5,14 @@
   "type": "module",
   "scripts": {
     "start-vite": "vite",
-    "build-vite": "tsc --noEmit && vite build",
+    "build-vite": "tsgo --noEmit && vite build",
     "build": "tauri build --no-bundle",
     "dev": "tauri dev",
     "tauri": "tauri",
     "format": "oxfmt",
     "test": "vitest run",
-    "lint": "tsc --noEmit && oxlint check",
-    "lint:ci": "tsc --noEmit && oxfmt --check && oxlint --format=github && i18next-cli extract --ci",
+    "lint": "tsgo --noEmit && oxlint check",
+    "lint:ci": "tsgo --noEmit && oxfmt --check && oxlint --format=github && i18next-cli extract --ci",
     "lint:fix": "oxlint --fix",
     "i18n:extract": "i18next-cli extract",
     "i18n:status": "i18next-cli status",
@@ -92,6 +92,7 @@
     "@types/lodash": "^4.17.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@typescript/native-preview": "7.0.0-dev.20260306.1",
     "@vanilla-extract/css": "^1.18.0",
     "@vanilla-extract/vite-plugin": "^5.1.4",
     "babel-plugin-react-compiler": "^1.0.0",
@@ -99,7 +100,7 @@
     "jsdom": "^28.1.0",
     "oxfmt": "^0.36.0",
     "oxlint": "^1.51.0",
-    "typescript": "^5.9.3",
+    "oxlint-tsgolint": "^0.16.0",
     "vitest": "^4.0.16"
   }
 }
