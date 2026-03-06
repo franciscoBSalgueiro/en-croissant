@@ -448,6 +448,7 @@
     "Puzzle.TrackPuzzleTime": "",
     "Puzzle.TrackPuzzleTime.Desc": "",
     "Puzzle.ViewSolution": "",
+    "Puzzle.GetAHint": "Obtener una pista",
     "RichText.Bold": "Negrita",
     "RichText.BulletList": "Lista de viñetas",
     "RichText.ClearFormatting": "Limpiar formato",

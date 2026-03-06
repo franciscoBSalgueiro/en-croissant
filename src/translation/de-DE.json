@@ -446,6 +446,7 @@
     "Puzzle.TrackPuzzleTime": "",
     "Puzzle.TrackPuzzleTime.Desc": "",
     "Puzzle.ViewSolution": "",
+    "Puzzle.GetAHint": "Hinweis erhalten",
     "RichText.Bold": "Fett",
     "RichText.BulletList": "Aufzählungsliste",
     "RichText.ClearFormatting": "Formatierung löschen",

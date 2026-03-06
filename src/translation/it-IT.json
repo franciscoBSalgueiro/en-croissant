@@ -448,6 +448,7 @@
     "Puzzle.TrackPuzzleTime": "",
     "Puzzle.TrackPuzzleTime.Desc": "",
     "Puzzle.ViewSolution": "",
+    "Puzzle.GetAHint": "Ottieni un suggerimento",
     "RichText.Bold": "Grassetto",
     "RichText.BulletList": "Elenco puntato",
     "RichText.ClearFormatting": "Cancella formattazione",

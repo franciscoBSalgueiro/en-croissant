@@ -460,6 +460,7 @@
     "Puzzle.TrackPuzzleTime": "",
     "Puzzle.TrackPuzzleTime.Desc": "",
     "Puzzle.ViewSolution": "查看解法",
+    "Puzzle.GetAHint": "获取提示",
     "RichText.Bold": "粗体",
     "RichText.BulletList": "无序列表",
     "RichText.ClearFormatting": "清除格式",

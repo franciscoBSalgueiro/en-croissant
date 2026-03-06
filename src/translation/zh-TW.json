@@ -444,6 +444,7 @@
     "Puzzle.TrackPuzzleTime": "",
     "Puzzle.TrackPuzzleTime.Desc": "",
     "Puzzle.ViewSolution": "",
+    "Puzzle.GetAHint": "獲取提示",
     "RichText.Bold": "粗體",
     "RichText.BulletList": "項目符號清單",
     "RichText.ClearFormatting": "清除格式",

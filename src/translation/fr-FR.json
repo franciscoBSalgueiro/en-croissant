@@ -462,6 +462,7 @@
     "Puzzle.TrackPuzzleTime": "",
     "Puzzle.TrackPuzzleTime.Desc": "",
     "Puzzle.ViewSolution": "",
+    "Puzzle.GetAHint": "Obtenir un indice",
     "RichText.Bold": "Gras",
     "RichText.BulletList": "Liste non ordonnée",
     "RichText.ClearFormatting": "Effacer le formatage",

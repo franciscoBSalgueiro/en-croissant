@@ -460,6 +460,7 @@
     "Puzzle.TrackPuzzleTime": "",
     "Puzzle.TrackPuzzleTime.Desc": "",
     "Puzzle.ViewSolution": "",
+    "Puzzle.GetAHint": "Get a Hint",
     "RichText.Bold": "Bold",
     "RichText.BulletList": "Bullet list",
     "RichText.ClearFormatting": "Clear formatting",

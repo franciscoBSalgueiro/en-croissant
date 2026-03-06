@@ -73,13 +73,12 @@ function Puzzles({ id }: { id: string }) {
   const reset = useStore(store, (s) => s.reset);
   const makeMove = useStore(store, (s) => s.makeMove);
   const setShapes = useStore(store, (s) => s.setShapes);
+  const currentMove = useStore(store, (s) => s.currentNode().move);
   const [puzzles, setPuzzles] = useSessionStorage<Puzzle[]>({
     key: `${id}-puzzles`,
     defaultValue: [],
   });
   const [currentPuzzle, setCurrentPuzzle] = useAtom(currentPuzzleAtom);
-
-  const currentMove = useStore(store, (s) => s.currentNode().move);
 
   const [puzzleDbs, setPuzzleDbs] = useState<PuzzleDatabaseInfo[]>([]);
   const [selectedDb, setSelectedDb] = useAtom(selectedPuzzleDbAtom);
@@ -148,8 +147,8 @@ function Puzzles({ id }: { id: string }) {
   const avgTimeSeconds =
     wonPuzzles.length > 0
       ? wonPuzzles.reduce((acc, p) => acc + (p.timeSpent || 0), 0) /
-      wonPuzzles.length /
-      1000
+        wonPuzzles.length /
+        1000
       : 0;
 
   function setPuzzle(puzzle: { fen: string; moves: string[] }) {
@@ -289,9 +288,6 @@ function Puzzles({ id }: { id: string }) {
       ? positionFromFen(puzzles[currentPuzzle]?.fen)[0]?.turn
       : null;
 
-
-
-  // return true if the last move is null or undefined, or if the last played move is the last move in the current puzzle.
   const currentlyOnLastMoveOrNoLastMove = (): boolean => {
     if (!currentMove) return true;
 
@@ -501,8 +497,8 @@ function Puzzles({ id }: { id: string }) {
               </Text>
               <Text fw={700} size="lg">
                 {isPuzzleIncomplete &&
-                  hideRating &&
-                  puzzles[currentPuzzle]?.rating
+                hideRating &&
+                puzzles[currentPuzzle]?.rating
                   ? "?"
                   : puzzles[currentPuzzle]?.rating || "-"}
               </Text>
@@ -606,7 +602,7 @@ function Puzzles({ id }: { id: string }) {
                         fen: puzzles[currentPuzzle]?.fen,
                         orientation:
                           parseFen(puzzles[currentPuzzle].fen).unwrap().turn ===
-                            "white"
+                          "white"
                             ? "black"
                             : "white",
                       },

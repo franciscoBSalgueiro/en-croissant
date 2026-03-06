@@ -464,6 +464,7 @@
     "Puzzle.TrackPuzzleTime": "",
     "Puzzle.TrackPuzzleTime.Desc": "",
     "Puzzle.ViewSolution": "",
+    "Puzzle.GetAHint": "Получить подсказку",
     "RichText.Bold": "Жирный",
     "RichText.BulletList": "Маркированный список",
     "RichText.ClearFormatting": "Очистить форматирование",

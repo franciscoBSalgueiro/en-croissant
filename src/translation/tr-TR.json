@@ -446,6 +446,7 @@
     "Puzzle.TrackPuzzleTime": "",
     "Puzzle.TrackPuzzleTime.Desc": "",
     "Puzzle.ViewSolution": "",
+    "Puzzle.GetAHint": "İpucu Al",
     "RichText.Bold": "Kalın",
     "RichText.BulletList": "Sırasız liste",
     "RichText.ClearFormatting": "Formatı temizle",

@@ -450,6 +450,7 @@
     "Puzzle.TrackPuzzleTime": "",
     "Puzzle.TrackPuzzleTime.Desc": "",
     "Puzzle.ViewSolution": "",
+    "Puzzle.GetAHint": "Отримати підказку",
     "RichText.Bold": "Жирний",
     "RichText.BulletList": "Маркований список",
     "RichText.ClearFormatting": "Очистити форматування",
