@@ -445,6 +445,7 @@
     "Puzzle.AvgTime": "Avg Time",
     "Puzzle.ClearSession": "Clear Session",
     "Puzzle.Database": "Database",
+    "Puzzle.GetAHint": "Get a Hint",
     "Puzzle.HideRating": "Hide Rating",
     "Puzzle.HideRating.Desc": "Hide until solved",
     "Puzzle.JumpToNextPuzzleImmediately": "Jump to next puzzle immediately",

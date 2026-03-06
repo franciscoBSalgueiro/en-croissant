@@ -433,6 +433,7 @@
     "Puzzle.AvgTime": "",
     "Puzzle.ClearSession": "",
     "Puzzle.Database": "",
+    "Puzzle.GetAHint": "Ottieni un suggerimento",
     "Puzzle.HideRating": "",
     "Puzzle.HideRating.Desc": "",
     "Puzzle.JumpToNextPuzzleImmediately": "",

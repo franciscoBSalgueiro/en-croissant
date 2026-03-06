@@ -429,6 +429,7 @@
     "Puzzle.AvgTime": "",
     "Puzzle.ClearSession": "",
     "Puzzle.Database": "",
+    "Puzzle.GetAHint": "獲取提示",
     "Puzzle.HideRating": "",
     "Puzzle.HideRating.Desc": "",
     "Puzzle.JumpToNextPuzzleImmediately": "立即跳至下一題",

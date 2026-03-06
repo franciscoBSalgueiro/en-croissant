@@ -431,6 +431,7 @@
     "Puzzle.AvgTime": "",
     "Puzzle.ClearSession": "",
     "Puzzle.Database": "",
+    "Puzzle.GetAHint": "Få et hint",
     "Puzzle.HideRating": "",
     "Puzzle.HideRating.Desc": "",
     "Puzzle.JumpToNextPuzzleImmediately": "Hopp til neste oppgave umiddelbart",

@@ -449,6 +449,7 @@
     "Puzzle.AvgTime": "",
     "Puzzle.ClearSession": "",
     "Puzzle.Database": "",
+    "Puzzle.GetAHint": "Получить подсказку",
     "Puzzle.HideRating": "",
     "Puzzle.HideRating.Desc": "",
     "Puzzle.JumpToNextPuzzleImmediately": "Сразу переходить к следующей головоломке",

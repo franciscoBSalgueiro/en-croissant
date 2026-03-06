@@ -27,7 +27,7 @@ import {
   IconX,
   IconZoomCheck,
 } from "@tabler/icons-react";
-import { parseUci } from "chessops";
+import { isNormal, makeSquare, makeUci, parseUci } from "chessops";
 import { parseFen } from "chessops/fen";
 import { useAtom, useSetAtom } from "jotai";
 import { useContext, useEffect, useRef, useState } from "react";
@@ -68,6 +68,8 @@ function Puzzles({ id }: { id: string }) {
   const goToStart = useStore(store, (s) => s.goToStart);
   const reset = useStore(store, (s) => s.reset);
   const makeMove = useStore(store, (s) => s.makeMove);
+  const setShapes = useStore(store, (s) => s.setShapes);
+  const currentMove = useStore(store, (s) => s.currentNode().move);
   const [puzzles, setPuzzles] = useSessionStorage<Puzzle[]>({
     key: `${id}-puzzles`,
     defaultValue: [],
@@ -151,6 +153,7 @@ function Puzzles({ id }: { id: string }) {
 
     if (nextIndex !== -1 && !force) {
       solutionAbortRef.current?.abort();
+      setIsPlayingSolution(false);
       setCurrentPuzzle(nextIndex);
       setPuzzle(puzzles[nextIndex]);
       if (trackTime) {
@@ -160,6 +163,7 @@ function Puzzles({ id }: { id: string }) {
     }
 
     solutionAbortRef.current?.abort();
+    setIsPlayingSolution(false);
 
     let range = ratingRange;
     if (progressive) {
@@ -211,6 +215,7 @@ function Puzzles({ id }: { id: string }) {
 
   const [addOpened, setAddOpened] = useState(false);
   const [deleteModalOpened, setDeleteModalOpened] = useState(false);
+  const [isPlayingSolution, setIsPlayingSolution] = useState(false);
 
   const [progressive, setProgressive] = useAtom(progressivePuzzlesAtom);
   const [hideRating, setHideRating] = useAtom(hidePuzzleRatingAtom);
@@ -263,6 +268,30 @@ function Puzzles({ id }: { id: string }) {
       ? positionFromFen(puzzles[currentPuzzle]?.fen)[0]?.turn
       : null;
 
+  const currentlyOnLastMoveOrNoLastMove = (): boolean => {
+    if (!currentMove) return true;
+
+    const moves = puzzles[currentPuzzle]?.moves;
+    if (!moves) return true;
+
+    const lastMoveIndex = moves.indexOf(makeUci(currentMove));
+    return lastMoveIndex + 1 === moves.length;
+  };
+
+  const nextMoveUci = () => {
+    const curPuzzle = puzzles[currentPuzzle];
+    if (!curPuzzle || !currentMove) return;
+
+    const indexOfNextMoveToPlay = curPuzzle.moves.indexOf(makeUci(currentMove)) + 1;
+    const nextMoveUci = curPuzzle.moves[indexOfNextMoveToPlay];
+    if (!nextMoveUci) return;
+
+    const nextMove = parseUci(nextMoveUci);
+    if (!nextMove || !isNormal(nextMove)) return;
+
+    return nextMove;
+  };
+
   return (
     <>
       <Portal target="#left" style={{ height: "100%" }}>
@@ -303,6 +332,7 @@ function Puzzles({ id }: { id: string }) {
                   setPuzzles([]);
                   reset();
                   setTimerStart(null);
+                  setIsPlayingSolution(false);
                 });
               }
               setDeleteModalOpened(false);
@@ -549,6 +579,7 @@ function Puzzles({ id }: { id: string }) {
                     setPuzzles([]);
                     reset();
                     setTimerStart(null);
+                    setIsPlayingSolution(false);
                   }}
                 >
                   <IconX />
@@ -556,33 +587,87 @@ function Puzzles({ id }: { id: string }) {
               </Tooltip>
             </Group>
           </Group>
-          <Button
-            mt="sm"
-            variant="light"
-            fullWidth
-            onClick={async () => {
-              solutionAbortRef.current?.abort();
-              const abortController = new AbortController();
-              solutionAbortRef.current = abortController;
+          <Group grow>
+            <Button
+              mt="sm"
+              variant="light"
+              fullWidth
+              onClick={async () => {
+                solutionAbortRef.current?.abort();
+                setIsPlayingSolution(false);
+                const abortController = new AbortController();
+                solutionAbortRef.current = abortController;
+                const curPuzzle = puzzles[currentPuzzle];
 
-              const curPuzzle = puzzles[currentPuzzle];
-              if (curPuzzle.completion === "incomplete") {
-                changeCompletion("incorrect");
+                if (curPuzzle.completion === "incomplete") {
+                  changeCompletion("incorrect");
+                }
+
+                if (currentlyOnLastMoveOrNoLastMove()) return;
+
+                const nextMove = nextMoveUci();
+                if (!nextMove) return;
+
+                const from = makeSquare(nextMove.from);
+                const to = makeSquare(nextMove.to);
+                const currentShapes = store.getState().currentNode().shapes;
+
+                // Progressive hints: circle > arrow > clear
+                const hasCircle = currentShapes.some((s) => s.orig === from && !s.dest);
+                const hasArrow = currentShapes.some((s) => s.orig === from && s.dest === to);
+
+                if (hasArrow) {
+                  // Third click: Remove all hint shapes for this move
+                  setShapes(
+                    currentShapes.filter((s) => !(s.orig === from && (!s.dest || s.dest === to))),
+                  );
+                } else if (hasCircle) {
+                  // Second click: Replace circle with arrow
+                  setShapes([
+                    ...currentShapes.filter((s) => !(s.orig === from && !s.dest)),
+                    { orig: from, dest: to, brush: "green" },
+                  ]);
+                } else {
+                  // First click: Add circle
+                  setShapes([...currentShapes, { orig: from, dest: undefined, brush: "green" }]);
+                }
+              }}
+              disabled={
+                puzzles.length === 0 || currentlyOnLastMoveOrNoLastMove() || isPlayingSolution
               }
-              goToStart();
-              for (let i = 0; i < curPuzzle.moves.length; i++) {
-                if (abortController.signal.aborted) break;
-                makeMove({
-                  payload: parseUci(curPuzzle.moves[i])!,
-                  mainline: true,
-                });
-                await new Promise((r) => setTimeout(r, 500));
-              }
-            }}
-            disabled={puzzles.length === 0}
-          >
-            {t("Puzzle.ViewSolution")}
-          </Button>
+            >
+              {t("Puzzle.GetAHint")}
+            </Button>
+            <Button
+              mt="sm"
+              variant="light"
+              fullWidth
+              onClick={async () => {
+                solutionAbortRef.current?.abort();
+                const abortController = new AbortController();
+                solutionAbortRef.current = abortController;
+
+                const curPuzzle = puzzles[currentPuzzle];
+                if (curPuzzle.completion === "incomplete") {
+                  changeCompletion("incorrect");
+                }
+                setIsPlayingSolution(true);
+                goToStart();
+                for (let i = 0; i < curPuzzle.moves.length; i++) {
+                  if (abortController.signal.aborted) break;
+                  makeMove({
+                    payload: parseUci(curPuzzle.moves[i])!,
+                    mainline: true,
+                  });
+                  await new Promise((r) => setTimeout(r, 500));
+                }
+                setIsPlayingSolution(false);
+              }}
+              disabled={puzzles.length === 0}
+            >
+              {t("Puzzle.ViewSolution")}
+            </Button>
+          </Group>
         </Paper>
       </Portal>
       <Portal target="#bottomRight" style={{ height: "100%" }}>
@@ -598,6 +683,7 @@ function Puzzles({ id }: { id: string }) {
                 select={(i) => {
                   if (i === currentPuzzle) return;
                   solutionAbortRef.current?.abort();
+                  setIsPlayingSolution(false);
                   setCurrentPuzzle(i);
                   setPuzzle(puzzles[i]);
                   if (puzzles[i].completion === "incomplete") {

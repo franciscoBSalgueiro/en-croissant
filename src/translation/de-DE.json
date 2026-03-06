@@ -431,6 +431,7 @@
     "Puzzle.AvgTime": "",
     "Puzzle.ClearSession": "",
     "Puzzle.Database": "",
+    "Puzzle.GetAHint": "Hinweis erhalten",
     "Puzzle.HideRating": "",
     "Puzzle.HideRating.Desc": "",
     "Puzzle.JumpToNextPuzzleImmediately": "Sofort zum nächsten Puzzle springen",

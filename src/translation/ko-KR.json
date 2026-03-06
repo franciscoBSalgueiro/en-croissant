@@ -443,6 +443,7 @@
     "Puzzle.AvgTime": "평균 시간",
     "Puzzle.ClearSession": "세션 초기화",
     "Puzzle.Database": "데이터베이스",
+    "Puzzle.GetAHint": "힌트 받기",
     "Puzzle.HideRating": "레이팅 숨기기",
     "Puzzle.HideRating.Desc": "풀기 전까지는 레이팅을 표시하지 않습니다",
     "Puzzle.JumpToNextPuzzleImmediately": "즉시 다음 퍼즐로 이동",
