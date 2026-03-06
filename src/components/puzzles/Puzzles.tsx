@@ -171,6 +171,7 @@ function Puzzles({ id }: { id: string }) {
 
     if (nextIndex !== -1 && !force) {
       solutionAbortRef.current?.abort();
+      setIsPlayingSolution(false);
       setCurrentPuzzle(nextIndex);
       setPuzzle(puzzles[nextIndex]);
       if (trackTime) {
@@ -180,6 +181,7 @@ function Puzzles({ id }: { id: string }) {
     }
 
     solutionAbortRef.current?.abort();
+    setIsPlayingSolution(false);
 
     let range = ratingRange;
     if (progressive) {
@@ -233,6 +235,7 @@ function Puzzles({ id }: { id: string }) {
 
   const [addOpened, setAddOpened] = useState(false);
   const [deleteModalOpened, setDeleteModalOpened] = useState(false);
+  const [isPlayingSolution, setIsPlayingSolution] = useState(false);
 
   const [progressive, setProgressive] = useAtom(progressivePuzzlesAtom);
   const [hideRating, setHideRating] = useAtom(hidePuzzleRatingAtom);
@@ -355,6 +358,7 @@ function Puzzles({ id }: { id: string }) {
                   setPuzzles([]);
                   reset();
                   setTimerStart(null);
+                  setIsPlayingSolution(false);
                 });
               }
               setDeleteModalOpened(false);
@@ -618,6 +622,7 @@ function Puzzles({ id }: { id: string }) {
                     setPuzzles([]);
                     reset();
                     setTimerStart(null);
+                    setIsPlayingSolution(false);
                   }}
                 >
                   <IconX />
@@ -632,6 +637,7 @@ function Puzzles({ id }: { id: string }) {
               fullWidth
               onClick={async () => {
                 solutionAbortRef.current?.abort();
+                setIsPlayingSolution(false);
                 const abortController = new AbortController();
                 solutionAbortRef.current = abortController;
                 const curPuzzle = puzzles[currentPuzzle];
@@ -672,7 +678,7 @@ function Puzzles({ id }: { id: string }) {
                   ]);
                 }
               }}
-              disabled={puzzles.length === 0 || currentlyOnLastMoveOrNoLastMove()}
+              disabled={puzzles.length === 0 || currentlyOnLastMoveOrNoLastMove() || isPlayingSolution}
             >
               {t("Puzzle.GetAHint")}
             </Button>
@@ -689,6 +695,7 @@ function Puzzles({ id }: { id: string }) {
                 if (curPuzzle.completion === "incomplete") {
                   changeCompletion("incorrect");
                 }
+                setIsPlayingSolution(true);
                 goToStart();
                 for (let i = 0; i < curPuzzle.moves.length; i++) {
                   if (abortController.signal.aborted) break;
@@ -698,6 +705,7 @@ function Puzzles({ id }: { id: string }) {
                   });
                   await new Promise((r) => setTimeout(r, 500));
                 }
+                setIsPlayingSolution(false);
               }}
               disabled={puzzles.length === 0}
             >
@@ -719,6 +727,7 @@ function Puzzles({ id }: { id: string }) {
                 select={(i) => {
                   if (i === currentPuzzle) return;
                   solutionAbortRef.current?.abort();
+                  setIsPlayingSolution(false);
                   setCurrentPuzzle(i);
                   setPuzzle(puzzles[i]);
                   if (puzzles[i].completion === "incomplete") {
