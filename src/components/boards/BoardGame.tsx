@@ -615,110 +615,106 @@ function BoardGame() {
           ) : (
             <>
               {gameState === "settingUp" && (
-                <ScrollArea h="100%" offsetScrollbars>
-                  <Stack>
-                    <Group>
-                      <Text flex={1} ta="center" fz="lg" fw="bold">
-                        {match(inputColor)
-                          .with("white", () => "White")
-                          .with("random", () => "Random")
-                          .with("black", () => "Black")
-                          .exhaustive()}
-                      </Text>
-                      <ActionIcon onClick={cycleColor}>
-                        <IconArrowsExchange />
-                      </ActionIcon>
-                      <Text flex={1} ta="center" fz="lg" fw="bold">
-                        {match(inputColor)
-                          .with("white", () => "Black")
-                          .with("random", () => "Random")
-                          .with("black", () => "White")
-                          .exhaustive()}
-                      </Text>
-                    </Group>
-                    <Box flex={1}>
-                      <Group style={{ alignItems: "start" }}>
-                        <OpponentForm
-                          sameTimeControl={sameTimeControl}
-                          opponent={player1Settings}
-                          setOpponent={setPlayer1Settings}
-                          setOtherOpponent={setPlayer2Settings}
-                        />
-                        <Divider orientation="vertical" />
-                        <OpponentForm
-                          sameTimeControl={sameTimeControl}
-                          opponent={player2Settings}
-                          setOpponent={setPlayer2Settings}
-                          setOtherOpponent={setPlayer1Settings}
-                        />
+                <Stack h="100%" gap={0}>
+                  <ScrollArea style={{ flex: 1 }} offsetScrollbars>
+                    <Stack>
+                      <Group>
+                        <Text flex={1} ta="center" fz="lg" fw="bold">
+                          {match(inputColor)
+                            .with("white", () => "White")
+                            .with("random", () => "Random")
+                            .with("black", () => "Black")
+                            .exhaustive()}
+                        </Text>
+                        <ActionIcon onClick={cycleColor}>
+                          <IconArrowsExchange />
+                        </ActionIcon>
+                        <Text flex={1} ta="center" fz="lg" fw="bold">
+                          {match(inputColor)
+                            .with("white", () => "Black")
+                            .with("random", () => "Random")
+                            .with("black", () => "White")
+                            .exhaustive()}
+                        </Text>
                       </Group>
-                    </Box>
+                      <Box flex={1}>
+                        <Group style={{ alignItems: "start" }}>
+                          <OpponentForm
+                            sameTimeControl={sameTimeControl}
+                            opponent={player1Settings}
+                            setOpponent={setPlayer1Settings}
+                            setOtherOpponent={setPlayer2Settings}
+                          />
+                          <Divider orientation="vertical" />
+                          <OpponentForm
+                            sameTimeControl={sameTimeControl}
+                            opponent={player2Settings}
+                            setOpponent={setPlayer2Settings}
+                            setOtherOpponent={setPlayer1Settings}
+                          />
+                        </Group>
+                      </Box>
 
-                    <Paper withBorder p="sm">
-                      <Stack>
-                        <Checkbox
-                          label={t("Board.Opponent.SameTimeControl")}
-                          checked={sameTimeControl}
-                          onChange={(e) => {
-                            const checked = e.target.checked;
-                            setSameTimeControl(checked);
-                            if (checked) {
-                              setPlayer2Settings((prev) => ({
-                                ...prev,
-                                timeControl: player1Settings.timeControl,
-                                timeUnit: player1Settings.timeUnit,
-                                incrementUnit: player1Settings.incrementUnit,
-                              }));
-                            }
-                          }}
-                        />
+                      <Paper withBorder p="sm">
+                        <Stack>
+                          <Checkbox
+                            label={t("Board.Opponent.SameTimeControl")}
+                            checked={sameTimeControl}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setSameTimeControl(checked);
+                              if (checked) {
+                                setPlayer2Settings((prev) => ({
+                                  ...prev,
+                                  timeControl: player1Settings.timeControl,
+                                  timeUnit: player1Settings.timeUnit,
+                                  incrementUnit: player1Settings.incrementUnit,
+                                }));
+                              }
+                            }}
+                          />
 
-                        <Divider variant="dashed" />
+                          <Divider variant="dashed" />
 
-                        <Checkbox
-                          label="Enable Opening Book"
-                          checked={openingBookEnabled}
-                          onChange={(e) => setOpeningBookEnabled(e.currentTarget.checked)}
-                        />
+                          <Checkbox
+                            label="Enable Opening Book"
+                            checked={openingBookEnabled}
+                            onChange={(e) => setOpeningBookEnabled(e.currentTarget.checked)}
+                          />
 
-                        {openingBookEnabled && (
-                          <>
-                            <FileInput
-                              label="Opening book (.pgn/.epd/.bin/.zip)"
-                              description={t("Import.PGN.ClickToSelect")}
-                              filename={openingBookPath}
-                              onClick={handleSelectOpeningBook}
-                            />
-                            {openingBookPath?.includes(".bin") && (
-                              <NumberInput
-                                label="Polyglot max plies"
-                                description="Maximum number of plies from the starting position that the opening book will be used for."
-                                min={1}
-                                value={openingBookMaxPly}
-                                onChange={(value) => {
-                                  if (typeof value === "number" && Number.isFinite(value)) {
-                                    setOpeningBookMaxPly(Math.max(1, Math.trunc(value)));
-                                  }
-                                }}
+                          {openingBookEnabled && (
+                            <>
+                              <FileInput
+                                label="Opening book (.pgn/.epd/.bin/.zip)"
+                                description={t("Import.PGN.ClickToSelect")}
+                                filename={openingBookPath}
+                                onClick={handleSelectOpeningBook}
                               />
-                            )}
-                          </>
-                        )}
-                      </Stack>
-                    </Paper>
+                              {openingBookPath?.includes(".bin") && (
+                                <NumberInput
+                                  label="Polyglot max plies"
+                                  description="Maximum number of plies from the starting position that the opening book will be used for."
+                                  min={1}
+                                  value={openingBookMaxPly}
+                                  onChange={(value) => {
+                                    if (typeof value === "number" && Number.isFinite(value)) {
+                                      setOpeningBookMaxPly(Math.max(1, Math.trunc(value)));
+                                    }
+                                  }}
+                                />
+                              )}
+                            </>
+                          )}
+                        </Stack>
+                      </Paper>
+                    </Stack>
+                  </ScrollArea>
 
-                    <Group>
-                      <Button
-                        onClick={startGame}
-                        fullWidth
-                        variant="light"
-                        disabled={error !== null}
-                      >
-                        {t("Board.Opponent.StartGame")}
-                      </Button>
-                    </Group>
-                  </Stack>
-                </ScrollArea>
+                  <Divider pb="sm" />
+                  <Button onClick={startGame} fullWidth variant="light" disabled={error !== null}>
+                    {t("Board.Opponent.StartGame")}
+                  </Button>
+                </Stack>
               )}
               {(gameState === "playing" || gameState === "gameOver") && (
                 <Stack h="100%">

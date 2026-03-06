@@ -33,6 +33,7 @@ interface EngineSettingsProps {
   setSettings: (fn: (prev: Settings) => Settings) => void;
   color?: MantineColor;
   minimal?: boolean;
+  showGoMode?: boolean;
   remote: boolean;
   gameMode?: boolean;
 }
@@ -43,6 +44,7 @@ function EngineSettingsForm({
   setSettings,
   color,
   minimal,
+  showGoMode = true,
   remote,
   gameMode,
 }: EngineSettingsProps) {
@@ -65,7 +67,9 @@ function EngineSettingsForm({
 
   return (
     <Stack>
-      {!remote && <GoModeInput gameMode={gameMode} goMode={settings.go} setGoMode={setGoMode} />}
+      {!remote && showGoMode && (
+        <GoModeInput gameMode={gameMode} goMode={settings.go} setGoMode={setGoMode} />
+      )}
 
       {!minimal && multipv && (
         <Group grow>

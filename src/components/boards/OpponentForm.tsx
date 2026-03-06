@@ -207,11 +207,13 @@ export function OpponentForm({
 
       {opponent.type === "engine" && (
         <Stack>
-          {opponent.engine && !opponent.timeControl && (
+          <Divider variant="dashed" label={t("Board.Opponent.EngineSettings", "Engine Settings")} />
+          {opponent.engine && (
             <EngineSettingsForm
               engine={opponent.engine}
               remote={false}
               gameMode
+              showGoMode={!opponent.timeControl}
               settings={{
                 go: opponent.go,
                 settings: opponent.engineSettings || opponent.engine.settings || [],
