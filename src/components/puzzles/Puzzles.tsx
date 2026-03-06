@@ -634,51 +634,40 @@ function Puzzles({ id }: { id: string }) {
                 if (curPuzzle.completion === "incomplete") {
                   changeCompletion("incorrect");
                 }
-                if (currentlyOnLastMoveOrNoLastMove()) return
 
-                const nextMove = nextMoveUci()
-                if (!nextMove) return
+                if (currentlyOnLastMoveOrNoLastMove()) return;
 
-                const nextMoveFrom = makeSquare(nextMove.from);
-                const nextMoveTo = makeSquare(nextMove.to);
+                const nextMove = nextMoveUci();
+                if (!nextMove) return;
 
-
-                // first click, highlight just the piece which is to be moved
-                // second click, show arrow
-                // third click, remove hint
+                const from = makeSquare(nextMove.from);
+                const to = makeSquare(nextMove.to);
                 const currentShapes = store.getState().currentNode().shapes;
 
-                const fromAlreadyHinted = currentShapes.filter((shape) => shape.orig === nextMoveFrom);
-                // TODO: check: does this clash w/ manually drawn arrows?
-                const moveArrowAlreadyHinted = currentShapes.filter((shape) => shape.orig === nextMoveFrom && shape.dest === nextMoveTo);
+                // Progressive hints: circle > arrow > clear
+                const hasCircle = currentShapes.some(s => s.orig === from && !s.dest);
+                const hasArrow = currentShapes.some(s => s.orig === from && s.dest === to);
 
-
-                if (fromAlreadyHinted.length > 0) {
-
-                  if (moveArrowAlreadyHinted.length === 0) {
-                    console.log('not moveArrowAlreadyHinted')
-                    setShapes([
-                      {
-                        orig: makeSquare(nextMove.from),
-                        dest:  makeSquare(nextMove.to),
-                        brush: "green",
-                    }]);
-
-                  } else {
-                    console.log('moveArrowAlreadyHinted', moveArrowAlreadyHinted.length)
-                    setShapes(currentShapes.filter(s => !fromAlreadyHinted.includes(s) && !moveArrowAlreadyHinted.includes(s)));
-                  }
-                } else {
+                if (hasArrow) {
+                  // Third click: Remove all hint shapes for this move
+                  setShapes(currentShapes.filter(s =>
+                    !(s.orig === from && (!s.dest || s.dest === to))
+                  ));
+                } else if (hasCircle) {
+                  // Second click: Replace circle with arrow
                   setShapes([
-                    {
-                      orig: makeSquare(nextMove.from),
-                      dest: undefined,
-                      brush: "green",
-                    }]
-                  );
+                    ...currentShapes.filter(s => !(s.orig === from && !s.dest)),
+                    { orig: from, dest: to, brush: "green" }
+                  ]);
+                } else {
+                  // First click: Add circle
+                  setShapes([
+                    ...currentShapes,
+                    { orig: from, dest: undefined, brush: "green" }
+                  ]);
                 }
               }}
-              disabled={puzzles.length === 0 || currentlyOnLastMoveOrNoLastMove()} // TODO: fix this condition. button is still enabled when view solution is clicked
+              disabled={puzzles.length === 0 || currentlyOnLastMoveOrNoLastMove()}
             >
               {t("Puzzle.GetAHint")}
             </Button>
