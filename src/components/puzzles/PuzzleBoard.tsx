@@ -147,7 +147,7 @@ function PuzzleBoard({
           drawable={{
             enabled: true,
             visible: true,
-            autoShapes: boardShapes
+            autoShapes: boardShapes,
           }}
           movable={{
             free: false,

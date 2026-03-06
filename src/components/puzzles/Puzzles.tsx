@@ -302,7 +302,8 @@ function Puzzles({ id }: { id: string }) {
     const curPuzzle = puzzles[currentPuzzle];
     if (!curPuzzle || !currentMove) return;
 
-    const indexOfNextMoveToPlay = curPuzzle.moves.indexOf(makeUci(currentMove)) + 1;
+    const indexOfNextMoveToPlay =
+      curPuzzle.moves.indexOf(makeUci(currentMove)) + 1;
     const nextMoveUci = curPuzzle.moves[indexOfNextMoveToPlay];
     if (!nextMoveUci) return;
 
@@ -652,29 +653,41 @@ function Puzzles({ id }: { id: string }) {
                 const currentShapes = store.getState().currentNode().shapes;
 
                 // Progressive hints: circle > arrow > clear
-                const hasCircle = currentShapes.some(s => s.orig === from && !s.dest);
-                const hasArrow = currentShapes.some(s => s.orig === from && s.dest === to);
+                const hasCircle = currentShapes.some(
+                  (s) => s.orig === from && !s.dest,
+                );
+                const hasArrow = currentShapes.some(
+                  (s) => s.orig === from && s.dest === to,
+                );
 
                 if (hasArrow) {
                   // Third click: Remove all hint shapes for this move
-                  setShapes(currentShapes.filter(s =>
-                    !(s.orig === from && (!s.dest || s.dest === to))
-                  ));
+                  setShapes(
+                    currentShapes.filter(
+                      (s) => !(s.orig === from && (!s.dest || s.dest === to)),
+                    ),
+                  );
                 } else if (hasCircle) {
                   // Second click: Replace circle with arrow
                   setShapes([
-                    ...currentShapes.filter(s => !(s.orig === from && !s.dest)),
-                    { orig: from, dest: to, brush: "green" }
+                    ...currentShapes.filter(
+                      (s) => !(s.orig === from && !s.dest),
+                    ),
+                    { orig: from, dest: to, brush: "green" },
                   ]);
                 } else {
                   // First click: Add circle
                   setShapes([
                     ...currentShapes,
-                    { orig: from, dest: undefined, brush: "green" }
+                    { orig: from, dest: undefined, brush: "green" },
                   ]);
                 }
               }}
-              disabled={puzzles.length === 0 || currentlyOnLastMoveOrNoLastMove() || isPlayingSolution}
+              disabled={
+                puzzles.length === 0 ||
+                currentlyOnLastMoveOrNoLastMove() ||
+                isPlayingSolution
+              }
             >
               {t("Puzzle.GetAHint")}
             </Button>
