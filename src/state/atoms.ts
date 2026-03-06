@@ -313,39 +313,39 @@ export const puzzleThemeAtom = atomWithStorage<string | null>("puzzle-theme", nu
 
 export const coverageMinGamesAtom = atomWithStorage<number>("coverage-min-games", 50);
 
-export const puzzleTimerFamily = atomFamily((tab: string) => atom<number | null>(null));
+export const puzzleTimerFamily = atomFamily((_tab: string) => atom<number | null>(null));
 export const currentPuzzleTimerAtom = tabValue(puzzleTimerFamily);
 
 // CP / WDL
 
 export const reportTypeAtom = atom<"CP" | "WDL">("CP");
 
-export const scoreTypeFamily = atomFamily((engine: string) => atom<"cp" | "wdl">("cp"));
+export const scoreTypeFamily = atomFamily((_engine: string) => atom<"cp" | "wdl">("cp"));
 
 // Per tab settings
 
-const threatFamily = atomFamily((tab: string) => atom(false));
+const threatFamily = atomFamily((_tab: string) => atom(false));
 export const currentThreatAtom = tabValue(threatFamily);
 
-const evalOpenFamily = atomFamily((tab: string) => atom(true));
+const evalOpenFamily = atomFamily((_tab: string) => atom(true));
 export const currentEvalOpenAtom = tabValue(evalOpenFamily);
 
-const evalBarDisplayFamily = atomFamily((tab: string) => atom<"cp" | "wdl">("cp"));
+const evalBarDisplayFamily = atomFamily((_tab: string) => atom<"cp" | "wdl">("cp"));
 export const currentEvalBarDisplayAtom = tabValue(evalBarDisplayFamily);
 
-const invisibleFamily = atomFamily((tab: string) => atom(false));
+const invisibleFamily = atomFamily((_tab: string) => atom(false));
 export const currentInvisibleAtom = tabValue(invisibleFamily);
 
-const showCommentsFamily = atomFamily((tab: string) => atom(true));
+const showCommentsFamily = atomFamily((_tab: string) => atom(true));
 export const currentShowCommentsAtom = tabValue(showCommentsFamily);
 
-const showVariationsFamily = atomFamily((tab: string) => atom(true));
+const showVariationsFamily = atomFamily((_tab: string) => atom(true));
 export const currentShowVariationsAtom = tabValue(showVariationsFamily);
 
-export const tabFamily = atomFamily((tab: string) => atom("info"));
+export const tabFamily = atomFamily((_tab: string) => atom("info"));
 export const currentTabSelectedAtom = tabValue(tabFamily);
 
-const localOptionsFamily = atomFamily((tab: string) =>
+const localOptionsFamily = atomFamily((_tab: string) =>
     atom<LocalOptions>({
         path: null,
         type: "exact",
@@ -379,24 +379,26 @@ export const masterOptionsAtom = atomWithStorage<MasterGamesOptions>(
     },
 );
 
-const dbTypeFamily = atomFamily((tab: string) => atom<"local" | "lch_all" | "lch_master">("local"));
+const dbTypeFamily = atomFamily((_tab: string) =>
+    atom<"local" | "lch_all" | "lch_master">("local"),
+);
 export const currentDbTypeAtom = tabValue(dbTypeFamily);
 
-const dbTabFamily = atomFamily((tab: string) => atom("stats"));
+const dbTabFamily = atomFamily((_tab: string) => atom("stats"));
 export const currentDbTabAtom = tabValue(dbTabFamily);
 
-const analysisTabFamily = atomFamily((tab: string) => atom("engines"));
+const analysisTabFamily = atomFamily((_tab: string) => atom("engines"));
 export const currentAnalysisTabAtom = tabValue(analysisTabFamily);
 
-const practiceTabFamily = atomFamily((tab: string) => atom("train"));
+const practiceTabFamily = atomFamily((_tab: string) => atom("train"));
 export const currentPracticeTabAtom = tabValue(practiceTabFamily);
 
-const expandedEnginesFamily = atomFamily((tab: string) => atom<string[] | undefined>(undefined));
+const expandedEnginesFamily = atomFamily((_tab: string) => atom<string[] | undefined>(undefined));
 export const currentExpandedEnginesAtom = tabValue(expandedEnginesFamily);
 
 export const currentDetachedEngineAtom = atomWithStorage<string | null>("detached-engine", null);
 
-const pgnOptionsFamily = atomFamily((tab: string) =>
+const pgnOptionsFamily = atomFamily((_tab: string) =>
     atom({
         comments: true,
         glyphs: true,
@@ -406,16 +408,16 @@ const pgnOptionsFamily = atomFamily((tab: string) =>
 );
 export const currentPgnOptionsAtom = tabValue(pgnOptionsFamily);
 
-const currentPuzzleFamily = atomFamily((tab: string) => atom(0));
+const currentPuzzleFamily = atomFamily((_tab: string) => atom(0));
 export const currentPuzzleAtom = tabValue(currentPuzzleFamily);
 
 // Game
 
 type GameState = "settingUp" | "playing" | "gameOver";
-const gameStateFamily = atomFamily((tab: string) => atom<GameState>("settingUp"));
+const gameStateFamily = atomFamily((_tab: string) => atom<GameState>("settingUp"));
 export const currentGameStateAtom = tabValue(gameStateFamily);
 
-const playersFamily = atomFamily((tab: string) =>
+const playersFamily = atomFamily((_tab: string) =>
     atom<{
         white: OpponentSettings;
         black: OpponentSettings;
@@ -423,7 +425,7 @@ const playersFamily = atomFamily((tab: string) =>
 );
 export const currentPlayersAtom = tabValue(playersFamily);
 
-const gameIdFamily = atomFamily((tab: string) => atom<string | null>(null));
+const gameIdFamily = atomFamily((_tab: string) => atom<string | null>(null));
 export const currentGameIdAtom = tabValue(gameIdFamily);
 
 // Practice
@@ -473,7 +475,7 @@ export type PracticeState = {
     positionIndex?: number;
 };
 
-export const practiceStateFamily = atomFamily((tab: string) =>
+export const practiceStateFamily = atomFamily((_tab: string) =>
     atom<PracticeState>({ phase: "idle" }),
 );
 export const practiceStateAtom = tabValue(practiceStateFamily);
@@ -487,7 +489,7 @@ export type PracticeSessionStats = {
     bestStreak: number;
 };
 
-const practiceSessionStatsFamily = atomFamily((tab: string) =>
+const practiceSessionStatsFamily = atomFamily((_tab: string) =>
     atom<PracticeSessionStats>({
         mode: "anki",
         remainingPositions: [],
@@ -499,16 +501,17 @@ const practiceSessionStatsFamily = atomFamily((tab: string) =>
 );
 export const practiceSessionStatsAtom = tabValue(practiceSessionStatsFamily);
 
-const practiceCardStartTimeFamily = atomFamily((tab: string) => atom<number>(0));
+const practiceCardStartTimeFamily = atomFamily((_tab: string) => atom<number>(0));
 export const practiceCardStartTimeAtom = tabValue(practiceCardStartTimeFamily);
 
 export const engineMovesFamily = atomFamily(
-    ({ tab, engine }: { tab: string; engine: string }) => atom<Map<string, BestMoves[]>>(new Map()),
+    ({ tab: _tab, engine: _engine }: { tab: string; engine: string }) =>
+        atom<Map<string, BestMoves[]>>(new Map()),
     (a, b) => a.tab === b.tab && a.engine === b.engine,
 );
 
 export const engineProgressFamily = atomFamily(
-    ({ tab, engine }: { tab: string; engine: string }) => atom<number>(0),
+    ({ tab: _tab, engine: _engine }: { tab: string; engine: string }) => atom<number>(0),
     (a, b) => a.tab === b.tab && a.engine === b.engine,
 );
 
@@ -595,8 +598,8 @@ export const firstEngineWithLinesFamily = atomFamily(
 
 export const tabEngineSettingsFamily = atomFamily(
     ({
-        tab,
-        engineId,
+        tab: _tab,
+        engineId: _engineId,
         defaultSettings,
         defaultGo,
     }: {

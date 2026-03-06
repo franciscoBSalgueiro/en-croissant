@@ -11,7 +11,6 @@ beforeEach(() => {
 
 const e4 = parseUci("e2e4")!;
 const d5 = parseUci("d7d5")!;
-const e5 = parseUci("e7e5")!;
 const treeE4D5: () => TreeState = () => ({
     ...defaultTree(),
     position: [0, 0],

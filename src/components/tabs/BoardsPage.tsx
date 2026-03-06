@@ -10,7 +10,7 @@ import { match } from "ts-pattern";
 import { commands } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
-import { createTab, genID, getTabFile, isPersistentGameOrigin, type Tab } from "@/utils/tabs";
+import { createTab, genID, isPersistentGameOrigin, type Tab } from "@/utils/tabs";
 import { unwrap } from "@/utils/unwrap";
 import BoardAnalysis from "../boards/BoardAnalysis";
 import BoardGame from "../boards/BoardGame";
@@ -70,7 +70,7 @@ export default function BoardsPage() {
         await commands.abortGame(`${value}-game`);
       }
     },
-    [tabs, activeTab, setTabs, toggleSaveModal, setActiveTab, startTransition],
+    [tabs, activeTab, setTabs, toggleSaveModal, setActiveTab],
   );
 
   function selectTab(index: number) {
@@ -129,7 +129,7 @@ export default function BoardsPage() {
         startTransition(() => setActiveTab(id));
       }
     },
-    [tabs, setTabs, setActiveTab, startTransition],
+    [tabs, setTabs, setActiveTab],
   );
 
   useEffect(() => {
@@ -154,7 +154,7 @@ export default function BoardsPage() {
     (v: string) => {
       startTransition(() => setActiveTab(v));
     },
-    [setActiveTab, startTransition],
+    [setActiveTab],
   );
   useHotkeys([
     [keyMap.CLOSE_TAB.keys, () => closeTab(activeTab)],

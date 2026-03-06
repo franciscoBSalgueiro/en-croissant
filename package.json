@@ -11,7 +11,7 @@
     "tauri": "tauri",
     "format": "oxfmt",
     "test": "vitest run",
-    "lint": "tsgo --noEmit && oxlint check",
+    "lint": "tsgo --noEmit && oxlint",
     "lint:ci": "tsgo --noEmit && oxfmt --check && oxlint --format=github && i18next-cli extract --ci",
     "lint:fix": "oxlint --fix",
     "i18n:extract": "i18next-cli extract",

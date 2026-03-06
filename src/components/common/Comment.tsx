@@ -23,8 +23,8 @@ function Comment({ comment }: { comment: string }) {
     >
       <Markdown
         components={{
-          a: ({ node, ...props }) => <a {...props} target="_blank" rel="noreferrer" />,
-          p: ({ node, ...props }) => (multipleLine ? <p {...props} /> : <span {...props} />),
+          a: ({ node: _node, ...props }) => <a {...props} target="_blank" rel="noreferrer" />,
+          p: ({ node: _node, ...props }) => (multipleLine ? <p {...props} /> : <span {...props} />),
         }}
         rehypePlugins={[rehypeRaw, remarkGfm]}
       >

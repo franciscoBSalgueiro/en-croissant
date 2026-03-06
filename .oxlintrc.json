@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": null,
+  "plugins": ["eslint", "import", "react", "react-perf", "oxc", "typescript", "vitest"],
   "categories": {},
   "rules": {},
   "settings": {
