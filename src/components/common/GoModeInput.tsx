@@ -21,7 +21,7 @@ function GoModeInput({
   }
 
   return (
-    <Group>
+    <Group wrap="nowrap">
       <SegmentedControl
         data={timeTypes.map((v) => ({ value: v, label: t(`GoMode.${v}`) }))}
         value={goMode?.t || (gameMode ? "Time" : "Infinite")}

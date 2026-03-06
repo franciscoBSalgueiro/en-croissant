@@ -10,6 +10,7 @@ import {
 import { IconCpu, IconUser } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import type { GoMode } from "@/bindings";
+import GoModeInput from "@/components/common/GoModeInput";
 import TimeInput, { type TimeType } from "@/components/common/TimeInput";
 import EngineSettingsForm from "@/components/panels/analysis/EngineSettingsForm";
 import type { TimeControlField } from "@/utils/clock";
@@ -207,13 +208,29 @@ export function OpponentForm({
 
       {opponent.type === "engine" && (
         <Stack>
+          {!opponent.timeControl && (
+            <GoModeInput
+              gameMode
+              goMode={opponent.go}
+              setGoMode={(go) =>
+                setOpponent((prev) => {
+                  if (prev.type === "human") {
+                    return prev;
+                  }
+                  return {
+                    ...prev,
+                    go,
+                  };
+                })
+              }
+            />
+          )}
           <Divider variant="dashed" label={t("Board.Opponent.EngineSettings", "Engine Settings")} />
           {opponent.engine && (
             <EngineSettingsForm
               engine={opponent.engine}
               remote={false}
               gameMode
-              showGoMode={!opponent.timeControl}
               settings={{
                 go: opponent.go,
                 settings: opponent.engineSettings || opponent.engine.settings || [],
