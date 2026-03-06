@@ -613,14 +613,28 @@ function makeMove({
   }
 }
 
-function isThreeFoldRepetition(state: TreeState, fen: string) {
+function getBoardState(fen: string): string {
+  return fen.split(" ").slice(0, 4).join(" ");
+}
+
+function isThreeFoldRepetition(state: TreeState, fen: string): boolean {
+  const targetState = getBoardState(fen);
+  let matchCount = 0;
+
+  if (getBoardState(INITIAL_FEN) === targetState) {
+    matchCount++;
+  }
+
   let node = state.root;
-  const fens = [INITIAL_FEN.split(" - ")[0]];
   for (const i of state.position) {
     node = node.children[i];
-    fens.push(node.fen.split(" - ")[0]);
+    if (getBoardState(node.fen) === targetState) {
+      matchCount++;
+      if (matchCount >= 2) return true;
+    }
   }
-  return fens.filter((f) => f === fen.split(" - ")[0]).length >= 2;
+
+  return false;
 }
 
 function is50MoveRule(fen: string) {
