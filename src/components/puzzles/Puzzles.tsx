@@ -27,7 +27,7 @@ import {
   IconX,
   IconZoomCheck,
 } from "@tabler/icons-react";
-import { parseUci } from "chessops";
+import { isNormal, makeSquare, makeUci, parseUci } from "chessops";
 import { parseFen } from "chessops/fen";
 import { useAtom, useSetAtom } from "jotai";
 import { useContext, useEffect, useRef, useState } from "react";
@@ -72,6 +72,7 @@ function Puzzles({ id }: { id: string }) {
   const goToStart = useStore(store, (s) => s.goToStart);
   const reset = useStore(store, (s) => s.reset);
   const makeMove = useStore(store, (s) => s.makeMove);
+  const setShapes = useStore(store, (s) => s.setShapes);
   const [puzzles, setPuzzles] = useSessionStorage<Puzzle[]>({
     key: `${id}-puzzles`,
     defaultValue: [],
@@ -145,8 +146,8 @@ function Puzzles({ id }: { id: string }) {
   const avgTimeSeconds =
     wonPuzzles.length > 0
       ? wonPuzzles.reduce((acc, p) => acc + (p.timeSpent || 0), 0) /
-        wonPuzzles.length /
-        1000
+      wonPuzzles.length /
+      1000
       : 0;
 
   function setPuzzle(puzzle: { fen: string; moves: string[] }) {
@@ -282,6 +283,30 @@ function Puzzles({ id }: { id: string }) {
     puzzles[currentPuzzle] !== undefined
       ? positionFromFen(puzzles[currentPuzzle]?.fen)[0]?.turn
       : null;
+
+  const lastMovePlayed = () => store.getState().currentNode().move;
+
+  // return true if the last move is null or undefined, or if the last played move is the last move in the current puzzle.
+  const currentlyOnLastMoveOrNoLastMove = (): boolean => {
+    if (!lastMovePlayed()) return true;
+
+    const moves = puzzles[currentPuzzle].moves;
+    const lastMoveIndex = moves.indexOf(makeUci(lastMovePlayed()!));
+
+    return lastMoveIndex + 1 === moves.length;
+  };
+
+  const nextMoveUci = () => {
+    const curPuzzle = puzzles[currentPuzzle];
+    const indexOfNextMoveToPlay = curPuzzle.moves.indexOf(makeUci(lastMovePlayed()!)) + 1;
+    const nextMoveUci = curPuzzle.moves[indexOfNextMoveToPlay];
+    if (!nextMoveUci) return
+
+    const nextMove = parseUci(nextMoveUci);
+    if (!nextMove || !isNormal(nextMove)) return
+
+    return nextMove
+  }
 
   return (
     <>
@@ -467,8 +492,8 @@ function Puzzles({ id }: { id: string }) {
               </Text>
               <Text fw={700} size="lg">
                 {isPuzzleIncomplete &&
-                hideRating &&
-                puzzles[currentPuzzle]?.rating
+                  hideRating &&
+                  puzzles[currentPuzzle]?.rating
                   ? "?"
                   : puzzles[currentPuzzle]?.rating || "-"}
               </Text>
@@ -572,7 +597,7 @@ function Puzzles({ id }: { id: string }) {
                         fen: puzzles[currentPuzzle]?.fen,
                         orientation:
                           parseFen(puzzles[currentPuzzle].fen).unwrap().turn ===
-                          "white"
+                            "white"
                             ? "black"
                             : "white",
                       },
@@ -595,33 +620,96 @@ function Puzzles({ id }: { id: string }) {
               </Tooltip>
             </Group>
           </Group>
-          <Button
-            mt="sm"
-            variant="light"
-            fullWidth
-            onClick={async () => {
-              solutionAbortRef.current?.abort();
-              const abortController = new AbortController();
-              solutionAbortRef.current = abortController;
+          <Group grow>
+            <Button
+              mt="sm"
+              variant="light"
+              fullWidth
+              onClick={async () => {
+                solutionAbortRef.current?.abort();
+                const abortController = new AbortController();
+                solutionAbortRef.current = abortController;
+                const curPuzzle = puzzles[currentPuzzle];
 
-              const curPuzzle = puzzles[currentPuzzle];
-              if (curPuzzle.completion === "incomplete") {
-                changeCompletion("incorrect");
-              }
-              goToStart();
-              for (let i = 0; i < curPuzzle.moves.length; i++) {
-                if (abortController.signal.aborted) break;
-                makeMove({
-                  payload: parseUci(curPuzzle.moves[i])!,
-                  mainline: true,
-                });
-                await new Promise((r) => setTimeout(r, 500));
-              }
-            }}
-            disabled={puzzles.length === 0}
-          >
-            {t("Puzzle.ViewSolution")}
-          </Button>
+                if (curPuzzle.completion === "incomplete") {
+                  changeCompletion("incorrect");
+                }
+                if (currentlyOnLastMoveOrNoLastMove()) return
+
+                const nextMove = nextMoveUci()
+                if (!nextMove) return
+
+                const nextMoveFrom = makeSquare(nextMove.from);
+                const nextMoveTo = makeSquare(nextMove.to);
+
+
+                // first click, highlight just the piece which is to be moved
+                // second click, show arrow
+                // third click, remove hint
+                const currentShapes = store.getState().currentNode().shapes;
+
+                const fromAlreadyHinted = currentShapes.filter((shape) => shape.orig === nextMoveFrom);
+                // TODO: check: does this clash w/ manually drawn arrows?
+                const moveArrowAlreadyHinted = currentShapes.filter((shape) => shape.orig === nextMoveFrom && shape.dest === nextMoveTo);
+
+
+                if (fromAlreadyHinted.length > 0) {
+
+                  if (moveArrowAlreadyHinted.length === 0) {
+                    console.log('not moveArrowAlreadyHinted')
+                    setShapes([
+                      {
+                        orig: makeSquare(nextMove.from),
+                        dest:  makeSquare(nextMove.to),
+                        brush: "green",
+                    }]);
+
+                  } else {
+                    console.log('moveArrowAlreadyHinted', moveArrowAlreadyHinted.length)
+                    setShapes(currentShapes.filter(s => !fromAlreadyHinted.includes(s) && !moveArrowAlreadyHinted.includes(s)));
+                  }
+                } else {
+                  setShapes([
+                    {
+                      orig: makeSquare(nextMove.from),
+                      dest: undefined,
+                      brush: "green",
+                    }]
+                  );
+                }
+              }}
+              disabled={puzzles.length === 0 || currentlyOnLastMoveOrNoLastMove()} // TODO: fix this condition. button is still enabled when view solution is clicked
+            >
+              {t("Puzzle.GetAHint")}
+            </Button>
+            <Button
+              mt="sm"
+              variant="light"
+              fullWidth
+              onClick={async () => {
+                solutionAbortRef.current?.abort();
+                const abortController = new AbortController();
+                solutionAbortRef.current = abortController;
+
+                const curPuzzle = puzzles[currentPuzzle];
+                if (curPuzzle.completion === "incomplete") {
+                  changeCompletion("incorrect");
+                }
+                goToStart();
+                for (let i = 0; i < curPuzzle.moves.length; i++) {
+                  if (abortController.signal.aborted) break;
+                  makeMove({
+                    payload: parseUci(curPuzzle.moves[i])!,
+                    mainline: true,
+                  });
+                  await new Promise((r) => setTimeout(r, 500));
+                }
+              }}
+              disabled={puzzles.length === 0}
+            >
+              {t("Puzzle.ViewSolution")}
+            </Button>
+          </Group>
         </Paper>
       </Portal>
       <Portal target="#bottomRight" style={{ height: "100%" }}>
