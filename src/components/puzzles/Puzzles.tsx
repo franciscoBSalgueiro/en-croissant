@@ -49,11 +49,7 @@ import {
 } from "@/state/atoms";
 import { positionFromFen } from "@/utils/chessops";
 import { formatThemeLabel, formatTime } from "@/utils/format";
-import {
-  type Completion,
-  getPuzzleDatabases,
-  type Puzzle,
-} from "@/utils/puzzles";
+import { type Completion, getPuzzleDatabases, type Puzzle } from "@/utils/puzzles";
 import { createTab } from "@/utils/tabs";
 import { defaultTree } from "@/utils/treeReducer";
 import { unwrap } from "@/utils/unwrap";
@@ -97,9 +93,7 @@ function Puzzles({ id }: { id: string }) {
   const [availableThemes, setAvailableThemes] = useState<string[]>([]);
   const [themesTableMissing, setThemesTableMissing] = useState(false);
   const effectiveSelectedTheme =
-    selectedTheme && availableThemes.includes(selectedTheme)
-      ? selectedTheme
-      : null;
+    selectedTheme && availableThemes.includes(selectedTheme) ? selectedTheme : null;
 
   useEffect(() => {
     setThemesTableMissing(false);
@@ -117,10 +111,7 @@ function Puzzles({ id }: { id: string }) {
 
       setAvailableThemes([]);
 
-      if (
-        typeof res.error === "string" &&
-        res.error.includes("no such table")
-      ) {
+      if (typeof res.error === "string" && res.error.includes("no such table")) {
         setThemesTableMissing(true);
       }
     });
@@ -134,9 +125,7 @@ function Puzzles({ id }: { id: string }) {
 
   const totalCompleted = wonPuzzles.length + lostPuzzles.length;
   const accuracy =
-    totalCompleted > 0
-      ? Math.round((wonPuzzles.length / totalCompleted) * 100)
-      : null;
+    totalCompleted > 0 ? Math.round((wonPuzzles.length / totalCompleted) * 100) : null;
 
   let currentStreak = 0;
   for (let i = puzzles.length - 1; i >= 0; i--) {
@@ -146,9 +135,7 @@ function Puzzles({ id }: { id: string }) {
 
   const avgTimeSeconds =
     wonPuzzles.length > 0
-      ? wonPuzzles.reduce((acc, p) => acc + (p.timeSpent || 0), 0) /
-        wonPuzzles.length /
-        1000
+      ? wonPuzzles.reduce((acc, p) => acc + (p.timeSpent || 0), 0) / wonPuzzles.length / 1000
       : 0;
 
   function setPuzzle(puzzle: { fen: string; moves: string[] }) {
@@ -159,13 +146,9 @@ function Puzzles({ id }: { id: string }) {
   const solutionAbortRef = useRef<AbortController | null>(null);
 
   function generatePuzzle(db: string, force: boolean = false) {
-    let nextIndex = puzzles.findIndex(
-      (p, i) => i > currentPuzzle && p.completion === "incomplete",
-    );
+    let nextIndex = puzzles.findIndex((p, i) => i > currentPuzzle && p.completion === "incomplete");
     if (nextIndex === -1) {
-      nextIndex = puzzles.findIndex(
-        (p, i) => i < currentPuzzle && p.completion === "incomplete",
-      );
+      nextIndex = puzzles.findIndex((p, i) => i < currentPuzzle && p.completion === "incomplete");
     }
 
     if (nextIndex !== -1 && !force) {
@@ -190,24 +173,22 @@ function Puzzles({ id }: { id: string }) {
         setRatingRange([rating + 50, rating + 100]);
       }
     }
-    commands
-      .getPuzzle(db, range[0], range[1], effectiveSelectedTheme)
-      .then((res) => {
-        const puzzle = unwrap(res);
-        const newPuzzle: Puzzle = {
-          ...puzzle,
-          moves: puzzle.moves.split(" "),
-          completion: "incomplete",
-        };
-        setPuzzles((puzzles) => {
-          return [...puzzles, newPuzzle];
-        });
-        setCurrentPuzzle(puzzles.length);
-        setPuzzle(newPuzzle);
-        if (trackTime) {
-          setTimerStart(Date.now());
-        }
+    commands.getPuzzle(db, range[0], range[1], effectiveSelectedTheme).then((res) => {
+      const puzzle = unwrap(res);
+      const newPuzzle: Puzzle = {
+        ...puzzle,
+        moves: puzzle.moves.split(" "),
+        completion: "incomplete",
+      };
+      setPuzzles((puzzles) => {
+        return [...puzzles, newPuzzle];
       });
+      setCurrentPuzzle(puzzles.length);
+      setPuzzle(newPuzzle);
+      if (trackTime) {
+        setTimerStart(Date.now());
+      }
+    });
   }
 
   function changeCompletion(completion: Completion) {
@@ -242,8 +223,7 @@ function Puzzles({ id }: { id: string }) {
 
   const [timerStart, setTimerStart] = useAtom(currentPuzzleTimerAtom);
   const [, setTick] = useState(0);
-  const isPuzzleIncomplete =
-    puzzles[currentPuzzle]?.completion === "incomplete";
+  const isPuzzleIncomplete = puzzles[currentPuzzle]?.completion === "incomplete";
   const elapsedTime =
     timerStart && isPuzzleIncomplete && trackTime
       ? Date.now() - timerStart
@@ -302,8 +282,7 @@ function Puzzles({ id }: { id: string }) {
     const curPuzzle = puzzles[currentPuzzle];
     if (!curPuzzle || !currentMove) return;
 
-    const indexOfNextMoveToPlay =
-      curPuzzle.moves.indexOf(makeUci(currentMove)) + 1;
+    const indexOfNextMoveToPlay = curPuzzle.moves.indexOf(makeUci(currentMove)) + 1;
     const nextMoveUci = curPuzzle.moves[indexOfNextMoveToPlay];
     if (!nextMoveUci) return;
 
@@ -348,9 +327,7 @@ function Puzzles({ id }: { id: string }) {
             onConfirm={() => {
               if (selectedDb) {
                 commands.deletePuzzleDatabase(selectedDb).then(() => {
-                  setPuzzleDbs((dbs) =>
-                    dbs.filter((db) => db.path !== selectedDb),
-                  );
+                  setPuzzleDbs((dbs) => dbs.filter((db) => db.path !== selectedDb));
                   setSelectedDb(null);
                   setPuzzles([]);
                   reset();
@@ -412,8 +389,7 @@ function Puzzles({ id }: { id: string }) {
                       title="Puzzle database outdated"
                       color="yellow"
                     >
-                      This database does not support themes. Update to the
-                      latest puzzle DB.
+                      This database does not support themes. Update to the latest puzzle DB.
                     </Alert>
                   )}
                   <div>
@@ -451,26 +427,20 @@ function Puzzles({ id }: { id: string }) {
                       label={t("Puzzle.Progressive")}
                       description={t("Puzzle.Progressive.Desc")}
                       checked={progressive}
-                      onChange={(event) =>
-                        setProgressive(event.currentTarget.checked)
-                      }
+                      onChange={(event) => setProgressive(event.currentTarget.checked)}
                     />
                     <Switch
                       label={t("Puzzle.HideRating")}
                       description={t("Puzzle.HideRating.Desc")}
                       checked={hideRating}
-                      onChange={(event) =>
-                        setHideRating(event.currentTarget.checked)
-                      }
+                      onChange={(event) => setHideRating(event.currentTarget.checked)}
                     />
                     <Switch
                       label={t("Puzzle.JumpToNextPuzzleImmediately")}
                       description={t("Puzzle.JumpToNextPuzzleImmediately.Desc")}
                       checked={jumpToNextPuzzleImmediately}
                       onChange={(event) =>
-                        setJumpToNextPuzzleImmediately(
-                          event.currentTarget.checked,
-                        )
+                        setJumpToNextPuzzleImmediately(event.currentTarget.checked)
                       }
                     />
                     <Switch
@@ -497,9 +467,7 @@ function Puzzles({ id }: { id: string }) {
                 {t("Puzzle.Rating")}
               </Text>
               <Text fw={700} size="lg">
-                {isPuzzleIncomplete &&
-                hideRating &&
-                puzzles[currentPuzzle]?.rating
+                {isPuzzleIncomplete && hideRating && puzzles[currentPuzzle]?.rating
                   ? "?"
                   : puzzles[currentPuzzle]?.rating || "-"}
               </Text>
@@ -523,13 +491,7 @@ function Puzzles({ id }: { id: string }) {
               <Text
                 fw={700}
                 size="lg"
-                c={
-                  accuracy === null
-                    ? "dimmed"
-                    : accuracy >= 50
-                      ? "teal"
-                      : "orange"
-                }
+                c={accuracy === null ? "dimmed" : accuracy >= 50 ? "teal" : "orange"}
               >
                 {accuracy !== null ? `${accuracy}%` : "-"}
               </Text>
@@ -559,16 +521,15 @@ function Puzzles({ id }: { id: string }) {
             )}
           </Group>
           <Divider my="sm" />
-          {!isPuzzleIncomplete &&
-            (puzzles[currentPuzzle]?.themes?.length ?? 0) > 0 && (
-              <Group gap="xs" mb="sm">
-                {puzzles[currentPuzzle]?.themes?.map((theme) => (
-                  <Badge key={theme} variant="light" size="sm">
-                    {formatThemeLabel(theme)}
-                  </Badge>
-                ))}
-              </Group>
-            )}
+          {!isPuzzleIncomplete && (puzzles[currentPuzzle]?.themes?.length ?? 0) > 0 && (
+            <Group gap="xs" mb="sm">
+              {puzzles[currentPuzzle]?.themes?.map((theme) => (
+                <Badge key={theme} variant="light" size="sm">
+                  {formatThemeLabel(theme)}
+                </Badge>
+              ))}
+            </Group>
+          )}
           <Group justify="space-between">
             <Text fz="1.75rem" fw={500}>
               {!turnToMove
@@ -602,8 +563,7 @@ function Puzzles({ id }: { id: string }) {
                         ...defaultTree().headers,
                         fen: puzzles[currentPuzzle]?.fen,
                         orientation:
-                          parseFen(puzzles[currentPuzzle].fen).unwrap().turn ===
-                          "white"
+                          parseFen(puzzles[currentPuzzle].fen).unwrap().turn === "white"
                             ? "black"
                             : "white",
                       },
@@ -653,40 +613,27 @@ function Puzzles({ id }: { id: string }) {
                 const currentShapes = store.getState().currentNode().shapes;
 
                 // Progressive hints: circle > arrow > clear
-                const hasCircle = currentShapes.some(
-                  (s) => s.orig === from && !s.dest,
-                );
-                const hasArrow = currentShapes.some(
-                  (s) => s.orig === from && s.dest === to,
-                );
+                const hasCircle = currentShapes.some((s) => s.orig === from && !s.dest);
+                const hasArrow = currentShapes.some((s) => s.orig === from && s.dest === to);
 
                 if (hasArrow) {
                   // Third click: Remove all hint shapes for this move
                   setShapes(
-                    currentShapes.filter(
-                      (s) => !(s.orig === from && (!s.dest || s.dest === to)),
-                    ),
+                    currentShapes.filter((s) => !(s.orig === from && (!s.dest || s.dest === to))),
                   );
                 } else if (hasCircle) {
                   // Second click: Replace circle with arrow
                   setShapes([
-                    ...currentShapes.filter(
-                      (s) => !(s.orig === from && !s.dest),
-                    ),
+                    ...currentShapes.filter((s) => !(s.orig === from && !s.dest)),
                     { orig: from, dest: to, brush: "green" },
                   ]);
                 } else {
                   // First click: Add circle
-                  setShapes([
-                    ...currentShapes,
-                    { orig: from, dest: undefined, brush: "green" },
-                  ]);
+                  setShapes([...currentShapes, { orig: from, dest: undefined, brush: "green" }]);
                 }
               }}
               disabled={
-                puzzles.length === 0 ||
-                currentlyOnLastMoveOrNoLastMove() ||
-                isPlayingSolution
+                puzzles.length === 0 || currentlyOnLastMoveOrNoLastMove() || isPlayingSolution
               }
             >
               {t("Puzzle.GetAHint")}
