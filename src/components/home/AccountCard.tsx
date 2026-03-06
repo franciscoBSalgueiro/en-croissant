@@ -84,12 +84,7 @@ export function AccountCard({
         </Text>
         <Group gap={4}>
           {stat.diff !== undefined && stat.diff !== 0 && (
-            <Badge
-              color={color}
-              variant="light"
-              size="xs"
-              leftSection={<DiffIcon size="0.8rem" />}
-            >
+            <Badge color={color} variant="light" size="xs" leftSection={<DiffIcon size="0.8rem" />}>
               {Math.abs(stat.diff)}
             </Badge>
           )}
@@ -147,13 +142,10 @@ export function AccountCard({
     };
   }, [setDatabases]);
 
-  const downloadedGames =
-    database?.type === "success" ? database.game_count : 0;
+  const downloadedGames = database?.type === "success" ? database.game_count : 0;
   const effectiveTotal = Math.max(total, downloadedGames);
   const percentage =
-    effectiveTotal === 0
-      ? "0.00"
-      : ((downloadedGames / effectiveTotal) * 100).toFixed(2);
+    effectiveTotal === 0 ? "0.00" : ((downloadedGames / effectiveTotal) * 100).toFixed(2);
 
   async function getLastGameDate({ database }: { database: DatabaseInfo }) {
     const games = await query_games(database.file, {
@@ -197,11 +189,7 @@ export function AccountCard({
           </Group>
           <Group gap={4}>
             <Tooltip label={t("Home.Accounts.UpdateStats")}>
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                onClick={() => reload()}
-              >
+              <ActionIcon variant="subtle" color="gray" onClick={() => reload()}>
                 <IconRefresh size="1rem" />
               </ActionIcon>
             </Tooltip>
@@ -213,9 +201,7 @@ export function AccountCard({
                 disabled={loading}
                 onClick={async () => {
                   setLoading(true);
-                  const lastGameDate = database
-                    ? await getLastGameDate({ database })
-                    : null;
+                  const lastGameDate = database ? await getLastGameDate({ database }) : null;
                   if (type === "lichess") {
                     await downloadLichess(
                       title,

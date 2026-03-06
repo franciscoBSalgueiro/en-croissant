@@ -65,11 +65,7 @@ export function SideBar() {
       </AppShellSection>
       <AppShellSection>
         <Stack justify="center" gap={0}>
-          <NavbarLink
-            icon={IconSettings}
-            label={t("SideBar.Settings")}
-            url="/settings"
-          />
+          <NavbarLink icon={IconSettings} label={t("SideBar.Settings")} url="/settings" />
         </Stack>
       </AppShellSection>
     </>

@@ -1,14 +1,4 @@
-import {
-  Alert,
-  Box,
-  Divider,
-  Group,
-  Modal,
-  Paper,
-  ScrollArea,
-  Stack,
-  Text,
-} from "@mantine/core";
+import { Alert, Box, Divider, Group, Modal, Paper, ScrollArea, Stack, Text } from "@mantine/core";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { resolve } from "@tauri-apps/api/path";
 import { type Dispatch, type SetStateAction, useState } from "react";
@@ -39,11 +29,7 @@ function AddPuzzle({
   );
 
   return (
-    <Modal
-      opened={opened}
-      onClose={() => setOpened(false)}
-      title={t("Databases.Add.Title")}
-    >
+    <Modal opened={opened} onClose={() => setOpened(false)} title={t("Databases.Add.Title")}>
       <ScrollArea.Autosize mah={500} offsetScrollbars>
         <Stack>
           {dbs?.map((db, i) => (
@@ -52,17 +38,11 @@ function AddPuzzle({
               databaseId={i}
               key={i}
               setPuzzleDbs={setPuzzleDbs}
-              initInstalled={puzzleDbs.some(
-                (e) => e.title.replace(".db3", "") === db.title,
-              )}
+              initInstalled={puzzleDbs.some((e) => e.title.replace(".db3", "") === db.title)}
             />
           ))}
           {error && (
-            <Alert
-              icon={<IconAlertCircle size="1rem" />}
-              title={t("Common.Error")}
-              color="red"
-            >
+            <Alert icon={<IconAlertCircle size="1rem" />} title={t("Common.Error")} color="red">
               {t("Databases.Add.ErrorFetch")}
             </Alert>
           )}
@@ -134,11 +114,7 @@ function PuzzleDbCard({
             }}
             onClick={() => {
               if (!puzzleDb.downloadLink) return;
-              downloadDatabase(
-                databaseId,
-                puzzleDb.downloadLink,
-                puzzleDb.title,
-              );
+              downloadDatabase(databaseId, puzzleDb.downloadLink, puzzleDb.title);
             }}
             inProgress={inProgress}
             setInProgress={setInProgress}

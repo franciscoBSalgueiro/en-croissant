@@ -1,13 +1,4 @@
-import {
-  ActionIcon,
-  Badge,
-  Box,
-  Divider,
-  Group,
-  Stack,
-  Text,
-  Tooltip,
-} from "@mantine/core";
+import { ActionIcon, Badge, Box, Divider, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { IconEdit, IconZoomCheck } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
@@ -69,9 +60,7 @@ function FileCard({
         <Text ta="center" fz="xl" fw="bold">
           {selected?.name}
         </Text>
-        <Badge>
-          {t(`Files.FileType.${capitalize(selected.metadata.type)}`)}
-        </Badge>
+        <Badge>{t(`Files.FileType.${capitalize(selected.metadata.type)}`)}</Badge>
       </Stack>
       <Divider />
 

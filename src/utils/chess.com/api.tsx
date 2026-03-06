@@ -5,12 +5,7 @@ import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { fetch } from "@tauri-apps/plugin-http";
 import { error, info } from "@tauri-apps/plugin-log";
 import { Chess } from "chessops";
-import {
-  ChildNode,
-  defaultGame,
-  makePgn,
-  type PgnNodeData,
-} from "chessops/pgn";
+import { ChildNode, defaultGame, makePgn, type PgnNodeData } from "chessops/pgn";
 import { makeSan } from "chessops/san";
 import { z } from "zod";
 import { events } from "@/bindings";
@@ -68,15 +63,11 @@ const ChessComGames = z.object({
   ),
 });
 
-export async function getChessComAccount(
-  player: string,
-): Promise<ChessComStats | null> {
+export async function getChessComAccount(player: string): Promise<ChessComStats | null> {
   const url = `${baseURL}/pub/player/${player.toLowerCase()}/stats`;
   const response = await fetch(url, { headers: apiHeaders(), method: "GET" });
   if (!response.ok) {
-    error(
-      `Failed to fetch Chess.com account: ${response.status} ${response.url}`,
-    );
+    error(`Failed to fetch Chess.com account: ${response.status} ${response.url}`);
     notifications.show({
       title: "Failed to fetch Chess.com account",
       message: `Could not find account "${player}" on chess.com`,
@@ -108,16 +99,9 @@ async function getGameArchives(player: string) {
   return (await response.json()) as Archive;
 }
 
-export async function downloadChessCom(
-  player: string,
-  timestamp: number | null,
-) {
+export async function downloadChessCom(player: string, timestamp: number | null) {
   const timestampDate = new Date(timestamp ?? 0);
-  const approximateDate = new Date(
-    timestampDate.getFullYear(),
-    timestampDate.getMonth(),
-    1,
-  );
+  const approximateDate = new Date(timestampDate.getFullYear(), timestampDate.getMonth(), 1);
   const archives = await getGameArchives(player);
   const file = await resolve(await getDatabasesDir(), `${player}_chesscom.pgn`);
   info(`Found ${archives.archives.length} archives for ${player}`);
@@ -126,10 +110,7 @@ export async function downloadChessCom(
   });
   const filteredArchives = archives.archives.filter((archive) => {
     const [year, month] = archive.split("/").slice(-2);
-    const archiveDate = new Date(
-      Number.parseInt(year),
-      Number.parseInt(month) - 1,
-    );
+    const archiveDate = new Date(Number.parseInt(year), Number.parseInt(month) - 1);
     return archiveDate >= approximateDate;
   });
 
@@ -142,9 +123,7 @@ export async function downloadChessCom(
     const games = ChessComGames.safeParse(await response.json());
 
     if (!games.success) {
-      error(
-        `Failed to fetch Chess.com games: ${response.status} ${response.url}`,
-      );
+      error(`Failed to fetch Chess.com games: ${response.status} ${response.url}`);
       notifications.show({
         title: "Failed to fetch Chess.com games",
         message: `Could not find games for "${player}" on chess.com for ${archive}`,
@@ -160,8 +139,7 @@ export async function downloadChessCom(
     events.progressEvent.emit({
       finished: false,
       id: `chesscom_${player}`,
-      progress:
-        (filteredArchives.indexOf(archive) / filteredArchives.length) * 100,
+      progress: (filteredArchives.indexOf(archive) / filteredArchives.length) * 100,
     });
   }
   events.progressEvent.emit({
@@ -188,8 +166,7 @@ export async function getChesscomGame(gameURL: string) {
       error(`Event URLs are not supported: ${gameURL}`);
       notifications.show({
         title: "Event URLs not supported",
-        message:
-          "Event URLs cannot be imported directly. Please import the PGN instead.",
+        message: "Event URLs cannot be imported directly. Please import the PGN instead.",
         color: "red",
         icon: <IconX />,
       });
@@ -209,13 +186,10 @@ export async function getChesscomGame(gameURL: string) {
   const gameType = match[1];
   const gameId = match[2];
 
-  const response = await fetch(
-    `https://www.chess.com/callback/${gameType}/game/${gameId}`,
-    {
-      headers: apiHeaders(),
-      method: "GET",
-    },
-  );
+  const response = await fetch(`https://www.chess.com/callback/${gameType}/game/${gameId}`, {
+    headers: apiHeaders(),
+    method: "GET",
+  });
 
   if (!response.ok) {
     error(`Failed to fetch Chess.com game: ${response.status} ${response.url}`);
@@ -250,8 +224,7 @@ export async function getChesscomGame(gameURL: string) {
     return "";
   }
   const game = defaultGame<PgnNodeData>(
-    () =>
-      new Map(Object.entries(pgnHeaders).map(([k, v]) => [k, v.toString()])),
+    () => new Map(Object.entries(pgnHeaders).map(([k, v]) => [k, v.toString()])),
   );
   const chess = Chess.default();
 

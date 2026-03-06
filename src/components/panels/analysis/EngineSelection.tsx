@@ -1,12 +1,4 @@
-import {
-  Center,
-  Checkbox,
-  Group,
-  Paper,
-  ScrollArea,
-  Stack,
-  Text,
-} from "@mantine/core";
+import { Center, Checkbox, Group, Paper, ScrollArea, Stack, Text } from "@mantine/core";
 import { IconCloud, IconCpu } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
@@ -16,13 +8,7 @@ import LocalImage from "@/components/common/LocalImage";
 import { activeTabAtom, enginesAtom } from "@/state/atoms";
 import { type Engine, stopEngine } from "@/utils/engines";
 
-function EngineBox({
-  engine,
-  toggleEnabled,
-}: {
-  engine: Engine;
-  toggleEnabled: () => void;
-}) {
+function EngineBox({ engine, toggleEnabled }: { engine: Engine; toggleEnabled: () => void }) {
   const activeTab = useAtomValue(activeTabAtom);
 
   return (

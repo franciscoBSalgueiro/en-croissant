@@ -11,12 +11,7 @@ import {
   TextInput,
   Tooltip,
 } from "@mantine/core";
-import {
-  IconFileExport,
-  IconFilter,
-  IconRefresh,
-  IconTerminal2,
-} from "@tabler/icons-react";
+import { IconFileExport, IconFilter, IconRefresh, IconTerminal2 } from "@tabler/icons-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
@@ -48,8 +43,7 @@ export default function EngineLogsView({
       logs.filter((log) => {
         if (filter === "gui" && log.type !== "gui") return false;
         if (filter === "engine" && log.type !== "engine") return false;
-        if (search && !log.value.toLowerCase().includes(search.toLowerCase()))
-          return false;
+        if (search && !log.value.toLowerCase().includes(search.toLowerCase())) return false;
         return true;
       }),
     [logs, filter, search],
@@ -65,9 +59,7 @@ export default function EngineLogsView({
 
   async function exportLogs() {
     const file = await save({ defaultPath: "logs.csv" });
-    const content = logs
-      .map((line) => `${line.type}, ${line.value.trimEnd()}`)
-      .join("\n");
+    const content = logs.map((line) => `${line.type}, ${line.value.trimEnd()}`).join("\n");
     if (file) {
       await writeTextFile(file, content);
     }
@@ -123,9 +115,7 @@ export default function EngineLogsView({
         <Stack align="center" justify="center" flex={1} gap="xs">
           <IconTerminal2 size="2.5rem" opacity={0.3} />
           <Text ta="center" c="dimmed" fz="sm">
-            {logs.length === 0
-              ? "No logs available yet"
-              : "No logs match the current filter"}
+            {logs.length === 0 ? "No logs available yet" : "No logs match the current filter"}
           </Text>
         </Stack>
       ) : (
@@ -159,13 +149,7 @@ export default function EngineLogsView({
   );
 }
 
-function LogLine({
-  log,
-  style,
-}: {
-  log: EngineLog;
-  style: React.CSSProperties;
-}) {
+function LogLine({ log, style }: { log: EngineLog; style: React.CSSProperties }) {
   const isGui = log.type === "gui";
   return (
     <Group
@@ -178,12 +162,7 @@ function LogLine({
         borderBottom: "1px solid var(--mantine-color-dark-5)",
       }}
     >
-      <Badge
-        variant="light"
-        color={isGui ? "blue" : "teal"}
-        w="3.5rem"
-        style={{ flexShrink: 0 }}
-      >
+      <Badge variant="light" color={isGui ? "blue" : "teal"} w="3.5rem" style={{ flexShrink: 0 }}>
         {isGui ? "GUI" : "ENG"}
       </Badge>
       <Tooltip

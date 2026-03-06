@@ -10,6 +10,7 @@ import {
 import { IconCpu, IconUser } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import type { GoMode } from "@/bindings";
+import GoModeInput from "@/components/common/GoModeInput";
 import TimeInput, { type TimeType } from "@/components/common/TimeInput";
 import EngineSettingsForm from "@/components/panels/analysis/EngineSettingsForm";
 import type { TimeControlField } from "@/utils/clock";
@@ -99,9 +100,7 @@ export function OpponentForm({
       {opponent.type === "human" && (
         <TextInput
           value={opponent.name ?? ""}
-          onChange={(e) =>
-            setOpponent((prev) => ({ ...prev, name: e.target.value }))
-          }
+          onChange={(e) => setOpponent((prev) => ({ ...prev, name: e.target.value }))}
         />
       )}
 
@@ -209,15 +208,32 @@ export function OpponentForm({
 
       {opponent.type === "engine" && (
         <Stack>
-          {opponent.engine && !opponent.timeControl && (
+          {!opponent.timeControl && (
+            <GoModeInput
+              gameMode
+              goMode={opponent.go}
+              setGoMode={(go) =>
+                setOpponent((prev) => {
+                  if (prev.type === "human") {
+                    return prev;
+                  }
+                  return {
+                    ...prev,
+                    go,
+                  };
+                })
+              }
+            />
+          )}
+          <Divider variant="dashed" label={t("Board.Opponent.EngineSettings", "Engine Settings")} />
+          {opponent.engine && (
             <EngineSettingsForm
               engine={opponent.engine}
               remote={false}
               gameMode
               settings={{
                 go: opponent.go,
-                settings:
-                  opponent.engineSettings || opponent.engine.settings || [],
+                settings: opponent.engineSettings || opponent.engine.settings || [],
                 enabled: true,
                 synced: false,
               }}
@@ -228,8 +244,7 @@ export function OpponentForm({
                   }
                   const newSettings = fn({
                     go: prev.go,
-                    settings:
-                      prev.engineSettings || prev.engine?.settings || [],
+                    settings: prev.engineSettings || prev.engine?.settings || [],
                     enabled: true,
                     synced: false,
                   });

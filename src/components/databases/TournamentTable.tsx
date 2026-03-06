@@ -123,11 +123,7 @@ function TournamentTable() {
       }
       preview={
         tournament != null ? (
-          <TournamentCard
-            tournament={tournament}
-            file={file}
-            key={tournament.id}
-          />
+          <TournamentCard tournament={tournament} file={file} key={tournament.id} />
         ) : (
           <Center h="100%">
             <Text>{t("Databases.Tournament.NoSelection")}</Text>

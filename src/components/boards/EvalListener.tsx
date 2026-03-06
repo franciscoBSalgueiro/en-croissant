@@ -120,13 +120,9 @@ function EngineListener({
   const setScore = useStore(store, (s) => s.setScore);
   const activeTab = useAtomValue(activeTabAtom);
 
-  const [, setProgress] = useAtom(
-    engineProgressFamily({ engine: engine.id, tab: activeTab! }),
-  );
+  const [, setProgress] = useAtom(engineProgressFamily({ engine: engine.id, tab: activeTab! }));
 
-  const [, setEngineVariation] = useAtom(
-    engineMovesFamily({ engine: engine.id, tab: activeTab! }),
-  );
+  const [, setEngineVariation] = useAtom(engineMovesFamily({ engine: engine.id, tab: activeTab! }));
   const [settings] = useAtom(
     tabEngineSettingsFamily({
       engineId: engine.id,
@@ -218,10 +214,7 @@ function EngineListener({
               const [progress, bestMoves] = moves;
               setEngineVariation((prev) => {
                 const newMap = new Map(prev);
-                newMap.set(
-                  `${searchingFen}:${searchingMoves.join(",")}`,
-                  bestMoves,
-                );
+                newMap.set(`${searchingFen}:${searchingMoves.join(",")}`, bestMoves);
                 return newMap;
               });
               setProgress(progress);

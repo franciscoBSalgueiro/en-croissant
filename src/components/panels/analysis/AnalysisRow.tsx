@@ -1,38 +1,19 @@
 import type { Key } from "@lichess-org/chessground/types";
-import {
-  ActionIcon,
-  Box,
-  CopyButton,
-  Flex,
-  Portal,
-  rem,
-  Table,
-  Tooltip,
-} from "@mantine/core";
+import { ActionIcon, Box, CopyButton, Flex, Portal, rem, Table, Tooltip } from "@mantine/core";
 import { useForceUpdate } from "@mantine/hooks";
 import { IconCheck, IconChevronDown, IconCopy } from "@tabler/icons-react";
 import { chessgroundMove } from "chessops/compat";
 import { makeFen } from "chessops/fen";
 import { parseSan } from "chessops/san";
 import { useAtom, useAtomValue } from "jotai";
-import {
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import type { Score } from "@/bindings";
 import { Chessground } from "@/chessground/Chessground";
 import MoveCell from "@/components/common/MoveCell";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
-import {
-  moveHighlightAtom,
-  previewBoardOnHoverAtom,
-  scoreTypeFamily,
-} from "@/state/atoms";
+import { moveHighlightAtom, previewBoardOnHoverAtom, scoreTypeFamily } from "@/state/atoms";
 import { positionFromFen } from "@/utils/chessops";
 import { formatScore } from "@/utils/score";
 import ScoreBubble from "./ScoreBubble";
@@ -154,9 +135,7 @@ function AnalysisRow({
                       color={copied ? "teal" : undefined}
                       variant="subtle"
                       onClick={copy}
-                      aria-label={
-                        copied ? t("Common.Copied") : t("Menu.Edit.Copy")
-                      }
+                      aria-label={copied ? t("Common.Copied") : t("Menu.Edit.Copy")}
                     >
                       {copied ? (
                         <IconCheck style={{ width: rem(16) }} />
@@ -211,12 +190,8 @@ function BoardPopover({
 
   return (
     <>
-      <Box
-        onMouseEnter={() => setHovering(true)}
-        onMouseLeave={() => setHovering(false)}
-      >
-        {(index === 0 || is_white) &&
-          `${move_number.toString()}${is_white ? "." : "..."}`}
+      <Box onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}>
+        {(index === 0 || is_white) && `${move_number.toString()}${is_white ? "." : "..."}`}
         <MoveCell
           move={san}
           isCurrentVariation={false}

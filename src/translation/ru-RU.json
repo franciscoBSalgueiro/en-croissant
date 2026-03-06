@@ -90,6 +90,7 @@
     "Board.Database.SelectReference": "добавьте базу данных",
     "Board.Database.Stats": "Статистика",
     "Board.Database.TimeControl": "Контроль времени",
+    "Board.Opponent.EngineSettings": "",
     "Board.Opponent.Human": "",
     "Board.Opponent.Increment": "",
     "Board.Opponent.SameTimeControl": "",

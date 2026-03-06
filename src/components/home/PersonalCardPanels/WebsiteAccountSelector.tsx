@@ -50,10 +50,7 @@ const WebsiteAccountSelector = ({
             (website === "Lichess" && s.lichess?.username)),
       )
       .map((s) => s.chessCom?.username || s.lichess?.username)
-      .filter(
-        (username): username is string =>
-          username !== undefined && username !== null,
-      ),
+      .filter((username): username is string => username !== undefined && username !== null),
   );
 
   return (
@@ -69,17 +66,16 @@ const WebsiteAccountSelector = ({
         data={websites}
         allowDeselect={false}
       />
-      {website !== "All websites" &&
-        accounts.filter((a) => a !== "All accounts").length > 1 && (
-          <Select
-            pt="lg"
-            label="Account"
-            value={account}
-            onChange={(value) => setAccount(value)}
-            data={accounts}
-            allowDeselect={false}
-          />
-        )}
+      {website !== "All websites" && accounts.filter((a) => a !== "All accounts").length > 1 && (
+        <Select
+          pt="lg"
+          label="Account"
+          value={account}
+          onChange={(value) => setAccount(value)}
+          data={accounts}
+          allowDeselect={false}
+        />
+      )}
     </Group>
   );
 };

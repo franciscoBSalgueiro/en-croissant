@@ -1,12 +1,4 @@
-import {
-  Combobox,
-  Group,
-  InputBase,
-  Loader,
-  ScrollArea,
-  Text,
-  useCombobox,
-} from "@mantine/core";
+import { Combobox, Group, InputBase, Loader, ScrollArea, Text, useCombobox } from "@mantine/core";
 import { type FenError, parseFen } from "chessops/fen";
 import { useContext, useEffect, useRef, useState } from "react";
 import useSWRImmutable from "swr/immutable";
@@ -113,15 +105,11 @@ export default function FenSearch({ currentFen }: { currentFen: string }) {
           }}
           onKeyDown={(event) => {
             if (
-              (event.nativeEvent.code === "Enter" ||
-                event.nativeEvent.code === "NumpadEnter") &&
+              (event.nativeEvent.code === "Enter" || event.nativeEvent.code === "NumpadEnter") &&
               prev.current !== "ArrowDown" &&
               prev.current !== "ArrowUp"
             ) {
-              addFen(
-                search,
-                data?.some((item) => item.fen === search) || false,
-              );
+              addFen(search, data?.some((item) => item.fen === search) || false);
               combobox.closeDropdown();
             }
             prev.current = event.nativeEvent.code;

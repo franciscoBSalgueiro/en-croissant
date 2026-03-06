@@ -86,10 +86,7 @@ function BoardAnalysis() {
   const addGame = useCallback(() => {
     if (!tabFile) return;
     setCurrentTab((prev) => {
-      if (
-        prev.gameOrigin.kind !== "file" &&
-        prev.gameOrigin.kind !== "temp_file"
-      ) {
+      if (prev.gameOrigin.kind !== "file" && prev.gameOrigin.kind !== "temp_file") {
         return prev;
       }
       return {
@@ -115,13 +112,10 @@ function BoardAnalysis() {
 
   const keyMap = useAtomValue(keyMapAtom);
 
-  const [currentTabSelected, setCurrentTabSelected] = useAtom(
-    currentTabSelectedAtom,
-  );
+  const [currentTabSelected, setCurrentTabSelected] = useAtom(currentTabSelectedAtom);
   const practiceTabSelected = useAtomValue(currentPracticeTabAtom);
   const isRepertoire = tabFile?.metadata.type === "repertoire";
-  const practicing =
-    currentTabSelected === "practice" && practiceTabSelected === "train";
+  const practicing = currentTabSelected === "practice" && practiceTabSelected === "train";
   const practiceState = useAtomValue(practiceStateAtom);
   const isPracticeRating = practicing && practiceState.phase === "correct";
 
@@ -137,30 +131,12 @@ function BoardAnalysis() {
     [keyMap.CLEAR_SHAPES.keys, () => clearShapes()],
   ]);
   useHotkeys([
-    [
-      keyMap.ANNOTATION_BRILLIANT.keys,
-      () => !isPracticeRating && setAnnotation("!!"),
-    ],
-    [
-      keyMap.ANNOTATION_GOOD.keys,
-      () => !isPracticeRating && setAnnotation("!"),
-    ],
-    [
-      keyMap.ANNOTATION_INTERESTING.keys,
-      () => !isPracticeRating && setAnnotation("!?"),
-    ],
-    [
-      keyMap.ANNOTATION_DUBIOUS.keys,
-      () => !isPracticeRating && setAnnotation("?!"),
-    ],
-    [
-      keyMap.ANNOTATION_MISTAKE.keys,
-      () => !isPracticeRating && setAnnotation("?"),
-    ],
-    [
-      keyMap.ANNOTATION_BLUNDER.keys,
-      () => !isPracticeRating && setAnnotation("??"),
-    ],
+    [keyMap.ANNOTATION_BRILLIANT.keys, () => !isPracticeRating && setAnnotation("!!")],
+    [keyMap.ANNOTATION_GOOD.keys, () => !isPracticeRating && setAnnotation("!")],
+    [keyMap.ANNOTATION_INTERESTING.keys, () => !isPracticeRating && setAnnotation("!?")],
+    [keyMap.ANNOTATION_DUBIOUS.keys, () => !isPracticeRating && setAnnotation("?!")],
+    [keyMap.ANNOTATION_MISTAKE.keys, () => !isPracticeRating && setAnnotation("?")],
+    [keyMap.ANNOTATION_BLUNDER.keys, () => !isPracticeRating && setAnnotation("??")],
     [
       keyMap.PRACTICE_TAB.keys,
       () => {
@@ -223,69 +199,38 @@ function BoardAnalysis() {
           >
             <Tabs.List grow>
               {isRepertoire && (
-                <Tabs.Tab
-                  value="practice"
-                  leftSection={<IconTargetArrow size="1rem" />}
-                >
+                <Tabs.Tab value="practice" leftSection={<IconTargetArrow size="1rem" />}>
                   {t("Board.Tabs.Practice")}
                 </Tabs.Tab>
               )}
-              <Tabs.Tab
-                value="analysis"
-                leftSection={<IconZoomCheck size="1rem" />}
-              >
+              <Tabs.Tab value="analysis" leftSection={<IconZoomCheck size="1rem" />}>
                 {t("Board.Tabs.Analysis")}
               </Tabs.Tab>
-              <Tabs.Tab
-                value="database"
-                leftSection={<IconDatabase size="1rem" />}
-              >
+              <Tabs.Tab value="database" leftSection={<IconDatabase size="1rem" />}>
                 {t("Board.Tabs.Database")}
               </Tabs.Tab>
-              <Tabs.Tab
-                value="annotate"
-                leftSection={<IconNotes size="1rem" />}
-              >
+              <Tabs.Tab value="annotate" leftSection={<IconNotes size="1rem" />}>
                 {t("Board.Tabs.Annotate")}
               </Tabs.Tab>
-              <Tabs.Tab
-                value="info"
-                leftSection={<IconInfoCircle size="1rem" />}
-              >
+              <Tabs.Tab value="info" leftSection={<IconInfoCircle size="1rem" />}>
                 {t("Board.Tabs.Info")}
               </Tabs.Tab>
             </Tabs.List>
             {isRepertoire && (
-              <Tabs.Panel
-                value="practice"
-                flex={1}
-                style={{ overflowY: "hidden" }}
-              >
+              <Tabs.Panel value="practice" flex={1} style={{ overflowY: "hidden" }}>
                 <PracticePanel />
               </Tabs.Panel>
             )}
             <Tabs.Panel value="info" flex={1} style={{ overflowY: "hidden" }}>
               <InfoPanel addGame={addGame} />
             </Tabs.Panel>
-            <Tabs.Panel
-              value="database"
-              flex={1}
-              style={{ overflowY: "hidden" }}
-            >
+            <Tabs.Panel value="database" flex={1} style={{ overflowY: "hidden" }}>
               <DatabasePanel />
             </Tabs.Panel>
-            <Tabs.Panel
-              value="annotate"
-              flex={1}
-              style={{ overflowY: "hidden" }}
-            >
+            <Tabs.Panel value="annotate" flex={1} style={{ overflowY: "hidden" }}>
               <AnnotationPanel />
             </Tabs.Panel>
-            <Tabs.Panel
-              value="analysis"
-              flex={1}
-              style={{ overflowY: "hidden" }}
-            >
+            <Tabs.Panel value="analysis" flex={1} style={{ overflowY: "hidden" }}>
               <AnalysisPanel />
             </Tabs.Panel>
           </Tabs>

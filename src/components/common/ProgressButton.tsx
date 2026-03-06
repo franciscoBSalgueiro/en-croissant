@@ -85,12 +85,7 @@ function ProgressButton({
         )}
       </Button>
       {showProgress && onCancel && (
-        <ActionIcon
-          variant="default"
-          size="lg"
-          onClick={handleCancel}
-          title="Cancel"
-        >
+        <ActionIcon variant="default" size="lg" onClick={handleCancel} title="Cancel">
           <IconX size="1rem" />
         </ActionIcon>
       )}

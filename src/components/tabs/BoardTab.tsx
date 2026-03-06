@@ -100,10 +100,7 @@ export function BoardTab({
         >
           Duplicate Tab
         </Menu.Item>
-        <Menu.Item
-          leftSection={<IconEdit size="0.875rem" />}
-          onClick={() => toggleRenaming(true)}
-        >
+        <Menu.Item leftSection={<IconEdit size="0.875rem" />} onClick={() => toggleRenaming(true)}>
           Rename Tab
         </Menu.Item>
         <Menu.Item

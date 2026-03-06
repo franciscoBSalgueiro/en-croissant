@@ -30,12 +30,7 @@ function AboutModal({
     load();
   }, []);
   return (
-    <Modal
-      centered
-      opened={opened}
-      onClose={() => setOpened(false)}
-      title="En Croissant"
-    >
+    <Modal centered opened={opened} onClose={() => setOpened(false)} title="En Croissant">
       <Text>Version: {info?.version}</Text>
       <Text>Tauri version: {info?.tauri}</Text>
       <Text>
@@ -44,11 +39,7 @@ function AboutModal({
 
       <br />
 
-      <Anchor
-        href="https://www.encroissant.org"
-        target="_blank"
-        rel="noreferrer"
-      >
+      <Anchor href="https://www.encroissant.org" target="_blank" rel="noreferrer">
         www.encroissant.org
       </Anchor>
     </Modal>

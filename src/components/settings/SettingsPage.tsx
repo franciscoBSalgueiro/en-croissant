@@ -110,11 +110,7 @@ function SettingRow({
       wrap="nowrap"
       gap="xl"
       className={classes.item}
-      style={
-        highlight
-          ? { backgroundColor: "var(--mantine-color-yellow-light)" }
-          : undefined
-      }
+      style={highlight ? { backgroundColor: "var(--mantine-color-yellow-light)" } : undefined}
     >
       <div>
         <Text>{title}</Text>
@@ -170,9 +166,7 @@ export default function Page() {
   } = useLoaderData({ from: "/settings" });
   let [filesDirectory, setFilesDirectory] = useAtom(storedDocumentDirAtom);
   filesDirectory = filesDirectory || documentDir;
-  let [databasesDirectory, setDatabasesDirectory] = useAtom(
-    storedDatabasesDirAtom,
-  );
+  let [databasesDirectory, setDatabasesDirectory] = useAtom(storedDatabasesDirAtom);
   databasesDirectory = databasesDirectory || defaultDatabasesDir;
   let [enginesDirectory, setEnginesDirectory] = useAtom(storedEnginesDirAtom);
   enginesDirectory = enginesDirectory || defaultEnginesDir;
@@ -233,9 +227,7 @@ export default function Page() {
             ]}
             allowDeselect={false}
             value={moveNotationType}
-            onChange={(val) =>
-              setMoveNotationType(val as "letters" | "symbols")
-            }
+            onChange={(val) => setMoveNotationType(val as "letters" | "symbols")}
           />
         ),
       },
@@ -731,11 +723,7 @@ export default function Page() {
               </Text>
             </Group>
             {categorySettings.map((setting) => (
-              <SettingRow
-                key={setting.id}
-                title={setting.title}
-                description={setting.description}
-              >
+              <SettingRow key={setting.id} title={setting.title} description={setting.description}>
                 {setting.render()}
               </SettingRow>
             ))}
@@ -748,11 +736,7 @@ export default function Page() {
   const renderCategorySettings = (category: SettingCategory) => {
     const categorySettings = settings.filter((s) => s.category === category);
     return categorySettings.map((setting) => (
-      <SettingRow
-        key={setting.id}
-        title={setting.title}
-        description={setting.description}
-      >
+      <SettingRow key={setting.id} title={setting.title} description={setting.description}>
         {setting.render()}
       </SettingRow>
     ));
@@ -808,25 +792,16 @@ export default function Page() {
             <Tabs.Tab value="anarchy" leftSection={<IconFlag size="1rem" />}>
               {t("Settings.Anarchy")}
             </Tabs.Tab>
-            <Tabs.Tab
-              value="appearance"
-              leftSection={<IconBrush size="1rem" />}
-            >
+            <Tabs.Tab value="appearance" leftSection={<IconBrush size="1rem" />}>
               {t("Settings.Appearance")}
             </Tabs.Tab>
             <Tabs.Tab value="sound" leftSection={<IconVolume size="1rem" />}>
               {t("Settings.Sound")}
             </Tabs.Tab>
-            <Tabs.Tab
-              value="keybinds"
-              leftSection={<IconKeyboard size="1rem" />}
-            >
+            <Tabs.Tab value="keybinds" leftSection={<IconKeyboard size="1rem" />}>
               {t("Settings.Keybinds")}
             </Tabs.Tab>
-            <Tabs.Tab
-              value="directories"
-              leftSection={<IconFolder size="1rem" />}
-            >
+            <Tabs.Tab value="directories" leftSection={<IconFolder size="1rem" />}>
               {t("Settings.Directories")}
             </Tabs.Tab>
             <Tabs.Tab value="repertoire" leftSection={<IconBook size="1rem" />}>

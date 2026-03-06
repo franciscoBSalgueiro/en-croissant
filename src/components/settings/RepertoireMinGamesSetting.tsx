@@ -7,9 +7,7 @@ import { coverageMinGamesAtom } from "@/state/atoms";
 export default function RepertoireMinGamesSetting() {
   const { t } = useTranslation();
   const [minGames, setMinGames] = useAtom(coverageMinGamesAtom);
-  const [preset, setPreset] = useState<
-    "standard" | "essential" | "deep" | "custom"
-  >(
+  const [preset, setPreset] = useState<"standard" | "essential" | "deep" | "custom">(
     minGames === 50
       ? "standard"
       : minGames === 20

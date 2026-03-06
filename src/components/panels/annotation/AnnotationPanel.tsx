@@ -15,11 +15,7 @@ import { memo, useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
-import {
-  ANNOTATION_INFO,
-  type Annotation,
-  isBasicAnnotation,
-} from "@/utils/annotation";
+import { ANNOTATION_INFO, type Annotation, isBasicAnnotation } from "@/utils/annotation";
 import { getNodeAtPath } from "@/utils/treeReducer";
 import AnnotationEditor from "./AnnotationEditor";
 
@@ -38,10 +34,7 @@ const SymbolButton = memo(function SymbolButton({
   const isActive = curAnnotations.includes(annotation);
   const theme = useMantineTheme();
   return (
-    <Tooltip
-      label={translationKey ? t(`Annotate.${translationKey}`) : name}
-      position="bottom"
-    >
+    <Tooltip label={translationKey ? t(`Annotate.${translationKey}`) : name} position="bottom">
       <ActionIcon
         onClick={() => setAnnotation(annotation)}
         variant={isActive ? "filled" : "default"}
@@ -57,19 +50,7 @@ const showMoreSymbolsAtom = atom(false);
 
 const BASIC = ["!!", "!", "!?", "?!", "?", "??"] as const;
 const ADVANTAGE = ["+-", "±", "⩲", "=", "∞", "⩱", "∓", "-+"] as const;
-const EXTRA = [
-  "N",
-  "↑↑",
-  "↑",
-  "→",
-  "⇆",
-  "=∞",
-  "⊕",
-  "∆",
-  "□",
-  "⨀",
-  "⊗",
-] as const;
+const EXTRA = ["N", "↑↑", "↑", "→", "⇆", "=∞", "⊕", "∆", "□", "⨀", "⊗"] as const;
 
 function AnnotationPanel() {
   const store = useContext(TreeStateContext)!;

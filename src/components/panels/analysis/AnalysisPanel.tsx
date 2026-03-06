@@ -21,14 +21,7 @@ import {
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
-import {
-  memo,
-  startTransition,
-  useContext,
-  useDeferredValue,
-  useMemo,
-  useOptimistic,
-} from "react";
+import { memo, startTransition, useContext, useDeferredValue, useMemo, useOptimistic } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
@@ -43,12 +36,7 @@ import {
   enginesAtom,
 } from "@/state/atoms";
 import { getVariationLine } from "@/utils/chess";
-import {
-  getPiecesCount,
-  hasCaptures,
-  isOp1,
-  positionFromFen,
-} from "@/utils/chessops";
+import { getPiecesCount, hasCaptures, isOp1, positionFromFen } from "@/utils/chessops";
 import type { Engine } from "@/utils/engines";
 import { getInitials } from "@/utils/format";
 import BestMoves, { arrowColors } from "./BestMoves";
@@ -78,10 +66,10 @@ function AnalysisPanel() {
   );
 
   const [engines, setEngines] = useAtom(enginesAtom);
-  const [optimisticEngines, setOptimisticEngines] = useOptimistic<
-    Engine[],
-    Engine[]
-  >(engines ?? [], (_, newEngines) => newEngines);
+  const [optimisticEngines, setOptimisticEngines] = useOptimistic<Engine[], Engine[]>(
+    engines ?? [],
+    (_, newEngines) => newEngines,
+  );
 
   const loadedEngines = useMemo(
     () => optimisticEngines.filter((e) => e.loaded),
@@ -134,8 +122,7 @@ function AnalysisPanel() {
           >
             {pos &&
               (getPiecesCount(pos) <= 7 ||
-                (getPiecesCount(pos) === 8 &&
-                  (hasCaptures(pos) || isOp1(pos)))) && (
+                (getPiecesCount(pos) === 8 && (hasCaptures(pos) || isOp1(pos)))) && (
                 <>
                   <TablebaseInfo fen={currentNodeFen} turn={pos.turn} />
                   <Space h="sm" />
@@ -144,11 +131,7 @@ function AnalysisPanel() {
             {loadedEngines.length > 1 && (
               <Paper withBorder p="xs" flex={1}>
                 <Group w="100%" gap="xs" wrap="nowrap">
-                  <ActionIcon
-                    size="lg"
-                    variant="default"
-                    onClick={() => enable(!allEnabled)}
-                  >
+                  <ActionIcon size="lg" variant="default" onClick={() => enable(!allEnabled)}>
                     {allEnabled ? (
                       <IconPlayerPause size="1.25rem" />
                     ) : (
@@ -212,10 +195,7 @@ function AnalysisPanel() {
                               index={i}
                             >
                               {(provided) => (
-                                <div
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                >
+                                <div ref={provided.innerRef} {...provided.draggableProps}>
                                   <Accordion.Item value={engine.name}>
                                     <BestMoves
                                       id={i}
@@ -224,9 +204,7 @@ function AnalysisPanel() {
                                       moves={moves}
                                       halfMoves={currentNodeHalfMoves}
                                       dragHandleProps={provided.dragHandleProps}
-                                      orientation={
-                                        headers.orientation || "white"
-                                      }
+                                      orientation={headers.orientation || "white"}
                                     />
                                   </Accordion.Item>
                                 </div>
@@ -327,9 +305,7 @@ function EngineSummary({
   i: number;
 }) {
   const activeTab = useAtomValue(activeTabAtom);
-  const [ev] = useAtom(
-    engineMovesFamily({ engine: engine.id, tab: activeTab! }),
-  );
+  const [ev] = useAtom(engineMovesFamily({ engine: engine.id, tab: activeTab! }));
 
   const curEval = useDeferredValue(
     useMemo(() => ev.get(`${fen}:${moves.join(",")}`), [ev, fen, moves]),

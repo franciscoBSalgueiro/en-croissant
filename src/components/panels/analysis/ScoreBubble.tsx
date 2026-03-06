@@ -61,8 +61,7 @@ function ScoreBubble({
     <Box
       onClick={() => setEvalDisplay("wdl")}
       style={(theme) => ({
-        backgroundColor:
-          score.value.value >= 0 ? theme.colors.gray[0] : theme.colors.dark[9],
+        backgroundColor: score.value.value >= 0 ? theme.colors.gray[0] : theme.colors.dark[9],
         textAlign: "center",
         padding: "0.15rem",
         borderRadius: theme.radius.sm,

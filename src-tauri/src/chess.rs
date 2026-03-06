@@ -495,7 +495,6 @@ pub async fn analyze_game(
     let fen = Fen::from_ascii(options.fen.as_bytes())?;
     let setup = fen.as_setup().clone();
     let castling_mode = CastlingMode::detect(&setup);
-    println!("Castling mode: {:?}", castling_mode);
 
     let mut chess: Chess = setup.position(castling_mode)?;
     let mut fens: Vec<(Fen, Vec<String>, bool)> = vec![(fen, vec![], false)];

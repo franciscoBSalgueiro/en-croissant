@@ -17,9 +17,7 @@ function TimeInput({
   type?: TimeType;
   onTypeChange?: (type: TimeType) => void;
 }) {
-  const [internalTimeType, setInternalTimeType] = useState<TimeType>(
-    defaultType ?? "ms",
-  );
+  const [internalTimeType, setInternalTimeType] = useState<TimeType>(defaultType ?? "ms");
 
   const timeType = type ?? internalTimeType;
   const handleTypeChange = (newType: TimeType) => {

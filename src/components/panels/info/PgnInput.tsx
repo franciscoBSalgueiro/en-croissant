@@ -67,9 +67,7 @@ function PgnInput() {
           label={t("PgnInput.Comments")}
           size="xs"
           checked={options.comments}
-          onChange={() =>
-            setOptions({ ...options, comments: !options.comments })
-          }
+          onChange={() => setOptions({ ...options, comments: !options.comments })}
         />
         <Checkbox
           label={t("PgnInput.Glyphs")}
@@ -81,17 +79,13 @@ function PgnInput() {
           label={t("PgnInput.Variations")}
           size="xs"
           checked={options.variations}
-          onChange={() =>
-            setOptions({ ...options, variations: !options.variations })
-          }
+          onChange={() => setOptions({ ...options, variations: !options.variations })}
         />
         <Checkbox
           label={t("PgnInput.ExtraMarkups")}
           size="xs"
           checked={options.extraMarkups}
-          onChange={() =>
-            setOptions({ ...options, extraMarkups: !options.extraMarkups })
-          }
+          onChange={() => setOptions({ ...options, extraMarkups: !options.extraMarkups })}
         />
       </Group>
     </>
@@ -111,18 +105,10 @@ function PgnInput() {
 
   const pgnArea = (
     <Box style={{ position: "relative" }}>
-      <Textarea
-        autosize
-        value={tmp}
-        onChange={(e) => setTmp(e.currentTarget.value)}
-      />
+      <Textarea autosize value={tmp} onChange={(e) => setTmp(e.currentTarget.value)} />
       <CopyButton value={tmp} timeout={2000}>
         {({ copied, copy }) => (
-          <Tooltip
-            label={copied ? "Copied" : "Copy"}
-            withArrow
-            position="right"
-          >
+          <Tooltip label={copied ? "Copied" : "Copy"} withArrow position="right">
             <ActionIcon
               color={copied ? "teal" : "gray"}
               variant="subtle"
@@ -139,10 +125,7 @@ function PgnInput() {
         )}
       </CopyButton>
       {realPGN !== tmp && (
-        <Button
-          style={{ position: "absolute", bottom: 15, right: 15 }}
-          onClick={() => updatePgn()}
-        >
+        <Button style={{ position: "absolute", bottom: 15, right: 15 }} onClick={() => updatePgn()}>
           Update
         </Button>
       )}

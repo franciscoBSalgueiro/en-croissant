@@ -1,12 +1,4 @@
-import {
-  Button,
-  Checkbox,
-  Group,
-  Modal,
-  NumberInput,
-  Select,
-  Stack,
-} from "@mantine/core";
+import { Button, Checkbox, Group, Modal, NumberInput, Select, Stack } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useAtom, useAtomValue } from "jotai";
 import { atomWithStorage } from "jotai/utils";
@@ -70,8 +62,7 @@ function ReportModal({
     const engine =
       localEngines.length === 0
         ? ""
-        : !reportSettings.engine ||
-            !localEngines.some((l) => l.id === reportSettings.engine)
+        : !reportSettings.engine || !localEngines.some((l) => l.id === reportSettings.engine)
           ? localEngines[0].id
           : reportSettings.engine;
 

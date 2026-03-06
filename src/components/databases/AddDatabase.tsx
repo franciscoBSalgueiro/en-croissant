@@ -25,11 +25,7 @@ import { useTranslation } from "react-i18next";
 import type { KeyedMutator } from "swr";
 import { commands, type DatabaseInfo } from "@/bindings";
 import { storedDatabasesDirAtom } from "@/state/atoms";
-import {
-  getDatabases,
-  type SuccessDatabaseInfo,
-  useDefaultDatabases,
-} from "@/utils/db";
+import { getDatabases, type SuccessDatabaseInfo, useDefaultDatabases } from "@/utils/db";
 import { capitalize, formatBytes, formatNumber } from "@/utils/format";
 import { unwrap } from "@/utils/unwrap";
 import FileInput from "../common/FileInput";
@@ -56,9 +52,7 @@ function AddDatabase({
   async function convertDB(path: string, title: string, description?: string) {
     setLoading(true);
     const dbPath = await resolve(databaseDir, `${title}.db3`);
-    unwrap(
-      await commands.convertPgn(path, dbPath, null, title, description ?? null),
-    );
+    unwrap(await commands.convertPgn(path, dbPath, null, title, description ?? null));
     setDatabases(await getDatabases());
     setLoading(false);
   }
@@ -116,11 +110,7 @@ function AddDatabase({
                 />
               ))}
               {error && (
-                <Alert
-                  icon={<IconAlertCircle size="1rem" />}
-                  title="Error"
-                  color="red"
-                >
+                <Alert icon={<IconAlertCircle size="1rem" />} title="Error" color="red">
                   {"Failed to fetch the database's info from the server."}
                 </Alert>
               )}
@@ -134,16 +124,9 @@ function AddDatabase({
               setOpened(false);
             })}
           >
-            <TextInput
-              label={t("Common.Name")}
-              withAsterisk
-              {...form.getInputProps("title")}
-            />
+            <TextInput label={t("Common.Name")} withAsterisk {...form.getInputProps("title")} />
 
-            <TextInput
-              label={t("Common.Description")}
-              {...form.getInputProps("description")}
-            />
+            <TextInput label={t("Common.Description")} {...form.getInputProps("description")} />
 
             <FileInput
               label={t("Common.PGNFile")}
@@ -166,9 +149,7 @@ function AddDatabase({
                   if (!form.values.title) {
                     form.setFieldValue(
                       "title",
-                      capitalize(
-                        filename.replaceAll(/[_-]/g, " ").replace(".pgn", ""),
-                      ),
+                      capitalize(filename.replaceAll(/[_-]/g, " ").replace(".pgn", "")),
                     );
                   }
                 }
@@ -254,13 +235,7 @@ function DatabaseCard({
               inProgress: t("Common.Downloading"),
               finalizing: t("Common.Extracting"),
             }}
-            onClick={() =>
-              downloadDatabase(
-                databaseId,
-                database.downloadLink!,
-                database.title!,
-              )
-            }
+            onClick={() => downloadDatabase(databaseId, database.downloadLink!, database.title!)}
             inProgress={inProgress}
             setInProgress={setInProgress}
           />

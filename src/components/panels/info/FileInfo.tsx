@@ -37,10 +37,7 @@ function FileInfo({
               onClick={() =>
                 commands.countPgnGames(tabFile.path).then((v) => {
                   setCurrentTab((prev) => {
-                    if (
-                      prev.gameOrigin.kind !== "file" &&
-                      prev.gameOrigin.kind !== "temp_file"
-                    ) {
+                    if (prev.gameOrigin.kind !== "file" && prev.gameOrigin.kind !== "temp_file") {
                       return prev;
                     }
                     return {

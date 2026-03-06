@@ -17,9 +17,7 @@ function ResultsChart({
       <MTTooltip label={`${won} wins`}>
         <Progress.Section value={(won / total) * 100} color="green">
           <Progress.Label style={{ textOverflow: "clip" }}>
-            {won / total > 0.15
-              ? `${((won / total) * 100).toFixed(1)}%`
-              : undefined}
+            {won / total > 0.15 ? `${((won / total) * 100).toFixed(1)}%` : undefined}
           </Progress.Label>
         </Progress.Section>
       </MTTooltip>
@@ -27,9 +25,7 @@ function ResultsChart({
       <MTTooltip label={`${draw} draws`}>
         <Progress.Section value={(draw / total) * 100} color="gray">
           <Progress.Label style={{ textOverflow: "clip" }}>
-            {draw / total > 0.15
-              ? `${((draw / total) * 100).toFixed(1)}%`
-              : undefined}
+            {draw / total > 0.15 ? `${((draw / total) * 100).toFixed(1)}%` : undefined}
           </Progress.Label>
         </Progress.Section>
       </MTTooltip>
@@ -37,9 +33,7 @@ function ResultsChart({
       <MTTooltip label={`${lost} losses`}>
         <Progress.Section value={(lost / total) * 100} color="red">
           <Progress.Label style={{ textOverflow: "clip" }}>
-            {lost / total > 0.15
-              ? `${((lost / total) * 100).toFixed(1)}%`
-              : undefined}
+            {lost / total > 0.15 ? `${((lost / total) * 100).toFixed(1)}%` : undefined}
           </Progress.Label>
         </Progress.Section>
       </MTTooltip>
