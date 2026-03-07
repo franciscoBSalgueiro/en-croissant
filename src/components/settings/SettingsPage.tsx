@@ -413,7 +413,7 @@ export default function Page() {
           />
         ),
       },
-      ...(import.meta.env.VITE_PLATFORM === "win32"
+      ...(import.meta.env.VITE_PLATFORM === "win32" || import.meta.env.VITE_PLATFORM === "linux"
         ? [
             {
               id: "title-bar",
