@@ -57,6 +57,7 @@ import {
   practiceCardStartTimeAtom,
   practiceSessionStatsAtom,
   practiceStateAtom,
+  practiceAutoDifficultyAtom,
 } from "@/state/atoms";
 import { getTabFile, getTabGameNumber } from "@/utils/tabs";
 import { findFen, getNodeAtPath } from "@/utils/treeReducer";
@@ -128,6 +129,7 @@ function PracticePanel() {
   const [practiceState, setPracticeState] = useAtom(practiceStateAtom);
   const [sessionStats, setSessionStats] = useAtom(practiceSessionStatsAtom);
   const setCardStartTime = useSetAtom(practiceCardStartTimeAtom);
+  const practiceAutoDifficulty = useAtomValue(practiceAutoDifficultyAtom);
 
   const newPractice = useCallback(
     (stats?: Partial<PracticeSessionStats>) => {
@@ -181,26 +183,48 @@ function PracticePanel() {
   );
 
   useEffect(() => {
-    if (practiceState.phase === "correct" && sessionStats.mode === "full") {
-      const timer = setTimeout(() => {
-        const remainingPositions = sessionStats.remainingPositions.slice(1);
-        setSessionStats((prev) => ({
-          ...prev,
-          remainingPositions,
-          correct: prev.correct + 1,
-          streak: prev.streak + 1,
-          bestStreak: Math.max(prev.bestStreak, prev.streak + 1),
-        }));
-        newPractice({ remainingPositions, mode: "full" });
-      }, 300);
-      return () => clearTimeout(timer);
+    if (practiceState.phase === "correct") {
+      if (sessionStats.mode === "full") {
+        const timer = setTimeout(() => {
+          const remainingPositions = sessionStats.remainingPositions.slice(1);
+          setSessionStats((prev) => ({
+            ...prev,
+            remainingPositions,
+            correct: prev.correct + 1,
+            streak: prev.streak + 1,
+            bestStreak: Math.max(prev.bestStreak, prev.streak + 1),
+          }));
+          newPractice({ remainingPositions, mode: "full" });
+        }, 300);
+        return () => clearTimeout(timer);
+      } else if (practiceAutoDifficulty !== "none" && practiceState.positionIndex !== undefined) {
+        const positionIndex = practiceState.positionIndex;
+        const timer = setTimeout(() => {
+          const card = deck.positions[positionIndex].card;
+          const grade = Number(practiceAutoDifficulty) as 1 | 2 | 3 | 4;
+
+          updateCardPerformance(setDeck, positionIndex, card, grade);
+          setSessionStats((prev) => ({
+            ...prev,
+            correct: prev.correct + 1,
+            streak: prev.streak + 1,
+            bestStreak: Math.max(prev.bestStreak, prev.streak + 1),
+          }));
+          newPractice();
+        }, 300);
+        return () => clearTimeout(timer);
+      }
     }
   }, [
     practiceState.phase,
+    practiceState.positionIndex,
     sessionStats.mode,
     sessionStats.remainingPositions,
     newPractice,
     setSessionStats,
+    practiceAutoDifficulty,
+    deck.positions,
+    setDeck,
   ]);
 
   function handleQualityRating(grade: 1 | 2 | 3 | 4) {

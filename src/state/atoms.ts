@@ -501,6 +501,11 @@ const practiceSessionStatsFamily = atomFamily((_tab: string) =>
 );
 export const practiceSessionStatsAtom = tabValue(practiceSessionStatsFamily);
 
+export const practiceAutoDifficultyAtom = atomWithStorage<"none" | "1" | "2" | "3" | "4">(
+    "practice-auto-difficulty",
+    "none",
+);
+
 const practiceCardStartTimeFamily = atomFamily((_tab: string) => atom<number>(0));
 export const practiceCardStartTimeAtom = tabValue(practiceCardStartTimeFamily);
 

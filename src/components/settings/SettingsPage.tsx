@@ -45,6 +45,7 @@ import {
   moveMethodAtom,
   moveNotationTypeAtom,
   nativeBarAtom,
+  practiceAutoDifficultyAtom,
   previewBoardOnHoverAtom,
   showArrowsAtom,
   showConsecutiveArrowsAtom,
@@ -177,6 +178,7 @@ export default function Page() {
   const [moveNotationType, setMoveNotationType] = useAtom(moveNotationTypeAtom);
   const [showCoordinates, setShowCoordinates] = useAtom(showCoordinatesAtom);
   const [materialDisplay, setMaterialDisplay] = useAtom(materialDisplayAtom);
+  const [practiceAutoDifficulty, setPracticeAutoDifficulty] = useAtom(practiceAutoDifficultyAtom);
 
   const settings: SettingItem[] = useMemo(
     () => [
@@ -486,6 +488,27 @@ export default function Page() {
         keywords: ["repertoire", "depth", "games", "min"],
         render: () => <RepertoireMinGamesSetting />,
       },
+      {
+        id: "repertoire-auto-difficulty",
+        category: "repertoire",
+        title: t("Settings.Repertoire.AutoDifficulty"),
+        description: t("Settings.Repertoire.AutoDifficulty.Desc"),
+        keywords: ["repertoire", "auto", "difficulty", "select", "anki"],
+        render: () => (
+          <Select
+            allowDeselect={false}
+            data={[
+              { label: t("Settings.Repertoire.AutoDifficulty.None"), value: "none" },
+              { label: t("Board.Practice.Again"), value: "1" },
+              { label: t("Board.Practice.Hard"), value: "2" },
+              { label: t("Board.Practice.Good"), value: "3" },
+              { label: t("Board.Practice.Easy"), value: "4" },
+            ]}
+            value={practiceAutoDifficulty}
+            onChange={(val) => setPracticeAutoDifficulty(val as "none" | "1" | "2" | "3" | "4")}
+          />
+        ),
+      },
       // Sound settings
       {
         id: "volume",
@@ -615,6 +638,8 @@ export default function Page() {
       setPuzzlesDirectory,
       setShowCoordinates,
       setMaterialDisplay,
+      practiceAutoDifficulty,
+      setPracticeAutoDifficulty,
     ],
   );
 
