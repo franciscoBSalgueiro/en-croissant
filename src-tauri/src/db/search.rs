@@ -271,7 +271,7 @@ pub async fn search_position(
                 info!("Search index not found, generating automatically...");
                 drop(cache);
                 if let Err(e) = super::generate_search_index(&file, &state) {
-                    return Err(Error::Io(std::io::Error::other(format!(
+                    return Err(Error::from(std::io::Error::other(format!(
                         "Failed to generate search index: {}",
                         e
                     ))));
@@ -290,7 +290,7 @@ pub async fn search_position(
                     *cache = Some(index);
                 }
                 Err(e) => {
-                    return Err(Error::Io(e));
+                    return Err(Error::from(e));
                 }
             }
         }
@@ -500,7 +500,7 @@ pub async fn is_position_in_db(
                 info!("Search index not found, generating automatically...");
                 drop(cache);
                 if let Err(e) = super::generate_search_index(&file, &state) {
-                    return Err(Error::Io(std::io::Error::other(format!(
+                    return Err(Error::from(std::io::Error::other(format!(
                         "Failed to generate search index: {}",
                         e
                     ))));
@@ -519,7 +519,7 @@ pub async fn is_position_in_db(
                     *cache = Some(index);
                 }
                 Err(e) => {
-                    return Err(Error::Io(e));
+                    return Err(Error::from(e));
                 }
             }
         }

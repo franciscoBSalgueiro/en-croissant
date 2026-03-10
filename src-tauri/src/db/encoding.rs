@@ -119,7 +119,7 @@ struct DecodeFrame {
 }
 
 fn invalid_data(message: &str) -> Error {
-    Error::Io(io::Error::new(ErrorKind::InvalidData, message.to_string()))
+    Error::from(io::Error::new(ErrorKind::InvalidData, message.to_string()))
 }
 
 pub fn decode_game(moves_bytes: &[u8], initial_fen: Fen) -> Result<DecodedGame, Error> {
