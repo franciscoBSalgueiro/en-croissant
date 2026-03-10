@@ -306,7 +306,7 @@ pub async fn search_position(
     );
 
     let openings: DashMap<String, PositionStats> = DashMap::new();
-    const MAX_SAMPLES: usize = 10;
+    const MAX_SAMPLES: usize = 500;
     // Min-heap of (elo_key, game_id) to track top-rated sample games.
     // Using Reverse so peek() returns the entry with the lowest ELO,
     // which we can evict when a higher-rated game is found.
