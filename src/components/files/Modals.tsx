@@ -1,6 +1,7 @@
 import { Button, Modal, SimpleGrid, Stack, Text, Textarea, TextInput } from "@mantine/core";
 import { useLoaderData } from "@tanstack/react-router";
-import { rename, writeTextFile } from "@tauri-apps/plugin-fs";
+import { resolve } from "@tauri-apps/api/path";
+import { exists, mkdir, rename, writeTextFile } from "@tauri-apps/plugin-fs";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { createFile } from "@/utils/files";
@@ -199,6 +200,75 @@ export function EditModal({
 
           <Button style={{ marginTop: "1rem" }} type="submit">
             {t("Common.Edit")}
+          </Button>
+        </Stack>
+      </form>
+    </Modal>
+  );
+}
+
+export function CreateDirectoryModal({
+  opened,
+  setOpened,
+  mutate,
+}: {
+  opened: boolean;
+  setOpened: (opened: boolean) => void;
+  mutate: () => void;
+}) {
+  const { t } = useTranslation();
+  const [name, setName] = useState("");
+  const [error, setError] = useState("");
+  const { documentDir } = useLoaderData({ from: "/files" });
+
+  async function createDirectory() {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setError(t("Common.RequireName"));
+      return;
+    }
+    try {
+      const newPath = await resolve(documentDir, trimmed);
+      if (await exists(newPath)) {
+        setError(t("Files.CreateDirectory.AlreadyExists"));
+        return;
+      }
+      await mkdir(newPath);
+      mutate();
+      setName("");
+      setError("");
+      setOpened(false);
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
+  return (
+    <Modal
+      opened={opened}
+      onClose={() => setOpened(false)}
+      title={t("Files.CreateDirectory.Title")}
+    >
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          createDirectory();
+        }}
+      >
+        <Stack>
+          <TextInput
+            label={t("Common.Name")}
+            placeholder={t("Files.CreateDirectory.Placeholder")}
+            value={name}
+            onChange={(e) => {
+              setName(e.currentTarget.value);
+              if (error) setError("");
+            }}
+            error={error}
+            data-autofocus
+          />
+          <Button style={{ marginTop: "1rem" }} type="submit">
+            {t("Common.Create")}
           </Button>
         </Stack>
       </form>

@@ -25,20 +25,21 @@ function flattenFiles(files: (FileMetadata | Directory)[]): (FileMetadata | Dire
 function recursiveSort(
   files: (FileMetadata | Directory)[],
   sort: DataTableSortStatus<FileMetadata | Directory>,
+  pruneEmpty = false,
 ): (FileMetadata | Directory)[] {
   return files
     .map((f) => {
       if (f.type === "file") return f;
       return {
         ...f,
-        children: recursiveSort(f.children, sort),
+        children: recursiveSort(f.children, sort, pruneEmpty),
       };
     })
     .sort((a, b) => {
       return b.name.localeCompare(a.name, "en", { sensitivity: "base" });
     })
     .filter((f) => {
-      return f.type === "file" || f.children.length > 0;
+      return f.type === "file" || !pruneEmpty || f.children.length > 0;
     })
     .sort((a, b) => {
       if (sort.direction === "desc") {
@@ -143,7 +144,7 @@ export default function DirectoryTable({
       });
   }
 
-  filteredFiles = recursiveSort(filteredFiles, sort);
+  filteredFiles = recursiveSort(filteredFiles, sort, !!(search || filter));
 
   return (
     <Table
@@ -272,7 +273,8 @@ function Table({
           onRecordIdsChange: setExpandedIds,
         },
         content: ({ record }) =>
-          record.type === "directory" && (
+          record.type === "directory" &&
+          record.children.length > 0 && (
             <Table
               files={record.children}
               isLoading={isLoading}

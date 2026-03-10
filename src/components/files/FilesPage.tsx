@@ -11,7 +11,14 @@ import {
   Title,
 } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
-import { IconFileDescription, IconPlus, IconSearch, IconX } from "@tabler/icons-react";
+import {
+  IconFileDescription,
+  IconFilePlus,
+  IconFolderPlus,
+  IconPlus,
+  IconSearch,
+  IconX,
+} from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
 import { readDir, remove } from "@tauri-apps/plugin-fs";
 import { useEffect, useRef, useState } from "react";
@@ -23,7 +30,7 @@ import OpenFolderButton from "../common/OpenFolderButton";
 import DirectoryTable from "./DirectoryTable";
 import FileCard from "./FileCard";
 import { type FileMetadata, type FileType, processEntriesRecursively } from "./file";
-import { CreateModal, EditModal } from "./Modals";
+import { CreateDirectoryModal, CreateModal, EditModal } from "./Modals";
 
 const FILE_TYPES: FileType[] = ["game", "repertoire", "tournament", "puzzle", "other"];
 
@@ -56,6 +63,7 @@ function FilesPage() {
 
   const [deleteModal, toggleDeleteModal] = useToggle();
   const [createModal, toggleCreateModal] = useToggle();
+  const [createDirModal, toggleCreateDirModal] = useToggle();
   const [editModal, toggleEditModal] = useToggle();
 
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -77,6 +85,11 @@ function FilesPage() {
           setSelected={setSelected}
         />
       )}
+      <CreateDirectoryModal
+        opened={createDirModal}
+        setOpened={toggleCreateDirModal}
+        mutate={mutate}
+      />
       {selected && files && (
         <EditModal
           key={selected.name}
@@ -96,6 +109,7 @@ function FilesPage() {
         <Stack h="100%">
           <Group>
             <Input
+              size="xs"
               style={{ flexGrow: 1 }}
               leftSection={<IconSearch size="1rem" />}
               placeholder={t("Files.Search")}
@@ -114,10 +128,19 @@ function FilesPage() {
             />
             <Button
               size="xs"
-              leftSection={<IconPlus size="1rem" />}
+              variant="default"
+              leftSection={<IconFilePlus size="1rem" />}
               onClick={() => toggleCreateModal()}
             >
-              {t("Common.Create")}
+              {t("Files.CreateFile.Title")}
+            </Button>
+            <Button
+              size="xs"
+              variant="default"
+              leftSection={<IconFolderPlus size="1rem" />}
+              onClick={() => toggleCreateDirModal()}
+            >
+              {t("Files.CreateDirectory.Title")}
             </Button>
             <Button
               size="xs"
