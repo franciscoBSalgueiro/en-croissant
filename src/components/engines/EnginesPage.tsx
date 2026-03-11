@@ -1,12 +1,12 @@
 import {
   ActionIcon,
-  Box,
   Button,
   Center,
   Checkbox,
   Divider,
   FileInput,
   Group,
+  Input,
   JsonInput,
   Modal,
   NumberInput,
@@ -20,18 +20,25 @@ import {
   TextInput,
   ThemeIcon,
   Title,
+  Tooltip,
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
-import { IconCloud, IconCopy, IconCpu, IconPhotoPlus, IconPlus } from "@tabler/icons-react";
+import {
+  IconCloud,
+  IconCopy,
+  IconCpu,
+  IconPhotoPlus,
+  IconPlus,
+  IconSearch,
+} from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useAtom } from "jotai";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWRImmutable from "swr/immutable";
 import { match, P } from "ts-pattern";
 import { commands } from "@/bindings";
-import * as classes from "@/components/common/GenericCard.css";
 import { Route } from "@/routes/engines";
 import { enginesAtom } from "@/state/atoms";
 import {
@@ -54,6 +61,7 @@ export default function EnginesPage() {
 
   const [engines, setEngines] = useAtom(enginesAtom);
   const [opened, setOpened] = useState(false);
+  const [search, setSearch] = useState("");
   const { selected } = Route.useSearch();
   const navigate = useNavigate();
   const setSelected = (v: number | null) => {
@@ -63,6 +71,27 @@ export default function EnginesPage() {
   if (!engines) return null;
 
   const selectedEngine = selected !== undefined ? engines[selected] : null;
+  const filteredEngines = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    const indexedEngines = engines.map((item, index) => ({ item, index }));
+
+    if (!normalizedSearch) {
+      return indexedEngines;
+    }
+
+    return indexedEngines.filter(({ item }) => {
+      const values = [
+        item.name,
+        item.id,
+        item.type,
+        item.type === "local" ? item.path : "",
+        item.type === "local" ? (item.version ?? "") : "",
+        item.type === "local" && item.elo ? item.elo.toString() : "",
+      ];
+
+      return values.some((value) => value.toLowerCase().includes(normalizedSearch));
+    });
+  }, [engines, search]);
 
   return (
     <Stack h="100%" px="lg" pb="lg">
@@ -72,51 +101,63 @@ export default function EnginesPage() {
         <OpenFolderButton base="Engines" folder="engines" />
       </Group>
       <Group grow flex={1} style={{ overflow: "hidden" }} align="start">
-        <ScrollArea h="100%" offsetScrollbars>
-          <SimpleGrid cols={{ base: 1, md: 2 }} spacing={{ base: "md", md: "sm" }}>
-            {engines.map((item, i) => {
-              const stats =
-                item.type === "local"
-                  ? [
-                      {
-                        label: "ELO",
-                        value: item.elo ? item.elo.toString() : "??",
-                      },
-                    ]
-                  : [{ label: "Type", value: "Cloud" }];
-              if (item.type === "local" && item.version) {
-                stats.push({
-                  label: t("Common.Version"),
-                  value: item.version,
-                });
-              }
-              return (
-                <GenericCard
-                  id={i}
-                  key={item.id}
-                  isSelected={selected === i}
-                  setSelected={setSelected}
-                  error={undefined}
-                  Header={<EngineName engine={item} />}
-                  stats={stats}
-                />
-              );
-            })}
-            <Box
-              className={classes.card}
-              component="button"
-              type="button"
-              onClick={() => setOpened(true)}
-            >
-              <Stack gap={0} justify="center" w="100%" h="100%">
-                <Text mb={10}>{t("Common.AddNew")}</Text>
-                <Box>
-                  <IconPlus size="1.3rem" />
-                </Box>
-              </Stack>
-            </Box>
-          </SimpleGrid>
-        </ScrollArea>
+        <Paper withBorder style={{ borderWidth: 2 }} h="100%">
+          <Stack gap={0} h="100%" style={{ overflow: "hidden" }}>
+            <Group p="xs" gap="xs">
+              <Input
+                size="sm"
+                style={{ flexGrow: 1 }}
+                leftSection={<IconSearch size="1rem" />}
+                placeholder={t("Common.Search")}
+                value={search}
+                onChange={(e) => setSearch(e.currentTarget.value)}
+              />
+              <Tooltip label={t("Common.AddNew")}>
+                <ActionIcon variant="default" size="lg" onClick={() => setOpened(true)}>
+                  <IconPlus size="1rem" />
+                </ActionIcon>
+              </Tooltip>
+            </Group>
+            <Divider />
+            <ScrollArea flex={1} offsetScrollbars>
+              <SimpleGrid cols={{ base: 1, md: 2 }} spacing={{ base: "md", md: "sm" }} p="xs">
+                {filteredEngines.map(({ item, index }) => {
+                  const stats =
+                    item.type === "local"
+                      ? [
+                          {
+                            label: "ELO",
+                            value: item.elo ? item.elo.toString() : "??",
+                          },
+                        ]
+                      : [{ label: "Type", value: "Cloud" }];
+                  if (item.type === "local" && item.version) {
+                    stats.push({
+                      label: t("Common.Version"),
+                      value: item.version,
+                    });
+                  }
+                  return (
+                    <GenericCard
+                      id={index}
+                      key={item.id}
+                      isSelected={selected === index}
+                      setSelected={setSelected}
+                      error={undefined}
+                      Header={<EngineName engine={item} />}
+                      stats={stats}
+                    />
+                  );
+                })}
+                {filteredEngines.length === 0 && (
+                  <Center py="xl">
+                    <Text c="dimmed">{t("Common.Search")}: 0</Text>
+                  </Center>
+                )}
+              </SimpleGrid>
+            </ScrollArea>
+          </Stack>
+        </Paper>
         {!selectedEngine || selected === undefined ? (
           <Paper withBorder style={{ borderWidth: 2 }} p="md" h="100%">
             <Center h="100%">

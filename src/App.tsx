@@ -11,8 +11,9 @@ import {
 import { Notifications } from "@mantine/notifications";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { getMatches } from "@tauri-apps/plugin-cli";
+import { listen } from "@tauri-apps/api/event";
 import { attachConsole, error, info, warn } from "@tauri-apps/plugin-log";
-import { getDefaultStore, useAtom, useAtomValue } from "jotai";
+import { getDefaultStore, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { ContextMenuProvider } from "mantine-contextmenu";
 import posthog from "posthog-js";
 import { useEffect, useRef } from "react";
@@ -20,6 +21,7 @@ import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import {
   activeTabAtom,
+  databaseConversionStateAtom,
   fontSizeAtom,
   pieceSetAtom,
   primaryColorAtom,
@@ -207,12 +209,33 @@ export default function App() {
   const pieceSet = useAtomValue(pieceSetAtom);
   const fontSize = useAtomValue(fontSizeAtom);
   const spellCheck = useAtomValue(spellCheckAtom);
+  const setDatabaseConversionState = useSetAtom(databaseConversionStateAtom);
 
   useAppStartup();
 
   useEffect(() => {
     document.documentElement.style.fontSize = `${fontSize}%`;
   }, [fontSize]);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+
+    void listen<number[]>("convert_progress", (event) => {
+      const [totalGames, elapsedMs] = event.payload;
+      setDatabaseConversionState((prev) => ({
+        ...prev,
+        inProgress: true,
+        totalGames,
+        elapsedSeconds: elapsedMs / 1000,
+      }));
+    }).then((fn) => {
+      unlisten = fn;
+    });
+
+    return () => {
+      unlisten?.();
+    };
+  }, [setDatabaseConversionState]);
 
   const theme = createTheme({
     primaryColor,

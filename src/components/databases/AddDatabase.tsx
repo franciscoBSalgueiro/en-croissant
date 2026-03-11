@@ -17,14 +17,14 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconAlertCircle } from "@tabler/icons-react";
-import { appDataDir, resolve } from "@tauri-apps/api/path";
+import { basename, resolve } from "@tauri-apps/api/path";
 import { open } from "@tauri-apps/plugin-dialog";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import { type Dispatch, type SetStateAction, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { KeyedMutator } from "swr";
 import { commands, type DatabaseInfo } from "@/bindings";
-import { storedDatabasesDirAtom } from "@/state/atoms";
+import { databaseConversionStateAtom, storedDatabasesDirAtom } from "@/state/atoms";
 import { getDatabases, type SuccessDatabaseInfo, useDefaultDatabases } from "@/utils/db";
 import { capitalize, formatBytes, formatNumber } from "@/utils/format";
 import { unwrap } from "@/utils/unwrap";
@@ -36,25 +36,48 @@ function AddDatabase({
   opened,
   setOpened,
   setLoading,
+  disableLocalConversion,
   setDatabases,
 }: {
   databases: DatabaseInfo[];
   opened: boolean;
   setOpened: (opened: boolean) => void;
   setLoading: Dispatch<SetStateAction<boolean>>;
+  disableLocalConversion: boolean;
   setDatabases: KeyedMutator<DatabaseInfo[]>;
 }) {
   const { t } = useTranslation();
   const [databaseDir] = useAtom(storedDatabasesDirAtom);
+  const setConversionState = useSetAtom(databaseConversionStateAtom);
 
   const { defaultDatabases, error, isLoading } = useDefaultDatabases(opened);
 
   async function convertDB(path: string, title: string, description?: string) {
     setLoading(true);
     const dbPath = await resolve(databaseDir, `${title}.db3`);
-    unwrap(await commands.convertPgn(path, dbPath, null, title, description ?? null));
-    setDatabases(await getDatabases());
-    setLoading(false);
+    const sourceFileName = await basename(path);
+    setConversionState((prev) => ({
+      ...prev,
+      inProgress: true,
+      targetDatabasePath: dbPath,
+      targetDatabaseTitle: title,
+      sourceFileName,
+    }));
+    try {
+      unwrap(await commands.convertPgn(path, dbPath, null, title, description ?? null));
+      setDatabases(await getDatabases());
+    } finally {
+      setLoading(false);
+      setConversionState((prev) => ({
+        ...prev,
+        inProgress: false,
+        totalGames: 0,
+        elapsedSeconds: 0,
+        targetDatabasePath: null,
+        targetDatabaseTitle: null,
+        sourceFileName: null,
+      }));
+    }
   }
 
   const form = useForm<Partial<Extract<DatabaseInfo, { type: "success" }>>>({
@@ -120,6 +143,7 @@ function AddDatabase({
         <Tabs.Panel value="local" pt="xs">
           <form
             onSubmit={form.onSubmit(async (values) => {
+              if (disableLocalConversion) return;
               convertDB(values.file!, values.title!, values.description);
               setOpened(false);
             })}
@@ -143,7 +167,7 @@ function AddDatabase({
                 });
                 if (!selected || typeof selected === "object") return;
                 form.setFieldValue("file", selected);
-                const filename = selected.split(/(\\|\/)/g).pop();
+                const filename = await basename(selected);
                 if (filename) {
                   form.setFieldValue("filename", filename);
                   if (!form.values.title) {
@@ -158,7 +182,7 @@ function AddDatabase({
               {...form.getInputProps("path")}
             />
 
-            <Button fullWidth mt="xl" type="submit">
+            <Button fullWidth mt="xl" type="submit" disabled={disableLocalConversion}>
               {t("Databases.Add.Convert")}
             </Button>
           </form>

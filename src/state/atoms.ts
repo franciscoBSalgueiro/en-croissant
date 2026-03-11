@@ -235,6 +235,28 @@ export const referenceDbAtom = atomWithStorage<string | null>("reference-databas
 
 export const selectedPuzzleDbAtom = atomWithStorage<string | null>("puzzle-db", null);
 
+export type DatabaseConversionState = {
+    inProgress: boolean;
+    totalGames: number;
+    elapsedSeconds: number;
+    targetDatabasePath: string | null;
+    targetDatabaseTitle: string | null;
+    sourceFileName: string | null;
+};
+
+export const databaseConversionStateAtom = atomWithStorage<DatabaseConversionState>(
+    "database-conversion-state",
+    {
+        inProgress: false,
+        totalGames: 0,
+        elapsedSeconds: 0,
+        targetDatabasePath: null,
+        targetDatabaseTitle: null,
+        sourceFileName: null,
+    },
+    createJSONStorage(() => sessionStorage),
+);
+
 export const selectedDatabaseAtom = atomWithStorage<SuccessDatabaseInfo | null>(
     "database-view",
     null,
