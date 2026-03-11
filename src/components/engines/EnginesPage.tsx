@@ -92,6 +92,8 @@ export default function EnginesPage() {
       return values.some((value) => value.toLowerCase().includes(normalizedSearch));
     });
   }, [engines, search]);
+  const hasSearch = search.trim().length > 0;
+  const hasEngines = engines.length > 0;
 
   return (
     <Stack h="100%" px="md" pb="md">
@@ -149,13 +151,25 @@ export default function EnginesPage() {
                     />
                   );
                 })}
-                {filteredEngines.length === 0 && (
-                  <Center py="xl">
-                    <Text c="dimmed">{t("Common.Search")}: 0</Text>
-                  </Center>
-                )}
               </SimpleGrid>
             </ScrollArea>
+            {filteredEngines.length === 0 && (
+              <Center h="100%">
+                <Stack align="center" gap="sm">
+                  <ThemeIcon size={64} radius="100%" variant="light" color="gray">
+                    <IconCpu size={32} />
+                  </ThemeIcon>
+                  <Text c="dimmed" fw={500} ta="center">
+                    {hasSearch ? t("Common.NoResults") : t("Engines.Empty.NoInstalled")}
+                  </Text>
+                  {!hasSearch && !hasEngines && (
+                    <Text c="dimmed" size="sm" ta="center">
+                      {t("Engines.Empty.AddHint")}
+                    </Text>
+                  )}
+                </Stack>
+              </Center>
+            )}
           </Stack>
         </Paper>
         {!selectedEngine || selected === undefined ? (

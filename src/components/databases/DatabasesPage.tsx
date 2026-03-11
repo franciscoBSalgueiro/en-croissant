@@ -61,15 +61,16 @@ export default function DatabasesPage() {
     () => (databases ?? []).find((db) => db.file === selected) ?? null,
     [databases, selected],
   );
-  const filteredDatabases = useMemo(() => {
-    const visibleDatabases = (databases ?? []).filter((item) => {
+  const visibleDatabases = useMemo(() => {
+    return (databases ?? []).filter((item) => {
       if (!conversionState.inProgress || !conversionState.targetDatabasePath) {
         return true;
       }
 
       return item.file !== conversionState.targetDatabasePath;
     });
-
+  }, [databases, conversionState.inProgress, conversionState.targetDatabasePath]);
+  const filteredDatabases = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
     if (!normalizedSearch) {
       return visibleDatabases;
@@ -85,7 +86,8 @@ export default function DatabasesPage() {
 
       return values.some((value) => value.toLowerCase().includes(normalizedSearch));
     });
-  }, [databases, search, conversionState.inProgress, conversionState.targetDatabasePath]);
+  }, [visibleDatabases, search]);
+  const hasSearch = search.trim().length > 0;
   const [databaseDir] = useAtom(storedDatabasesDirAtom);
   // const [, setStorageSelected] = useAtom(selectedDatabaseAtom);
   const setActiveDatabase = useActiveDatabaseViewStore((store) => store.setDatabase);
@@ -261,13 +263,25 @@ export default function DatabasesPage() {
                       ]}
                     />
                   ))}
-                {!isLoading && filteredDatabases?.length === 0 && (
-                  <Center py="xl">
-                    <Text c="dimmed">{t("Common.Search")}: 0</Text>
-                  </Center>
-                )}
               </SimpleGrid>
             </ScrollArea>
+            {!isLoading && filteredDatabases.length === 0 && (
+              <Center h="100%">
+                <Stack align="center" gap="sm">
+                  <ThemeIcon size={64} radius="100%" variant="light" color="gray">
+                    <IconDatabase size={32} />
+                  </ThemeIcon>
+                  <Text c="dimmed" fw={500} ta="center">
+                    {hasSearch ? t("Common.NoResults") : t("Databases.Empty.NoInstalled")}
+                  </Text>
+                  {!hasSearch && (
+                    <Text c="dimmed" size="sm" ta="center">
+                      {t("Databases.Empty.AddHint")}
+                    </Text>
+                  )}
+                </Stack>
+              </Center>
+            )}
           </Stack>
         </Paper>
 
