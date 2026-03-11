@@ -1,6 +1,6 @@
 import { Button, Modal, SimpleGrid, Stack, Text, Textarea, TextInput } from "@mantine/core";
 import { useLoaderData } from "@tanstack/react-router";
-import { resolve } from "@tauri-apps/api/path";
+import { resolve, dirname } from "@tauri-apps/api/path";
 import { exists, mkdir, rename, writeTextFile } from "@tauri-apps/plugin-fs";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -22,12 +22,14 @@ export function CreateModal({
   files,
   setFiles,
   setSelected,
+  selected,
 }: {
   opened: boolean;
   setOpened: (opened: boolean) => void;
   files: (FileMetadata | Directory)[];
   setFiles: (files: (FileMetadata | Directory)[]) => void;
-  setSelected: React.Dispatch<React.SetStateAction<FileMetadata | null>>;
+  setSelected: React.Dispatch<React.SetStateAction<FileMetadata | Directory | null>>;
+  selected: FileMetadata | Directory | null;
 }) {
   const { t } = useTranslation();
 
@@ -44,11 +46,20 @@ export function CreateModal({
       return;
     }
 
+    let targetDir = documentDir;
+    if (selected) {
+      if (selected.type === "directory") {
+        targetDir = selected.path;
+      } else {
+        targetDir = await dirname(selected.path);
+      }
+    }
+
     const newFile = await createFile({
       filename: trimmedFilename,
       filetype,
       pgn,
-      dir: documentDir,
+      dir: targetDir,
     });
     if (newFile.isErr) {
       setError(newFile.error.message);
@@ -125,7 +136,7 @@ export function EditModal({
   opened: boolean;
   setOpened: (opened: boolean) => void;
   mutate: () => void;
-  setSelected: React.Dispatch<React.SetStateAction<FileMetadata | null>>;
+  setSelected: React.Dispatch<React.SetStateAction<FileMetadata | Directory | null>>;
   metadata: FileMetadata;
 }) {
   const { t } = useTranslation();
@@ -211,10 +222,12 @@ export function CreateDirectoryModal({
   opened,
   setOpened,
   mutate,
+  selected,
 }: {
   opened: boolean;
   setOpened: (opened: boolean) => void;
   mutate: () => void;
+  selected: FileMetadata | Directory | null;
 }) {
   const { t } = useTranslation();
   const [name, setName] = useState("");
@@ -228,7 +241,15 @@ export function CreateDirectoryModal({
       return;
     }
     try {
-      const newPath = await resolve(documentDir, trimmed);
+      let targetDir = documentDir;
+      if (selected) {
+        if (selected.type === "directory") {
+          targetDir = selected.path;
+        } else {
+          targetDir = await dirname(selected.path);
+        }
+      }
+      const newPath = await resolve(targetDir, trimmed);
       if (await exists(newPath)) {
         setError(t("Files.CreateDirectory.AlreadyExists"));
         return;
