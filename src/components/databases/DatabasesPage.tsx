@@ -198,7 +198,7 @@ export default function DatabasesPage() {
                 <Divider />
               </>
             )}
-            <ScrollArea flex={1} offsetScrollbars>
+            <ScrollArea flex={1}>
               <SimpleGrid cols={{ base: 1, md: 2 }} spacing={{ base: "md", md: "sm" }} p="xs">
                 {isLoading && (
                   <>

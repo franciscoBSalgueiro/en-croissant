@@ -94,7 +94,7 @@ export default function EnginesPage() {
   }, [engines, search]);
 
   return (
-    <Stack h="100%" px="lg" pb="lg">
+    <Stack h="100%" px="md" pb="md">
       <AddEngine opened={opened} setOpened={setOpened} />
       <Group align="baseline" py="sm">
         <Title>{t("Engines.Title")}</Title>
@@ -119,7 +119,7 @@ export default function EnginesPage() {
               </Tooltip>
             </Group>
             <Divider />
-            <ScrollArea flex={1} offsetScrollbars>
+            <ScrollArea flex={1}>
               <SimpleGrid cols={{ base: 1, md: 2 }} spacing={{ base: "md", md: "sm" }} p="xs">
                 {filteredEngines.map(({ item, index }) => {
                   const stats =
