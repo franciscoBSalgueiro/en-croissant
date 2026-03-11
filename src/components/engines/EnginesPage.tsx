@@ -96,13 +96,13 @@ export default function EnginesPage() {
   const hasEngines = engines.length > 0;
 
   return (
-    <Stack h="100%" px="md" pb="md">
+    <Stack h="100%">
       <AddEngine opened={opened} setOpened={setOpened} />
-      <Group align="baseline" py="sm">
+      <Group align="baseline" py="sm" pl="lg">
         <Title>{t("Engines.Title")}</Title>
         <OpenFolderButton base="Engines" folder="engines" />
       </Group>
-      <Group grow flex={1} style={{ overflow: "hidden" }} align="start">
+      <Group grow flex={1} style={{ overflow: "hidden" }} align="start" px="md" pb="md">
         <Paper withBorder style={{ borderWidth: 2 }} h="100%">
           <Stack gap={0} h="100%" style={{ overflow: "hidden" }}>
             <Group p="xs" gap="xs">
