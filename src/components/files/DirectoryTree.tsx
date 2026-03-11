@@ -44,6 +44,8 @@ type DragContextType = {
 export const DragContext = createContext<DragContextType | null>(null);
 
 const DRAG_START_THRESHOLD_PX = 8;
+const TREE_BASE_PADDING_PX = 8;
+const TREE_INDENT_PX = 16;
 
 function flattenFiles(files: (FileMetadata | Directory)[]): (FileMetadata | Directory)[] {
   return files.flatMap((f) => (f.type === "directory" ? flattenFiles(f.children) : [f]));
@@ -408,7 +410,7 @@ function DirectoryNode({
             [classes.dragOver]: isOver,
           })}
           style={{
-            paddingLeft: 8 + depth * 16,
+            paddingLeft: TREE_BASE_PADDING_PX + depth * TREE_INDENT_PX,
             opacity: isDraggingNode ? 0.5 : 1,
             zIndex: isDraggingNode ? 50 : 1,
             position: "relative",
@@ -453,6 +455,16 @@ function DirectoryNode({
             },
           ])}
         >
+          {depth > 0 && (
+            <div
+              aria-hidden
+              className={classes.guides}
+              style={{
+                left: TREE_BASE_PADDING_PX + TREE_INDENT_PX / 2,
+                width: depth * TREE_INDENT_PX,
+              }}
+            />
+          )}
           <div
             className={classes.iconContainer}
             onClick={(e) => {

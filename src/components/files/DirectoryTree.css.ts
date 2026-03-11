@@ -11,6 +11,7 @@ export const row = style({
     display: "flex",
     alignItems: "center",
     cursor: "pointer",
+    position: "relative",
     paddingTop: rem(5),
     paddingBottom: rem(5),
     minHeight: rem(32),
@@ -25,6 +26,23 @@ export const row = style({
         "&:hover": {
             backgroundColor: vars.colors.dark[4],
         },
+    },
+});
+
+export const guides = style({
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    opacity: 0.28,
+    pointerEvents: "none",
+    backgroundPosition: "left top",
+    backgroundRepeat: "repeat-x",
+    backgroundSize: `${rem(16)} 100%`,
+    [vars.lightSelector]: {
+        backgroundImage: `linear-gradient(to right, ${vars.colors.gray[3]} 1px, transparent 1px)`,
+    },
+    [vars.darkSelector]: {
+        backgroundImage: `linear-gradient(to right, ${vars.colors.dark[2]} 1px, transparent 1px)`,
     },
 });
 
