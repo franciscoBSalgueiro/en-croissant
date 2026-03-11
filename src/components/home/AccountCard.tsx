@@ -19,6 +19,7 @@ import {
   IconRefresh,
   IconTrash,
 } from "@tabler/icons-react";
+import { basename } from "@tauri-apps/api/path";
 import { resolve } from "@tauri-apps/api/path";
 import { info } from "@tauri-apps/plugin-log";
 import { useAtom } from "jotai";
@@ -26,7 +27,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { DatabaseInfo } from "@/bindings";
 import { commands, events } from "@/bindings";
-import { storedDatabasesDirAtom } from "@/state/atoms";
+import { databaseConversionStateAtom, storedDatabasesDirAtom } from "@/state/atoms";
 import { downloadChessCom } from "@/utils/chess.com/api";
 import { getDatabases, query_games } from "@/utils/db";
 import { capitalize } from "@/utils/format";
@@ -98,6 +99,7 @@ export function AccountCard({
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
   const [databaseDir] = useAtom(storedDatabasesDirAtom);
+  const [, setConversionState] = useAtom(databaseConversionStateAtom);
 
   async function convert(filepath: string, timestamp: number | null) {
     info(`converting ${filepath} ${timestamp}`);
@@ -109,6 +111,14 @@ export function AccountCard({
         .pop()
         ?.replace(".pgn", ".db3")}`,
     );
+    const sourceFileName = await basename(filepath);
+    setConversionState((prev) => ({
+      ...prev,
+      inProgress: true,
+      targetDatabasePath: dbPath,
+      targetDatabaseTitle: filename,
+      sourceFileName,
+    }));
     unwrap(
       await commands.convertPgn(
         filepath,
@@ -220,6 +230,16 @@ export function AccountCard({
                     await commands.deleteEmptyGames(dbPath);
                   } catch (e) {
                     console.error(e);
+                  } finally {
+                    setConversionState((prev) => ({
+                      ...prev,
+                      inProgress: false,
+                      totalGames: 0,
+                      elapsedSeconds: 0,
+                      targetDatabasePath: null,
+                      targetDatabaseTitle: null,
+                      sourceFileName: null,
+                    }));
                   }
                   setLoading(false);
                 }}

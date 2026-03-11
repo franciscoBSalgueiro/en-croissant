@@ -276,7 +276,7 @@ function FilesPage() {
                 <Chip
                   variant="outline"
                   key={type}
-                  size="xs"
+                  size="sm"
                   checked={filter === type}
                   onChange={(checked) => setFilter(checked ? type : null)}
                 >
