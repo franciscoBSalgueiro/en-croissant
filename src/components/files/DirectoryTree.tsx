@@ -412,7 +412,7 @@ function DirectoryNode({
           style={{
             paddingLeft: TREE_BASE_PADDING_PX + depth * TREE_INDENT_PX,
             opacity: isDraggingNode ? 0.5 : 1,
-            zIndex: isDraggingNode ? 50 : 1,
+            zIndex: isDraggingNode ? 50 : undefined,
             position: "relative",
           }}
           onClick={(e) => {
