@@ -11,11 +11,9 @@ export const row = style({
     display: "flex",
     alignItems: "center",
     cursor: "pointer",
-    paddingTop: rem(4),
-    paddingBottom: rem(4),
-    margin: `${rem(2)} ${rem(8)}`,
-    borderRadius: vars.radius.sm,
-    minHeight: rem(26),
+    paddingTop: rem(5),
+    paddingBottom: rem(5),
+    minHeight: rem(32),
     color: vars.colors.dark[0],
     [vars.lightSelector]: {
         color: vars.colors.gray[7],
@@ -34,6 +32,7 @@ export const selected = style({
     [vars.lightSelector]: {
         backgroundColor: vars.colors.gray[3],
         color: vars.colors.dark[0],
+        boxShadow: `inset 2px 0 0 ${vars.colors.primaryColors[5]}`,
         "&:hover": {
             backgroundColor: vars.colors.gray[4],
         },
@@ -41,6 +40,7 @@ export const selected = style({
     [vars.darkSelector]: {
         backgroundColor: vars.colors.dark[5],
         color: vars.colors.gray[0],
+        boxShadow: `inset 2px 0 0 ${vars.colors.primaryColors[7]}`,
         "&:hover": {
             backgroundColor: vars.colors.dark[4],
         },
@@ -76,7 +76,7 @@ export const label = style({
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
-    fontSize: rem(13),
+    fontSize: rem(14),
 });
 
 export const badge = style({
