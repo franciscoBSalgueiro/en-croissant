@@ -24,7 +24,7 @@ import {
   createContext,
   useContext,
 } from "react";
-import { activeTabAtom, deckAtomFamily, tabsAtom } from "@/state/atoms";
+import { activeTabAtom, deckAtomFamily, tabsAtom, expandedDirectoriesAtom } from "@/state/atoms";
 import { openFile } from "@/utils/files";
 import * as classes from "./DirectoryTree.css";
 import type { Directory, FileMetadata } from "./file";
@@ -181,7 +181,7 @@ function Tree({
   onRequestDelete: (file: FileMetadata | Directory) => void;
   expandedByDefault?: boolean;
 }) {
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [expandedIds, setExpandedIds] = useAtom(expandedDirectoriesAtom);
   const navigate = useNavigate();
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
@@ -198,11 +198,12 @@ function Tree({
   const toggleExpand = (path: string, event: React.MouseEvent) => {
     event.stopPropagation();
     setExpandedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(path)) {
-        next.delete(path);
+      const next = [...prev];
+      const index = next.indexOf(path);
+      if (index >= 0) {
+        next.splice(index, 1);
       } else {
-        next.add(path);
+        next.push(path);
       }
       return next;
     });
@@ -211,7 +212,7 @@ function Tree({
   return (
     <>
       {files.map((node) => {
-        const isExpanded = expandedByDefault || expandedIds.has(node.path);
+        const isExpanded = expandedByDefault || expandedIds.includes(node.path);
         const isSelected = selected?.path === node.path;
 
         return (
@@ -268,7 +269,7 @@ function DirectoryNode({
   isSelected: boolean;
   selectedFile: FileMetadata | Directory | null;
   isExpanded: boolean;
-  setExpandedIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+  setExpandedIds: React.Dispatch<React.SetStateAction<string[]>>;
   toggleExpand: (e: React.MouseEvent) => void;
   setSelectedFile: (file: FileMetadata | Directory | null) => void;
   handleOpenFile: (file: FileMetadata) => Promise<void>;
@@ -364,7 +365,7 @@ function DirectoryNode({
           ).catch(() => {});
         }
         await refreshDirectory();
-        setExpandedIds((prev) => new Set(prev).add(targetId as string));
+        setExpandedIds((prev) => (prev.includes(targetId!) ? prev : [...prev, targetId!]));
 
         if (selectedFile) {
           if (selectedFile.path === sourcePath) {

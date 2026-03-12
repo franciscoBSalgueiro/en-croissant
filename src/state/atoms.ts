@@ -67,6 +67,12 @@ export const activeTabAtom = atomWithStorage<string | null>(
     createJSONStorage(() => sessionStorage),
 );
 
+export const expandedDirectoriesAtom = atomWithStorage<string[]>(
+    "expanded-directories",
+    [],
+    createZodStorage(z.array(z.string()), sessionStorage),
+);
+
 export const currentTabAtom = atom(
     (get) => {
         const tabs = get(tabsAtom);
