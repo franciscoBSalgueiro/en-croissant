@@ -68,7 +68,7 @@ function PuzzleBoard({
     : "white";
   const [pendingMove, setPendingMove] = useState<NormalMove | null>(null);
 
-  const dests = chessgroundDests(pos!);
+  const dests = pos ? chessgroundDests(pos) : new Map();
   const turn = pos?.turn || "white";
   const showCoordinates = useAtomValue(showCoordinatesAtom);
 
