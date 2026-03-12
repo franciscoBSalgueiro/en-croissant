@@ -23,7 +23,7 @@ import {
 } from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
 import { readDir, remove } from "@tauri-apps/plugin-fs";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 import { capitalize } from "@/utils/format";
@@ -41,11 +41,9 @@ import {
 import { CreateDirectoryModal, CreateModal, EditModal } from "./Modals";
 
 const FILE_TYPES: FileType[] = ["game", "repertoire", "tournament", "puzzle", "other"];
+type Entry = FileMetadata | Directory;
 
-function findEntryByPath(
-  entries: (FileMetadata | Directory)[],
-  path: string,
-): FileMetadata | Directory | null {
+function findEntryByPath(entries: Entry[], path: string): Entry | null {
   for (const entry of entries) {
     if (entry.path === path) {
       return entry;
@@ -63,7 +61,7 @@ function findEntryByPath(
 }
 
 const useFileDirectory = (dir: string) => {
-  const { data, error, isLoading, mutate } = useSWR(["file-directory", dir], async () => {
+  const { data, error, isLoading, mutate } = useSWR<Entry[]>(["file-directory", dir], async () => {
     const entries = await readDir(dir);
     const allEntries = processEntriesRecursively(dir, entries);
 
@@ -84,7 +82,7 @@ function FilesPage() {
   const { files, isLoading, error, mutate } = useFileDirectory(documentDir);
 
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<FileMetadata | Directory | null>(null);
+  const [selected, setSelected] = useState<Entry | null>(null);
   const [games, setGames] = useState<Map<number, string>>(new Map());
   const [filter, setFilter] = useState<FileType | null>(null);
 
@@ -141,7 +139,7 @@ function FilesPage() {
   }, []);
 
   const checkHover = useCallback(
-    (e: MouseEvent) => {
+    (clientX: number, clientY: number) => {
       let hovered: string | null = null;
       let minArea = Infinity;
 
@@ -151,10 +149,10 @@ function FilesPage() {
       for (const [path, ref] of folderRefs.current.entries()) {
         const rect = ref.getBoundingClientRect();
         if (
-          e.clientX >= rect.left &&
-          e.clientX <= rect.right &&
-          e.clientY >= rect.top &&
-          e.clientY <= rect.bottom
+          clientX >= rect.left &&
+          clientX <= rect.right &&
+          clientY >= rect.top &&
+          clientY <= rect.bottom
         ) {
           const area = rect.width * rect.height;
           if (area < minArea) {
@@ -168,10 +166,10 @@ function FilesPage() {
       if (!hovered && dropzoneRef.current) {
         const rect = dropzoneRef.current.getBoundingClientRect();
         if (
-          e.clientX >= rect.left &&
-          e.clientX <= rect.right &&
-          e.clientY >= rect.top &&
-          e.clientY <= rect.bottom
+          clientX >= rect.left &&
+          clientX <= rect.right &&
+          clientY >= rect.top &&
+          clientY <= rect.bottom
         ) {
           hovered = documentDir;
         }
@@ -185,7 +183,7 @@ function FilesPage() {
   const dropzoneRef = useRef<HTMLDivElement>(null);
 
   const requestDelete = useCallback(
-    (entry: FileMetadata | Directory) => {
+    (entry: Entry) => {
       setSelected(entry);
       if (!deleteModal) {
         toggleDeleteModal();
@@ -194,15 +192,37 @@ function FilesPage() {
     [deleteModal, toggleDeleteModal],
   );
 
-  const dragContextValue = {
-    draggingPath,
-    setDraggingPath,
-    hoverPath,
-    setHoverPath,
-    registerFolder,
-    checkHover,
-    documentDir,
-  };
+  const refreshDirectory = useCallback(() => mutate(), [mutate]);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!selected) {
+      return;
+    }
+
+    if (selected.type === "directory") {
+      await remove(selected.path, { recursive: true });
+    } else {
+      await remove(selected.path);
+      await remove(selected.path.replace(".pgn", ".info")).catch(() => {});
+    }
+
+    await mutate();
+    toggleDeleteModal();
+    setSelected(null);
+  }, [selected, mutate, toggleDeleteModal]);
+
+  const dragContextValue = useMemo(
+    () => ({
+      draggingPath,
+      setDraggingPath,
+      hoverPath,
+      setHoverPath,
+      registerFolder,
+      checkHover,
+      documentDir,
+    }),
+    [draggingPath, hoverPath, registerFolder, checkHover, documentDir],
+  );
 
   return (
     <Stack h="100%">
@@ -286,17 +306,27 @@ function FilesPage() {
             </Group>
             <Divider />
             <ScrollArea flex={1}>
-              <DragContext.Provider value={dragContextValue}>
-                <DirectoryTree
-                  files={files}
-                  refreshDirectory={() => mutate()}
-                  selectedFile={selected}
-                  setSelectedFile={setSelected}
-                  onRequestDelete={requestDelete}
-                  search={search}
-                  filter={filter || ""}
-                />
-              </DragContext.Provider>
+              {error ? (
+                <Center h="100%">
+                  <Text c="red">Failed to load files.</Text>
+                </Center>
+              ) : isLoading ? (
+                <Center h="100%">
+                  <Text c="dimmed">Loading files...</Text>
+                </Center>
+              ) : (
+                <DragContext.Provider value={dragContextValue}>
+                  <DirectoryTree
+                    files={files}
+                    refreshDirectory={refreshDirectory}
+                    selectedFile={selected}
+                    setSelectedFile={setSelected}
+                    onRequestDelete={requestDelete}
+                    search={search}
+                    filter={filter || ""}
+                  />
+                </DragContext.Provider>
+              )}
             </ScrollArea>
           </Stack>
         </Paper>
@@ -310,17 +340,7 @@ function FilesPage() {
               })}
               opened={deleteModal}
               onClose={toggleDeleteModal}
-              onConfirm={async () => {
-                if (selected.type === "directory") {
-                  await remove(selected.path, { recursive: true });
-                } else {
-                  await remove(selected.path);
-                  await remove(selected.path.replace(".pgn", ".info")).catch(() => {});
-                }
-                mutate();
-                toggleDeleteModal();
-                setSelected(null);
-              }}
+              onConfirm={handleConfirmDelete}
             />
             {selected.type === "file" ? (
               <Paper withBorder style={{ borderWidth: 2 }} pt="md" h="100%">

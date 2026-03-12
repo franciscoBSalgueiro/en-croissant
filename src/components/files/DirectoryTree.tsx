@@ -14,7 +14,7 @@ import clsx from "clsx";
 import Fuse from "fuse.js";
 import { useAtom, useSetAtom } from "jotai";
 import { useContextMenu } from "mantine-contextmenu";
-import Draggable from "react-draggable";
+import Draggable, { type DraggableEvent } from "react-draggable";
 import {
   useCallback,
   useEffect,
@@ -37,7 +37,7 @@ type DragContextType = {
   hoverPath: string | null;
   setHoverPath: (path: string | null) => void;
   registerFolder: (path: string, ref: HTMLDivElement | null) => void;
-  checkHover: (e: MouseEvent) => void;
+  checkHover: (clientX: number, clientY: number) => void;
   documentDir: string;
 };
 
@@ -46,15 +46,40 @@ export const DragContext = createContext<DragContextType | null>(null);
 const DRAG_START_THRESHOLD_PX = 8;
 const TREE_BASE_PADDING_PX = 8;
 const TREE_INDENT_PX = 16;
+type Entry = FileMetadata | Directory;
+type ShowContextMenu = ReturnType<typeof useContextMenu>["showContextMenu"];
 
-function flattenFiles(files: (FileMetadata | Directory)[]): (FileMetadata | Directory)[] {
+function flattenFiles(files: Entry[]): Entry[] {
   return files.flatMap((f) => (f.type === "directory" ? flattenFiles(f.children) : [f]));
 }
 
-function recursiveSort(
-  files: (FileMetadata | Directory)[],
-  pruneEmpty = false,
-): (FileMetadata | Directory)[] {
+function filterTree(files: Entry[], predicate: (file: FileMetadata) => boolean): Entry[] {
+  return files
+    .map((file) => {
+      if (file.type === "file") {
+        return predicate(file) ? file : null;
+      }
+
+      const children = filterTree(file.children, predicate);
+      return children.length > 0 ? { ...file, children } : null;
+    })
+    .filter((file): file is Entry => file !== null);
+}
+
+function getEventPoint(event: DraggableEvent): { x: number; y: number } | null {
+  if ("clientX" in event && "clientY" in event) {
+    return { x: event.clientX, y: event.clientY };
+  }
+
+  if ("touches" in event && event.touches.length > 0) {
+    const touch = event.touches[0];
+    return { x: touch.clientX, y: touch.clientY };
+  }
+
+  return null;
+}
+
+function recursiveSort(files: Entry[], pruneEmpty = false): Entry[] {
   return files
     .map((f) => {
       if (f.type === "file") return f;
@@ -95,11 +120,11 @@ export default function DirectoryTree({
   search,
   filter,
 }: {
-  files: (FileMetadata | Directory)[] | undefined;
+  files: Entry[] | undefined;
   refreshDirectory: () => Promise<unknown>;
-  selectedFile: FileMetadata | Directory | null;
-  setSelectedFile: (file: FileMetadata | Directory | null) => void;
-  onRequestDelete: (file: FileMetadata | Directory) => void;
+  selectedFile: Entry | null;
+  setSelectedFile: (file: Entry | null) => void;
+  onRequestDelete: (file: Entry) => void;
   search: string;
   filter: string;
 }) {
@@ -112,42 +137,20 @@ export default function DirectoryTree({
     [flattedFiles],
   );
 
-  let filteredFiles = files ?? [];
+  const filteredFiles = useMemo(() => {
+    let next = files ?? [];
 
-  if (search) {
-    const searchResults = fuse.search(search);
-    filteredFiles = filteredFiles
-      .filter((f) => searchResults.some((r) => r.item.path.includes(f.path)))
-      .map((f) => {
-        if (f.type === "file") return f;
-        const children = f.children.filter((c) =>
-          searchResults.some((r) => r.item.path.includes(c.path)),
-        );
-        return {
-          ...f,
-          children,
-        };
-      });
-  }
-  if (filter) {
-    const typeFilteredFiles = flattedFiles.filter(
-      (f) => (f.type === "file" && f.metadata.type) === filter,
-    );
-    filteredFiles = filteredFiles
-      .filter((f) => typeFilteredFiles.some((r) => r.path.includes(f.path)))
-      .map((f) => {
-        if (f.type === "file") return f;
-        const children = f.children.filter((c) =>
-          typeFilteredFiles.some((r) => r.path.includes(c.path)),
-        );
-        return {
-          ...f,
-          children,
-        };
-      });
-  }
+    if (search) {
+      const searchMatches = new Set(fuse.search(search).map((result) => result.item.path));
+      next = filterTree(next, (file) => searchMatches.has(file.path));
+    }
 
-  filteredFiles = recursiveSort(filteredFiles, !!(search || filter));
+    if (filter) {
+      next = filterTree(next, (file) => file.metadata.type === filter);
+    }
+
+    return recursiveSort(next, !!(search || filter));
+  }, [files, search, filter, fuse]);
 
   return (
     <Box className={classes.tree}>
@@ -173,12 +176,12 @@ function Tree({
   onRequestDelete,
   expandedByDefault,
 }: {
-  files: (FileMetadata | Directory)[];
+  files: Entry[];
   depth: number;
   refreshDirectory: () => Promise<unknown>;
-  selected: FileMetadata | Directory | null;
-  setSelectedFile: (file: FileMetadata | Directory | null) => void;
-  onRequestDelete: (file: FileMetadata | Directory) => void;
+  selected: Entry | null;
+  setSelectedFile: (file: Entry | null) => void;
+  onRequestDelete: (file: Entry) => void;
   expandedByDefault?: boolean;
 }) {
   const [expandedIds, setExpandedIds] = useAtom(expandedDirectoriesAtom);
@@ -264,18 +267,18 @@ function DirectoryNode({
   showContextMenu,
   children,
 }: {
-  node: FileMetadata | Directory;
+  node: Entry;
   depth: number;
   isSelected: boolean;
-  selectedFile: FileMetadata | Directory | null;
+  selectedFile: Entry | null;
   isExpanded: boolean;
   setExpandedIds: React.Dispatch<React.SetStateAction<string[]>>;
   toggleExpand: (e: React.MouseEvent) => void;
-  setSelectedFile: (file: FileMetadata | Directory | null) => void;
+  setSelectedFile: (file: Entry | null) => void;
   handleOpenFile: (file: FileMetadata) => Promise<void>;
-  onRequestDelete: (file: FileMetadata | Directory) => void;
+  onRequestDelete: (file: Entry) => void;
   refreshDirectory: () => Promise<unknown>;
-  showContextMenu: any;
+  showContextMenu: ShowContextMenu;
   children?: React.ReactNode;
 }) {
   const rowRef = useRef<HTMLDivElement>(null);
@@ -287,26 +290,33 @@ function DirectoryNode({
   const [isDraggingNode, setIsDraggingNode] = useState(false);
 
   useEffect(() => {
-    if (node.type === "directory" && dragContext) {
-      dragContext.registerFolder(node.path, rowRef.current);
+    if (!dragContext || node.type !== "directory") {
+      return;
     }
+
+    dragContext.registerFolder(node.path, rowRef.current);
+
+    return () => {
+      dragContext.registerFolder(node.path, null);
+    };
   }, [node.path, node.type, dragContext]);
 
-  const onDragStart = (e: any) => {
+  const onDragStart = (e: DraggableEvent) => {
     didDragRef.current = false;
-    if (e && typeof e.clientX === "number" && typeof e.clientY === "number") {
-      dragStartPointRef.current = { x: e.clientX, y: e.clientY };
-    } else {
-      dragStartPointRef.current = null;
-    }
+    dragStartPointRef.current = getEventPoint(e);
   };
 
-  const onDragMove = (e: any) => {
+  const onDragMove = (e: DraggableEvent) => {
     if (!dragContext) return;
 
+    const point = getEventPoint(e);
+    if (!point) {
+      return;
+    }
+
     if (!didDragRef.current && dragStartPointRef.current) {
-      const dx = e.clientX - dragStartPointRef.current.x;
-      const dy = e.clientY - dragStartPointRef.current.y;
+      const dx = point.x - dragStartPointRef.current.x;
+      const dy = point.y - dragStartPointRef.current.y;
       const distance = Math.hypot(dx, dy);
 
       if (distance >= DRAG_START_THRESHOLD_PX) {
@@ -321,8 +331,7 @@ function DirectoryNode({
     }
 
     if (!isDraggingNode) setIsDraggingNode(true);
-    const evt = e as MouseEvent;
-    dragContext.checkHover(evt);
+    dragContext.checkHover(point.x, point.y);
   };
 
   const onDragStop = () => {
@@ -395,14 +404,14 @@ function DirectoryNode({
     !node.path.startsWith(dragContext?.draggingPath + "\\");
 
   return (
-    <div ref={node.type === "directory" ? rowRef : null}>
+    <>
       <Draggable
         position={{ x: 0, y: 0 }}
         onStart={onDragStart}
         onDrag={onDragMove}
         onStop={onDragStop}
         scale={1}
-        nodeRef={rowRef as any}
+        nodeRef={rowRef as React.RefObject<HTMLElement>}
       >
         <div
           ref={rowRef}
@@ -500,7 +509,7 @@ function DirectoryNode({
         </div>
       </Draggable>
       {children}
-    </div>
+    </>
   );
 }
 
