@@ -16,7 +16,7 @@ pub enum Error {
     Tauri(Box<tauri::Error>),
 
     #[error(transparent)]
-    TauriShell(Box<tauri_plugin_shell::Error>),
+    TauriOpener(Box<tauri_plugin_opener::Error>),
 
     #[error(transparent)]
     Reqwest(Box<reqwest::Error>),
@@ -118,9 +118,9 @@ impl From<tauri::Error> for Error {
     }
 }
 
-impl From<tauri_plugin_shell::Error> for Error {
-    fn from(value: tauri_plugin_shell::Error) -> Self {
-        Self::TauriShell(Box::new(value))
+impl From<tauri_plugin_opener::Error> for Error {
+    fn from(value: tauri_plugin_opener::Error) -> Self {
+        Self::TauriOpener(Box::new(value))
     }
 }
 

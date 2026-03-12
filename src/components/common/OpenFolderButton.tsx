@@ -1,7 +1,6 @@
 import { ActionIcon, Tooltip } from "@mantine/core";
 import { IconFolder } from "@tabler/icons-react";
-import { appDataDir, resolve } from "@tauri-apps/api/path";
-import { open } from "@tauri-apps/plugin-shell";
+import { openPath } from "@tauri-apps/plugin-opener";
 import { useTranslation } from "react-i18next";
 import { getDatabasesDir, getEnginesDir, getPuzzlesDir } from "@/utils/directories";
 
@@ -25,7 +24,7 @@ function OpenFolderButton({
     if (base === "Puzzles") {
       dir = await getPuzzlesDir();
     }
-    open(dir);
+    await openPath(dir);
   }
   return (
     <Tooltip label={t("Common.OpenFolder")}>
