@@ -96,7 +96,7 @@ function ShortcutInput({
       )}
       <ActionIcon
         variant="outline"
-        color="gray"
+        color="red"
         onClick={() => {
           stop();
         }}
@@ -105,7 +105,7 @@ function ShortcutInput({
       </ActionIcon>
       <ActionIcon
         variant="outline"
-        color="blue"
+        color="green"
         disabled={stringed === ""}
         onClick={() => {
           stop();

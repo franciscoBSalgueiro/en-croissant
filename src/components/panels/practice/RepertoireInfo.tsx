@@ -234,7 +234,7 @@ function RepertoireInfo() {
     return (
       <Stack p="sm">
         <TreeStatsBar stats={stats} t={t} />
-        <Alert icon={<IconInfoCircle />} color="blue">
+        <Alert icon={<IconInfoCircle />}>
           {t("Board.Practice.Build.NoRefDb")}
         </Alert>
       </Stack>
