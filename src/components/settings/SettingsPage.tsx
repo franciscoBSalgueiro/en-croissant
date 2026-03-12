@@ -68,7 +68,7 @@ import FontSizeSlider from "./FontSizeSlider";
 import KeybindInput from "./KeybindInput";
 import PiecesSelect from "./PiecesSelect";
 import RepertoireMinGamesSetting from "./RepertoireMinGamesSetting";
-import * as classes from "./SettingsPage.css";
+import classes from "./SettingsPage.module.css";
 import SettingsSwitch from "./SettingsSwitch";
 import SoundSelect from "./SoundSelect";
 import ThemeButton from "./ThemeButton";

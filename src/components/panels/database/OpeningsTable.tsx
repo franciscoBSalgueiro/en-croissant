@@ -8,7 +8,7 @@ import { moveNotationTypeAtom } from "@/state/atoms";
 import { addPieceSymbol } from "@/utils/annotation";
 import type { Opening } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
-import * as classes from "./OpeningsTable.css";
+import classes from "./OpeningsTable.module.css";
 
 function OpeningsTable({ openings, loading }: { openings: Opening[]; loading: boolean }) {
   const store = useContext(TreeStateContext)!;

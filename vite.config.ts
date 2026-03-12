@@ -1,6 +1,5 @@
 /// <reference types="vitest/config" />
 import { resolve } from "node:path";
-import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
 import react from "@vitejs/plugin-react";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import { defineConfig } from "vite";
@@ -20,7 +19,6 @@ export default defineConfig({
                 plugins: ["babel-plugin-react-compiler"],
             },
         }),
-        vanillaExtractPlugin(),
     ],
     server: {
         port: 1420,

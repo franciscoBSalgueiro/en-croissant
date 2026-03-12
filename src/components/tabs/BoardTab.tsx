@@ -5,7 +5,7 @@ import cx from "clsx";
 import { useEffect } from "react";
 import type { Tab } from "@/utils/tabs";
 import { InlineInput } from "../common/InlineInput";
-import * as classes from "./BoardTab.css";
+import classes from "./BoardTab.module.css";
 
 export function BoardTab({
   tab,

@@ -22,7 +22,7 @@ import { skipWhile, takeWhile } from "@/utils/misc";
 import { getGamePhases } from "@/utils/phase";
 import { formatScore } from "@/utils/score";
 import { type ListNode, type TreeNode, treeIteratorMainLine } from "@/utils/treeReducer";
-import * as classes from "./EvalChart.css";
+import classes from "./EvalChart.module.css";
 import { TreeStateContext } from "./TreeStateContext";
 
 interface EvalChartProps {

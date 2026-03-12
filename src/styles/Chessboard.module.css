@@ -1,0 +1,41 @@
+.chessboard {
+  position: relative;
+  flex: 1;
+  z-index: 1;
+  display: flex;
+  aspect-ratio: 1;
+}
+
+[data-mantine-color-scheme="dark"]
+  .chessboard
+  > :global(.cg-wrap)
+  > :global(cg-container)
+  > :global(cg-board)
+  > :global(square.last-move) {
+  background-color: color-mix(
+    in srgb,
+    var(--light-color, var(--mantine-primary-color-5)) 40%,
+    transparent
+  );
+}
+
+[data-mantine-color-scheme="light"]
+  .chessboard
+  > :global(.cg-wrap)
+  > :global(cg-container)
+  > :global(cg-board)
+  > :global(square.last-move) {
+  background-color: color-mix(
+    in srgb,
+    var(--dark-color, var(--mantine-primary-color-3)) 40%,
+    transparent
+  );
+}
+
+.chessboard
+  > :global(.cg-wrap)
+  > :global(cg-container)
+  > :global(cg-board)
+  > :global(square.current-premove) {
+  background-color: rgba(20, 30, 85, 0.5) !important;
+}

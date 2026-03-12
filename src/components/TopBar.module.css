@@ -1,0 +1,16 @@
+.icon {
+  transition: background-color 100ms ease;
+}
+
+.icon:hover {
+  background-color: var(--mantine-color-dark-5);
+}
+
+.close {
+  transition: background-color 100ms ease;
+}
+
+.close:hover {
+  background-color: var(--mantine-color-red-7);
+  color: var(--mantine-color-white);
+}

@@ -1,0 +1,58 @@
+[data-mantine-color-scheme="dark"] cg-board square.selected {
+  background: color-mix(in srgb, var(--mantine-primary-color-5) 50%, transparent);
+}
+[data-mantine-color-scheme="light"] cg-board square.selected {
+  background: color-mix(in srgb, var(--mantine-primary-color-3) 50%, transparent);
+}
+
+cg-board square.move-dest {
+  background: radial-gradient(rgba(0, 0, 0, 0.3) 25%, rgba(0, 0, 0, 0) 0);
+}
+
+[data-mantine-color-scheme="dark"] cg-board square.move-dest:hover {
+  background: color-mix(in srgb, var(--mantine-primary-color-5) 60%, transparent) !important;
+}
+[data-mantine-color-scheme="light"] cg-board square.move-dest:hover {
+  background: color-mix(in srgb, var(--mantine-primary-color-3) 60%, transparent) !important;
+}
+
+cg-board square.move-dest:hover {
+  border-radius: 0;
+  padding: 0;
+}
+
+cg-board square.oc.move-dest {
+  background: none;
+  border: 5px solid rgba(0, 0, 0, 0.3);
+  border-radius: 0;
+}
+
+[data-mantine-color-scheme="dark"] cg-board square.oc.move-dest:hover {
+  background: color-mix(in srgb, var(--mantine-primary-color-5) 60%, transparent);
+}
+[data-mantine-color-scheme="light"] cg-board square.oc.move-dest:hover {
+  background: color-mix(in srgb, var(--mantine-primary-color-3) 60%, transparent);
+}
+
+cg-board square.oc.move-dest:hover {
+  border-radius: 0;
+}
+
+* {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+:focus {
+  outline: none;
+}
+
+html,
+body {
+  overscroll-behavior: none;
+  overflow: auto;
+}
+
+.mantine-ScrollArea-viewport {
+  overscroll-behavior: none;
+}

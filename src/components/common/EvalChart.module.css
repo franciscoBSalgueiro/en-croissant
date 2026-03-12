@@ -1,0 +1,21 @@
+.tooltip {
+  margin: 0;
+  padding: 5px;
+  opacity: 0.8;
+  border: 1px solid #ccc;
+  white-space: nowrap;
+}
+
+[data-mantine-color-scheme="light"] .tooltip {
+  background-color: var(--mantine-color-white);
+  color: var(--mantine-color-black);
+}
+
+[data-mantine-color-scheme="dark"] .tooltip {
+  background-color: var(--mantine-color-dark-3);
+  color: var(--mantine-color-white);
+}
+
+.tooltipTitle {
+  font-weight: bold;
+}

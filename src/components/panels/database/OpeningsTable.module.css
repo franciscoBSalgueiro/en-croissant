@@ -1,0 +1,15 @@
+[data-mantine-color-scheme="light"] .result {
+  outline: 1px solid var(--mantine-color-gray-3);
+}
+
+[data-mantine-color-scheme="dark"] .result {
+  outline: 1px solid var(--mantine-color-gray-8);
+}
+
+[data-mantine-color-scheme="light"] .whiteResultsSection {
+  background-color: var(--mantine-color-gray-1);
+}
+
+[data-mantine-color-scheme="dark"] .whiteResultsSection {
+  background-color: var(--mantine-color-white);
+}

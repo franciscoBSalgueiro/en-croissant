@@ -31,7 +31,7 @@ import GameCard from "./GameCard";
 import GridLayout from "./GridLayout";
 import { PlayerSearchInput } from "./PlayerSearchInput";
 import { SideInput } from "./SideInput";
-import * as classes from "./styles.css";
+import classes from "./styles.module.css";
 
 function GameTable() {
   const { t } = useTranslation();

@@ -12,7 +12,7 @@ import { createTab } from "@/utils/tabs";
 import { getTimeControl } from "@/utils/timeControl";
 import { countMainPly, defaultTree } from "@/utils/treeReducer";
 import { unwrap } from "@/utils/unwrap";
-import * as classes from "./OpeningsPanel.css";
+import classes from "./OpeningsPanel.module.css";
 import ResultsChart from "./ResultsChart";
 import TimeControlSelector from "./TimeControlSelector";
 import WebsiteAccountSelector from "./WebsiteAccountSelector";

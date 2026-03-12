@@ -1,0 +1,71 @@
+.tab {
+  padding-right: 9px;
+  height: 2.2rem;
+}
+
+[data-mantine-color-scheme="light"] .tab {
+  background-color: transparent;
+  color: var(--mantine-color-gray-7);
+}
+
+[data-mantine-color-scheme="dark"] .tab {
+  background-color: transparent;
+  color: var(--mantine-color-gray-4);
+}
+
+[data-mantine-color-scheme="light"] .tab:hover {
+  background-color: var(--mantine-color-gray-2);
+}
+
+[data-mantine-color-scheme="dark"] .tab:hover {
+  background-color: var(--mantine-color-dark-6);
+}
+
+.tab:active {
+  transform: unset;
+}
+
+.selected {
+  border-top: 2px solid var(--mantine-primary-color-filled);
+  border-bottom: 2px solid transparent;
+}
+
+[data-mantine-color-scheme="light"] .selected {
+  background-color: var(--mantine-color-white);
+}
+
+[data-mantine-color-scheme="dark"] .selected {
+  background-color: var(--mantine-color-dark-7);
+}
+
+[data-mantine-color-scheme="light"] .selected:hover {
+  background-color: var(--mantine-color-white);
+}
+
+[data-mantine-color-scheme="dark"] .selected:hover {
+  background-color: var(--mantine-color-dark-7);
+}
+
+.input {
+  all: unset;
+  min-width: 5rem;
+  font-size: 0.8rem;
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+  outline: none;
+  text-align: start;
+}
+
+.closeTabBtn {
+  box-sizing: content-box;
+  padding: 0.3rem;
+  transition: background-color 100ms ease;
+}
+
+[data-mantine-color-scheme="light"] .closeTabBtn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+[data-mantine-color-scheme="dark"] .closeTabBtn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}

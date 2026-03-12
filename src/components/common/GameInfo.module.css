@@ -1,0 +1,85 @@
+.colorHover:hover {
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.input {
+  all: unset;
+  text-align: center;
+}
+
+.textInput {
+  all: unset;
+  outline: none;
+}
+
+.textInput:disabled {
+  cursor: default;
+  background-color: transparent;
+  user-select: none;
+}
+
+.nameInput {
+  padding: 0;
+  font-weight: 500;
+  line-height: 0;
+  height: auto;
+}
+
+.nameInput:disabled {
+  cursor: default;
+  background-color: transparent;
+}
+
+[data-mantine-color-scheme="light"] .nameInput:disabled {
+  color: var(--mantine-color-gray-0);
+}
+
+[data-mantine-color-scheme="dark"] .nameInput:disabled {
+  color: var(--mantine-color-black);
+}
+
+.eloInput {
+  all: unset;
+  height: auto;
+  opacity: 75%;
+  padding: 0;
+  line-height: 0;
+}
+
+.eloInput:disabled {
+  cursor: default;
+  background-color: transparent;
+}
+
+[data-mantine-color-scheme="light"] .eloInput:disabled {
+  color: var(--mantine-color-gray-0);
+}
+
+[data-mantine-color-scheme="dark"] .eloInput:disabled {
+  color: var(--mantine-color-black);
+}
+
+.right {
+  text-align: right;
+}
+
+.dateInput {
+  text-align: center;
+}
+
+.dateInput:disabled {
+  cursor: default;
+  background-color: transparent;
+}
+
+.roundInput {
+  all: unset;
+  font-size: var(--mantine-font-size-md);
+  width: 3rem;
+}
+
+.roundInput:disabled {
+  cursor: default;
+  background-color: transparent;
+}

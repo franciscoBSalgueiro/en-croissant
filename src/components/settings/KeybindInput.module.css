@@ -1,0 +1,7 @@
+[data-mantine-color-scheme="dark"] .kbd {
+  background-color: var(--mantine-color-dark-6);
+}
+
+[data-mantine-color-scheme="light"] .kbd {
+  background-color: var(--mantine-color-gray-2);
+}

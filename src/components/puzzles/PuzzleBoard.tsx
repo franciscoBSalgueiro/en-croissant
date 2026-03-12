@@ -9,7 +9,7 @@ import { useContext, useState } from "react";
 import { useStore } from "zustand";
 import { Chessground } from "@/chessground/Chessground";
 import { jumpToNextPuzzleAtom, moveHighlightAtom, showCoordinatesAtom } from "@/state/atoms";
-import { chessboard } from "@/styles/Chessboard.css";
+import classes from "@/styles/Chessboard.module.css";
 import { positionFromFen } from "@/utils/chessops";
 import type { Completion, Puzzle } from "@/utils/puzzles";
 import { getNodeAtPath, treeIteratorMainLine } from "@/utils/treeReducer";
@@ -116,7 +116,7 @@ function PuzzleBoard({
   return (
     <Box w="100%" h="100%" ref={parentRef}>
       <Box
-        className={chessboard}
+        className={classes.chessboard}
         style={{
           maxWidth: parentHeight,
         }}
