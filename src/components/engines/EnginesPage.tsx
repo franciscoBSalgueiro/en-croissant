@@ -60,6 +60,7 @@ export default function EnginesPage() {
   const { t } = useTranslation();
 
   const [engines, setEngines] = useAtom(enginesAtom);
+  const enginesList = useMemo(() => engines ?? [], [engines]);
   const [opened, setOpened] = useState(false);
   const [search, setSearch] = useState("");
   const { selected } = Route.useSearch();
@@ -68,12 +69,10 @@ export default function EnginesPage() {
     navigate({ to: "/engines", search: { selected: v ?? undefined } });
   };
 
-  if (!engines) return null;
-
-  const selectedEngine = selected !== undefined ? engines[selected] : null;
+  const selectedEngine = selected !== undefined ? enginesList[selected] : null;
   const filteredEngines = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
-    const indexedEngines = engines.map((item, index) => ({ item, index }));
+    const indexedEngines = enginesList.map((item, index) => ({ item, index }));
 
     if (!normalizedSearch) {
       return indexedEngines;
@@ -91,9 +90,9 @@ export default function EnginesPage() {
 
       return values.some((value) => value.toLowerCase().includes(normalizedSearch));
     });
-  }, [engines, search]);
+  }, [enginesList, search]);
   const hasSearch = search.trim().length > 0;
-  const hasEngines = engines.length > 0;
+  const hasEngines = enginesList.length > 0;
 
   return (
     <Stack h="100%">
