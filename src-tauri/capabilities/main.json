@@ -12,8 +12,15 @@
         "core:window:allow-toggle-maximize",
         "core:window:allow-minimize",
         "core:window:allow-close",
-        "shell:default",
         "opener:default",
+        {
+            "identifier": "opener:allow-open-path",
+            "allow": [
+                {
+                    "path": "**"
+                }
+            ]
+        },
         "dialog:default",
         "os:default",
         "cli:default",

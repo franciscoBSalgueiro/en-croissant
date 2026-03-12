@@ -16,9 +16,6 @@ pub enum Error {
     Tauri(Box<tauri::Error>),
 
     #[error(transparent)]
-    TauriShell(Box<tauri_plugin_shell::Error>),
-
-    #[error(transparent)]
     TauriOpener(Box<tauri_plugin_opener::Error>),
 
     #[error(transparent)]
@@ -118,12 +115,6 @@ impl From<std::num::ParseIntError> for Error {
 impl From<tauri::Error> for Error {
     fn from(value: tauri::Error) -> Self {
         Self::Tauri(Box::new(value))
-    }
-}
-
-impl From<tauri_plugin_shell::Error> for Error {
-    fn from(value: tauri_plugin_shell::Error) -> Self {
-        Self::TauriShell(Box::new(value))
     }
 }
 
