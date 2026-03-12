@@ -18,16 +18,19 @@ export const row = style({
 });
 
 export const active = style({
-    fontWeight: 600,
-    borderLeft: `3px solid ${vars.colors.primary}`,
+    fontWeight: 500,
+    borderLeft: "3px solid transparent",
     [vars.lightSelector]: {
-        backgroundColor: vars.colors.gray[1],
+        backgroundColor: vars.colors.primaryColors[0],
+        color: vars.colors.dark[8],
+        boxShadow: `inset 3px 0 0 ${vars.colors.primaryColors[6]}, inset 0 0 0 1px ${vars.colors.primaryColors[2]}`,
         "&:hover": {
-            backgroundColor: vars.colors.gray[2],
+            backgroundColor: vars.colors.primaryColors[1],
         },
     },
     [vars.darkSelector]: {
         backgroundColor: vars.colors.dark[5],
+        borderLeftColor: vars.colors.primaryColors[7],
         "&:hover": {
             backgroundColor: vars.colors.dark[4],
         },

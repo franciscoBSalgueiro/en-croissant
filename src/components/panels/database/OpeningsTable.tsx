@@ -8,6 +8,7 @@ import { moveNotationTypeAtom } from "@/state/atoms";
 import { addPieceSymbol } from "@/utils/annotation";
 import type { Opening } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
+import * as classes from "./OpeningsTable.css";
 
 function OpeningsTable({ openings, loading }: { openings: Opening[]; loading: boolean }) {
   const store = useContext(TreeStateContext)!;
@@ -87,8 +88,8 @@ function OpeningsTable({ openings, loading }: { openings: Opening[]; loading: bo
             const drawPercent = (draw / total) * 100;
             const blackPercent = (black / total) * 100;
             return (
-              <Progress.Root size="xl">
-                <Progress.Section value={whitePercent} color="white">
+              <Progress.Root size="xl" className={classes.result}>
+                <Progress.Section value={whitePercent} className={classes.whiteResultsSection}>
                   <Progress.Label c="black">
                     {whitePercent > 10 ? `${whitePercent.toFixed(1)}%` : ""}
                   </Progress.Label>

@@ -118,7 +118,12 @@ function Accounts() {
       />
       {sessions.length > 0 && (
         <Group>
-          <Button rightSection={<IconPlus size="1rem" />} onClick={() => setOpen(true)}>
+          <Button
+            fullWidth
+            variant="light"
+            rightSection={<IconPlus size="1rem" />}
+            onClick={() => setOpen(true)}
+          >
             {t("Home.Accounts.Add")}
           </Button>
         </Group>

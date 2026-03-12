@@ -19,7 +19,7 @@ export const row = style({
     [vars.lightSelector]: {
         color: vars.colors.gray[7],
         "&:hover": {
-            backgroundColor: vars.colors.gray[2],
+            backgroundColor: vars.colors.gray[1],
         },
     },
     [vars.darkSelector]: {
@@ -48,11 +48,12 @@ export const guides = style({
 
 export const selected = style({
     [vars.lightSelector]: {
-        backgroundColor: vars.colors.gray[3],
-        color: vars.colors.dark[0],
-        boxShadow: `inset 2px 0 0 ${vars.colors.primaryColors[5]}`,
+        backgroundColor: vars.colors.primaryColors[0],
+        color: vars.colors.dark[8],
+        boxShadow: `inset 3px 0 0 ${vars.colors.primaryColors[6]}, inset 0 0 0 1px ${vars.colors.primaryColors[2]}`,
+        fontWeight: 500,
         "&:hover": {
-            backgroundColor: vars.colors.gray[4],
+            backgroundColor: vars.colors.primaryColors[1],
         },
     },
     [vars.darkSelector]: {
