@@ -1,21 +1,24 @@
 import { Combobox, Group, InputBase, Loader, ScrollArea, Text, useCombobox } from "@mantine/core";
 import { type FenError, parseFen } from "chessops/fen";
-import { useContext, useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import useSWRImmutable from "swr/immutable";
 import { useStore } from "zustand";
 import { commands } from "@/bindings";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { chessopsError } from "@/utils/chessops";
 
-export default function FenSearch({ currentFen }: { currentFen: string }) {
+export default function FenSearch({ currentFen: currentFenInput }: { currentFen?: string }) {
   const combobox = useCombobox({
     onDropdownClose: () => combobox.resetSelectedOption(),
   });
 
   const [error, setError] = useState<FenError | undefined>(undefined);
-  const store = useContext(TreeStateContext)!;
+  const store = use(TreeStateContext)!;
+  const fen = useStore(store, (s) => s.currentNode().fen);
   const headers = useStore(store, (s) => s.headers);
   const setHeaders = useStore(store, (s) => s.setHeaders);
+
+  const currentFen = currentFenInput ?? fen;
 
   function addFen(fen: string, chess960: boolean) {
     if (fen) {
@@ -36,14 +39,16 @@ export default function FenSearch({ currentFen }: { currentFen: string }) {
 
   const [value, setValue] = useState<string | null>(null);
   const [search, setSearch] = useState(currentFen);
+  const [hasTyped, setHasTyped] = useState(false);
 
   useEffect(() => {
     setValue(currentFen);
     setSearch(currentFen);
+    setHasTyped(false);
   }, [currentFen]);
 
   const { data, isLoading } = useSWRImmutable(
-    ["search_opening_name", search],
+    hasTyped ? ["search_opening_name", search] : null,
     async ([, search]) => {
       const res = await commands.searchOpeningName(search);
       if (res.status === "ok") {
@@ -95,6 +100,7 @@ export default function FenSearch({ currentFen }: { currentFen: string }) {
           onChange={(event) => {
             combobox.openDropdown();
             combobox.updateSelectedOptionIndex();
+            setHasTyped(true);
             setSearch(event.currentTarget.value);
           }}
           onClick={() => combobox.openDropdown()}

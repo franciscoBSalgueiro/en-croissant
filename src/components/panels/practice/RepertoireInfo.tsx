@@ -35,7 +35,7 @@ import {
   computeTreeCoverage,
   findBiggestGap,
   findNextGap,
-  getTreeStats,
+  getStats,
   type PositionMove,
 } from "@/utils/repertoire";
 import { getNodeAtPath, getTreeStructureHash, type TreeNode } from "@/utils/treeReducer";
@@ -65,7 +65,7 @@ function RepertoireInfo() {
 
   const orientation = headers.orientation || "white";
 
-  const stats = useMemo(() => getTreeStats(root), [root]);
+  const stats = useStore(store, getStats);
 
   const rootStructureHash = useMemo(() => getTreeStructureHash(root), [root]);
 

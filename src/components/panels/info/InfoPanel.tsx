@@ -2,7 +2,7 @@ import { Accordion, ActionIcon, Box, Group, ScrollArea, Stack, Text, Tooltip } f
 import { useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
-import { useContext, useMemo, useState } from "react";
+import { use, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
@@ -14,21 +14,18 @@ import { currentTabAtom } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { parsePGN } from "@/utils/chess";
 import { formatNumber } from "@/utils/format";
-import { getTreeStats } from "@/utils/repertoire";
 import { getTabFile, getTabGameNumber } from "@/utils/tabs";
-import { getNodeAtPath } from "@/utils/treeReducer";
 import { unwrap } from "@/utils/unwrap";
 import FenSearch from "./FenSearch";
 import FileInfo from "./FileInfo";
 import GameSelector from "./GameSelector";
 import PgnInput from "./PgnInput";
+import { getStats } from "@/utils/repertoire";
 
 function InfoPanel({ addGame }: { addGame?: () => void }) {
-  const store = useContext(TreeStateContext)!;
-  const root = useStore(store, (s) => s.root);
-  const position = useStore(store, (s) => s.position);
+  const store = use(TreeStateContext)!;
+  const stats = useStore(store, getStats);
   const headers = useStore(store, (s) => s.headers);
-  const currentNode = getNodeAtPath(root, position);
   const [games, setGames] = useState<Map<number, string>>(new Map());
   const currentTab = useAtomValue(currentTabAtom);
   const tabFile = getTabFile(currentTab);
@@ -36,8 +33,6 @@ function InfoPanel({ addGame }: { addGame?: () => void }) {
   const isReportoire = tabFile?.metadata.type === "repertoire";
 
   const { t } = useTranslation();
-
-  const stats = useMemo(() => getTreeStats(root), [root]);
 
   return (
     <Stack h="100%" pl="sm" pt="sm">
@@ -56,7 +51,7 @@ function InfoPanel({ addGame }: { addGame?: () => void }) {
               });
             }}
           />
-          <FenSearch currentFen={currentNode.fen} />
+          <FenSearch />
           <PgnInput />
 
           <Group>
@@ -85,7 +80,7 @@ function GameSelectorAccordion({
   setGames: React.Dispatch<React.SetStateAction<Map<number, string>>>;
   addGame?: () => void;
 }) {
-  const store = useContext(TreeStateContext)!;
+  const store = use(TreeStateContext)!;
   const dirty = useStore(store, (s) => s.dirty);
   const setState = useStore(store, (s) => s.setState);
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
