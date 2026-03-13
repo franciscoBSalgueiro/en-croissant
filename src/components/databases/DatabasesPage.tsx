@@ -233,7 +233,7 @@ export default function DatabasesPage() {
                           <Group wrap="nowrap" miw={0}>
                             <IconDatabase size="1.5rem" />
                             <Box miw={0}>
-                              <Text fw={500}>
+                              <Text fw={500} fz="sm">
                                 {item.type === "success" ? item.title : item.error}
                               </Text>
                               <Text size="xs" c="dimmed" style={{ wordWrap: "break-word" }}>

@@ -1,4 +1,4 @@
-import { Box, Stack, Text } from "@mantine/core";
+import { Box, Divider, Stack, Text } from "@mantine/core";
 import cx from "clsx";
 import type { ReactNode } from "react";
 import classes from "./GenericCard.module.css";
@@ -45,12 +45,10 @@ export default function GenericCard<T>({
           <div className={classes.info}>
             {stats.map((stat) => (
               <div key={stat.label}>
-                <Text size="xs" c="dimmed" fw="bold" className={classes.label} mt="1rem">
+                <Text c="dimmed" fw="bold" className={classes.label}>
                   {stat.label}
                 </Text>
-                <Text fw={700} size="lg" style={{ lineHeight: 1 }}>
-                  {stat.value}
-                </Text>
+                <Text fw={700}>{stat.value}</Text>
               </div>
             ))}
           </div>
