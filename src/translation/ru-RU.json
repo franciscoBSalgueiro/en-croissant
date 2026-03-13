@@ -353,6 +353,8 @@
     "Files.FileType.Repertoire": "Репертуар",
     "Files.FileType.Tournament": "Турнир",
     "Files.GameCountSuffix_one": "",
+    "Files.GameCountSuffix_few": "",
+    "Files.GameCountSuffix_many": "",
     "Files.GameCountSuffix_other": "",
     "Files.NoSelection": "",
     "Files.Reload": "",

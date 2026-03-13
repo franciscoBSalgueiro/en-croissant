@@ -337,6 +337,7 @@
     "Files.FileType.Repertoire": "Repertório",
     "Files.FileType.Tournament": "Torneio",
     "Files.GameCountSuffix_one": "",
+    "Files.GameCountSuffix_many": "",
     "Files.GameCountSuffix_other": "",
     "Files.NoSelection": "",
     "Files.Reload": "",
