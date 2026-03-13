@@ -33,6 +33,7 @@ import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { formatDate } from "ts-fsrs";
+import { formatNumber } from "@/utils/format";
 import { useStore } from "zustand";
 import ConfirmModal from "@/components/common/ConfirmModal";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
@@ -337,12 +338,14 @@ function PracticePanel() {
               >
                 {syncMessage.added > 0 &&
                   t("Board.Practice.SyncAdded", {
-                    count: syncMessage.added,
+                    count: syncMessage.added ?? 0,
+                    number: formatNumber(syncMessage.added ?? 0),
                   })}
                 {syncMessage.added > 0 && syncMessage.removed > 0 && " · "}
                 {syncMessage.removed > 0 &&
                   t("Board.Practice.SyncRemoved", {
-                    count: syncMessage.removed,
+                    count: syncMessage.removed ?? 0,
+                    number: formatNumber(syncMessage.removed ?? 0),
                   })}
               </Alert>
             )}
