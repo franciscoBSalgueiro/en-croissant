@@ -1,0 +1,14 @@
+.databaseCard {
+  cursor: pointer;
+  border-radius: var(--mantine-radius-sm);
+  padding: 0.25rem 0.5rem;
+  margin-right: 0.5rem;
+}
+
+[data-mantine-color-scheme="light"] .databaseCard:hover {
+  background-color: var(--mantine-color-gray-1);
+}
+
+[data-mantine-color-scheme="dark"] .databaseCard:hover {
+  background-color: var(--mantine-color-dark-5);
+}

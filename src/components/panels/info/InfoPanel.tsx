@@ -1,4 +1,14 @@
-import { Accordion, ActionIcon, Box, Group, ScrollArea, Stack, Text, Tooltip } from "@mantine/core";
+import {
+  Accordion,
+  ActionIcon,
+  Box,
+  Divider,
+  Group,
+  ScrollArea,
+  Stack,
+  Text,
+  Tooltip,
+} from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
@@ -19,8 +29,13 @@ import { unwrap } from "@/utils/unwrap";
 import FenSearch from "./FenSearch";
 import FileInfo from "./FileInfo";
 import GameSelector from "./GameSelector";
+import classes from "./InfoPanel.module.css";
 import PgnInput from "./PgnInput";
 import { getStats } from "@/utils/repertoire";
+import useSWR from "swr";
+import { getDatabases } from "@/utils/db";
+import { useNavigate } from "@tanstack/react-router";
+import { useActiveDatabaseViewStore } from "@/state/store/database";
 
 function InfoPanel({ addGame }: { addGame?: () => void }) {
   const store = use(TreeStateContext)!;
@@ -35,7 +50,10 @@ function InfoPanel({ addGame }: { addGame?: () => void }) {
   const { t } = useTranslation();
 
   return (
-    <Stack h="100%" pl="sm" pt="sm">
+    <Stack h="100%" pl="sm" pt="sm" gap={0}>
+      {currentTab?.gameOrigin.kind === "database" && (
+        <DatabaseInfo path={currentTab.gameOrigin.database} id={currentTab.gameOrigin.gameId} />
+      )}
       <GameSelectorAccordion games={games} setGames={setGames} addGame={addGame} />
       <ScrollArea offsetScrollbars>
         <FileInfo setGames={setGames} />
@@ -55,18 +73,57 @@ function InfoPanel({ addGame }: { addGame?: () => void }) {
           <PgnInput />
 
           <Group>
-            <Text>
+            <Text fz="xs" c="dimmed">
               {t("PgnInput.Variations")}: {stats.leafs}
             </Text>
-            <Text>
+            <Text fz="xs" c="dimmed">
               {t("PgnInput.MaxDepth")}: {stats.depth}
             </Text>
-            <Text>
+            <Text fz="xs" c="dimmed">
               {t("PgnInput.TotalMoves")}: {stats.total}
             </Text>
           </Group>
         </Stack>
       </ScrollArea>
+    </Stack>
+  );
+}
+
+function DatabaseInfo({ path, id: _id }: { path: string; id: number }) {
+  const { t } = useTranslation();
+  const { data: databases, isLoading } = useSWR("databases", () => getDatabases());
+
+  const dbInfo = databases?.find((db) => db.file === path);
+  const navigate = useNavigate();
+  const setActiveDatabase = useActiveDatabaseViewStore((store) => store.setDatabase);
+
+  if (isLoading || !dbInfo || dbInfo.type !== "success") {
+    return null;
+  }
+  return (
+    <Stack gap={0}>
+      <Box
+        className={classes.databaseCard}
+        mb="md"
+        onClick={async () => {
+          await navigate({
+            to: "/databases/$databaseId",
+            params: {
+              databaseId: dbInfo.title,
+            },
+          });
+          setActiveDatabase(dbInfo);
+        }}
+      >
+        <Text tt="uppercase" c="dimmed" fw={700} size="xs">
+          {t("Board.Tabs.Database")}
+        </Text>
+        <Text fw="bold">{dbInfo.title}</Text>
+        <Text size="xs" c="dimmed">
+          {dbInfo.description}
+        </Text>
+      </Box>
+      <Divider />
     </Stack>
   );
 }
@@ -99,7 +156,7 @@ function GameSelectorAccordion({
     keyMap.NEXT_GAME.keys,
     () => {
       if (!tabFile?.numGames) return;
-      setPage(Math.min(gameNumber + 1, tabFile.numGames - 1));
+      void setPage(Math.min(gameNumber + 1, tabFile.numGames - 1));
     },
     {
       enabled: !!tabFile,
@@ -164,7 +221,7 @@ function GameSelectorAccordion({
         opened={confirmChanges}
         toggle={toggleConfirmChanges}
         closeTab={() => {
-          setPage(tempPage, true);
+          void setPage(tempPage, true);
         }}
       />
       <Accordion pr="sm">
