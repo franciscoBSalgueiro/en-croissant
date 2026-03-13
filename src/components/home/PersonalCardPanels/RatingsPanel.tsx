@@ -17,7 +17,7 @@ import {
   linearGradientProps,
   tooltipContentStyle,
   tooltipCursorStyle,
-} from "./RatingsPanel.css";
+} from "./RatingsPanel.styles";
 import ResultsChart from "./ResultsChart";
 import TimeControlSelector from "./TimeControlSelector";
 import TimeRangeSlider from "./TimeRangeSlider";

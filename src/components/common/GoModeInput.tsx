@@ -1,4 +1,4 @@
-import { Group, NumberInput, SegmentedControl } from "@mantine/core";
+import { Group, NumberInput, Select } from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 import type { GoMode } from "@/bindings";
@@ -22,7 +22,7 @@ function GoModeInput({
 
   return (
     <Group wrap="nowrap">
-      <SegmentedControl
+      <Select
         data={timeTypes.map((v) => ({ value: v, label: t(`GoMode.${v}`) }))}
         value={goMode?.t || (gameMode ? "Time" : "Infinite")}
         onChange={(v) => {

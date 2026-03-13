@@ -4,7 +4,7 @@ import { useAtom } from "jotai";
 import type { ReactNode, RefObject } from "react";
 import { currentShowCommentsAtom, moveNotationTypeAtom } from "@/state/atoms";
 import { ANNOTATION_INFO, type Annotation, addPieceSymbol } from "@/utils/annotation";
-import * as classes from "./MoveCell.css";
+import classes from "./MoveCell.module.css";
 
 interface MoveCellProps {
   annotations: Annotation[];

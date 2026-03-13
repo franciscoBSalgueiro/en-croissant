@@ -1,40 +1,72 @@
 import {
-  Button,
+  ActionIcon,
   Center,
   Chip,
+  Divider,
   Group,
   Input,
   Paper,
+  ScrollArea,
   Stack,
   Text,
   ThemeIcon,
   Title,
+  Tooltip,
 } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
-import { IconFileDescription, IconPlus, IconSearch, IconX } from "@tabler/icons-react";
+import {
+  IconFileDescription,
+  IconFilePlus,
+  IconFolderPlus,
+  IconSearch,
+  IconFolder,
+} from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
 import { readDir, remove } from "@tauri-apps/plugin-fs";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 import { capitalize } from "@/utils/format";
 import ConfirmModal from "../common/ConfirmModal";
 import OpenFolderButton from "../common/OpenFolderButton";
-import DirectoryTable from "./DirectoryTable";
+import DirectoryTree from "./DirectoryTree";
+import { DragContext } from "./DirectoryTree";
 import FileCard from "./FileCard";
-import { type FileMetadata, type FileType, processEntriesRecursively } from "./file";
-import { CreateModal, EditModal } from "./Modals";
+import {
+  type Directory,
+  type FileMetadata,
+  type FileType,
+  processEntriesRecursively,
+} from "./file";
+import { CreateDirectoryModal, CreateModal, EditModal } from "./Modals";
 
 const FILE_TYPES: FileType[] = ["game", "repertoire", "tournament", "puzzle", "other"];
+type Entry = FileMetadata | Directory;
+
+function findEntryByPath(entries: Entry[], path: string): Entry | null {
+  for (const entry of entries) {
+    if (entry.path === path) {
+      return entry;
+    }
+
+    if (entry.type === "directory") {
+      const child = findEntryByPath(entry.children, path);
+      if (child) {
+        return child;
+      }
+    }
+  }
+
+  return null;
+}
 
 const useFileDirectory = (dir: string) => {
-  const { data, error, isLoading, mutate } = useSWR("file-directory", async () => {
+  const { data, error, isLoading, mutate } = useSWR<Entry[]>(["file-directory", dir], async () => {
     const entries = await readDir(dir);
     const allEntries = processEntriesRecursively(dir, entries);
 
     return allEntries;
   });
-  console.log(error);
   return {
     files: data,
     isLoading,
@@ -50,21 +82,147 @@ function FilesPage() {
   const { files, isLoading, error, mutate } = useFileDirectory(documentDir);
 
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<FileMetadata | null>(null);
+  const [selected, setSelected] = useState<Entry | null>(null);
   const [games, setGames] = useState<Map<number, string>>(new Map());
   const [filter, setFilter] = useState<FileType | null>(null);
 
   const [deleteModal, toggleDeleteModal] = useToggle();
   const [createModal, toggleCreateModal] = useToggle();
+  const [createDirModal, toggleCreateDirModal] = useToggle();
   const [editModal, toggleEditModal] = useToggle();
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  useHotkeys([["mod+f", () => searchInputRef.current?.focus()]]);
+  useHotkeys([
+    ["mod+f", () => searchInputRef.current?.focus()],
+    [
+      "Delete",
+      () => {
+        if (selected && !deleteModal) {
+          toggleDeleteModal();
+        }
+      },
+    ],
+  ]);
 
   useEffect(() => {
     setGames(new Map());
   }, [selected]);
+
+  useEffect(() => {
+    if (!files || !selected) {
+      return;
+    }
+
+    const canonicalSelection = findEntryByPath(files, selected.path);
+
+    if (!canonicalSelection) {
+      setSelected(null);
+      return;
+    }
+
+    if (canonicalSelection !== selected) {
+      setSelected(canonicalSelection);
+    }
+  }, [files, selected]);
+
+  const [draggingPath, setDraggingPath] = useState<string | null>(null);
+  const [hoverPath, setHoverPath] = useState<string | null>(null);
+  const folderRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  const registerFolder = useCallback((path: string, ref: HTMLDivElement | null) => {
+    if (ref) {
+      folderRefs.current.set(path, ref);
+    } else {
+      folderRefs.current.delete(path);
+    }
+  }, []);
+
+  const checkHover = useCallback(
+    (clientX: number, clientY: number) => {
+      let hovered: string | null = null;
+      let minArea = Infinity;
+
+      // Check all folder row bounding rects
+      // Since child folders are visually inside their parent's bounding box sometimes depending
+      // on DOM flow, we want the most specific (smallest) matched box
+      for (const [path, ref] of folderRefs.current.entries()) {
+        const rect = ref.getBoundingClientRect();
+        if (
+          clientX >= rect.left &&
+          clientX <= rect.right &&
+          clientY >= rect.top &&
+          clientY <= rect.bottom
+        ) {
+          const area = rect.width * rect.height;
+          if (area < minArea) {
+            minArea = area;
+            hovered = path;
+          }
+        }
+      }
+
+      // If no specific folder hovered, check if over the general documentDir space
+      if (!hovered && dropzoneRef.current) {
+        const rect = dropzoneRef.current.getBoundingClientRect();
+        if (
+          clientX >= rect.left &&
+          clientX <= rect.right &&
+          clientY >= rect.top &&
+          clientY <= rect.bottom
+        ) {
+          hovered = documentDir;
+        }
+      }
+
+      setHoverPath(hovered);
+    },
+    [documentDir],
+  );
+
+  const dropzoneRef = useRef<HTMLDivElement>(null);
+
+  const requestDelete = useCallback(
+    (entry: Entry) => {
+      setSelected(entry);
+      if (!deleteModal) {
+        toggleDeleteModal();
+      }
+    },
+    [deleteModal, toggleDeleteModal],
+  );
+
+  const refreshDirectory = useCallback(() => mutate(), [mutate]);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!selected) {
+      return;
+    }
+
+    if (selected.type === "directory") {
+      await remove(selected.path, { recursive: true });
+    } else {
+      await remove(selected.path);
+      await remove(selected.path.replace(".pgn", ".info")).catch(() => {});
+    }
+
+    await mutate();
+    toggleDeleteModal();
+    setSelected(null);
+  }, [selected, mutate, toggleDeleteModal]);
+
+  const dragContextValue = useMemo(
+    () => ({
+      draggingPath,
+      setDraggingPath,
+      hoverPath,
+      setHoverPath,
+      registerFolder,
+      checkHover,
+      documentDir,
+    }),
+    [draggingPath, hoverPath, registerFolder, checkHover, documentDir],
+  );
 
   return (
     <Stack h="100%">
@@ -75,16 +233,23 @@ function FilesPage() {
           files={files}
           setFiles={mutate}
           setSelected={setSelected}
+          selected={selected}
         />
       )}
-      {selected && files && (
+      <CreateDirectoryModal
+        opened={createDirModal}
+        setOpened={toggleCreateDirModal}
+        mutate={mutate}
+        selected={selected}
+      />
+      {selected && files && selected.type === "file" && (
         <EditModal
           key={selected.name}
           opened={editModal}
           setOpened={toggleEditModal}
           mutate={mutate}
           setSelected={setSelected}
-          metadata={selected}
+          metadata={selected as FileMetadata}
         />
       )}
       <Group align="baseline" pl="lg" py="sm">
@@ -93,67 +258,78 @@ function FilesPage() {
       </Group>
 
       <Group grow flex={1} style={{ overflow: "hidden" }} px="md" pb="md">
-        <Stack h="100%">
-          <Group>
-            <Input
-              style={{ flexGrow: 1 }}
-              leftSection={<IconSearch size="1rem" />}
-              placeholder={t("Files.Search")}
-              value={search}
-              onChange={(e) => setSearch(e.currentTarget.value)}
-              ref={searchInputRef}
-              onKeyDown={(e) => {
-                if (e.key === "f" && (e.metaKey || e.ctrlKey)) {
-                  e.preventDefault();
-                }
-                if (e.key === "Escape") {
-                  setSearch("");
-                  searchInputRef.current?.blur();
-                }
-              }}
-            />
-            <Button
-              size="xs"
-              leftSection={<IconPlus size="1rem" />}
-              onClick={() => toggleCreateModal()}
-            >
-              {t("Common.Create")}
-            </Button>
-            <Button
-              size="xs"
-              color="red"
-              disabled={!selected}
-              leftSection={<IconX size="1rem" />}
-              onClick={() => toggleDeleteModal()}
-            >
-              {t("Common.Delete")}
-            </Button>
-          </Group>
-          <Group>
-            {FILE_TYPES.map((type) => (
-              <Chip
-                variant="outline"
-                key={type}
-                onChange={(v) =>
-                  setFilter((filter) => (v ? type : filter === type ? null : filter))
-                }
-                checked={filter === type}
-              >
-                {t(`Files.FileType.${capitalize(type)}`)}
-              </Chip>
-            ))}
-          </Group>
-
-          <DirectoryTable
-            files={files}
-            setFiles={mutate}
-            isLoading={isLoading}
-            setSelectedFile={setSelected}
-            selectedFile={selected}
-            search={search}
-            filter={filter || ""}
-          />
-        </Stack>
+        <Paper withBorder style={{ borderWidth: 2 }} h="100%">
+          <Stack ref={dropzoneRef} gap={0} h="100%" style={{ overflow: "hidden" }}>
+            <Group p="xs" gap="xs">
+              <Input
+                size="sm"
+                style={{ flexGrow: 1 }}
+                leftSection={<IconSearch size="1rem" />}
+                placeholder={t("Files.Search")}
+                value={search}
+                onChange={(e) => setSearch(e.currentTarget.value)}
+                ref={searchInputRef}
+                onKeyDown={(e) => {
+                  if (e.key === "f" && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault();
+                  }
+                  if (e.key === "Escape") {
+                    setSearch("");
+                    searchInputRef.current?.blur();
+                  }
+                }}
+              />
+              <Tooltip label={t("Files.CreateFile.Title")}>
+                <ActionIcon variant="default" size="lg" onClick={() => toggleCreateModal()}>
+                  <IconFilePlus size="1rem" />
+                </ActionIcon>
+              </Tooltip>
+              <Tooltip label={t("Files.CreateDirectory.Title")}>
+                <ActionIcon variant="default" size="lg" onClick={() => toggleCreateDirModal()}>
+                  <IconFolderPlus size="1rem" />
+                </ActionIcon>
+              </Tooltip>
+            </Group>
+            <Divider />
+            <Group px="xs" py={6} gap={4} wrap="wrap">
+              {FILE_TYPES.map((type) => (
+                <Chip
+                  variant="outline"
+                  key={type}
+                  size="sm"
+                  checked={filter === type}
+                  onChange={(checked) => setFilter(checked ? type : null)}
+                >
+                  {t(`Files.FileType.${capitalize(type)}`)}
+                </Chip>
+              ))}
+            </Group>
+            <Divider />
+            <ScrollArea flex={1}>
+              {error ? (
+                <Center h="100%">
+                  <Text c="red">Failed to load files.</Text>
+                </Center>
+              ) : isLoading ? (
+                <Center h="100%">
+                  <Text c="dimmed">Loading files...</Text>
+                </Center>
+              ) : (
+                <DragContext.Provider value={dragContextValue}>
+                  <DirectoryTree
+                    files={files}
+                    refreshDirectory={refreshDirectory}
+                    selectedFile={selected}
+                    setSelectedFile={setSelected}
+                    onRequestDelete={requestDelete}
+                    search={search}
+                    filter={filter || ""}
+                  />
+                </DragContext.Provider>
+              )}
+            </ScrollArea>
+          </Stack>
+        </Paper>
 
         {selected ? (
           <>
@@ -164,22 +340,36 @@ function FilesPage() {
               })}
               opened={deleteModal}
               onClose={toggleDeleteModal}
-              onConfirm={async () => {
-                await remove(selected.path);
-                await remove(selected.path.replace(".pgn", ".info"));
-                mutate(files?.filter((file) => file.name !== selected.name));
-                toggleDeleteModal();
-                setSelected(null);
-              }}
+              onConfirm={handleConfirmDelete}
             />
-            <Paper withBorder style={{ borderWidth: 2 }} pt="md" h="100%">
-              <FileCard
-                selected={selected}
-                games={games}
-                setGames={setGames}
-                toggleEditModal={toggleEditModal}
-              />
-            </Paper>
+            {selected.type === "file" ? (
+              <Paper withBorder style={{ borderWidth: 2 }} pt="md" h="100%">
+                <FileCard
+                  selected={selected}
+                  games={games}
+                  setGames={setGames}
+                  toggleEditModal={toggleEditModal}
+                />
+              </Paper>
+            ) : (
+              <Paper withBorder style={{ borderWidth: 2 }} p="md" h="100%">
+                <Center h="100%">
+                  <Stack align="center" gap="xs">
+                    <ThemeIcon size={80} radius="100%" variant="light" color="gray">
+                      <IconFolder size={40} />
+                    </ThemeIcon>
+                    <Text fw={600} size="lg">
+                      {selected.name}
+                    </Text>
+                    <Text c="dimmed" size="sm">
+                      {(selected as Directory).children.length === 1
+                        ? "1 item"
+                        : `${(selected as Directory).children.length} items`}
+                    </Text>
+                  </Stack>
+                </Center>
+              </Paper>
+            )}
           </>
         ) : (
           <Paper withBorder style={{ borderWidth: 2 }} p="md" h="100%">

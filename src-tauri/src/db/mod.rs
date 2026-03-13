@@ -36,7 +36,7 @@ use shakmaty::{
 use specta::Type;
 use std::{
     fs::{remove_file, File, OpenOptions},
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::atomic::{AtomicUsize, Ordering},
     time::{Duration, Instant},
 };
@@ -589,7 +589,7 @@ pub async fn convert_pgn(
 }
 
 pub fn generate_search_index(
-    db_path: &PathBuf,
+    db_path: &Path,
     state: &tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
     let db = &mut get_db_or_create(
@@ -1899,7 +1899,7 @@ pub async fn preload_reference_db(
                 *cache = Some(index);
             }
             Err(e) => {
-                return Err(Error::Io(e));
+                return Err(Error::from(e));
             }
         }
     }

@@ -14,7 +14,7 @@ import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { activeTabAtom } from "@/state/atoms";
 import { ANNOTATION_INFO, isBasicAnnotation } from "@/utils/annotation";
 import { getGameStats, getMainLine } from "@/utils/chess";
-import { label } from "./AnalysisPanel.css";
+import classes from "./AnalysisPanel.module.css";
 import ReportModal from "./ReportModal";
 
 function ReportPanel() {
@@ -112,7 +112,7 @@ const GameStats = memo(
               return (
                 <React.Fragment key={annotation}>
                   <Grid.Col
-                    className={cx(w > 0 && label)}
+                    className={cx(w > 0 && classes.label)}
                     span={3}
                     style={{ textAlign: "center" }}
                     c={w > 0 ? color : undefined}
@@ -135,7 +135,7 @@ const GameStats = memo(
                     {translationKey ? t(`Annotate.${translationKey}`) : name}
                   </Grid.Col>
                   <Grid.Col
-                    className={cx(b > 0 && label)}
+                    className={cx(b > 0 && classes.label)}
                     span={3}
                     style={{ textAlign: "center" }}
                     c={b > 0 ? color : undefined}

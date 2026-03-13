@@ -1,6 +1,8 @@
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { searchPosition } from "./db";
 import { getNodeAtPath, type TreeNode, treeIterator } from "./treeReducer";
+import { TreeStoreState } from "@/state/store/tree";
+import { memoize } from "proxy-memoize";
 
 export type PositionMove = {
     san: string;
@@ -271,7 +273,7 @@ export function findBiggestGap(
     return bestPath;
 }
 
-export function getTreeStats(root: TreeNode) {
+function getTreeStats(root: TreeNode) {
     const iterator = treeIterator(root);
     const tree = Array.from(iterator);
     const total = tree.length - 1;
@@ -284,3 +286,5 @@ export function getTreeStats(root: TreeNode) {
     }, 0);
     return { total, leafs, depth };
 }
+
+export const getStats = memoize((store: TreeStoreState) => getTreeStats(store.root));

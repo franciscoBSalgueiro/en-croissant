@@ -1,9 +1,8 @@
-import { ActionIcon, Text, useMantineTheme } from "@mantine/core";
-import { IconEye } from "@tabler/icons-react";
+import { Text } from "@mantine/core";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
 import { DataTable } from "mantine-datatable";
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import type { NormalizedGame } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
 import { createTab } from "@/utils/tabs";
@@ -19,48 +18,46 @@ function GamesTable({
 }) {
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
+  const [page, setPage] = useState(1);
+  const filteredGames = games.slice((page - 1) * 20, page * 20);
 
-  const theme = useMantineTheme();
+  useEffect(() => {
+    setPage(1);
+  }, [games]);
+
   const navigate = useNavigate();
   return (
     <DataTable
       withTableBorder
       highlightOnHover
-      records={games}
+      records={filteredGames}
       fetching={loading}
+      totalRecords={games.length}
+      recordsPerPage={20}
+      page={page}
+      onPageChange={setPage}
+      onRowClick={(e) => {
+        const game = e.record;
+        createTab({
+          tab: {
+            name: `${game.white} - ${game.black}`,
+            type: "analysis",
+          },
+          setTabs,
+          setActiveTab,
+          pgn: game.moves,
+          headers: game,
+          gameOrigin: databasePath
+            ? {
+                kind: "database",
+                database: databasePath,
+                gameId: game.id,
+              }
+            : undefined,
+        });
+        navigate({ to: "/" });
+      }}
       columns={[
-        {
-          accessor: "actions",
-          title: "",
-          render: (game) => (
-            <ActionIcon
-              variant="subtle"
-              color={theme.primaryColor}
-              onClick={() => {
-                createTab({
-                  tab: {
-                    name: `${game.white} - ${game.black}`,
-                    type: "analysis",
-                  },
-                  setTabs,
-                  setActiveTab,
-                  pgn: game.moves,
-                  headers: game,
-                  gameOrigin: databasePath
-                    ? {
-                        kind: "database",
-                        database: databasePath,
-                        gameId: game.id,
-                      }
-                    : undefined,
-                });
-                navigate({ to: "/" });
-              }}
-            >
-              <IconEye size="1rem" stroke={1.5} />
-            </ActionIcon>
-          ),
-        },
         {
           accessor: "white",
           render: ({ white, white_elo }) => (

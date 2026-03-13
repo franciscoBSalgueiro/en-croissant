@@ -35,11 +35,11 @@ import {
   computeTreeCoverage,
   findBiggestGap,
   findNextGap,
-  getTreeStats,
+  getStats,
   type PositionMove,
 } from "@/utils/repertoire";
 import { getNodeAtPath, getTreeStructureHash, type TreeNode } from "@/utils/treeReducer";
-import * as classes from "./RepertoireInfo.css";
+import classes from "./RepertoireInfo.module.css";
 
 function formatMoveNotation(halfMoves: number, san: string): string {
   const moveNum = Math.ceil(halfMoves / 2);
@@ -65,7 +65,7 @@ function RepertoireInfo() {
 
   const orientation = headers.orientation || "white";
 
-  const stats = useMemo(() => getTreeStats(root), [root]);
+  const stats = useStore(store, getStats);
 
   const rootStructureHash = useMemo(() => getTreeStructureHash(root), [root]);
 
@@ -234,9 +234,7 @@ function RepertoireInfo() {
     return (
       <Stack p="sm">
         <TreeStatsBar stats={stats} t={t} />
-        <Alert icon={<IconInfoCircle />} color="blue">
-          {t("Board.Practice.Build.NoRefDb")}
-        </Alert>
+        <Alert icon={<IconInfoCircle />}>{t("Board.Practice.Build.NoRefDb")}</Alert>
       </Stack>
     );
   }

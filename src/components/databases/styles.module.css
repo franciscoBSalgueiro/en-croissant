@@ -1,0 +1,7 @@
+[data-mantine-color-scheme="light"] .selected {
+  background-color: var(--mantine-color-gray-0);
+}
+
+[data-mantine-color-scheme="dark"] .selected {
+  background-color: var(--mantine-color-dark-5);
+}

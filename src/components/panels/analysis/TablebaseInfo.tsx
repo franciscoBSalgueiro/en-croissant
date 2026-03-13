@@ -7,7 +7,7 @@ import { match, P } from "ts-pattern";
 import { useStore } from "zustand";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { getTablebaseInfo, type TablebaseCategory } from "@/utils/lichess/api";
-import * as classes from "./TablebaseInfo.css";
+import classes from "./TablebaseInfo.module.css";
 
 function TablebaseInfo({ fen, turn }: { fen: string; turn: "white" | "black" }) {
   const { t } = useTranslation();

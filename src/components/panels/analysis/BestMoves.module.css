@@ -1,0 +1,7 @@
+[data-mantine-color-scheme="light"] .subtitle {
+  color: var(--mantine-color-black);
+}
+
+[data-mantine-color-scheme="dark"] .subtitle {
+  color: var(--mantine-color-gray-5);
+}

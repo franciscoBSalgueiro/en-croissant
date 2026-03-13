@@ -1,0 +1,55 @@
+.tabsContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.tabsHeader {
+  margin-bottom: 0.5rem;
+  flex-shrink: 0;
+}
+
+[data-mantine-color-scheme="light"] .tabsHeader {
+  background-color: var(--mantine-color-gray-1);
+}
+
+[data-mantine-color-scheme="dark"] .tabsHeader {
+  background-color: var(--mantine-color-dark-7);
+}
+
+.newTab {
+  height: 2.2rem;
+  width: 2.2rem;
+  padding: 0.5em;
+}
+
+[data-mantine-color-scheme="light"] .newTab {
+  border: 1px solid var(--mantine-color-gray-3);
+  background-color: var(--mantine-color-gray-1);
+}
+
+[data-mantine-color-scheme="dark"] .newTab {
+  border: 1px solid var(--mantine-color-dark-4);
+  background-color: var(--mantine-color-dark-7);
+}
+
+[data-mantine-color-scheme="light"] .newTab:hover {
+  background-color: var(--mantine-color-gray-2);
+}
+
+[data-mantine-color-scheme="dark"] .newTab:hover {
+  background-color: var(--mantine-color-dark-6);
+}
+
+.tabsFiller {
+  flex-grow: 1;
+}
+
+[data-mantine-color-scheme="light"] .tabsFiller {
+  border-bottom: 1px solid var(--mantine-color-gray-3);
+}
+
+[data-mantine-color-scheme="dark"] .tabsFiller {
+  border-bottom: 1px solid var(--mantine-color-dark-4);
+}

@@ -145,7 +145,7 @@ function Puzzles({ id }: { id: string }) {
 
   const solutionAbortRef = useRef<AbortController | null>(null);
 
-  function generatePuzzle(db: string, force: boolean = false) {
+  async function generatePuzzle(db: string, force: boolean = false) {
     let nextIndex = puzzles.findIndex((p, i) => i > currentPuzzle && p.completion === "incomplete");
     if (nextIndex === -1) {
       nextIndex = puzzles.findIndex((p, i) => i < currentPuzzle && p.completion === "incomplete");
@@ -173,25 +173,24 @@ function Puzzles({ id }: { id: string }) {
         setRatingRange([rating + 50, rating + 100]);
       }
     }
-    commands.getPuzzle(db, range[0], range[1], effectiveSelectedTheme).then((res) => {
-      const puzzle = unwrap(res);
-      const newPuzzle: Puzzle = {
-        ...puzzle,
-        moves: puzzle.moves.split(" "),
-        completion: "incomplete",
-      };
-      setPuzzles((puzzles) => {
-        return [...puzzles, newPuzzle];
-      });
-      setCurrentPuzzle(puzzles.length);
-      setPuzzle(newPuzzle);
-      if (trackTime) {
-        setTimerStart(Date.now());
-      }
+    const res = await commands.getPuzzle(db, range[0], range[1], effectiveSelectedTheme);
+    const puzzle = unwrap(res);
+    const newPuzzle: Puzzle = {
+      ...puzzle,
+      moves: puzzle.moves.split(" "),
+      completion: "incomplete",
+    };
+    setPuzzles((puzzles) => {
+      return [...puzzles, newPuzzle];
     });
+    setCurrentPuzzle(puzzles.length);
+    setPuzzle(newPuzzle);
+    if (trackTime) {
+      setTimerStart(Date.now());
+    }
   }
 
-  function changeCompletion(completion: Completion) {
+  async function changeCompletion(completion: Completion) {
     const timeSpent = timerStart !== null ? Date.now() - timerStart : 0;
     const puzzle = puzzles[currentPuzzle];
     setPuzzles((puzzles) => {
@@ -202,14 +201,13 @@ function Puzzles({ id }: { id: string }) {
     setTimerStart(null);
 
     if (selectedDb && puzzle?.id) {
-      commands.getThemesForPuzzle(selectedDb, puzzle.id).then((res) => {
-        if (res.status === "ok") {
-          setPuzzles((puzzles) => {
-            puzzles[currentPuzzle].themes = res.data;
-            return [...puzzles];
-          });
-        }
-      });
+      const res = await commands.getThemesForPuzzle(selectedDb, puzzle.id);
+      if (res.status === "ok") {
+        setPuzzles((puzzles) => {
+          puzzles[currentPuzzle].themes = res.data;
+          return [...puzzles];
+        });
+      }
     }
   }
 
@@ -324,16 +322,15 @@ function Puzzles({ id }: { id: string }) {
             description="Are you sure you want to delete this puzzle database?"
             opened={deleteModalOpened}
             onClose={() => setDeleteModalOpened(false)}
-            onConfirm={() => {
+            onConfirm={async () => {
               if (selectedDb) {
-                commands.deletePuzzleDatabase(selectedDb).then(() => {
-                  setPuzzleDbs((dbs) => dbs.filter((db) => db.path !== selectedDb));
-                  setSelectedDb(null);
-                  setPuzzles([]);
-                  reset();
-                  setTimerStart(null);
-                  setIsPlayingSolution(false);
-                });
+                await commands.deletePuzzleDatabase(selectedDb);
+                setPuzzleDbs((dbs) => dbs.filter((db) => db.path !== selectedDb));
+                setSelectedDb(null);
+                setPuzzles([]);
+                reset();
+                setTimerStart(null);
+                setIsPlayingSolution(false);
               }
               setDeleteModalOpened(false);
             }}

@@ -320,7 +320,7 @@ function PracticePanel() {
         <Tabs.Panel value="train" style={{ overflow: "hidden" }}>
           <Stack p="sm" gap="md">
             {stats.total === 0 && (
-              <Alert icon={<IconInfoCircle />} color="blue">
+              <Alert icon={<IconInfoCircle />}>
                 <Stack gap="xs">
                   <Text fz="sm">{t("Board.Practice.NoPositionForTrain1")}</Text>
                   <Button variant="light" size="xs" onClick={() => setTab("build")}>
@@ -331,7 +331,6 @@ function PracticePanel() {
             )}
             {syncMessage && (
               <Alert
-                color="blue"
                 title={t("Board.Practice.DeckSynced")}
                 withCloseButton
                 onClose={() => setSyncMessage(null)}
@@ -654,7 +653,9 @@ function PracticePanel() {
         }}
         confirmLabel={t("Common.Reset")}
       />
-      <PositionsModal open={positionsOpen} setOpen={setPositionsOpen} deck={deck} />
+      {positionsOpen && (
+        <PositionsModal open={positionsOpen} setOpen={setPositionsOpen} deck={deck} />
+      )}
       <LogsModal open={logsOpen} setOpen={setLogsOpen} logs={deck.logs} />
     </>
   );

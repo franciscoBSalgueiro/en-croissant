@@ -21,6 +21,7 @@ import tr_TR from "./translation/tr-TR.json";
 import uk_UA from "./translation/uk-UA.json";
 import zh_CN from "./translation/zh-CN.json";
 import zh_TW from "./translation/zh-TW.json";
+import { setAutoFreeze } from "immer";
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -47,6 +48,8 @@ i18n.use(initReactI18next).init({
 });
 
 dayjs.extend(customParseFormat);
+
+setAutoFreeze(false);
 
 const container = document.getElementById("app");
 const root = createRoot(container!);

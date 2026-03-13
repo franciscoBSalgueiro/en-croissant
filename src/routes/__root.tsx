@@ -8,7 +8,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask, message, open } from "@tauri-apps/plugin-dialog";
 import { platform } from "@tauri-apps/plugin-os";
 import { exit, relaunch } from "@tauri-apps/plugin-process";
-import { open as shellOpen } from "@tauri-apps/plugin-shell";
+import { openPath, openUrl } from "@tauri-apps/plugin-opener";
 import { check } from "@tauri-apps/plugin-updater";
 import { useAtom, useAtomValue } from "jotai";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -264,7 +264,7 @@ function RootLayout() {
           {
             label: t("Menu.Help.Documentation"),
             id: "documentation",
-            action: () => shellOpen("https://encroissant.org/docs/"),
+            action: () => openUrl("https://encroissant.org/docs/"),
           },
           {
             label: t("Menu.Help.ClearSavedData"),
@@ -290,7 +290,7 @@ function RootLayout() {
                 title: "Logs",
                 message: `Opened logs in ${path}`,
               });
-              await shellOpen(path);
+              await openPath(path);
             },
           },
           { label: "divider" },

@@ -1,10 +1,12 @@
 import {
+  ActionIcon,
   Box,
   Button,
   Center,
   Checkbox,
   Divider,
   Group,
+  Input,
   Loader,
   Paper,
   Rating,
@@ -20,8 +22,9 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { useDebouncedValue, useToggle } from "@mantine/hooks";
-import { IconArrowRight, IconDatabase, IconPlus } from "@tabler/icons-react";
+import { IconArrowRight, IconDatabase, IconPlus, IconSearch } from "@tabler/icons-react";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { basename } from "@tauri-apps/api/path";
 import { open as openDialog, save } from "@tauri-apps/plugin-dialog";
 import { useAtom } from "jotai";
 import { useEffect, useMemo, useState } from "react";
@@ -29,7 +32,11 @@ import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 import type { DatabaseInfo } from "@/bindings";
 import { commands } from "@/bindings";
-import { referenceDbAtom, storedDatabasesDirAtom } from "@/state/atoms";
+import {
+  databaseConversionStateAtom,
+  referenceDbAtom,
+  storedDatabasesDirAtom,
+} from "@/state/atoms";
 import { useActiveDatabaseViewStore } from "@/state/store/database";
 import { getDatabases, type SuccessDatabaseInfo } from "@/utils/db";
 import { formatBytes, formatNumber } from "@/utils/format";
@@ -38,29 +45,56 @@ import ConfirmModal from "../common/ConfirmModal";
 import GenericCard from "../common/GenericCard";
 import OpenFolderButton from "../common/OpenFolderButton";
 import AddDatabase from "./AddDatabase";
-import ConvertButton from "./ConvertButton";
 import { PlayerSearchInput } from "./PlayerSearchInput";
 
 export default function DatabasesPage() {
   const { t } = useTranslation();
 
-  const { data: databases, error, isLoading, mutate } = useSWR("databases", () => getDatabases());
+  const { data: databases, isLoading, mutate } = useSWR("databases", () => getDatabases());
 
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
+  const [referenceDatabase, setReferenceDatabase] = useAtom(referenceDbAtom);
+  const [conversionState, setConversionState] = useAtom(databaseConversionStateAtom);
   const selectedDatabase = useMemo(
     () => (databases ?? []).find((db) => db.file === selected) ?? null,
     [databases, selected],
   );
+  const visibleDatabases = useMemo(() => {
+    return (databases ?? []).filter((item) => {
+      if (!conversionState.inProgress || !conversionState.targetDatabasePath) {
+        return true;
+      }
+
+      return item.file !== conversionState.targetDatabasePath;
+    });
+  }, [databases, conversionState.inProgress, conversionState.targetDatabasePath]);
+  const filteredDatabases = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    if (!normalizedSearch) {
+      return visibleDatabases;
+    }
+
+    return visibleDatabases.filter((item) => {
+      const values = [
+        item.filename,
+        item.file,
+        item.type === "success" ? item.title : item.error,
+        item.type === "success" ? item.description : "",
+      ];
+
+      return values.some((value) => value.toLowerCase().includes(normalizedSearch));
+    });
+  }, [visibleDatabases, search]);
+  const hasSearch = search.trim().length > 0;
   const [databaseDir] = useAtom(storedDatabasesDirAtom);
   // const [, setStorageSelected] = useAtom(selectedDatabaseAtom);
   const setActiveDatabase = useActiveDatabaseViewStore((store) => store.setDatabase);
 
-  const [referenceDatabase, setReferenceDatabase] = useAtom(referenceDbAtom);
   const isReference = referenceDatabase === selectedDatabase?.file;
 
   const [deleteModal, toggleDeleteModal] = useToggle();
-  const [convertLoading, setConvertLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
 
   function changeReferenceDatabase(file: string) {
@@ -94,7 +128,23 @@ export default function DatabasesPage() {
         databases={databases ?? []}
         opened={open}
         setOpened={setOpen}
-        setLoading={setConvertLoading}
+        setLoading={(next) => {
+          const value = typeof next === "function" ? next(conversionState.inProgress) : next;
+          setConversionState((prev) => ({
+            ...prev,
+            inProgress: value,
+            ...(value
+              ? {}
+              : {
+                  totalGames: 0,
+                  elapsedSeconds: 0,
+                  targetDatabasePath: null,
+                  targetDatabaseTitle: null,
+                  sourceFileName: null,
+                }),
+          }));
+        }}
+        disableLocalConversion={conversionState.inProgress}
         setDatabases={mutate}
       />
 
@@ -104,69 +154,136 @@ export default function DatabasesPage() {
       </Group>
 
       <Group grow flex={1} style={{ overflow: "hidden" }} align="start" px="md" pb="md">
-        <ScrollArea h="100%" offsetScrollbars>
-          <SimpleGrid cols={{ base: 1, md: 2 }} spacing={{ base: "md", md: "sm" }}>
-            {isLoading && (
+        <Paper withBorder style={{ borderWidth: 2 }} h="100%">
+          <Stack gap={0} h="100%" style={{ overflow: "hidden" }}>
+            <Group p="xs" gap="xs">
+              <Input
+                size="sm"
+                style={{ flexGrow: 1 }}
+                leftSection={<IconSearch size="1rem" />}
+                placeholder={t("Common.Search")}
+                value={search}
+                onChange={(e) => setSearch(e.currentTarget.value)}
+              />
+              <Tooltip label={t("Common.AddNew")}>
+                <ActionIcon
+                  variant="default"
+                  size="lg"
+                  onClick={() => setOpen(true)}
+                  disabled={conversionState.inProgress}
+                >
+                  <IconPlus size="1rem" />
+                </ActionIcon>
+              </Tooltip>
+            </Group>
+            <Divider />
+            {conversionState.inProgress && (
               <>
-                <Skeleton h="8rem" />
-                <Skeleton h="8rem" />
-                <Skeleton h="8rem" />
+                <Group px="xs" py={6} gap="xs" justify="space-between">
+                  <Group gap={6}>
+                    <Loader size="xs" />
+                    <Text size="sm">
+                      {conversionState.sourceFileName || conversionState.targetDatabaseTitle
+                        ? `${t("Databases.Add.Convert")}: ${conversionState.sourceFileName ?? conversionState.targetDatabaseTitle}`
+                        : t("Databases.Add.Convert")}
+                    </Text>
+                  </Group>
+                  {conversionState.totalGames > 0 && (
+                    <Text size="xs" c="dimmed">
+                      {conversionState.totalGames} games
+                      {conversionState.elapsedSeconds > 0
+                        ? ` • ${(conversionState.totalGames / conversionState.elapsedSeconds).toFixed(1)} games/s`
+                        : ""}
+                    </Text>
+                  )}
+                </Group>
+                <Divider />
               </>
             )}
-            {!isLoading &&
-              databases?.map((item) => (
-                <GenericCard
-                  id={item.file}
-                  key={item.filename}
-                  isSelected={selectedDatabase?.filename === item.filename}
-                  setSelected={setSelected}
-                  error={item.type === "error" ? item.error : ""}
-                  onDoubleClick={() => {
-                    if (item.type === "error") return;
-                    navigate({
-                      to: "/databases/$databaseId",
-                      params: {
-                        databaseId: item.title,
-                      },
-                    });
-                    setActiveDatabase(item);
-                    //setStorageSelected(item);
-                  }}
-                  Header={
-                    <Group wrap="nowrap" justify="space-between">
-                      <Group wrap="nowrap" miw={0}>
-                        <IconDatabase size="1.5rem" />
-                        <Box miw={0}>
-                          <Text fw={500}>{item.type === "success" ? item.title : item.error}</Text>
-                          <Text size="xs" c="dimmed" style={{ wordWrap: "break-word" }}>
-                            {item.type === "error" ? item.file : item.description}
-                          </Text>
-                        </Box>
-                      </Group>
-                      <Rating
-                        value={referenceDatabase === item.file ? 1 : 0}
-                        count={1}
-                        onChange={() => {
-                          changeReferenceDatabase(item.file);
-                        }}
-                      />
-                    </Group>
-                  }
-                  stats={[
-                    {
-                      label: t("Databases.Card.Games"),
-                      value: item.type === "success" ? formatNumber(item.game_count) : "???",
-                    },
-                    {
-                      label: t("Databases.Card.Storage"),
-                      value: item.type === "success" ? formatBytes(item.storage_size ?? 0) : "???",
-                    },
-                  ]}
-                />
-              ))}
-            <ConvertButton setOpen={setOpen} loading={convertLoading} />
-          </SimpleGrid>
-        </ScrollArea>
+            <ScrollArea flex={1}>
+              <SimpleGrid cols={{ base: 1, md: 2 }} spacing={{ base: "md", md: "sm" }} p="xs">
+                {isLoading && (
+                  <>
+                    <Skeleton h="8rem" />
+                    <Skeleton h="8rem" />
+                    <Skeleton h="8rem" />
+                  </>
+                )}
+                {!isLoading &&
+                  filteredDatabases?.map((item) => (
+                    <GenericCard
+                      id={item.file}
+                      key={item.filename}
+                      isSelected={selectedDatabase?.filename === item.filename}
+                      setSelected={setSelected}
+                      error={item.type === "error" ? item.error : ""}
+                      onDoubleClick={() => {
+                        if (item.type === "error") return;
+                        navigate({
+                          to: "/databases/$databaseId",
+                          params: {
+                            databaseId: item.title,
+                          },
+                        });
+                        setActiveDatabase(item);
+                        //setStorageSelected(item);
+                      }}
+                      Header={
+                        <Group wrap="nowrap" justify="space-between">
+                          <Group wrap="nowrap" miw={0}>
+                            <IconDatabase size="1.5rem" />
+                            <Box miw={0}>
+                              <Text fw={500}>
+                                {item.type === "success" ? item.title : item.error}
+                              </Text>
+                              <Text size="xs" c="dimmed" style={{ wordWrap: "break-word" }}>
+                                {item.type === "error" ? item.file : item.description}
+                              </Text>
+                            </Box>
+                          </Group>
+                          <Rating
+                            value={referenceDatabase === item.file ? 1 : 0}
+                            count={1}
+                            onChange={() => {
+                              changeReferenceDatabase(item.file);
+                            }}
+                          />
+                        </Group>
+                      }
+                      stats={[
+                        {
+                          label: t("Databases.Card.Games"),
+                          value: item.type === "success" ? formatNumber(item.game_count) : "???",
+                        },
+                        {
+                          label: t("Databases.Card.Storage"),
+                          value:
+                            item.type === "success" ? formatBytes(item.storage_size ?? 0) : "???",
+                        },
+                      ]}
+                    />
+                  ))}
+              </SimpleGrid>
+            </ScrollArea>
+            {!isLoading && filteredDatabases.length === 0 && (
+              <Center h="100%">
+                <Stack align="center" gap="sm">
+                  <ThemeIcon size={64} radius="100%" variant="light" color="gray">
+                    <IconDatabase size={32} />
+                  </ThemeIcon>
+                  <Text c="dimmed" fw={500} ta="center">
+                    {hasSearch ? t("Common.NoResults") : t("Databases.Empty.NoInstalled")}
+                  </Text>
+                  {!hasSearch && (
+                    <Text c="dimmed" size="sm" ta="center">
+                      {t("Databases.Empty.AddHint")}
+                    </Text>
+                  )}
+                </Stack>
+              </Center>
+            )}
+          </Stack>
+        </Paper>
 
         {selectedDatabase === null ? (
           <Paper withBorder style={{ borderWidth: 2 }} p="md" h="100%">
@@ -285,10 +402,28 @@ export default function DatabasesPage() {
                             filters: [{ name: "PGN", extensions: ["pgn"] }],
                           });
                           if (!file || typeof file !== "string") return;
-                          setConvertLoading(true);
-                          await commands.convertPgn(file, selectedDatabase.file, null, "", null);
-                          mutate();
-                          setConvertLoading(false);
+                          const sourceFileName = await basename(file);
+                          setConversionState((prev) => ({
+                            ...prev,
+                            inProgress: true,
+                            targetDatabasePath: selectedDatabase.file,
+                            targetDatabaseTitle: selectedDatabase.title,
+                            sourceFileName,
+                          }));
+                          try {
+                            await commands.convertPgn(file, selectedDatabase.file, null, "", null);
+                            mutate();
+                          } finally {
+                            setConversionState((prev) => ({
+                              ...prev,
+                              inProgress: false,
+                              totalGames: 0,
+                              elapsedSeconds: 0,
+                              targetDatabasePath: null,
+                              targetDatabaseTitle: null,
+                              sourceFileName: null,
+                            }));
+                          }
                         }}
                       >
                         {t("Databases.Settings.AddGames")}

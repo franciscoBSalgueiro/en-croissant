@@ -77,7 +77,6 @@ const DetachedEvalInner = memo(function DetachedEvalInner({
   );
 
   const ev = useAtomValue(engineMovesFamily({ engine: engineId, tab: activeTab! }));
-  const progress = useAtomValue(engineProgressFamily({ engine: engineId, tab: activeTab! }));
 
   const [pos] = positionFromFen(rootFen);
   if (pos) {

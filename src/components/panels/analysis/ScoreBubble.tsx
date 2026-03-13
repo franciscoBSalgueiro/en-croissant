@@ -1,7 +1,7 @@
 import { Box, Progress, Text } from "@mantine/core";
 import type { Score } from "@/bindings";
 import { formatScore } from "@/utils/score";
-import * as classes from "./ScoreBubble.css";
+import classes from "./ScoreBubble.module.css";
 
 function ScoreBubble({
   size,

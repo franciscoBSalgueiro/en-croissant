@@ -27,16 +27,14 @@ import { createTab } from "@/utils/tabs";
 import { unwrap } from "@/utils/unwrap";
 import CreateRepertoireModal from "./CreateRepertoireModal";
 import ImportModal from "./ImportModal";
-import "./NewTabHome.css";
+import classes from "./NewTabHome.module.css";
 import {
   IconChess,
   IconClock,
-  IconFile,
   IconFileImport,
   IconPuzzle,
   IconTarget,
   IconTargetArrow,
-  IconTrophy,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import dayjs from "dayjs";
@@ -45,6 +43,7 @@ import { useTranslation } from "react-i18next";
 import { commands } from "@/bindings";
 import { getStats } from "@/components/files/opening";
 import Chessboard from "../icons/Chessboard";
+import { FileIcon } from "@/components/files/FileIcon";
 
 dayjs.extend(relativeTime);
 
@@ -67,21 +66,6 @@ function RecentFileDuePositions({ file }: { file: string }) {
   );
 }
 
-function fileTypeIcon(type: RecentFile["type"]) {
-  switch (type) {
-    case "repertoire":
-      return <IconTargetArrow size={20} />;
-    case "game":
-      return <IconChess size={20} />;
-    case "tournament":
-      return <IconTrophy size={20} />;
-    case "puzzle":
-      return <IconPuzzle size={20} />;
-    default:
-      return <IconFile size={20} />;
-  }
-}
-
 function RecentFileRow({ file, onOpen }: { file: RecentFile; onOpen: (file: RecentFile) => void }) {
   const displayName = file.name.replace(/\.pgn$/i, "");
 
@@ -93,12 +77,12 @@ function RecentFileRow({ file, onOpen }: { file: RecentFile; onOpen: (file: Rece
       style={{
         borderRadius: "var(--mantine-radius-sm)",
       }}
-      className="recent-file-row"
+      className={classes.recentFileRow}
     >
       <Group justify="space-between" wrap="nowrap">
         <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
           <Box style={{ flexShrink: 0, color: "var(--mantine-color-dimmed)" }}>
-            {fileTypeIcon(file.type)}
+            <FileIcon type={file.type} size={20} />
           </Box>
           <Text size="sm" truncate fw={500}>
             {displayName}

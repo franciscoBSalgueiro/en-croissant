@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useRecordHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { keyMapAtom } from "@/state/keybinds";
-import * as classes from "./KeybindInput.css";
+import classes from "./KeybindInput.module.css";
 
 function KeybindInput({
   action,
@@ -96,7 +96,7 @@ function ShortcutInput({
       )}
       <ActionIcon
         variant="outline"
-        color="gray"
+        color="red"
         onClick={() => {
           stop();
         }}
@@ -105,7 +105,7 @@ function ShortcutInput({
       </ActionIcon>
       <ActionIcon
         variant="outline"
-        color="blue"
+        color="green"
         disabled={stringed === ""}
         onClick={() => {
           stop();
