@@ -4,8 +4,9 @@ import { INITIAL_FEN, makeFen } from "chessops/fen";
 import { makeSan, parseSan } from "chessops/san";
 import { type Draft, produce } from "immer";
 import { createStore, type StateCreator } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import { persist } from "zustand/middleware";
 import type { BestMoves, Outcome, Score } from "@/bindings";
+import { createDebouncedSessionStorage } from "./debouncedStorage";
 import { ANNOTATION_INFO, type Annotation } from "@/utils/annotation";
 import { getPGN } from "@/utils/chess";
 import { parseSanOrUci, positionFromFen } from "@/utils/chessops";
@@ -139,9 +140,8 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
 
                 const node = getNodeAtPath(state.root, state.position);
                 if (!node || !node.children[childIndex]?.move) return state;
-                const [pos] = positionFromFen(node.fen);
-                if (!pos) return state;
-                const san = makeSan(pos, node.children[childIndex].move);
+                const san = node.children[childIndex].san;
+                if (!san) return state;
                 playSound(san.includes("x"), san.includes("+"));
                 return {
                     ...state,
@@ -505,7 +505,7 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
         return createStore<TreeStoreState>()(
             persist(stateCreator, {
                 name: id,
-                storage: createJSONStorage(() => sessionStorage),
+                storage: createDebouncedSessionStorage<TreeStoreState>(),
             }),
         );
     }
