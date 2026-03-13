@@ -1,7 +1,7 @@
 import { IconBook, IconChess, IconFile, IconPuzzle, IconTrophy } from "@tabler/icons-react";
 import type { FileType } from "./file";
 
-export function getFileIcon(type: FileType) {
+function getFileIcon(type: FileType) {
   switch (type) {
     case "repertoire":
       return IconBook;

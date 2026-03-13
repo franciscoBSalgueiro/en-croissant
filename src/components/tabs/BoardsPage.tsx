@@ -212,6 +212,7 @@ export default function BoardsPage() {
                       >
                         <BoardTab
                           tab={tab}
+                          tabType={tab.type}
                           setActiveTab={handleSetActiveTab}
                           closeTab={closeTab}
                           renameTab={renameTab}
