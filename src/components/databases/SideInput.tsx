@@ -1,7 +1,7 @@
 import { Box, Menu, UnstyledButton } from "@mantine/core";
 import { useEffect, useState } from "react";
 import type { Sides } from "@/utils/db";
-import * as classes from "./SideInput.css";
+import classes from "./SideInput.module.css";
 
 const data = [
   { label: "White", color: "white" },

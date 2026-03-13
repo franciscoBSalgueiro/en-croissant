@@ -1,0 +1,57 @@
+.row {
+  cursor: pointer;
+  border-left: 3px solid transparent;
+}
+
+[data-mantine-color-scheme="light"] .row:hover {
+  background-color: var(--mantine-color-gray-1);
+}
+
+[data-mantine-color-scheme="dark"] .row:hover {
+  background-color: var(--mantine-color-dark-5);
+}
+
+.active {
+  font-weight: 500;
+  border-left: 3px solid transparent;
+}
+
+[data-mantine-color-scheme="light"] .active {
+  background-color: var(--mantine-primary-color-0);
+  color: var(--mantine-color-dark-8);
+  box-shadow:
+    inset 3px 0 0 var(--mantine-primary-color-6),
+    inset 0 0 0 1px var(--mantine-primary-color-2);
+}
+
+[data-mantine-color-scheme="light"] .active:hover {
+  background-color: var(--mantine-primary-color-1);
+}
+
+[data-mantine-color-scheme="dark"] .active {
+  background-color: var(--mantine-color-dark-5);
+  border-left-color: var(--mantine-primary-color-7);
+}
+
+[data-mantine-color-scheme="dark"] .active:hover {
+  background-color: var(--mantine-color-dark-4);
+}
+
+.index {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.5;
+  font-size: 0.75em;
+  min-width: 0.75rem;
+  text-align: right;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.deleteBtn {
+  opacity: 0;
+}
+
+.row:hover .deleteBtn,
+.active .deleteBtn {
+  opacity: 1;
+}

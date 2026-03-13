@@ -46,7 +46,7 @@ import {
   snapArrowsAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
-import { chessboard } from "@/styles/Chessboard.css";
+import classes from "@/styles/Chessboard.module.css";
 import { ANNOTATION_INFO, isBasicAnnotation } from "@/utils/annotation";
 import { getVariationLine } from "@/utils/chess";
 import { chessopsError, forceEnPassant, positionFromFen } from "@/utils/chessops";
@@ -472,7 +472,7 @@ function Board({
                     }
                   : undefined
               }
-              className={chessboard}
+              className={classes.chessboard}
               ref={boardRef}
               onClick={() => {
                 eraseDrawablesOnClick && clearShapes();

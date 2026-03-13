@@ -1,0 +1,16 @@
+.logo {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--mantine-radius-sm);
+  overflow: hidden;
+}
+
+[data-mantine-color-scheme="light"] .logo {
+  fill: var(--mantine-color-black);
+  stroke: var(--mantine-color-black);
+}
+
+[data-mantine-color-scheme="dark"] .logo {
+  fill: var(--mantine-color-white);
+  stroke: var(--mantine-color-white);
+}

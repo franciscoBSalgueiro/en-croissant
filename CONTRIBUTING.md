@@ -53,6 +53,10 @@ The following steps will get you setup to contribute changes to this repo:
 
 - Lints the project according to the project guidelines
 
+`pnpm i18n:extract`
+
+- Extracts all translation keys from the code and updates the translation files in [src/translation](./src/translation/)
+
 `pnpm build`
 
 - Builds the entire app from source. The built app can be found at [src-tauri/target/release](./src-tauri/target/release/)
@@ -61,7 +65,7 @@ The following steps will get you setup to contribute changes to this repo:
 
 - Implement your contributions (see the [Development](#development) section for more information)
 - Before submitting a PR, first build the app using `pnpm build` and check every feature you've contributed to.
-- Format and lint your code using `pnpm format` followed by `pnpm lint:fix`
+- Format and lint your code using `pnpm format` followed by `pnpm lint:fix`. If you added or changed any translation keys, run `pnpm i18n:extract` to update the translation files.
 - Go to [the comparison page](https://github.com/franciscoBSalgueiro/en-croissant/compare) and select the branch you just pushed in the `compare:` dropdown
 - Submit the new PR. The maintainers will follow up ASAP.
 

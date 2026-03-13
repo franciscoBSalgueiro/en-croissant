@@ -20,7 +20,7 @@ import { query_players } from "@/utils/db";
 import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
 import GridLayout from "./GridLayout";
 import PlayerCard from "./PlayerCard";
-import * as classes from "./styles.css";
+import classes from "./styles.module.css";
 
 function PlayerTable() {
   const { t } = useTranslation();

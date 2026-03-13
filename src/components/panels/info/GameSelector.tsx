@@ -12,7 +12,7 @@ import { parsePGN } from "@/utils/chess";
 import { formatNumber } from "@/utils/format";
 import { getGameName } from "@/utils/treeReducer";
 import { unwrap } from "@/utils/unwrap";
-import * as classes from "./GameSelector.css";
+import classes from "./GameSelector.module.css";
 
 export default function GameSelector({
   games,

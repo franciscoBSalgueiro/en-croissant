@@ -39,7 +39,7 @@ import {
   type PositionMove,
 } from "@/utils/repertoire";
 import { getNodeAtPath, getTreeStructureHash, type TreeNode } from "@/utils/treeReducer";
-import * as classes from "./RepertoireInfo.css";
+import classes from "./RepertoireInfo.module.css";
 
 function formatMoveNotation(halfMoves: number, san: string): string {
   const moveNum = Math.ceil(halfMoves / 2);

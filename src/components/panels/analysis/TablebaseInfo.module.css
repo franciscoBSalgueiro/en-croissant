@@ -1,0 +1,15 @@
+.info {
+  transition: background-color 0.1s ease-in-out;
+}
+
+.info:hover {
+  cursor: pointer;
+}
+
+[data-mantine-color-scheme="light"] .info:hover {
+  background-color: var(--mantine-color-gray-2);
+}
+
+[data-mantine-color-scheme="dark"] .info:hover {
+  background-color: var(--mantine-color-dark-6);
+}

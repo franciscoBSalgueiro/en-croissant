@@ -2,7 +2,7 @@ import { Box, Button, Center, Group, Image, Menu, Text } from "@mantine/core";
 import { useColorScheme } from "@mantine/hooks";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useEffect, useState } from "react";
-import * as classes from "./TopBar.css";
+import classes from "./TopBar.module.css";
 
 const appWindow = getCurrentWebviewWindow();
 

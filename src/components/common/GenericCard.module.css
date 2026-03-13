@@ -1,0 +1,63 @@
+.card {
+  cursor: pointer;
+  border-style: solid;
+  padding: 1rem;
+  border-radius: var(--mantine-radius-md);
+  border-width: 2px;
+  border-color: transparent;
+  box-shadow: var(--mantine-shadow-xs);
+}
+
+[data-mantine-color-scheme="light"] .card {
+  background-color: var(--mantine-color-white);
+  border-color: var(--mantine-color-gray-2);
+}
+
+[data-mantine-color-scheme="dark"] .card {
+  background-color: var(--mantine-color-dark-6);
+  border-color: var(--mantine-color-dark-4);
+}
+
+.card:hover {
+  box-shadow: var(--mantine-shadow-md);
+}
+
+[data-mantine-color-scheme="light"] .card:hover {
+  background-color: var(--mantine-color-white);
+  border-color: var(--mantine-color-gray-4);
+}
+
+[data-mantine-color-scheme="dark"] .card:hover {
+  background-color: var(--mantine-color-dark-5);
+  border-color: var(--mantine-color-dark-3);
+}
+
+.label {
+  font-weight: 700;
+  font-size: var(--mantine-font-size-xs);
+  letter-spacing: -0.25px;
+  text-transform: uppercase;
+}
+
+.info {
+  display: flex;
+  justify-content: space-between;
+}
+
+.error {
+  border-color: var(--mantine-color-red-6) !important;
+  border-width: 1px;
+}
+
+.error:hover {
+  border-color: var(--mantine-color-red-6);
+}
+
+.selected {
+  border-color: var(--mantine-primary-color-filled) !important;
+  box-shadow: var(--mantine-shadow-md) !important;
+}
+
+.selected:hover {
+  border-color: var(--mantine-primary-color-filled);
+}

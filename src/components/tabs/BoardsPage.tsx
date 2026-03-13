@@ -25,7 +25,7 @@ import "react-mosaic-component/react-mosaic-component.css";
 import "@/styles/react-mosaic.css";
 import { platform } from "@tauri-apps/plugin-os";
 import { atomWithStorage } from "jotai/utils";
-import * as classes from "./BoardsPage.css";
+import classes from "./BoardsPage.module.css";
 
 export default function BoardsPage() {
   const { t } = useTranslation();
@@ -212,6 +212,7 @@ export default function BoardsPage() {
                       >
                         <BoardTab
                           tab={tab}
+                          tabType={tab.type}
                           setActiveTab={handleSetActiveTab}
                           closeTab={closeTab}
                           renameTab={renameTab}

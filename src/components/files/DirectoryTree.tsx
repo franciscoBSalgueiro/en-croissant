@@ -26,7 +26,7 @@ import {
 } from "react";
 import { activeTabAtom, deckAtomFamily, tabsAtom, expandedDirectoriesAtom } from "@/state/atoms";
 import { openFile } from "@/utils/files";
-import * as classes from "./DirectoryTree.css";
+import classes from "./DirectoryTree.module.css";
 import type { Directory, FileMetadata } from "./file";
 import { getStats } from "./opening";
 import { FileIcon } from "./FileIcon";

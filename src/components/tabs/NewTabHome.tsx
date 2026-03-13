@@ -27,7 +27,7 @@ import { createTab } from "@/utils/tabs";
 import { unwrap } from "@/utils/unwrap";
 import CreateRepertoireModal from "./CreateRepertoireModal";
 import ImportModal from "./ImportModal";
-import "./NewTabHome.css";
+import classes from "./NewTabHome.module.css";
 import {
   IconChess,
   IconClock,
@@ -77,7 +77,7 @@ function RecentFileRow({ file, onOpen }: { file: RecentFile; onOpen: (file: Rece
       style={{
         borderRadius: "var(--mantine-radius-sm)",
       }}
-      className="recent-file-row"
+      className={classes.recentFileRow}
     >
       <Group justify="space-between" wrap="nowrap">
         <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>

@@ -4,7 +4,7 @@ import { useContext } from "react";
 import { useStore } from "zustand";
 import { TreeStateContext } from "../common/TreeStateContext";
 import FenInput from "../panels/info/FenInput";
-import * as classes from "./EditingCard.css";
+import classes from "./EditingCard.module.css";
 import PiecesGrid from "./PiecesGrid";
 
 function EditingCard({

@@ -8,7 +8,7 @@ import { createStore, useStore } from "zustand";
 import type { Outcome } from "@/bindings";
 import type { GameHeaders } from "@/utils/treeReducer";
 import FideInfo from "../databases/FideInfo";
-import * as classes from "./GameInfo.css";
+import classes from "./GameInfo.module.css";
 import { InlineInput } from "./InlineInput";
 import { TreeStateContext } from "./TreeStateContext";
 
