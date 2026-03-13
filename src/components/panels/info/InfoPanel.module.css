@@ -1,8 +1,7 @@
 .databaseCard {
   cursor: pointer;
   border-radius: var(--mantine-radius-sm);
-  padding: 0.25rem 0.5rem;
-  margin-right: 0.5rem;
+  padding: 0.5rem 0.5rem;
 }
 
 [data-mantine-color-scheme="light"] .databaseCard:hover {

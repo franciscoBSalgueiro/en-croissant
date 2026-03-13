@@ -50,14 +50,14 @@ function InfoPanel({ addGame }: { addGame?: () => void }) {
   const { t } = useTranslation();
 
   return (
-    <Stack h="100%" pl="sm" pt="sm" gap={0}>
+    <Stack h="100%" gap={0}>
       {currentTab?.gameOrigin.kind === "database" && (
         <DatabaseInfo path={currentTab.gameOrigin.database} id={currentTab.gameOrigin.gameId} />
       )}
       <GameSelectorAccordion games={games} setGames={setGames} addGame={addGame} />
-      <ScrollArea offsetScrollbars>
+      <ScrollArea pb="sm">
         <FileInfo setGames={setGames} />
-        <Stack>
+        <Stack px="sm">
           <GameInfo
             headers={headers}
             simplified={isReportoire}
@@ -104,7 +104,6 @@ function DatabaseInfo({ path, id: _id }: { path: string; id: number }) {
     <Stack gap={0}>
       <Box
         className={classes.databaseCard}
-        mb="md"
         onClick={async () => {
           await navigate({
             to: "/databases/$databaseId",
@@ -224,7 +223,14 @@ function GameSelectorAccordion({
           void setPage(tempPage, true);
         }}
       />
-      <Accordion pr="sm">
+      <Accordion
+        styles={{
+          control: {
+            borderBottom: "1px solid var(--mantine-color-default-border)",
+          },
+          content: { padding: 0 },
+        }}
+      >
         <Accordion.Item value="game">
           <Accordion.Control>
             <Group justify="space-between" wrap="nowrap" w="100%">
