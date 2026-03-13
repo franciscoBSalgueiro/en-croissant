@@ -49,9 +49,7 @@ function bindFlushHandlers() {
     flushHandlersBound = true;
 }
 
-export function createDebouncedSessionStorage<S>(
-    delay = DEBOUNCE_MS,
-): PersistStorage<S> {
+export function createDebouncedSessionStorage<S>(delay = DEBOUNCE_MS): PersistStorage<S> {
     bindFlushHandlers();
 
     return {

@@ -653,7 +653,9 @@ function PracticePanel() {
         }}
         confirmLabel={t("Common.Reset")}
       />
-      {positionsOpen && <PositionsModal open={positionsOpen} setOpen={setPositionsOpen} deck={deck} />}
+      {positionsOpen && (
+        <PositionsModal open={positionsOpen} setOpen={setPositionsOpen} deck={deck} />
+      )}
       <LogsModal open={logsOpen} setOpen={setLogsOpen} logs={deck.logs} />
     </>
   );
