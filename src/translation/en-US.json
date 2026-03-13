@@ -53,7 +53,7 @@
     "Board.Analysis.Report": "Report",
     "Board.Analysis.ReportGenerated": "Report generated",
     "Board.Analysis.Reversed": "Reversed analysis",
-    "Board.Analysis.Reversed.Desc": "Analyze the game in starting from the last move.",
+    "Board.Analysis.Reversed.Desc": "Analyze the game starting from the last move.",
     "Board.Analysis.ShowVariations": "Show variations",
     "Board.Analysis.ShowVariations.Desc": "Add best continuation lines for mistakes",
     "Board.Analysis.SyncGlobally": "Sync globally",
