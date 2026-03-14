@@ -70,11 +70,13 @@ function ReportPanel() {
             <AccuracyCard
               color={t("Common.WHITE")}
               accuracy={stats.whiteAccuracy}
+              elo={stats.whiteElo}
               cpl={stats.whiteCPL}
             />
             <AccuracyCard
               color={t("Common.BLACK")}
               accuracy={stats.blackAccuracy}
+              elo={stats.blackElo}
               cpl={stats.blackCPL}
             />
           </Group>
@@ -162,7 +164,7 @@ const GameStats = memo(
   },
 );
 
-function AccuracyCard({ color, cpl, accuracy }: { color: string; cpl: number; accuracy: number }) {
+function AccuracyCard({ color, cpl, elo, accuracy }: { color: string; cpl: number; elo: number; accuracy: number }) {
   const { t } = useTranslation();
 
   return (
@@ -170,7 +172,7 @@ function AccuracyCard({ color, cpl, accuracy }: { color: string; cpl: number; ac
       <Group justify="space-between">
         <Stack gap={0} align="start">
           <Text c="dimmed">{color}</Text>
-          <Text fz="sm">{cpl.toFixed(1)} ACPL</Text>
+          <Text fz="sm">{cpl.toFixed(1)} ACPL ({elo} Elo)</Text>
         </Stack>
         <Stack gap={0} align="center">
           <Text fz="xl" lh="normal">
