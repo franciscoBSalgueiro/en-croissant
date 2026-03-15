@@ -561,6 +561,8 @@ export function getGameStats(root: TreeNode) {
         return {
             whiteCPL: 0,
             blackCPL: 0,
+            whiteElo: 0,
+            blackElo: 0,
             whiteAccuracy: 0,
             blackAccuracy: 0,
             whiteAnnotations,
@@ -601,14 +603,24 @@ export function getGameStats(root: TreeNode) {
     const whiteAccuracy = harmonicMean(accuracies.white);
     const blackAccuracy = harmonicMean(accuracies.black);
 
+    const whiteElo = estimateElo(whiteCPL);
+    const blackElo = estimateElo(blackCPL);
+
     return {
         whiteCPL,
         blackCPL,
+        whiteElo,
+        blackElo,
         whiteAccuracy,
         blackAccuracy,
         whiteAnnotations,
         blackAnnotations,
     };
+}
+
+// Source: https://lichess.org/forum/general-chess-discussion/how-to-estimate-your-elo-for-a-game-using-acpl-and-what-it-realistically-means
+function estimateElo(acpl: number) {
+    return Math.round(3100 * Math.exp(-0.01 * acpl));
 }
 
 export type PiecesCount = {
