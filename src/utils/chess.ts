@@ -620,7 +620,7 @@ export function getGameStats(root: TreeNode) {
 
 // Source: https://lichess.org/forum/general-chess-discussion/how-to-estimate-your-elo-for-a-game-using-acpl-and-what-it-realistically-means
 function estimateElo(acpl: number) {
-  return Math.round(3100 * Math.exp(-0.01 * acpl));
+    return Math.round(3100 * Math.exp(-0.01 * acpl));
 }
 
 export type PiecesCount = {

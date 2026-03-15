@@ -164,7 +164,17 @@ const GameStats = memo(
   },
 );
 
-function AccuracyCard({ color, cpl, elo, accuracy }: { color: string; cpl: number; elo: number; accuracy: number }) {
+function AccuracyCard({
+  color,
+  cpl,
+  elo,
+  accuracy,
+}: {
+  color: string;
+  cpl: number;
+  elo: number;
+  accuracy: number;
+}) {
   const { t } = useTranslation();
 
   return (
@@ -172,7 +182,9 @@ function AccuracyCard({ color, cpl, elo, accuracy }: { color: string; cpl: numbe
       <Group justify="space-between">
         <Stack gap={0} align="start">
           <Text c="dimmed">{color}</Text>
-          <Text fz="sm">{cpl.toFixed(1)} ACPL ({elo} Elo)</Text>
+          <Text fz="sm">
+            {cpl.toFixed(1)} ACPL ({elo} Elo)
+          </Text>
         </Stack>
         <Stack gap={0} align="center">
           <Text fz="xl" lh="normal">
