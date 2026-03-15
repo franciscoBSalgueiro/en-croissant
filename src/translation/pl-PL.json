@@ -90,6 +90,7 @@
     "Board.Database.SelectReference": "dodaj bazę danych",
     "Board.Database.Stats": "Statystyki",
     "Board.Database.TimeControl": "Kontrola czasu",
+    "Board.Opponent.EnableOpeningBook": "",
     "Board.Opponent.EngineSettings": "",
     "Board.Opponent.Human": "",
     "Board.Opponent.Increment": "",

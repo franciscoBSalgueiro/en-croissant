@@ -90,6 +90,7 @@
     "Board.Database.SelectReference": "添加一个数据库",
     "Board.Database.Stats": "统计信息",
     "Board.Database.TimeControl": "时限",
+    "Board.Opponent.EnableOpeningBook": "",
     "Board.Opponent.EngineSettings": "引擎设置",
     "Board.Opponent.Human": "人类",
     "Board.Opponent.Increment": "加时",
