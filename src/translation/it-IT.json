@@ -90,6 +90,7 @@
     "Board.Database.SelectReference": "Aggiungi un database",
     "Board.Database.Stats": "Statistiche",
     "Board.Database.TimeControl": "Cadenza",
+    "Board.Opponent.EnableOpeningBook": "Abilita libro delle aperture",
     "Board.Opponent.EngineSettings": "Impostazioni motore",
     "Board.Opponent.Human": "Umano",
     "Board.Opponent.Increment": "Incremento",

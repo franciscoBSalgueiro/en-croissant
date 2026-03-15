@@ -677,7 +677,7 @@ function BoardGame() {
                           <Divider variant="dashed" />
 
                           <Checkbox
-                            label="Enable Opening Book"
+                            label={t("Board.Opponent.EnableOpeningBook")}
                             checked={openingBookEnabled}
                             onChange={(e) => setOpeningBookEnabled(e.currentTarget.checked)}
                           />
