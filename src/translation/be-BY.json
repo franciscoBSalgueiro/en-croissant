@@ -90,6 +90,7 @@
     "Board.Database.SelectReference": "дадайце базу дадзеных",
     "Board.Database.Stats": "Статыстыка",
     "Board.Database.TimeControl": "Кантроль часу",
+    "Board.Opponent.EnableOpeningBook": "",
     "Board.Opponent.EngineSettings": "",
     "Board.Opponent.Human": "",
     "Board.Opponent.Increment": "",

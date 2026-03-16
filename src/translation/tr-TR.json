@@ -90,6 +90,7 @@
     "Board.Database.SelectReference": "bir veritabanı ekleyin",
     "Board.Database.Stats": "İstatistik",
     "Board.Database.TimeControl": "Zaman temposu",
+    "Board.Opponent.EnableOpeningBook": "",
     "Board.Opponent.EngineSettings": "",
     "Board.Opponent.Human": "",
     "Board.Opponent.Increment": "",
