@@ -273,6 +273,11 @@ function BoardGame() {
     const playerSettings = getPlayers();
     setPlayers(playerSettings);
 
+    const boardOrientation =
+      playerSettings.black.type === "human" && playerSettings.white.type === "engine"
+        ? "black"
+        : "white";
+
     const newGameId = `${activeTab}-game`;
     setGameId(newGameId);
 
@@ -355,6 +360,7 @@ function BoardGame() {
         date: dateStr,
         time: timeStr,
         time_control: undefined,
+        orientation: boardOrientation,
       };
 
       if (sameTimeControl) {
@@ -677,7 +683,7 @@ function BoardGame() {
                           <Divider variant="dashed" />
 
                           <Checkbox
-                            label="Enable Opening Book"
+                            label={t("Board.Opponent.EnableOpeningBook")}
                             checked={openingBookEnabled}
                             onChange={(e) => setOpeningBookEnabled(e.currentTarget.checked)}
                           />
