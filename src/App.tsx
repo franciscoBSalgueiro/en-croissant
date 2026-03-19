@@ -220,13 +220,14 @@ export default function App() {
   useEffect(() => {
     let unlisten: (() => void) | undefined;
 
-    void listen<number[]>("convert_progress", (event) => {
-      const [totalGames, elapsedMs] = event.payload;
+    void listen<[number, number, string | null]>("convert_progress", (event) => {
+      const [totalGames, elapsedMs, sourceFileName] = event.payload;
       setDatabaseConversionState((prev) => ({
         ...prev,
         inProgress: true,
         totalGames,
         elapsedSeconds: elapsedMs / 1000,
+        sourceFileName: sourceFileName ?? prev.sourceFileName,
       }));
     }).then((fn) => {
       unlisten = fn;

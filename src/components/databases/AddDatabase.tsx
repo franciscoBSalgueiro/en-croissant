@@ -31,6 +31,13 @@ import { unwrap } from "@/utils/unwrap";
 import FileInput from "../common/FileInput";
 import ProgressButton from "../common/ProgressButton";
 
+interface AddDatabaseFormValues {
+  title: string;
+  description: string;
+  files: string[];
+  filename: string;
+}
+
 function AddDatabase({
   databases,
   opened,
@@ -52,10 +59,11 @@ function AddDatabase({
 
   const { defaultDatabases, error, isLoading } = useDefaultDatabases(opened);
 
-  async function convertDB(path: string, title: string, description?: string) {
+  async function convertDB(paths: string[], title: string, description?: string) {
+    if (paths.length === 0) return;
     setLoading(true);
     const dbPath = await resolve(databaseDir, `${title}.db3`);
-    const sourceFileName = await basename(path);
+    const sourceFileName = await basename(paths[0]);
     setConversionState((prev) => ({
       ...prev,
       inProgress: true,
@@ -64,8 +72,8 @@ function AddDatabase({
       sourceFileName,
     }));
     try {
-      unwrap(await commands.convertPgn(path, dbPath, null, title, description ?? null));
-      setDatabases(await getDatabases());
+      unwrap(await commands.convertPgn(paths, dbPath, null, title, description ?? null));
+      await setDatabases(await getDatabases());
     } finally {
       setLoading(false);
       setConversionState((prev) => ({
@@ -80,13 +88,12 @@ function AddDatabase({
     }
   }
 
-  const form = useForm<Partial<Extract<DatabaseInfo, { type: "success" }>>>({
+  const form = useForm<AddDatabaseFormValues>({
     initialValues: {
       title: "",
       description: "",
-      file: "",
+      files: [],
       filename: "",
-      indexed: false,
     },
 
     validate: {
@@ -95,8 +102,8 @@ function AddDatabase({
         if (databases.find((e) => e.type === "success" && e.title === value))
           return t("Common.NameAlreadyUsed");
       },
-      file: (value) => {
-        if (!value) return t("Common.RequirePath");
+      files: (value) => {
+        if (value.length === 0) return t("Common.RequirePath");
       },
     },
   });
@@ -144,7 +151,7 @@ function AddDatabase({
           <form
             onSubmit={form.onSubmit(async (values) => {
               if (disableLocalConversion) return;
-              convertDB(values.file!, values.title!, values.description);
+              await convertDB(values.files, values.title, values.description);
               setOpened(false);
             })}
           >
@@ -157,7 +164,7 @@ function AddDatabase({
               description={t("Databases.Add.ClickToSelectPGN")}
               onClick={async () => {
                 const selected = await open({
-                  multiple: false,
+                  multiple: true,
                   filters: [
                     {
                       name: "PGN file",
@@ -165,21 +172,31 @@ function AddDatabase({
                     },
                   ],
                 });
-                if (!selected || typeof selected === "object") return;
-                form.setFieldValue("file", selected);
-                const filename = await basename(selected);
-                if (filename) {
-                  form.setFieldValue("filename", filename);
+                if (!selected) return;
+
+                const selectedFiles = Array.isArray(selected) ? selected : [selected];
+                form.setFieldValue("files", selectedFiles);
+
+                const filenames = await Promise.all(selectedFiles.map((file) => basename(file)));
+                const firstFilename = filenames[0];
+                if (firstFilename) {
+                  const displayName =
+                    filenames.length > 1
+                      ? `${firstFilename} (+${filenames.length - 1})`
+                      : firstFilename;
+                  form.setFieldValue("filename", displayName);
                   if (!form.values.title) {
                     form.setFieldValue(
                       "title",
-                      capitalize(filename.replaceAll(/[_-]/g, " ").replace(".pgn", "")),
+                      capitalize(
+                        firstFilename.replaceAll(/[_-]/g, " ").replace(/\.pgn(\.(zst|bz2))?$/i, ""),
+                      ),
                     );
                   }
                 }
               }}
               filename={form.values.filename ?? null}
-              {...form.getInputProps("path")}
+              error={form.errors.files}
             />
 
             <Button fullWidth mt="xl" type="submit" disabled={disableLocalConversion}>
@@ -212,7 +229,7 @@ function DatabaseCard({
     setInProgress(true);
     const path = await resolve(databaseDir, `${name}.db3`);
     await commands.downloadFile(`db_${id}`, url, path, null, null, null);
-    setDatabases(await getDatabases());
+    await setDatabases(await getDatabases());
   }
 
   return (

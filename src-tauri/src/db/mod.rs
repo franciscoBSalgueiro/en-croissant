@@ -492,7 +492,7 @@ impl Visitor for Importer {
 #[tauri::command]
 #[specta::specta]
 pub async fn convert_pgn(
-    file: PathBuf,
+    files: Vec<PathBuf>,
     db_path: PathBuf,
     timestamp: Option<i32>,
     app: tauri::AppHandle,
@@ -500,8 +500,11 @@ pub async fn convert_pgn(
     description: Option<String>,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
+    if files.is_empty() {
+        return Ok(());
+    }
+
     let description = description.unwrap_or_default();
-    let extension = file.extension();
 
     let db_exists = db_path.exists();
 
@@ -528,35 +531,55 @@ pub async fn convert_pgn(
         )?;
     }
 
-    let file = File::open(&file)?;
-
-    let uncompressed: Box<dyn std::io::Read + Send> = if extension == Some("bz2".as_ref()) {
-        Box::new(bzip2::read::MultiBzDecoder::new(file))
-    } else if extension == Some("zst".as_ref()) {
-        Box::new(zstd::Decoder::new(file)?)
-    } else {
-        Box::new(file)
-    };
-
     // start counting time
     let start = Instant::now();
 
-    let mut importer = Importer::new(timestamp.map(|t| t as i64));
-    db.transaction::<_, diesel::result::Error, _>(|db| {
-        for (i, game) in BufferedReader::new(uncompressed)
-            .into_iter(&mut importer)
-            .flatten()
-            .flatten()
-            .enumerate()
-        {
-            if i % 1000 == 0 {
-                let elapsed = start.elapsed().as_millis() as u32;
-                app.emit("convert_progress", (i, elapsed)).unwrap();
+    let mut imported_games = 0usize;
+
+    for file_path in files {
+        let current_file_name = file_path
+            .file_name()
+            .map(|name| name.to_string_lossy().into_owned());
+        let extension = file_path.extension();
+        let file = File::open(&file_path)?;
+
+        let uncompressed: Box<dyn std::io::Read + Send> = if extension == Some("bz2".as_ref()) {
+            Box::new(bzip2::read::MultiBzDecoder::new(file))
+        } else if extension == Some("zst".as_ref()) {
+            Box::new(zstd::Decoder::new(file)?)
+        } else {
+            Box::new(file)
+        };
+
+        let mut importer = Importer::new(timestamp.map(|t| t as i64));
+        let mut file_imported_games = 0usize;
+
+        db.transaction::<_, diesel::result::Error, _>(|db| {
+            for game in BufferedReader::new(uncompressed)
+                .into_iter(&mut importer)
+                .flatten()
+                .flatten()
+            {
+                if (imported_games + file_imported_games).is_multiple_of(1000) {
+                    let elapsed = start.elapsed().as_millis() as u32;
+                    app.emit(
+                        "convert_progress",
+                        (
+                            imported_games + file_imported_games,
+                            elapsed,
+                            current_file_name.clone(),
+                        ),
+                    )
+                    .unwrap();
+                }
+                game.insert_to_db(db)?;
+                file_imported_games += 1;
             }
-            game.insert_to_db(db)?;
-        }
-        Ok(())
-    })?;
+            Ok(())
+        })?;
+
+        imported_games += file_imported_games;
+    }
 
     if !db_exists {
         // Create all the necessary indexes
