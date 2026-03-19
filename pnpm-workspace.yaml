@@ -1,5 +1,5 @@
 onlyBuiltDependencies:
-  - '@parcel/watcher'
+  - "@parcel/watcher"
   - "@swc/core"
   - core-js
   - esbuild

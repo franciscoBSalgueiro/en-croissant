@@ -373,6 +373,9 @@ export const currentShowVariationsAtom = tabValue(showVariationsFamily);
 export const tabFamily = atomFamily((_tab: string) => atom("info"));
 export const currentTabSelectedAtom = tabValue(tabFamily);
 
+const reportModalOpenFamily = atomFamily((_tab: string) => atom(false));
+export const currentReportModalOpenAtom = tabValue(reportModalOpenFamily);
+
 const localOptionsFamily = atomFamily((_tab: string) =>
     atom<LocalOptions>({
         path: null,
