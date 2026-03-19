@@ -55,6 +55,7 @@ export interface TreeStoreState extends TreeState {
     deleteMove: (path?: number[]) => void;
     promoteVariation: (path: number[]) => void;
     promoteToMainline: (path: number[]) => void;
+    copyPgn: () => void;
     copyVariationPgn: (path: number[]) => void;
 
     setStart: (start: number[]) => void;
@@ -397,6 +398,17 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
                 glyphs: true,
                 variations: false,
                 path,
+            });
+            navigator.clipboard.writeText(pgn);
+        },
+        copyPgn: () => {
+            const { root, headers } = get();
+            const pgn = getPGN(root, {
+                headers,
+                comments: true,
+                extraMarkups: true,
+                glyphs: true,
+                variations: true,
             });
             navigator.clipboard.writeText(pgn);
         },

@@ -49,6 +49,7 @@ import OpeningName from "./OpeningName";
 function GameNotation({ topBar, controls }: { topBar?: boolean; controls?: React.ReactNode }) {
   const store = useContext(TreeStateContext)!;
   const currentFen = useStore(store, (s) => s.currentNode().fen);
+  const copyPgn = useStore(store, (s) => s.copyPgn);
   const headers = useStore(store, (s) => s.headers);
   const rootComment = useStore(store, (s) => s.root.comment);
 
@@ -82,6 +83,7 @@ function GameNotation({ topBar, controls }: { topBar?: boolean; controls?: React
 
   const keyMap = useAtomValue(keyMapAtom);
   useHotkeys(keyMap.TOGGLE_BLUR.keys, () => setInvisible((v) => !v));
+  useHotkeys(keyMap.COPY_PGN.keys, () => copyPgn());
 
   return (
     <Paper withBorder flex={1} style={{ position: "relative", overflow: "hidden" }}>
