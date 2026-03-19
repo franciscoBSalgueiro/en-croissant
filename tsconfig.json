@@ -16,7 +16,8 @@
     "jsx": "preserve",
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "plugins": [{ "name": "typescript-plugin-css-modules" }]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "src-tauri"]
