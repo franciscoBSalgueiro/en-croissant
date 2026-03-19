@@ -133,6 +133,12 @@ function RootLayout() {
     navigate({ to: "/settings" });
   }, [navigate]);
 
+  const toggleFullscreen = useCallback(async () => {
+    const currentWindow = getCurrentWindow();
+    const isFullscreen = await currentWindow.isFullscreen();
+    await currentWindow.setFullscreen(!isFullscreen);
+  }, []);
+
   const [keyMap] = useAtom(keyMapAtom);
 
   useHotkeys(keyMap.NEW_TAB.keys, createNewTab);
@@ -256,6 +262,14 @@ function RootLayout() {
             shortcut: "Ctrl+R",
             action: () => location.reload(),
           },
+          {
+            label: t("Menu.View.Fullscreen", {
+              defaultValue: "Toggle Fullscreen",
+            }),
+            id: "toggle_fullscreen",
+            shortcut: isMacOS ? "Ctrl+Cmd+F" : "F11",
+            action: toggleFullscreen,
+          },
         ],
       },
       {
@@ -298,7 +312,7 @@ function RootLayout() {
         ],
       },
     ],
-    [t, checkForUpdates, createNewTab, keyMap, openNewFile],
+    [t, checkForUpdates, createNewTab, keyMap, openNewFile, toggleFullscreen],
   );
 
   const { data: menu } = useSWRImmutable(["menu", menuActions], () => createMenu(menuActions));

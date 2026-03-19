@@ -425,6 +425,7 @@
     "Menu.PromoteToMainLine": "Promuovi a linea principale",
     "Menu.PromoteVariation": "Promuovi variante",
     "Menu.View": "Visualizza",
+    "Menu.View.Fullscreen": "",
     "Menu.View.Reload": "Ricarica",
     "Notation.HideComments": "Nascondi commenti",
     "Notation.HideMoves": "Nascondi mosse",

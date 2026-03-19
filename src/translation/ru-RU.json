@@ -442,6 +442,7 @@
     "Menu.PromoteToMainLine": "Повысить до главного варианта",
     "Menu.PromoteVariation": "Повысить вариант",
     "Menu.View": "Вид",
+    "Menu.View.Fullscreen": "",
     "Menu.View.Reload": "Перезагрузить",
     "Notation.HideComments": "",
     "Notation.HideMoves": "",

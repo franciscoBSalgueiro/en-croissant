@@ -436,6 +436,7 @@
     "Menu.PromoteToMainLine": "升为主变",
     "Menu.PromoteVariation": "提升变着",
     "Menu.View": "视图",
+    "Menu.View.Fullscreen": "",
     "Menu.View.Reload": "重新加载",
     "Notation.HideComments": "隐藏点评",
     "Notation.HideMoves": "隐藏着法",

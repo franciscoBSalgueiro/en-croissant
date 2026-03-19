@@ -439,6 +439,7 @@
     "Menu.PromoteToMainLine": "Variante principale",
     "Menu.PromoteVariation": "Promouvoir la variante",
     "Menu.View": "Vue",
+    "Menu.View.Fullscreen": "",
     "Menu.View.Reload": "Recharger",
     "Notation.HideComments": "Masquer les commentaires",
     "Notation.HideMoves": "Masquer les coups",

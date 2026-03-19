@@ -434,6 +434,7 @@
     "Menu.PromoteToMainLine": "메인 라인으로 승격",
     "Menu.PromoteVariation": "변형 수순 승격",
     "Menu.View": "화면",
+    "Menu.View.Fullscreen": "",
     "Menu.View.Reload": "새로고침",
     "Notation.HideComments": "주석 숨기기",
     "Notation.HideMoves": "수 숨기기",
