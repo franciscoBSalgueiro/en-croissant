@@ -5,13 +5,7 @@ import type { Score } from "@/bindings";
 import { currentEvalBarDisplayAtom, currentEvalOpenAtom } from "@/state/atoms";
 import { formatScore, getWinChance } from "@/utils/score";
 
-function EvalBar({
-  score,
-  orientation,
-}: {
-  score: Score | null;
-  orientation: Color;
-}) {
+function EvalBar({ score, orientation }: { score: Score | null; orientation: Color }) {
   const theme = useMantineTheme();
   const [evalDisplay, setEvalDisplay] = useAtom(currentEvalBarDisplayAtom);
   const [, setEvalOpen] = useAtom(currentEvalOpenAtom);
@@ -80,11 +74,7 @@ function EvalBar({
       ));
     } else {
       const progress =
-        scoreValue.type === "cp"
-          ? getWinChance(scoreValue.value)
-          : scoreValue.value > 0
-            ? 100
-            : 0;
+        scoreValue.type === "cp" ? getWinChance(scoreValue.value) : scoreValue.value > 0 ? 100 : 0;
 
       ScoreBars = [
         <Box
@@ -104,8 +94,7 @@ function EvalBar({
             py={3}
             mt={orientation === "black" ? "auto" : undefined}
           >
-            {scoreValue.value <= 0 &&
-              formatScore(scoreValue, 1).replace(/\+|-/, "")}
+            {scoreValue.value <= 0 && formatScore(scoreValue, 1).replace(/\+|-/, "")}
           </Text>
         </Box>,
         <Box

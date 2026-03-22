@@ -30,12 +30,13 @@ use pgn_reader::{BufferedReader, Nag, RawHeader, SanPlus, Skip, Visitor};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
-    fen::Fen, Board, ByColor, Chess, EnPassantMode, FromSetup, Piece, Position, PositionError,
+    fen::Fen, Board, ByColor, CastlingMode, Chess, EnPassantMode, FromSetup, Piece, Position,
+    PositionError,
 };
 use specta::Type;
 use std::{
     fs::{remove_file, File, OpenOptions},
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::atomic::{AtomicUsize, Ordering},
     time::{Duration, Instant},
 };
@@ -358,9 +359,10 @@ impl Visitor for Importer {
                 let fen = Fen::from_ascii(value.as_bytes());
                 if let Ok(fen) = fen {
                     self.game.fen = Some(value.decode_utf8_lossy().into_owned());
-                    if let Ok(setup) =
-                        Chess::from_setup(fen.into_setup(), shakmaty::CastlingMode::Standard)
-                            .or_else(PositionError::ignore_too_much_material)
+                    let setup = fen.into_setup();
+                    let castling_mode = CastlingMode::detect(&setup);
+                    if let Ok(setup) = Chess::from_setup(setup, castling_mode)
+                        .or_else(PositionError::ignore_too_much_material)
                     {
                         self.game.position = setup;
                     } else {
@@ -490,7 +492,7 @@ impl Visitor for Importer {
 #[tauri::command]
 #[specta::specta]
 pub async fn convert_pgn(
-    file: PathBuf,
+    files: Vec<PathBuf>,
     db_path: PathBuf,
     timestamp: Option<i32>,
     app: tauri::AppHandle,
@@ -498,8 +500,11 @@ pub async fn convert_pgn(
     description: Option<String>,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
+    if files.is_empty() {
+        return Ok(());
+    }
+
     let description = description.unwrap_or_default();
-    let extension = file.extension();
 
     let db_exists = db_path.exists();
 
@@ -526,35 +531,55 @@ pub async fn convert_pgn(
         )?;
     }
 
-    let file = File::open(&file)?;
-
-    let uncompressed: Box<dyn std::io::Read + Send> = if extension == Some("bz2".as_ref()) {
-        Box::new(bzip2::read::MultiBzDecoder::new(file))
-    } else if extension == Some("zst".as_ref()) {
-        Box::new(zstd::Decoder::new(file)?)
-    } else {
-        Box::new(file)
-    };
-
     // start counting time
     let start = Instant::now();
 
-    let mut importer = Importer::new(timestamp.map(|t| t as i64));
-    db.transaction::<_, diesel::result::Error, _>(|db| {
-        for (i, game) in BufferedReader::new(uncompressed)
-            .into_iter(&mut importer)
-            .flatten()
-            .flatten()
-            .enumerate()
-        {
-            if i % 1000 == 0 {
-                let elapsed = start.elapsed().as_millis() as u32;
-                app.emit("convert_progress", (i, elapsed)).unwrap();
+    let mut imported_games = 0usize;
+
+    for file_path in files {
+        let current_file_name = file_path
+            .file_name()
+            .map(|name| name.to_string_lossy().into_owned());
+        let extension = file_path.extension();
+        let file = File::open(&file_path)?;
+
+        let uncompressed: Box<dyn std::io::Read + Send> = if extension == Some("bz2".as_ref()) {
+            Box::new(bzip2::read::MultiBzDecoder::new(file))
+        } else if extension == Some("zst".as_ref()) {
+            Box::new(zstd::Decoder::new(file)?)
+        } else {
+            Box::new(file)
+        };
+
+        let mut importer = Importer::new(timestamp.map(|t| t as i64));
+        let mut file_imported_games = 0usize;
+
+        db.transaction::<_, diesel::result::Error, _>(|db| {
+            for game in BufferedReader::new(uncompressed)
+                .into_iter(&mut importer)
+                .flatten()
+                .flatten()
+            {
+                if (imported_games + file_imported_games).is_multiple_of(1000) {
+                    let elapsed = start.elapsed().as_millis() as u32;
+                    app.emit(
+                        "convert_progress",
+                        (
+                            imported_games + file_imported_games,
+                            elapsed,
+                            current_file_name.clone(),
+                        ),
+                    )
+                    .unwrap();
+                }
+                game.insert_to_db(db)?;
+                file_imported_games += 1;
             }
-            game.insert_to_db(db)?;
-        }
-        Ok(())
-    })?;
+            Ok(())
+        })?;
+
+        imported_games += file_imported_games;
+    }
 
     if !db_exists {
         // Create all the necessary indexes
@@ -587,7 +612,7 @@ pub async fn convert_pgn(
 }
 
 pub fn generate_search_index(
-    db_path: &PathBuf,
+    db_path: &Path,
     state: &tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
     let db = &mut get_db_or_create(
@@ -611,6 +636,8 @@ pub fn generate_search_index(
         i32,
         i32,
         i32,
+        Option<i32>,
+        Option<i32>,
     )> = games::table
         .select((
             games::id,
@@ -623,6 +650,8 @@ pub fn generate_search_index(
             games::pawn_home,
             games::white_material,
             games::black_material,
+            games::white_elo,
+            games::black_elo,
         ))
         .load(db)?;
 
@@ -638,6 +667,8 @@ pub fn generate_search_index(
         pawn_home,
         white_material,
         black_material,
+        white_elo,
+        black_elo,
     ) in games
     {
         let entry = SearchGameEntry::from_game_data(
@@ -651,6 +682,8 @@ pub fn generate_search_index(
             pawn_home,
             white_material,
             black_material,
+            white_elo,
+            black_elo,
         );
         writer.push(entry);
     }
@@ -1508,6 +1541,33 @@ pub async fn delete_database(
     Ok(())
 }
 
+fn delete_orphaned_data(db: &mut SqliteConnection) -> Result<(), Error> {
+    db.batch_execute(
+        "
+        DELETE FROM Players WHERE ID != 0 AND ID NOT IN (
+            SELECT WhiteID FROM Games UNION SELECT BlackID FROM Games
+        );
+        DELETE FROM Events WHERE ID != 0 AND ID NOT IN (
+            SELECT EventID FROM Games
+        );
+        DELETE FROM Sites WHERE ID != 0 AND ID NOT IN (
+            SELECT SiteID FROM Games
+        );
+        ",
+    )?;
+
+    let player_count: i64 = players::table.count().get_result(db)?;
+    update_info_count(db, "PlayerCount", player_count)?;
+
+    let event_count: i64 = events::table.count().get_result(db)?;
+    update_info_count(db, "EventCount", event_count)?;
+
+    let site_count: i64 = sites::table.count().get_result(db)?;
+    update_info_count(db, "SiteCount", site_count)?;
+
+    Ok(())
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn delete_duplicated_games(
@@ -1533,6 +1593,7 @@ pub async fn delete_duplicated_games(
 
     let game_count: i64 = games::table.count().get_result(db)?;
     update_info_count(db, "GameCount", game_count)?;
+    delete_orphaned_data(db)?;
 
     Ok(())
 }
@@ -1549,6 +1610,7 @@ pub async fn delete_empty_games(
 
     let game_count: i64 = games::table.count().get_result(db)?;
     update_info_count(db, "GameCount", game_count)?;
+    delete_orphaned_data(db)?;
 
     Ok(())
 }
@@ -1715,6 +1777,81 @@ pub async fn delete_db_game(
 
     let game_count: i64 = games::table.count().get_result(db)?;
     update_info_count(db, "GameCount", game_count)?;
+    delete_orphaned_data(db)?;
+
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn write_db_game(
+    file: PathBuf,
+    game_id: i32,
+    pgn: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), Error> {
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+
+    let mut importer = Importer::new(None);
+    let mut parsed = BufferedReader::new(pgn.as_bytes())
+        .into_iter(&mut importer)
+        .flatten()
+        .flatten();
+    let temp_game = parsed.next().ok_or(Error::NoMovesFound)?;
+
+    let white_id = if let Some(name) = temp_game.white_name.as_deref() {
+        create_player(db, name)?.id
+    } else {
+        0
+    };
+    let black_id = if let Some(name) = temp_game.black_name.as_deref() {
+        create_player(db, name)?.id
+    } else {
+        0
+    };
+    let event_id = if let Some(name) = temp_game.event_name.as_deref() {
+        create_event(db, name)?.id
+    } else {
+        0
+    };
+    let site_id = if let Some(name) = temp_game.site_name.as_deref() {
+        create_site(db, name)?.id
+    } else {
+        0
+    };
+
+    let final_material = get_material_count(temp_game.position.board());
+    let minimal_white_material = temp_game.material_count.white.min(final_material.white) as i32;
+    let minimal_black_material = temp_game.material_count.black.min(final_material.black) as i32;
+    let pawn_home = get_pawn_home(temp_game.position.board()) as i32;
+    let ply_count = iter_mainline_move_bytes(&temp_game.moves).count() as i32;
+
+    let updated_rows = diesel::update(games::table.filter(games::id.eq(game_id)))
+        .set((
+            games::event_id.eq(event_id),
+            games::site_id.eq(site_id),
+            games::date.eq(temp_game.date),
+            games::time.eq(temp_game.time),
+            games::round.eq(temp_game.round),
+            games::white_id.eq(white_id),
+            games::white_elo.eq(temp_game.white_elo),
+            games::black_id.eq(black_id),
+            games::black_elo.eq(temp_game.black_elo),
+            games::white_material.eq(minimal_white_material),
+            games::black_material.eq(minimal_black_material),
+            games::result.eq(temp_game.result),
+            games::time_control.eq(temp_game.time_control),
+            games::eco.eq(temp_game.eco),
+            games::ply_count.eq(ply_count),
+            games::fen.eq(temp_game.fen),
+            games::moves.eq(temp_game.moves),
+            games::pawn_home.eq(pawn_home),
+        ))
+        .execute(db)?;
+
+    if updated_rows == 0 {
+        return Err(Error::GameNotFound(game_id.to_string()));
+    }
 
     Ok(())
 }
@@ -1785,7 +1922,7 @@ pub async fn preload_reference_db(
                 *cache = Some(index);
             }
             Err(e) => {
-                return Err(Error::Io(e));
+                return Err(Error::from(e));
             }
         }
     }
@@ -1863,5 +2000,191 @@ mod tests {
         assert_eq!(games.len(), 1);
         let movetext = decode_game_to_movetext(&games[0].moves, Fen::default()).unwrap();
         assert_eq!(movetext, "1. e4! (1. d4?) 1... e5!");
+    }
+
+    fn setup_test_db() -> SqliteConnection {
+        let mut conn = SqliteConnection::establish(":memory:").unwrap();
+        conn.batch_execute("PRAGMA foreign_keys = ON;").unwrap();
+        conn.batch_execute(CREATE_TABLES_SQL).unwrap();
+        conn
+    }
+
+    #[test]
+    fn delete_orphaned_data_removes_unreferenced_players_events_sites() {
+        let db = &mut setup_test_db();
+
+        // Create players, events, sites
+        let player1 = create_player(db, "Magnus").unwrap();
+        let player2 = create_player(db, "Hikaru").unwrap();
+        let event = create_event(db, "World Championship").unwrap();
+        let site = create_site(db, "Reykjavik").unwrap();
+
+        // Insert a game referencing them
+        let game = create_game(
+            db,
+            NewGame {
+                event_id: event.id,
+                site_id: site.id,
+                white_id: player1.id,
+                black_id: player2.id,
+                white_elo: None,
+                black_elo: None,
+                white_material: 0,
+                black_material: 0,
+                date: None,
+                time: None,
+                round: None,
+                result: None,
+                time_control: None,
+                eco: None,
+                ply_count: 10,
+                fen: None,
+                moves: &[],
+                pawn_home: 0,
+            },
+        )
+        .unwrap();
+
+        // Verify everything exists: 3 players (Unknown + 2), 2 events, 2 sites
+        let player_count: i64 = players::table.count().get_result(db).unwrap();
+        assert_eq!(player_count, 3);
+        let event_count: i64 = events::table.count().get_result(db).unwrap();
+        assert_eq!(event_count, 2);
+        let site_count: i64 = sites::table.count().get_result(db).unwrap();
+        assert_eq!(site_count, 2);
+
+        // Delete the game
+        diesel::delete(games::table.filter(games::id.eq(game.id)))
+            .execute(db)
+            .unwrap();
+
+        // Before fix: orphans would remain. Call our cleanup function.
+        delete_orphaned_data(db).unwrap();
+
+        // Players: only the sentinel "Unknown" (ID=0) should remain
+        let player_count: i64 = players::table.count().get_result(db).unwrap();
+        assert_eq!(player_count, 1, "Orphaned players should be deleted");
+
+        let remaining_player: Player = players::table.first(db).unwrap();
+        assert_eq!(
+            remaining_player.id, 0,
+            "Only the Unknown player should remain"
+        );
+
+        // Events: only the sentinel should remain
+        let event_count: i64 = events::table.count().get_result(db).unwrap();
+        assert_eq!(event_count, 1, "Orphaned events should be deleted");
+
+        // Sites: only the sentinel should remain
+        let site_count: i64 = sites::table.count().get_result(db).unwrap();
+        assert_eq!(site_count, 1, "Orphaned sites should be deleted");
+
+        // Info table counts should be updated
+        let pc: String = info::table
+            .filter(info::name.eq("PlayerCount"))
+            .select(info::value)
+            .first::<Option<String>>(db)
+            .unwrap()
+            .unwrap();
+        assert_eq!(pc, "1");
+
+        let ec: String = info::table
+            .filter(info::name.eq("EventCount"))
+            .select(info::value)
+            .first::<Option<String>>(db)
+            .unwrap()
+            .unwrap();
+        assert_eq!(ec, "1");
+
+        let sc: String = info::table
+            .filter(info::name.eq("SiteCount"))
+            .select(info::value)
+            .first::<Option<String>>(db)
+            .unwrap()
+            .unwrap();
+        assert_eq!(sc, "1");
+    }
+
+    #[test]
+    fn delete_orphaned_data_preserves_referenced_records() {
+        let db = &mut setup_test_db();
+
+        // Create players, events, sites for two games
+        let magnus = create_player(db, "Magnus").unwrap();
+        let hikaru = create_player(db, "Hikaru").unwrap();
+        let fabiano = create_player(db, "Fabiano").unwrap();
+        let event1 = create_event(db, "World Championship").unwrap();
+        let event2 = create_event(db, "Candidates").unwrap();
+        let site1 = create_site(db, "Reykjavik").unwrap();
+        let site2 = create_site(db, "Toronto").unwrap();
+
+        let make_game = |db: &mut SqliteConnection, w: i32, b: i32, e: i32, s: i32| {
+            create_game(
+                db,
+                NewGame {
+                    event_id: e,
+                    site_id: s,
+                    white_id: w,
+                    black_id: b,
+                    white_elo: None,
+                    black_elo: None,
+                    white_material: 0,
+                    black_material: 0,
+                    date: None,
+                    time: None,
+                    round: None,
+                    result: None,
+                    time_control: None,
+                    eco: None,
+                    ply_count: 10,
+                    fen: None,
+                    moves: &[],
+                    pawn_home: 0,
+                },
+            )
+            .unwrap()
+        };
+
+        // Game 1: Magnus vs Hikaru at World Championship in Reykjavik
+        let game1 = make_game(db, magnus.id, hikaru.id, event1.id, site1.id);
+        // Game 2: Fabiano vs Hikaru at Candidates in Toronto
+        let game2 = make_game(db, fabiano.id, hikaru.id, event2.id, site2.id);
+
+        // Delete only game 1
+        diesel::delete(games::table.filter(games::id.eq(game1.id)))
+            .execute(db)
+            .unwrap();
+        delete_orphaned_data(db).unwrap();
+
+        // Magnus should be gone (only in game 1), but Hikaru and Fabiano should remain
+        let player_count: i64 = players::table.count().get_result(db).unwrap();
+        assert_eq!(player_count, 3, "Unknown + Hikaru + Fabiano should remain");
+
+        let magnus_exists: i64 = players::table
+            .filter(players::name.eq("Magnus"))
+            .count()
+            .get_result(db)
+            .unwrap();
+        assert_eq!(magnus_exists, 0, "Magnus should be deleted (orphaned)");
+
+        // Event1 and Site1 should be gone, Event2 and Site2 should remain
+        let event_count: i64 = events::table.count().get_result(db).unwrap();
+        assert_eq!(event_count, 2, "Unknown + Candidates should remain");
+
+        let site_count: i64 = sites::table.count().get_result(db).unwrap();
+        assert_eq!(site_count, 2, "Unknown + Toronto should remain");
+
+        // Delete game 2 — now everything should be orphaned
+        diesel::delete(games::table.filter(games::id.eq(game2.id)))
+            .execute(db)
+            .unwrap();
+        delete_orphaned_data(db).unwrap();
+
+        let player_count: i64 = players::table.count().get_result(db).unwrap();
+        assert_eq!(player_count, 1, "Only Unknown should remain");
+        let event_count: i64 = events::table.count().get_result(db).unwrap();
+        assert_eq!(event_count, 1, "Only Unknown should remain");
+        let site_count: i64 = sites::table.count().get_result(db).unwrap();
+        assert_eq!(site_count, 1, "Only Unknown should remain");
     }
 }

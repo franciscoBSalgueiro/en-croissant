@@ -2,7 +2,7 @@ import { ActionIcon, Box, Button, Group, Progress } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
 import { memo, useCallback, useEffect } from "react";
 import { useProgress } from "@/hooks/useProgress";
-import * as classes from "./ProgressButton.css";
+import classes from "./ProgressButton.module.css";
 
 type Props = {
   id: string;
@@ -85,12 +85,7 @@ function ProgressButton({
         )}
       </Button>
       {showProgress && onCancel && (
-        <ActionIcon
-          variant="default"
-          size="lg"
-          onClick={handleCancel}
-          title="Cancel"
-        >
+        <ActionIcon variant="default" size="lg" onClick={handleCancel} title="Cancel">
           <IconX size="1rem" />
         </ActionIcon>
       )}

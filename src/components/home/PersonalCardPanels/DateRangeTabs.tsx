@@ -21,10 +21,7 @@ interface DateRangeTabsProps {
   onTimeRangeChange: (value: string | null) => void;
 }
 
-const DateRangeTabs = ({
-  timeRange,
-  onTimeRangeChange,
-}: DateRangeTabsProps) => {
+const DateRangeTabs = ({ timeRange, onTimeRangeChange }: DateRangeTabsProps) => {
   return (
     <Tabs pt="md" value={timeRange} onChange={onTimeRangeChange}>
       <Tabs.List

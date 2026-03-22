@@ -27,14 +27,7 @@ import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { useAtom, useAtomValue } from "jotai";
-import {
-  memo,
-  startTransition,
-  useCallback,
-  useDeferredValue,
-  useEffect,
-  useMemo,
-} from "react";
+import { memo, startTransition, useCallback, useDeferredValue, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 import type { BestMoves } from "@/bindings";
@@ -52,7 +45,7 @@ import type { Engine } from "@/utils/engines";
 import { formatNodes } from "@/utils/format";
 import { formatScore } from "@/utils/score";
 import AnalysisRow from "./AnalysisRow";
-import * as classes from "./BestMoves.css";
+import classes from "./BestMoves.module.css";
 import EngineSettingsForm, { type Settings } from "./EngineSettingsForm";
 
 export const arrowColors = [
@@ -84,12 +77,8 @@ function BestMovesComponent({
   const { t } = useTranslation();
 
   const activeTab = useAtomValue(activeTabAtom);
-  const ev = useAtomValue(
-    engineMovesFamily({ engine: engine.id, tab: activeTab! }),
-  );
-  const progress = useAtomValue(
-    engineProgressFamily({ engine: engine.id, tab: activeTab! }),
-  );
+  const ev = useAtomValue(engineMovesFamily({ engine: engine.id, tab: activeTab! }));
+  const progress = useAtomValue(engineProgressFamily({ engine: engine.id, tab: activeTab! }));
   const [, setEngines] = useAtom(enginesAtom);
   const [settings, setSettings2] = useAtom(
     tabEngineSettingsFamily({
@@ -117,9 +106,7 @@ function BestMovesComponent({
       if (newSettings.synced) {
         setEngines(async (prev) =>
           (await prev).map((o) =>
-            o.id === engine.id
-              ? { ...o, settings: newSettings.settings, go: newSettings.go }
-              : o,
+            o.id === engine.id ? { ...o, settings: newSettings.settings, go: newSettings.go } : o,
           ),
         );
       }
@@ -129,9 +116,7 @@ function BestMovesComponent({
 
   const [settingsOn, toggleSettingsOn] = useToggle();
   const [threat, setThreat] = useAtom(currentThreatAtom);
-  const [detachedEngineId, setDetachedEngineId] = useAtom(
-    currentDetachedEngineAtom,
-  );
+  const [detachedEngineId, setDetachedEngineId] = useAtom(currentDetachedEngineAtom);
   const isDetached = detachedEngineId === engine.id;
   const theme = useMantineTheme();
 
@@ -185,11 +170,7 @@ function BestMovesComponent({
             }}
             ml={12}
           >
-            {settings.enabled ? (
-              <IconPlayerPause size="1rem" />
-            ) : (
-              <IconPlayerPlay size="1rem" />
-            )}
+            {settings.enabled ? <IconPlayerPause size="1rem" /> : <IconPlayerPlay size="1rem" />}
           </ActionIcon>
         </Stack>
         <Accordion.Control>
@@ -215,9 +196,7 @@ function BestMovesComponent({
               <IconTargetArrow color={threat ? "red" : undefined} size="1rem" />
             </ActionIcon>
           </Tooltip>
-          <Tooltip
-            label={isDetached ? "Unpin from notation" : "Pin above notation"}
-          >
+          <Tooltip label={isDetached ? "Unpin from notation" : "Pin above notation"}>
             <ActionIcon
               size="lg"
               onClick={() =>
@@ -229,19 +208,10 @@ function BestMovesComponent({
               mt="auto"
               mb="auto"
             >
-              {isDetached ? (
-                <IconPinnedOff size="1rem" />
-              ) : (
-                <IconPinned size="1rem" />
-              )}
+              {isDetached ? <IconPinnedOff size="1rem" /> : <IconPinned size="1rem" />}
             </ActionIcon>
           </Tooltip>
-          <ActionIcon
-            size="lg"
-            onClick={() => toggleSettingsOn()}
-            mt="auto"
-            mb="auto"
-          >
+          <ActionIcon size="lg" onClick={() => toggleSettingsOn()} mt="auto" mb="auto">
             <IconSettings size="1rem" />
           </ActionIcon>
           <ActionIcon
@@ -296,33 +266,28 @@ function BestMovesComponent({
                 </Table.Td>
               </Table.Tr>
             )}
-            {engineVariations &&
-              engineVariations.length === 0 &&
-              !isGameOver && (
-                <Table.Tr>
-                  <Table.Td>
-                    <Text ta="center" my="lg">
-                      No analysis available
-                    </Text>
-                  </Table.Td>
-                </Table.Tr>
-              )}
+            {engineVariations && engineVariations.length === 0 && !isGameOver && (
+              <Table.Tr>
+                <Table.Td>
+                  <Text ta="center" my="lg">
+                    No analysis available
+                  </Text>
+                </Table.Td>
+              </Table.Tr>
+            )}
             {!isGameOver &&
               !error &&
               !engineVariations &&
               (settings.enabled ? (
-                [
-                  ...Array(
-                    settings.settings.find((s) => s.name === "MultiPV")
-                      ?.value ?? 1,
+                [...Array(settings.settings.find((s) => s.name === "MultiPV")?.value ?? 1)].map(
+                  (_, i) => (
+                    <Table.Tr key={i}>
+                      <Table.Td>
+                        <Skeleton height={35} radius="xl" p={5} />
+                      </Table.Td>
+                    </Table.Tr>
                   ),
-                ].map((_, i) => (
-                  <Table.Tr key={i}>
-                    <Table.Td>
-                      <Skeleton height={35} radius="xl" p={5} />
-                    </Table.Td>
-                  </Table.Tr>
-                ))
+                )
               ) : (
                 <Table.Tr>
                   <Table.Td>
@@ -400,12 +365,7 @@ function EngineTop({
         {!isGameOver && engineVariations && engineVariations.length > 0 && (
           <>
             <Stack align="center" gap={0}>
-              <Text
-                size="0.7rem"
-                tt="uppercase"
-                fw={700}
-                className={classes.subtitle}
-              >
+              <Text size="0.7rem" tt="uppercase" fw={700} className={classes.subtitle}>
                 Eval
               </Text>
               <Text fw="bold" fz="md">
@@ -413,12 +373,7 @@ function EngineTop({
               </Text>
             </Stack>
             <Stack align="center" gap={0}>
-              <Text
-                size="0.7rem"
-                tt="uppercase"
-                fw={700}
-                className={classes.subtitle}
-              >
+              <Text size="0.7rem" tt="uppercase" fw={700} className={classes.subtitle}>
                 Depth
               </Text>
               <Text fw="bold" fz="md">

@@ -14,10 +14,7 @@ import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWRImmutable from "swr/immutable";
-import type {
-  DatabaseInfo as PlainDatabaseInfo,
-  PlayerGameInfo,
-} from "@/bindings";
+import type { DatabaseInfo as PlainDatabaseInfo, PlayerGameInfo } from "@/bindings";
 import { commands, events } from "@/bindings";
 import { sessionsAtom } from "@/state/atoms";
 import { activeDatabaseViewStore } from "@/state/store/database";
@@ -32,8 +29,7 @@ type DatabaseInfo = PlainDatabaseInfo & {
 };
 
 function getSessionUsername(session: Session): string {
-  const username =
-    session.lichess?.account.username || session.chessCom?.username;
+  const username = session.lichess?.account.username || session.chessCom?.username;
   if (username === undefined) {
     throw new Error("Session does not have a username");
   }
@@ -41,9 +37,7 @@ function getSessionUsername(session: Session): string {
 }
 
 function isDatabaseFromSession(db: DatabaseInfo, sessions: Session[]) {
-  const session = sessions.find((session) =>
-    db.filename.includes(getSessionUsername(session)),
-  );
+  const session = sessions.find((session) => db.filename.includes(getSessionUsername(session)));
 
   if (session !== undefined) {
     db.username = getSessionUsername(session);
@@ -61,25 +55,16 @@ function Databases() {
   const sessions = useAtomValue(sessionsAtom);
 
   const players = Array.from(
-    new Set(
-      sessions.map(
-        (s) => s.player || s.lichess?.username || s.chessCom?.username || "",
-      ),
-    ),
+    new Set(sessions.map((s) => s.player || s.lichess?.username || s.chessCom?.username || "")),
   );
   const playerDbNames = players.map((name) => ({
     name,
     databases: sessions
       .filter(
-        (s) =>
-          s.player === name ||
-          s.lichess?.username === name ||
-          s.chessCom?.username === name,
+        (s) => s.player === name || s.lichess?.username === name || s.chessCom?.username === name,
       )
       .map((s) =>
-        s.chessCom
-          ? `${s.chessCom.username} Chess.com`
-          : `${s.lichess?.username} Lichess`,
+        s.chessCom ? `${s.chessCom.username} Chess.com` : `${s.lichess?.username} Lichess`,
       ),
   }));
 
@@ -109,9 +94,7 @@ function Databases() {
       if (!databases || !playerDbs) return [];
       const results = await Promise.allSettled(
         databases
-          .filter((db) =>
-            playerDbs.includes((db.type === "success" && db.title) || ""),
-          )
+          .filter((db) => playerDbs.includes((db.type === "success" && db.title) || ""))
           .map(async (db, i) => {
             const players = await query_players(db.file, {
               name: db.username,
@@ -126,9 +109,7 @@ function Databases() {
               throw new Error("Player not found in database");
             }
             const player = players.data[0];
-            const info = unwrap(
-              await commands.getPlayersGameInfo(db.file, player.id),
-            );
+            const info = unwrap(await commands.getPlayersGameInfo(db.file, player.id));
             return { db, info };
           }),
       );
@@ -169,14 +150,7 @@ function Databases() {
                 <Loader color="blue" type="bars" />
               </ThemeIcon>
               <Title order={3}>{t("Home.Databases.ProcessingGames")}</Title>
-              <Progress
-                w="100%"
-                value={progress}
-                animated
-                striped
-                size="md"
-                radius="xl"
-              />
+              <Progress w="100%" value={progress} animated striped size="md" radius="xl" />
               <Text fw="bold" fz="sm" c="dimmed">
                 {Math.round(progress)}%
               </Text>
@@ -184,9 +158,7 @@ function Databases() {
           </Center>
         </Paper>
       )}
-      {error && (
-        <Text ta="center">{t("Home.Databases.ErrorLoading", { error })}</Text>
-      )}
+      {error && <Text ta="center">{t("Home.Databases.ErrorLoading", { error })}</Text>}
       {personalInfo &&
         (personalInfo.length === 0 ? (
           <Paper
@@ -234,9 +206,7 @@ function Databases() {
               name={name}
               setName={setName}
               info={{
-                site_stats_data: personalInfo.flatMap(
-                  (i) => i.info.site_stats_data,
-                ),
+                site_stats_data: personalInfo.flatMap((i) => i.info.site_stats_data),
               }}
             />
           </DatabaseViewStateContext.Provider>

@@ -1,12 +1,4 @@
-import {
-  Combobox,
-  Group,
-  Input,
-  InputBase,
-  ScrollArea,
-  Text,
-  useCombobox,
-} from "@mantine/core";
+import { Combobox, Group, Input, InputBase, ScrollArea, Text, useCombobox } from "@mantine/core";
 import { useAtom } from "jotai";
 import { useTranslation } from "react-i18next";
 import { soundCollectionAtom } from "@/state/atoms";

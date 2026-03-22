@@ -17,7 +17,9 @@ import { useStore } from "zustand";
 import {
   allEnabledAtom,
   autoSaveAtom,
+  currentAnalysisTabAtom,
   currentPracticeTabAtom,
+  currentReportModalOpenAtom,
   currentTabAtom,
   currentTabSelectedAtom,
   enableAllAtom,
@@ -25,7 +27,7 @@ import {
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { defaultPGN } from "@/utils/chess";
-import { saveToFile } from "@/utils/tabs";
+import { getTabFile, saveToFile } from "@/utils/tabs";
 import DetachedEval from "../common/DetachedEval";
 import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
@@ -46,6 +48,8 @@ function BoardAnalysis() {
   const [editingMode, toggleEditingMode] = useToggle();
   const [selectedPiece, setSelectedPiece] = useState<Piece | null>(null);
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
+  const tabFile = getTabFile(currentTab);
+  const hasPersistentOrigin = currentTab?.gameOrigin.kind !== "none";
   const autoSave = useAtomValue(autoSaveAtom);
   const { documentDir } = useLoaderData({ from: "/" });
   const boardRef = useRef(null);
@@ -66,38 +70,56 @@ function BoardAnalysis() {
       store,
     });
   }, [setCurrentTab, currentTab, documentDir, store]);
+  const userSaveFile = useCallback(async () => {
+    saveToFile({
+      dir: documentDir,
+      setCurrentTab,
+      tab: currentTab,
+      store,
+      isUserSave: true,
+    });
+  }, [setCurrentTab, currentTab, documentDir, store]);
   useEffect(() => {
-    if (currentTab?.file && autoSave && dirty) {
+    if (hasPersistentOrigin && autoSave && dirty) {
       saveFile();
     }
-  }, [currentTab?.file, saveFile, autoSave, dirty]);
+  }, [hasPersistentOrigin, saveFile, autoSave, dirty]);
 
   const addGame = useCallback(() => {
-    if (!currentTab?.file) return;
+    if (!tabFile) return;
     setCurrentTab((prev) => {
-      if (!prev?.file) return prev;
-      prev.gameNumber = prev.file.numGames;
-      prev.file.numGames += 1;
-      return { ...prev };
+      if (prev.gameOrigin.kind !== "file" && prev.gameOrigin.kind !== "temp_file") {
+        return prev;
+      }
+      return {
+        ...prev,
+        gameOrigin: {
+          ...prev.gameOrigin,
+          gameNumber: prev.gameOrigin.file.numGames,
+          file: {
+            ...prev.gameOrigin.file,
+            numGames: prev.gameOrigin.file.numGames + 1,
+          },
+        },
+      };
     });
     reset();
-    writeTextFile(currentTab.file.path, `\n\n${defaultPGN()}\n\n`, {
+    writeTextFile(tabFile.path, `\n\n${defaultPGN()}\n\n`, {
       append: true,
     });
-  }, [setCurrentTab, reset, currentTab?.file?.path]);
+  }, [setCurrentTab, reset, tabFile]);
 
   const [, enable] = useAtom(enableAllAtom);
   const allEnabled = useAtomValue(allEnabledAtom);
 
   const keyMap = useAtomValue(keyMapAtom);
 
-  const [currentTabSelected, setCurrentTabSelected] = useAtom(
-    currentTabSelectedAtom,
-  );
+  const [, setAnalysisTab] = useAtom(currentAnalysisTabAtom);
+  const [currentTabSelected, setCurrentTabSelected] = useAtom(currentTabSelectedAtom);
+  const [, setReportModalOpen] = useAtom(currentReportModalOpenAtom);
   const practiceTabSelected = useAtomValue(currentPracticeTabAtom);
-  const isRepertoire = currentTab?.file?.metadata.type === "repertoire";
-  const practicing =
-    currentTabSelected === "practice" && practiceTabSelected === "train";
+  const isRepertoire = tabFile?.metadata.type === "repertoire";
+  const practicing = currentTabSelected === "practice" && practiceTabSelected === "train";
   const practiceState = useAtomValue(practiceStateAtom);
   const isPracticeRating = practicing && practiceState.phase === "correct";
 
@@ -109,34 +131,16 @@ function BoardAnalysis() {
   }, [practicing, setPracticePath]);
 
   useHotkeys([
-    [keyMap.SAVE_FILE.keys, () => saveFile()],
+    [keyMap.SAVE_FILE.keys, () => userSaveFile()],
     [keyMap.CLEAR_SHAPES.keys, () => clearShapes()],
   ]);
   useHotkeys([
-    [
-      keyMap.ANNOTATION_BRILLIANT.keys,
-      () => !isPracticeRating && setAnnotation("!!"),
-    ],
-    [
-      keyMap.ANNOTATION_GOOD.keys,
-      () => !isPracticeRating && setAnnotation("!"),
-    ],
-    [
-      keyMap.ANNOTATION_INTERESTING.keys,
-      () => !isPracticeRating && setAnnotation("!?"),
-    ],
-    [
-      keyMap.ANNOTATION_DUBIOUS.keys,
-      () => !isPracticeRating && setAnnotation("?!"),
-    ],
-    [
-      keyMap.ANNOTATION_MISTAKE.keys,
-      () => !isPracticeRating && setAnnotation("?"),
-    ],
-    [
-      keyMap.ANNOTATION_BLUNDER.keys,
-      () => !isPracticeRating && setAnnotation("??"),
-    ],
+    [keyMap.ANNOTATION_BRILLIANT.keys, () => !isPracticeRating && setAnnotation("!!")],
+    [keyMap.ANNOTATION_GOOD.keys, () => !isPracticeRating && setAnnotation("!")],
+    [keyMap.ANNOTATION_INTERESTING.keys, () => !isPracticeRating && setAnnotation("!?")],
+    [keyMap.ANNOTATION_DUBIOUS.keys, () => !isPracticeRating && setAnnotation("?!")],
+    [keyMap.ANNOTATION_MISTAKE.keys, () => !isPracticeRating && setAnnotation("?")],
+    [keyMap.ANNOTATION_BLUNDER.keys, () => !isPracticeRating && setAnnotation("??")],
     [
       keyMap.PRACTICE_TAB.keys,
       () => {
@@ -144,6 +148,15 @@ function BoardAnalysis() {
       },
     ],
     [keyMap.ANALYSIS_TAB.keys, () => setCurrentTabSelected("analysis")],
+    [
+      keyMap.GENERATE_REPORT.keys,
+      (e) => {
+        setCurrentTabSelected("analysis");
+        setAnalysisTab("report");
+        setReportModalOpen(true);
+        e.preventDefault();
+      },
+    ],
     [keyMap.DATABASE_TAB.keys, () => setCurrentTabSelected("database")],
     [keyMap.ANNOTATE_TAB.keys, () => setCurrentTabSelected("annotate")],
     [keyMap.INFO_TAB.keys, () => setCurrentTabSelected("info")],
@@ -199,69 +212,38 @@ function BoardAnalysis() {
           >
             <Tabs.List grow>
               {isRepertoire && (
-                <Tabs.Tab
-                  value="practice"
-                  leftSection={<IconTargetArrow size="1rem" />}
-                >
+                <Tabs.Tab value="practice" leftSection={<IconTargetArrow size="1rem" />}>
                   {t("Board.Tabs.Practice")}
                 </Tabs.Tab>
               )}
-              <Tabs.Tab
-                value="analysis"
-                leftSection={<IconZoomCheck size="1rem" />}
-              >
+              <Tabs.Tab value="analysis" leftSection={<IconZoomCheck size="1rem" />}>
                 {t("Board.Tabs.Analysis")}
               </Tabs.Tab>
-              <Tabs.Tab
-                value="database"
-                leftSection={<IconDatabase size="1rem" />}
-              >
+              <Tabs.Tab value="database" leftSection={<IconDatabase size="1rem" />}>
                 {t("Board.Tabs.Database")}
               </Tabs.Tab>
-              <Tabs.Tab
-                value="annotate"
-                leftSection={<IconNotes size="1rem" />}
-              >
+              <Tabs.Tab value="annotate" leftSection={<IconNotes size="1rem" />}>
                 {t("Board.Tabs.Annotate")}
               </Tabs.Tab>
-              <Tabs.Tab
-                value="info"
-                leftSection={<IconInfoCircle size="1rem" />}
-              >
+              <Tabs.Tab value="info" leftSection={<IconInfoCircle size="1rem" />}>
                 {t("Board.Tabs.Info")}
               </Tabs.Tab>
             </Tabs.List>
             {isRepertoire && (
-              <Tabs.Panel
-                value="practice"
-                flex={1}
-                style={{ overflowY: "hidden" }}
-              >
+              <Tabs.Panel value="practice" flex={1} style={{ overflowY: "hidden" }}>
                 <PracticePanel />
               </Tabs.Panel>
             )}
             <Tabs.Panel value="info" flex={1} style={{ overflowY: "hidden" }}>
               <InfoPanel addGame={addGame} />
             </Tabs.Panel>
-            <Tabs.Panel
-              value="database"
-              flex={1}
-              style={{ overflowY: "hidden" }}
-            >
+            <Tabs.Panel value="database" flex={1} style={{ overflowY: "hidden" }}>
               <DatabasePanel />
             </Tabs.Panel>
-            <Tabs.Panel
-              value="annotate"
-              flex={1}
-              style={{ overflowY: "hidden" }}
-            >
+            <Tabs.Panel value="annotate" flex={1} style={{ overflowY: "hidden" }}>
               <AnnotationPanel />
             </Tabs.Panel>
-            <Tabs.Panel
-              value="analysis"
-              flex={1}
-              style={{ overflowY: "hidden" }}
-            >
+            <Tabs.Panel value="analysis" flex={1} style={{ overflowY: "hidden" }}>
               <AnalysisPanel />
             </Tabs.Panel>
           </Tabs>
@@ -285,7 +267,7 @@ function BoardAnalysis() {
                   editingMode={editingMode}
                   toggleEditingMode={toggleEditingMode}
                   dirty={dirty}
-                  saveFile={saveFile}
+                  saveFile={userSaveFile}
                 />
               }
             />

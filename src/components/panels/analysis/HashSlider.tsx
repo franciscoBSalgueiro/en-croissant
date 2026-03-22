@@ -31,10 +31,7 @@ export default function HashSlider(props: {
         onChangeEnd={(v) => props.setValue(2 ** v)}
         label={(v) => formatBytes(2 ** v * 1024 * 1024)}
         thumbChildren={
-          <IconGripVertical
-            style={{ width: rem(20), height: rem(20) }}
-            stroke={1.5}
-          />
+          <IconGripVertical style={{ width: rem(20), height: rem(20) }} stroke={1.5} />
         }
         styles={(theme) => ({
           mark: {

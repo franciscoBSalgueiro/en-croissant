@@ -9,7 +9,7 @@ import {
   Modal,
   Paper,
   ScrollArea,
-  Stack,
+  SimpleGrid,
   Tabs,
   Text,
 } from "@mantine/core";
@@ -44,9 +44,7 @@ function AddEngine({
   const { t } = useTranslation();
 
   const [allEngines, setEngines] = useAtom(enginesAtom);
-  const engines = (allEngines ?? []).filter(
-    (e): e is LocalEngine => e.type === "local",
-  );
+  const engines = (allEngines ?? []).filter((e): e is LocalEngine => e.type === "local");
 
   const { os } = usePlatform();
 
@@ -66,8 +64,7 @@ function AddEngine({
     validate: {
       name: (value) => {
         if (!value) return t("Common.RequireName");
-        if (engines.find((e) => e.name === value))
-          return t("Common.NameAlreadyUsed");
+        if (engines.find((e) => e.name === value)) return t("Common.NameAlreadyUsed");
       },
       path: (value) => {
         if (!value) return t("Common.RequirePath");
@@ -80,6 +77,7 @@ function AddEngine({
       opened={opened}
       onClose={() => setOpened(false)}
       title={t("Engines.Add.Title")}
+      size="80%"
     >
       <Tabs defaultValue="download">
         <Tabs.List>
@@ -93,8 +91,8 @@ function AddEngine({
               <Loader />
             </Center>
           )}
-          <ScrollArea.Autosize mah={500} offsetScrollbars>
-            <Stack>
+          <ScrollArea.Autosize mah={720} offsetScrollbars>
+            <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="sm">
               {defaultEngines?.map((engine, i) => (
                 <EngineCard
                   engine={engine}
@@ -104,19 +102,15 @@ function AddEngine({
                 />
               ))}
               {error && (
-                <Alert
-                  icon={<IconAlertCircle size="1rem" />}
-                  title={t("Common.Error")}
-                  color="red"
-                >
+                <Alert icon={<IconAlertCircle size="1rem" />} title={t("Common.Error")} color="red">
                   {t("Engines.Add.ErrorFetch")}
                 </Alert>
               )}
-            </Stack>
+            </SimpleGrid>
           </ScrollArea.Autosize>
         </Tabs.Panel>
         <Tabs.Panel value="cloud" pt="xs">
-          <Stack>
+          <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="sm">
             <CloudCard
               engine={{
                 id: crypto.randomUUID(),
@@ -133,7 +127,7 @@ function AddEngine({
                 url: "https://lichess.org",
               }}
             />
-          </Stack>
+          </SimpleGrid>
         </Tabs.Panel>
         <Tabs.Panel value="local" pt="xs">
           <EngineForm
@@ -157,19 +151,20 @@ function CloudCard({ engine }: { engine: RemoteEngine }) {
   return (
     <Paper withBorder radius="md" p={0} key={engine.name}>
       <Group wrap="nowrap" gap={0} grow>
-        <Box p="md" flex={1}>
+        <Box p="sm" flex={1}>
           <Text tt="uppercase" c="dimmed" fw={700} size="xs">
             ENGINE
           </Text>
-          <Text fw="bold">{engine.name}</Text>
+          <Text fw="bold" size="sm">
+            {engine.name}
+          </Text>
           <Text size="xs" c="dimmed" mb="xs">
             {engine.url}
           </Text>
           <Button
-            disabled={
-              (engines ?? []).find((e) => e.type === engine.type) !== undefined
-            }
+            disabled={(engines ?? []).find((e) => e.type === engine.type) !== undefined}
             fullWidth
+            size="xs"
             onClick={() => {
               setEngines(async (prev) => [
                 ...(await prev),
@@ -213,10 +208,7 @@ function EngineCard({
     async (id: number, url: string) => {
       setInProgress(true);
       const enginesDir = await getEnginesDir();
-      let path = await resolve(
-        enginesDir,
-        `${url.slice(url.lastIndexOf("/") + 1)}`,
-      );
+      let path = await resolve(enginesDir, `${url.slice(url.lastIndexOf("/") + 1)}`);
       if (url.endsWith(".zip") || url.endsWith(".tar")) {
         path = enginesDir;
       }
@@ -253,22 +245,22 @@ function EngineCard({
     <Paper withBorder radius="md" p={0} key={engine.name}>
       <Group wrap="nowrap" gap={0} grow>
         {engine.image && (
-          <Box w="2rem" px="xs">
+          <Box w="1.75rem" px="xs">
             <Image src={engine.image} alt={engine.name} fit="contain" />
           </Box>
         )}
-        <Box p="md" flex={1}>
+        <Box p="sm" flex={1}>
           <Text tt="uppercase" c="dimmed" fw={700} size="xs">
             ENGINE
           </Text>
-          <Text fw="bold" mb="xs">
+          <Text fw="bold" size="sm" mb="xs">
             {engine.name} {engine.version}
           </Text>
-          <Group wrap="nowrap" gap="xs">
+          <Group wrap="nowrap" gap="xs" fz="xs">
             <IconTrophy size="1rem" />
             <Text size="xs">{`${engine.elo} ELO`}</Text>
           </Group>
-          <Group wrap="nowrap" gap="xs" mb="xs">
+          <Group wrap="nowrap" gap="xs" mb="xs" fz="xs">
             <IconDatabase size="1rem" />
             <Text size="xs">{formatBytes(engine.downloadSize ?? 0)}</Text>
           </Group>

@@ -1,11 +1,4 @@
-import {
-  ActionIcon,
-  Paper,
-  Stack,
-  Tabs,
-  Text,
-  useMantineTheme,
-} from "@mantine/core";
+import { ActionIcon, Paper, Stack, Tabs, Text, useMantineTheme } from "@mantine/core";
 import { IconEye } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
@@ -37,20 +30,11 @@ const gamePoints = (game: NormalizedGame, player: string) => {
     .otherwise(() => 0);
 };
 
-function TournamentCard({
-  tournament,
-  file,
-}: {
-  tournament: Event;
-  file: string;
-}) {
+function TournamentCard({ tournament, file }: { tournament: Event; file: string }) {
   const { t } = useTranslation();
   const store = useContext(DatabaseViewStateContext)!;
   const tournamentsActiveTab = useStore(store, (s) => s.tournaments.activeTab);
-  const setTournamentsActiveTab = useStore(
-    store,
-    (s) => s.setTournamentsActiveTab,
-  );
+  const setTournamentsActiveTab = useStore(store, (s) => s.setTournamentsActiveTab);
 
   const theme = useMantineTheme();
   const navigate = useNavigate();
@@ -112,15 +96,10 @@ function TournamentCard({
     ) || [];
 
   players.sort(
-    (a, b) =>
-      b.points - a.points ||
-      a.name.localeCompare(b.name, "en", { sensitivity: "base" }),
+    (a, b) => b.points - a.points || a.name.localeCompare(b.name, "en", { sensitivity: "base" }),
   );
 
-  const paginatedGames = sortedGames.slice(
-    (page - 1) * 25,
-    (page - 1) * 25 + 25,
-  );
+  const paginatedGames = sortedGames.slice((page - 1) * 25, (page - 1) * 25 + 25);
 
   return (
     <Paper shadow="sm" p="sm" withBorder h="100%">
@@ -131,9 +110,7 @@ function TournamentCard({
         <Tabs
           value={tournamentsActiveTab}
           onChange={(tab) =>
-            setTournamentsActiveTab(
-              tab as DatabaseViewStore["tournaments"]["activeTab"],
-            )
+            setTournamentsActiveTab(tab as DatabaseViewStore["tournaments"]["activeTab"])
           }
           style={{ flexDirection: "column", overflow: "hidden" }}
           display="flex"
@@ -141,9 +118,7 @@ function TournamentCard({
         >
           <Tabs.List>
             <Tabs.Tab value="games">{t("Common.Games")}</Tabs.Tab>
-            <Tabs.Tab value="leaderboard">
-              {t("Databases.Tournament.Leaderboard")}
-            </Tabs.Tab>
+            <Tabs.Tab value="leaderboard">{t("Databases.Tournament.Leaderboard")}</Tabs.Tab>
           </Tabs.List>
           <Tabs.Panel value="games" flex={1} style={{ overflow: "hidden" }}>
             <DataTable<NormalizedGame>
@@ -177,6 +152,11 @@ function TournamentCard({
                           setActiveTab,
                           pgn: game.moves,
                           headers: game,
+                          gameOrigin: {
+                            kind: "database",
+                            database: file,
+                            gameId: game.id,
+                          },
                         });
                         navigate({ to: "/" });
                       }}
@@ -218,11 +198,7 @@ function TournamentCard({
               noRecordsText="No games found"
             />
           </Tabs.Panel>
-          <Tabs.Panel
-            value="leaderboard"
-            flex={1}
-            style={{ overflow: "hidden" }}
-          >
+          <Tabs.Panel value="leaderboard" flex={1} style={{ overflow: "hidden" }}>
             <DataTable
               fetching={isLoading}
               withTableBorder

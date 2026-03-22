@@ -16,6 +16,7 @@ import { useStore } from "zustand";
 import Comment from "@/components/common/Comment";
 import { currentTabAtom } from "@/state/atoms";
 import type { Annotation } from "@/utils/annotation";
+import { getTabFile } from "@/utils/tabs";
 import MoveCell from "./MoveCell";
 import { TreeStateContext } from "./TreeStateContext";
 
@@ -66,6 +67,7 @@ function CompleteMoveCell({
   });
   const [open, setOpen] = useState(false);
   const currentTab = useAtomValue(currentTabAtom);
+  const tabFile = getTabFile(currentTab);
 
   const { t } = useTranslation();
 
@@ -109,7 +111,7 @@ function CompleteMoveCell({
 
             <Portal>
               <Menu.Dropdown>
-                {currentTab?.file?.metadata.type === "repertoire" && (
+                {tabFile?.metadata.type === "repertoire" && (
                   <Menu.Item
                     leftSection={<IconFlag size="0.875rem" />}
                     onClick={() => setStart(movePath)}

@@ -1,0 +1,37 @@
+.link {
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  justify-content: center;
+}
+
+[data-mantine-color-scheme="light"] .link {
+  color: var(--mantine-color-gray-7);
+}
+
+[data-mantine-color-scheme="dark"] .link {
+  color: var(--mantine-color-dark-0);
+}
+
+[data-mantine-color-scheme="light"] .link:hover {
+  color: var(--mantine-color-dark-5);
+}
+
+[data-mantine-color-scheme="dark"] .link:hover {
+  color: var(--mantine-color-gray-0);
+}
+
+.active {
+  border-left-color: var(--mantine-primary-color-filled);
+}
+
+[data-mantine-color-scheme="light"] .active {
+  color: var(--mantine-color-dark-5);
+}
+
+[data-mantine-color-scheme="dark"] .active {
+  color: var(--mantine-color-white);
+}

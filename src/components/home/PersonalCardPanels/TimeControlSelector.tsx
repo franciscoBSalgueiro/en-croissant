@@ -30,19 +30,11 @@ const TimeControlSelector = ({
 }: TimeControlSelectorProps) => {
   const timeControls =
     website === "Chess.com"
-      ? [
-          ...(allowAll ? [{ value: "any", label: "Any" }] : []),
-          ...CHESSCOM_TIME_CONTROLS,
-        ]
-      : [
-          ...(allowAll ? [{ value: "any", label: "Any" }] : []),
-          ...LICHESS_TIME_CONTROLS,
-        ];
+      ? [...(allowAll ? [{ value: "any", label: "Any" }] : []), ...CHESSCOM_TIME_CONTROLS]
+      : [...(allowAll ? [{ value: "any", label: "Any" }] : []), ...LICHESS_TIME_CONTROLS];
 
   const defaultTimeControl = allowAll ? "any" : "rapid";
-  const [timeControl, setTimeControl] = useState<string | null>(
-    defaultTimeControl,
-  );
+  const [timeControl, setTimeControl] = useState<string | null>(defaultTimeControl);
 
   useEffect(() => {
     onTimeControlChange(timeControl);

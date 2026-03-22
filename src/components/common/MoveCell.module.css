@@ -1,0 +1,54 @@
+.cell {
+  all: unset;
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: inline-block;
+  padding: 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  cursor: pointer;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+[data-mantine-color-scheme="light"] .cell {
+  color: var(--light-color);
+  background-color: var(--light-bg);
+}
+
+[data-mantine-color-scheme="dark"] .cell {
+  color: var(--dark-color);
+  background-color: var(--dark-bg);
+}
+
+[data-mantine-color-scheme="light"] .cell:hover {
+  background-color: var(--light-hover-color);
+}
+
+[data-mantine-color-scheme="dark"] .cell:hover {
+  background-color: var(--dark-hover-color);
+}
+
+.cellFullWidth {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+  border-radius: 0;
+}
+
+.moveText {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rightAccessory {
+  flex-shrink: 0;
+}

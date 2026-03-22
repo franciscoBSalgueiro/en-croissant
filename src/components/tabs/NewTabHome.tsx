@@ -27,16 +27,14 @@ import { createTab } from "@/utils/tabs";
 import { unwrap } from "@/utils/unwrap";
 import CreateRepertoireModal from "./CreateRepertoireModal";
 import ImportModal from "./ImportModal";
-import "./NewTabHome.css";
+import classes from "./NewTabHome.module.css";
 import {
   IconChess,
   IconClock,
-  IconFile,
   IconFileImport,
   IconPuzzle,
   IconTarget,
   IconTargetArrow,
-  IconTrophy,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import dayjs from "dayjs";
@@ -45,6 +43,7 @@ import { useTranslation } from "react-i18next";
 import { commands } from "@/bindings";
 import { getStats } from "@/components/files/opening";
 import Chessboard from "../icons/Chessboard";
+import { FileIcon } from "@/components/files/FileIcon";
 
 dayjs.extend(relativeTime);
 
@@ -61,39 +60,13 @@ function RecentFileDuePositions({ file }: { file: string }) {
   if (stats.due + stats.unseen === 0) return null;
 
   return (
-    <Badge
-      size="sm"
-      variant="light"
-      color="orange"
-      leftSection={<IconTarget size="0.75rem" />}
-    >
+    <Badge size="sm" variant="light" color="orange" leftSection={<IconTarget size="0.75rem" />}>
       {stats.due + stats.unseen} due
     </Badge>
   );
 }
 
-function fileTypeIcon(type: RecentFile["type"]) {
-  switch (type) {
-    case "repertoire":
-      return <IconTargetArrow size={20} />;
-    case "game":
-      return <IconChess size={20} />;
-    case "tournament":
-      return <IconTrophy size={20} />;
-    case "puzzle":
-      return <IconPuzzle size={20} />;
-    default:
-      return <IconFile size={20} />;
-  }
-}
-
-function RecentFileRow({
-  file,
-  onOpen,
-}: {
-  file: RecentFile;
-  onOpen: (file: RecentFile) => void;
-}) {
+function RecentFileRow({ file, onOpen }: { file: RecentFile; onOpen: (file: RecentFile) => void }) {
   const displayName = file.name.replace(/\.pgn$/i, "");
 
   return (
@@ -104,27 +77,22 @@ function RecentFileRow({
       style={{
         borderRadius: "var(--mantine-radius-sm)",
       }}
-      className="recent-file-row"
+      className={classes.recentFileRow}
     >
       <Group justify="space-between" wrap="nowrap">
         <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
           <Box style={{ flexShrink: 0, color: "var(--mantine-color-dimmed)" }}>
-            {fileTypeIcon(file.type)}
+            <FileIcon type={file.type} size={20} />
           </Box>
           <Text size="sm" truncate fw={500}>
             {displayName}
           </Text>
-          {file.type === "repertoire" && (
-            <RecentFileDuePositions file={file.path} />
-          )}
+          {file.type === "repertoire" && <RecentFileDuePositions file={file.path} />}
         </Group>
         <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
           <Tooltip label={dayjs(file.lastOpened).format("YYYY-MM-DD HH:mm")}>
             <Group gap={4} wrap="nowrap">
-              <IconClock
-                size={14}
-                style={{ color: "var(--mantine-color-dimmed)" }}
-              />
+              <IconClock size={14} style={{ color: "var(--mantine-color-dimmed)" }} />
               <Text size="xs" c="dimmed">
                 {dayjs(file.lastOpened).fromNow()}
               </Text>
@@ -178,15 +146,18 @@ export default function NewTabHome({ id }: { id: string }) {
         setTabs,
         setActiveTab,
         pgn: pgn[0] || "",
-        fileInfo: {
-          type: "file",
-          name: file.name,
-          path: file.path,
-          numGames: 1,
-          metadata: { type: file.type, tags: [] },
-          lastModified: Math.floor(Date.now() / 1000),
+        gameOrigin: {
+          kind: "file",
+          gameNumber: 0,
+          file: {
+            type: "file",
+            name: file.name,
+            path: file.path,
+            numGames: 1,
+            metadata: { type: file.type, tags: [] },
+            lastModified: Math.floor(Date.now() / 1000),
+          },
         },
-        gameNumber: 0,
       });
       if (file.type === "repertoire") {
         store.set(tabFamily(tabId), "practice");
@@ -269,11 +240,13 @@ export default function NewTabHome({ id }: { id: string }) {
 
   return (
     <>
-      <ImportModal openModal={openModal} setOpenModal={setOpenModal} />
-      <CreateRepertoireModal
-        opened={openRepertoireModal}
-        setOpened={setOpenRepertoireModal}
+      <ImportModal
+        openModal={openModal}
+        setOpenModal={setOpenModal}
+        setTabs={setTabs}
+        setActiveTab={setActiveTab}
       />
+      <CreateRepertoireModal opened={openRepertoireModal} setOpened={setOpenRepertoireModal} />
       <Stack gap="lg" pt="sm">
         <SimpleGrid cols={{ base: 1, sm: 2, lg: 5 }}>
           {cards.map((card) => (
@@ -288,13 +261,7 @@ export default function NewTabHome({ id }: { id: string }) {
                   </Text>
                 </Box>
 
-                <Button
-                  variant="light"
-                  fullWidth
-                  mt="md"
-                  radius="md"
-                  onClick={card.onClick}
-                >
+                <Button variant="light" fullWidth mt="md" radius="md" onClick={card.onClick}>
                   {card.label}
                 </Button>
               </Stack>
@@ -315,11 +282,7 @@ export default function NewTabHome({ id }: { id: string }) {
             <ScrollArea.Autosize mah={300}>
               <Stack gap={2}>
                 {recentFiles.map((file) => (
-                  <RecentFileRow
-                    key={file.path}
-                    file={file}
-                    onOpen={openRecentFile}
-                  />
+                  <RecentFileRow key={file.path} file={file} onOpen={openRecentFile} />
                 ))}
               </Stack>
             </ScrollArea.Autosize>

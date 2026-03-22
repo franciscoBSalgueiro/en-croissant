@@ -21,12 +21,8 @@ import { positionFromFen } from "@/utils/chessops";
 import { skipWhile, takeWhile } from "@/utils/misc";
 import { getGamePhases } from "@/utils/phase";
 import { formatScore } from "@/utils/score";
-import {
-  type ListNode,
-  type TreeNode,
-  treeIteratorMainLine,
-} from "@/utils/treeReducer";
-import * as classes from "./EvalChart.css";
+import { type ListNode, type TreeNode, treeIteratorMainLine } from "@/utils/treeReducer";
+import classes from "./EvalChart.module.css";
 import { TreeStateContext } from "./TreeStateContext";
 
 interface EvalChartProps {
@@ -60,10 +56,7 @@ function EvalChart(props: EvalChartProps) {
     if (node.score) {
       let cp: number = node.score.value.value;
       if (node.score.value.type === "mate") {
-        cp =
-          node.score.value.value > 0
-            ? Number.POSITIVE_INFINITY
-            : Number.NEGATIVE_INFINITY;
+        cp = node.score.value.value > 0 ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
       }
       return 2 / (1 + Math.exp(-0.004 * cp)) - 1;
     }
@@ -83,9 +76,7 @@ function EvalChart(props: EvalChartProps) {
   function getEvalText(node: TreeNode, type: "cp" | "wdl"): string {
     if (node.score) {
       if (type === "cp") {
-        return `${t("Board.Analysis.Advantage")}: ${formatScore(
-          node.score.value,
-        )}`;
+        return `${t("Board.Analysis.Advantage")}: ${formatScore(node.score.value)}`;
       }
       if (type === "wdl" && node.score.wdl) {
         return `
@@ -106,14 +97,8 @@ function EvalChart(props: EvalChartProps) {
 
   function getNodes(): ListNode[] {
     const allNodes = treeIteratorMainLine(root);
-    const withoutRoot = skipWhile(
-      allNodes,
-      (node: ListNode) => node.position.length === 0,
-    );
-    const withMoves = takeWhile(
-      withoutRoot,
-      (node: ListNode) => node.node.move !== undefined,
-    );
+    const withoutRoot = skipWhile(allNodes, (node: ListNode) => node.position.length === 0);
+    const withMoves = takeWhile(withoutRoot, (node: ListNode) => node.node.move !== undefined);
     return [...withMoves];
   }
 
@@ -133,8 +118,7 @@ function EvalChart(props: EvalChartProps) {
         wdlText: getEvalText(currentNode.node, "wdl"),
         yValue: yValue ?? "none",
         movePath: currentNode.position,
-        color:
-          ANNOTATION_INFO[currentNode.node.annotations[0]]?.color || "gray",
+        color: ANNOTATION_INFO[currentNode.node.annotations[0]]?.color || "gray",
         annotation: currentNode.node.annotations[0],
         White: wdl ? wdl[0] : 0,
         Draw: wdl ? wdl[1] : 0,
@@ -144,12 +128,8 @@ function EvalChart(props: EvalChartProps) {
   }
 
   function gradientOffset(data: DataPoint[]) {
-    const dataMax = Math.max(
-      ...data.map((i) => (i.yValue !== "none" ? i.yValue : 0)),
-    );
-    const dataMin = Math.min(
-      ...data.map((i) => (i.yValue !== "none" ? i.yValue : 0)),
-    );
+    const dataMax = Math.max(...data.map((i) => (i.yValue !== "none" ? i.yValue : 0)));
+    const dataMin = Math.min(...data.map((i) => (i.yValue !== "none" ? i.yValue : 0)));
 
     if (dataMax <= 0) return 0;
     if (dataMin >= 0) return 1;
@@ -168,29 +148,22 @@ function EvalChart(props: EvalChartProps) {
   const nodes = getNodes();
 
   const phases = useMemo(() => {
-    const validBoards = nodes
-      .map((n) => positionFromFen(n.node.fen)[0])
-      .filter((b) => b !== null);
+    const validBoards = nodes.map((n) => positionFromFen(n.node.fen)[0]).filter((b) => b !== null);
     return getGamePhases(validBoards);
   }, [nodes]);
 
-  const currentPositionName = data.find((point) =>
-    equal(point.movePath, position),
-  )?.name;
+  const currentPositionName = data.find((point) => equal(point.movePath, position))?.name;
 
   const middlegamePositionName =
     phases.middlegamePly !== null ? data[phases.middlegamePly]?.name : null;
-  const endgamePositionName =
-    phases.endgamePly !== null ? data[phases.endgamePly]?.name : null;
+  const endgamePositionName = phases.endgamePly !== null ? data[phases.endgamePly]?.name : null;
 
   const colouroffset = gradientOffset(data);
 
   const [chartType, setChartType] = useAtom(reportTypeAtom);
 
   const isWDLDisabled = useMemo(() => {
-    return !data.some(
-      (point) => point.White !== 0 || point.Black !== 0 || point.Draw !== 0,
-    );
+    return !data.some((point) => point.White !== 0 || point.Black !== 0 || point.Draw !== 0);
   }, [data]);
 
   return (
@@ -350,8 +323,7 @@ function CustomTooltip({
 
 function CustomDot(props: { cx?: number; cy?: number; payload?: any }) {
   const { cx, cy, payload } = props;
-  if (!payload || !payload.annotation || !isBasicAnnotation(payload.annotation))
-    return null;
+  if (!payload || !payload.annotation || !isBasicAnnotation(payload.annotation)) return null;
   return (
     <circle
       cx={cx}

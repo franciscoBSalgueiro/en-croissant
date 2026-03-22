@@ -27,18 +27,10 @@ import {
 import { INITIAL_FEN } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { useAtom, useAtomValue } from "jotai";
-import React, {
-  memo,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { memo, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
-import { useStoreWithEqualityFn } from "zustand/traditional";
 import Comment from "@/components/common/Comment";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
@@ -52,18 +44,13 @@ import { formatScore } from "@/utils/score";
 import { getTranspositions } from "@/utils/transpositions";
 import { getNodeAtPath, type TreeNode } from "@/utils/treeReducer";
 import CompleteMoveCell from "./CompleteMoveCell";
-import * as styles from "./GameNotation.css";
+import styles from "./GameNotation.module.css";
 import OpeningName from "./OpeningName";
 
-function GameNotation({
-  topBar,
-  controls,
-}: {
-  topBar?: boolean;
-  controls?: React.ReactNode;
-}) {
+function GameNotation({ topBar, controls }: { topBar?: boolean; controls?: React.ReactNode }) {
   const store = useContext(TreeStateContext)!;
   const currentFen = useStore(store, (s) => s.currentNode().fen);
+  const copyPgn = useStore(store, (s) => s.copyPgn);
   const headers = useStore(store, (s) => s.headers);
   const rootComment = useStore(store, (s) => s.root.comment);
 
@@ -79,8 +66,7 @@ function GameNotation({
         const targetEl = targetRef.current;
         const viewportRect = viewportEl.getBoundingClientRect();
         const targetRect = targetEl.getBoundingClientRect();
-        const offsetInViewport =
-          targetRect.top - viewportRect.top + viewportEl.scrollTop;
+        const offsetInViewport = targetRect.top - viewportRect.top + viewportEl.scrollTop;
         viewportEl.scrollTo({
           top: offsetInViewport - 65,
           behavior: "auto",
@@ -98,13 +84,10 @@ function GameNotation({
 
   const keyMap = useAtomValue(keyMapAtom);
   useHotkeys(keyMap.TOGGLE_BLUR.keys, () => setInvisible((v) => !v));
+  useHotkeys(keyMap.COPY_PGN.keys, () => copyPgn());
 
   return (
-    <Paper
-      withBorder
-      flex={1}
-      style={{ position: "relative", overflow: "hidden" }}
-    >
+    <Paper withBorder flex={1} style={{ position: "relative", overflow: "hidden" }}>
       <Group h="100%" wrap="nowrap" align="stretch" gap={0}>
         {controls && (
           <>
@@ -116,12 +99,7 @@ function GameNotation({
         )}
         <Stack h="100%" gap={0} style={{ flex: 1, minWidth: 0 }}>
           {topBar && <NotationHeader />}
-          <ScrollArea
-            flex={1}
-            offsetScrollbars
-            scrollbars="y"
-            viewportRef={viewport}
-          >
+          <ScrollArea flex={1} offsetScrollbars scrollbars="y" viewportRef={viewport}>
             <Stack gap="xs">
               <Box>
                 {invisible && (
@@ -133,18 +111,15 @@ function GameNotation({
                   />
                 )}
                 {showComments && rootComment && (
-                  <Comment comment={rootComment} />
+                  <Box p="sm" fz="sm">
+                    <Comment comment={rootComment} />
+                  </Box>
                 )}
                 {tableView ? (
                   <TableNotation targetRef={targetRef} />
                 ) : (
                   <Box pt="md" px="sm">
-                    <RenderVariationTree
-                      targetRef={targetRef}
-                      nodePath={[]}
-                      depth={0}
-                      first
-                    />
+                    <RenderVariationTree targetRef={targetRef} nodePath={[]} depth={0} first />
                   </Box>
                 )}
               </Box>
@@ -175,65 +150,33 @@ function NotationHeader() {
   const { t } = useTranslation();
   const [invisible, setInvisible] = useAtom(currentInvisibleAtom);
   const [showComments, setShowComments] = useAtom(currentShowCommentsAtom);
-  const [showVariations, setShowVariations] = useAtom(
-    currentShowVariationsAtom,
-  );
+  const [showVariations, setShowVariations] = useAtom(currentShowVariationsAtom);
   const [tableView, setTableView] = useAtom(tableViewAtom);
   return (
     <Stack gap="xs" pt="xs">
       <Group justify="space-between" px="sm">
         <OpeningName />
         <Group gap="sm">
-          <Tooltip
-            label={
-              invisible ? t("Notation.ShowMoves") : t("Notation.HideMoves")
-            }
-          >
+          <Tooltip label={invisible ? t("Notation.ShowMoves") : t("Notation.HideMoves")}>
             <ActionIcon onClick={() => setInvisible((v) => !v)}>
               {invisible ? <IconEyeOff size="1rem" /> : <IconEye size="1rem" />}
             </ActionIcon>
           </Tooltip>
-          <Tooltip
-            label={
-              tableView ? t("Notation.NormalView") : t("Notation.TableView")
-            }
-          >
+          <Tooltip label={tableView ? t("Notation.NormalView") : t("Notation.TableView")}>
             <ActionIcon onClick={() => setTableView((v) => !v)}>
-              {tableView ? (
-                <IconList size="1rem" />
-              ) : (
-                <IconLayoutList size="1rem" />
-              )}
+              {tableView ? <IconList size="1rem" /> : <IconLayoutList size="1rem" />}
             </ActionIcon>
           </Tooltip>
-          <Tooltip
-            label={
-              showComments
-                ? t("Notation.HideComments")
-                : t("Notation.ShowComments")
-            }
-          >
+          <Tooltip label={showComments ? t("Notation.HideComments") : t("Notation.ShowComments")}>
             <ActionIcon onClick={() => setShowComments((v) => !v)}>
-              {showComments ? (
-                <IconArticle size="1rem" />
-              ) : (
-                <IconArticleOff size="1rem" />
-              )}
+              {showComments ? <IconArticle size="1rem" /> : <IconArticleOff size="1rem" />}
             </ActionIcon>
           </Tooltip>
           <Tooltip
-            label={
-              showVariations
-                ? t("Notation.HideVariations")
-                : t("Notation.ShowVariations")
-            }
+            label={showVariations ? t("Notation.HideVariations") : t("Notation.ShowVariations")}
           >
             <ActionIcon onClick={() => setShowVariations((v) => !v)}>
-              {showVariations ? (
-                <IconArrowsSplit size="1rem" />
-              ) : (
-                <IconArrowRight size="1rem" />
-              )}
+              {showVariations ? <IconArrowsSplit size="1rem" /> : <IconArrowRight size="1rem" />}
             </ActionIcon>
           </Tooltip>
         </Group>
@@ -282,17 +225,11 @@ const RenderVariationTree = memo(
                 isCurrentVariation={equal(newPath, currentPath)}
                 isStart={equal(newPath, start)}
                 transpositions={
-                  variation.fen
-                    ? getTranspositions(variation.fen, newPath, root)
-                    : []
+                  variation.fen ? getTranspositions(variation.fen, newPath, root) : []
                 }
                 first
               />
-              <RenderVariationTree
-                targetRef={targetRef}
-                nodePath={newPath}
-                depth={depth + 2}
-              />
+              <RenderVariationTree targetRef={targetRef} nodePath={newPath} depth={depth + 2} />
             </React.Fragment>
           );
         })
@@ -314,9 +251,7 @@ const RenderVariationTree = memo(
             isCurrentVariation={equal(mainLinePath, currentPath)}
             isStart={equal(mainLinePath, start)}
             transpositions={
-              variations[0].fen
-                ? getTranspositions(variations[0].fen, mainLinePath, root)
-                : []
+              variations[0].fen ? getTranspositions(variations[0].fen, mainLinePath, root) : []
             }
             first={first}
           />
@@ -325,20 +260,14 @@ const RenderVariationTree = memo(
         <VariationCell moveNodes={variationNodes} />
 
         {node.children.length > 0 && (
-          <RenderVariationTree
-            targetRef={targetRef}
-            nodePath={mainLinePath}
-            depth={depth + 1}
-          />
+          <RenderVariationTree targetRef={targetRef} nodePath={mainLinePath} depth={depth + 1} />
         )}
       </>
     );
   },
   (prev, next) => {
     return (
-      equal(prev.nodePath, next.nodePath) &&
-      prev.depth === next.depth &&
-      prev.first === next.first
+      equal(prev.nodePath, next.nodePath) && prev.depth === next.depth && prev.first === next.first
     );
   },
 );
@@ -554,11 +483,7 @@ const TableNotation = memo(function TableNotation({
                     {seg.variations.map((variation, vIdx) => {
                       const variationPath = [...seg.parentPath, vIdx + 1];
                       return (
-                        <Box
-                          key={variation.fen}
-                          className={styles.variationBorder}
-                          mb={4}
-                        >
+                        <Box key={variation.fen} className={styles.variationBorder} mb={4}>
                           <CompleteMoveCell
                             targetRef={targetRef}
                             annotations={variation.annotations}
@@ -568,18 +493,11 @@ const TableNotation = memo(function TableNotation({
                             fen={variation.fen}
                             movePath={variationPath}
                             showComments={showComments}
-                            isCurrentVariation={equal(
-                              variationPath,
-                              currentPath,
-                            )}
+                            isCurrentVariation={equal(variationPath, currentPath)}
                             isStart={equal(variationPath, start)}
                             transpositions={
                               variation.fen
-                                ? getTranspositions(
-                                    variation.fen,
-                                    variationPath,
-                                    root,
-                                  )
+                                ? getTranspositions(variation.fen, variationPath, root)
                                 : []
                             }
                             first
@@ -657,15 +575,9 @@ function RowSegment({
             showComments={showComments}
             isCurrentVariation={equal(whitePath, currentPath)}
             isStart={equal(whitePath, start)}
-            transpositions={
-              white.fen ? getTranspositions(white.fen, whitePath, root) : []
-            }
+            transpositions={white.fen ? getTranspositions(white.fen, whitePath, root) : []}
             tableLayout
-            scoreText={
-              showComments && white.score
-                ? formatScore(white.score.value, 1)
-                : undefined
-            }
+            scoreText={showComments && white.score ? formatScore(white.score.value, 1) : undefined}
           />
         ) : (
           <Text c="dimmed" style={{ padding: "5px 8px" }}>
@@ -686,15 +598,9 @@ function RowSegment({
             showComments={showComments}
             isCurrentVariation={equal(blackPath, currentPath)}
             isStart={equal(blackPath, start)}
-            transpositions={
-              black.fen ? getTranspositions(black.fen, blackPath, root) : []
-            }
+            transpositions={black.fen ? getTranspositions(black.fen, blackPath, root) : []}
             tableLayout
-            scoreText={
-              showComments && black.score
-                ? formatScore(black.score.value, 1)
-                : undefined
-            }
+            scoreText={showComments && black.score ? formatScore(black.score.value, 1) : undefined}
           />
         ) : splitRow ? (
           <Text c="dimmed" style={{ padding: "5px 8px" }}>

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { commands } from "@/bindings";
 import { currentTabAtom } from "@/state/atoms";
 import { formatNumber } from "@/utils/format";
+import { getTabFile } from "@/utils/tabs";
 import { unwrap } from "@/utils/unwrap";
 
 function FileInfo({
@@ -14,18 +15,21 @@ function FileInfo({
 }) {
   const { t } = useTranslation();
   const [tab, setCurrentTab] = useAtom(currentTabAtom);
+  const tabFile = getTabFile(tab);
 
-  if (!tab?.file) return null;
+  if (!tabFile) return null;
   return (
     <>
       <Group justify="space-between" py="sm" px="md">
         <Text>
-          {formatNumber(tab.file.numGames || 0)} {t("Files.GameCountSuffix")}
-          {tab.file.numGames === 1 ? "" : "s"}
+          {t("Files.GameCountSuffix", {
+            count: tabFile.numGames ?? 0,
+            number: formatNumber(tabFile.numGames ?? 0),
+          })}
         </Text>
         <Group>
-          <Tooltip label={tab.file.path}>
-            <Code>{tab.file.path.split(/[\\/]/).pop()}</Code>
+          <Tooltip label={tabFile.path}>
+            <Code>{tabFile.path.split(/[\\/]/).pop()}</Code>
           </Tooltip>
 
           <Tooltip label={t("Files.Reload")}>
@@ -33,11 +37,21 @@ function FileInfo({
               variant="outline"
               size="sm"
               onClick={() =>
-                tab.file &&
-                commands.countPgnGames(tab.file.path).then((v) => {
+                commands.countPgnGames(tabFile.path).then((v) => {
                   setCurrentTab((prev) => {
-                    prev.file!.numGames = unwrap(v);
-                    return { ...prev };
+                    if (prev.gameOrigin.kind !== "file" && prev.gameOrigin.kind !== "temp_file") {
+                      return prev;
+                    }
+                    return {
+                      ...prev,
+                      gameOrigin: {
+                        ...prev.gameOrigin,
+                        file: {
+                          ...prev.gameOrigin.file,
+                          numGames: unwrap(v),
+                        },
+                      },
+                    };
                   });
                   setGames(new Map());
                 })

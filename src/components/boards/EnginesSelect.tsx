@@ -12,13 +12,17 @@ export function EnginesSelect({
   setEngine: (engine: LocalEngine | null) => void;
 }) {
   const allEngines = useAtomValue(enginesAtom);
-  const engines = (allEngines ?? []).filter(
-    (e): e is LocalEngine => e.type === "local",
-  );
+  const engines = (allEngines ?? []).filter((e): e is LocalEngine => e.type === "local");
 
   useEffect(() => {
-    if (engines.length > 0 && engine === null) {
+    if (engines.length === 0) return;
+    if (engine === null) {
       setEngine(engines[0]);
+    } else {
+      const updatedEngine = engines.find((e) => e.id === engine.id);
+      if (updatedEngine && updatedEngine !== engine) {
+        setEngine(updatedEngine);
+      }
     }
   }, [engine, engines, setEngine]);
 

@@ -1,14 +1,24 @@
 import { ActionIcon, Button, Menu } from "@mantine/core";
 import { useClickOutside, useHotkeys, useToggle } from "@mantine/hooks";
-import { IconCopy, IconEdit, IconX } from "@tabler/icons-react";
+import {
+  IconChess,
+  IconCopy,
+  IconDatabase,
+  IconEdit,
+  IconPuzzle,
+  IconX,
+  IconZoomCheck,
+} from "@tabler/icons-react";
 import cx from "clsx";
 import { useEffect } from "react";
 import type { Tab } from "@/utils/tabs";
 import { InlineInput } from "../common/InlineInput";
-import * as classes from "./BoardTab.css";
+import classes from "./BoardTab.module.css";
+import { FileIcon } from "../files/FileIcon";
 
 export function BoardTab({
   tab,
+  tabType,
   setActiveTab,
   closeTab,
   renameTab,
@@ -16,6 +26,7 @@ export function BoardTab({
   selected,
 }: {
   tab: Tab;
+  tabType: string;
   setActiveTab: (v: string) => void;
   closeTab: (v: string) => void;
   renameTab: (v: string, n: string) => void;
@@ -52,6 +63,7 @@ export function BoardTab({
           variant="default"
           fw="normal"
           radius={0}
+          leftSection={<TabIcon tab={tab} tabType={tabType} />}
           rightSection={
             <ActionIcon
               component="div"
@@ -100,10 +112,7 @@ export function BoardTab({
         >
           Duplicate Tab
         </Menu.Item>
-        <Menu.Item
-          leftSection={<IconEdit size="0.875rem" />}
-          onClick={() => toggleRenaming(true)}
-        >
+        <Menu.Item leftSection={<IconEdit size="0.875rem" />} onClick={() => toggleRenaming(true)}>
           Rename Tab
         </Menu.Item>
         <Menu.Item
@@ -116,4 +125,23 @@ export function BoardTab({
       </Menu.Dropdown>
     </Menu>
   );
+}
+
+function TabIcon({ tab, tabType }: { tab: Tab; tabType: string }) {
+  if (tabType === "puzzles") {
+    return <IconPuzzle size="0.875rem" />;
+  }
+  if (tabType === "play") {
+    return <IconChess size="0.875rem" />;
+  }
+  if (tab.gameOrigin.kind === "database") {
+    return <IconDatabase size="0.875rem" />;
+  }
+  if (tab.gameOrigin.kind === "file" || tab.gameOrigin.kind === "temp_file") {
+    return <FileIcon type={tab.gameOrigin.file.metadata.type} size="0.875rem" />;
+  }
+  if (tabType === "analysis") {
+    return <IconZoomCheck size="0.875rem" />;
+  }
+  return null;
 }

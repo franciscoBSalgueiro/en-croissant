@@ -25,6 +25,7 @@ function ConfirmChangesModal({
       setCurrentTab,
       tab: currentTab,
       store,
+      isUserSave: true,
     });
   }
 
@@ -35,9 +36,7 @@ function ConfirmChangesModal({
           <Text fz="lg" fw="bold" mb={10}>
             Unsaved Changes
           </Text>
-          <Text>
-            You have unsaved changes. Do you want to save them before closing?
-          </Text>
+          <Text>You have unsaved changes. Do you want to save them before closing?</Text>
         </div>
 
         <Group justify="right">

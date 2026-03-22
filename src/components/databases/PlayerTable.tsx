@@ -20,7 +20,7 @@ import { query_players } from "@/utils/db";
 import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
 import GridLayout from "./GridLayout";
 import PlayerCard from "./PlayerCard";
-import * as classes from "./styles.css";
+import classes from "./styles.module.css";
 
 function PlayerTable() {
   const { t } = useTranslation();
@@ -82,10 +82,7 @@ function PlayerTable() {
                 })
               }
             />
-            <ActionIcon
-              style={{ flexGrow: 0 }}
-              onClick={() => setOpen((prev) => !prev)}
-            >
+            <ActionIcon style={{ flexGrow: 0 }} onClick={() => setOpen((prev) => !prev)}>
               <IconDotsVertical size="1rem" />
             </ActionIcon>
           </Flex>
@@ -133,9 +130,7 @@ function PlayerTable() {
             { accessor: "name", sortable: true },
             { accessor: "elo", sortable: true },
           ]}
-          rowClassName={(r) =>
-            r.id === selectedPlayer ? classes.selected : ""
-          }
+          rowClassName={(r) => (r.id === selectedPlayer ? classes.selected : "")}
           noRecordsText={
             error
               ? `${t("Common.Error")}: ${error instanceof Error ? error.message : String(error)}`

@@ -30,15 +30,8 @@ import {
 } from "@/state/atoms";
 import { getDatabases, type Opening, searchPosition } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
-import {
-  convertToNormalized,
-  getLichessGames,
-  getMasterGames,
-} from "@/utils/lichess/api";
-import type {
-  LichessGamesOptions,
-  MasterGamesOptions,
-} from "@/utils/lichess/explorer";
+import { convertToNormalized, getLichessGames, getMasterGames } from "@/utils/lichess/api";
+import type { LichessGamesOptions, MasterGamesOptions } from "@/utils/lichess/explorer";
 import DatabaseLoader from "./DatabaseLoader";
 import GamesTable from "./GamesTable";
 import NoDatabaseWarning from "./NoDatabaseWarning";
@@ -74,9 +67,7 @@ export type LocalOptions = {
 };
 
 function sortOpenings(openings: Opening[]) {
-  return openings.sort(
-    (a, b) => b.black + b.draw + b.white - (a.black + a.draw + a.white),
-  );
+  return openings.sort((a, b) => b.black + b.draw + b.white - (a.black + a.draw + a.white));
 }
 
 async function fetchOpening(db: DBType, tab: string) {
@@ -90,9 +81,7 @@ async function fetchOpening(db: DBType, tab: string) {
           black: move.black,
           draw: move.draws,
         })),
-        games: await convertToNormalized(
-          data.topGames || data.recentGames || [],
-        ),
+        games: await convertToNormalized(data.topGames || data.recentGames || []),
       };
     })
     .with({ type: "lch_master" }, async ({ fen, options, token }) => {
@@ -104,9 +93,7 @@ async function fetchOpening(db: DBType, tab: string) {
           black: move.black,
           draw: move.draws,
         })),
-        games: await convertToNormalized(
-          data.topGames || data.recentGames || [],
-        ),
+        games: await convertToNormalized(data.topGames || data.recentGames || []),
       };
     })
     .with({ type: "local" }, async ({ options }) => {
@@ -132,13 +119,11 @@ function DatabasePanel() {
   const [masterOptions, setMasterOptions] = useAtom(masterOptionsAtom);
   const [localOptions, setLocalOptions] = useAtom(currentLocalOptionsAtom);
   const [db, setDb] = useAtom(currentDbTypeAtom);
-  const explorerToken = sessions.find((session) => session.lichess?.accessToken)
-    ?.lichess?.accessToken;
+  const explorerToken = sessions.find((session) => session.lichess?.accessToken)?.lichess
+    ?.accessToken;
   const missingExplorerToken = db !== "local" && !explorerToken;
 
-  const { data: databases } = useSWR(db === "local" ? "databases" : null, () =>
-    getDatabases(),
-  );
+  const { data: databases } = useSWR(db === "local" ? "databases" : null, () => getDatabases());
 
   const dbSelectData = (databases ?? [])
     .filter((d) => d.type === "success")
@@ -205,9 +190,7 @@ function DatabasePanel() {
               { label: t("Board.Database.LichessMaster"), value: "lch_master" },
             ]}
             value={db}
-            onChange={(value) =>
-              setDb(value as "local" | "lch_all" | "lch_master")
-            }
+            onChange={(value) => setDb(value as "local" | "lch_all" | "lch_master")}
           />
 
           {db === "local" && (
@@ -230,9 +213,7 @@ function DatabasePanel() {
         {tabType !== "options" && (
           <Text style={{ whiteSpace: "nowrap" }}>
             {t("Board.Database.Matches", {
-              matches: formatNumber(
-                Math.max(grandTotal || 0, openingData?.games.length || 0),
-              ),
+              matches: formatNumber(Math.max(grandTotal || 0, openingData?.games.length || 0)),
             })}
           </Text>
         )}
@@ -256,9 +237,7 @@ function DatabasePanel() {
         <Tabs.List>
           <Tabs.Tab
             value="stats"
-            disabled={
-              dbType.type === "local" && dbType.options.type === "partial"
-            }
+            disabled={dbType.type === "local" && dbType.options.type === "partial"}
           >
             {t("Board.Database.Stats")}
           </Tabs.Tab>
@@ -273,10 +252,7 @@ function DatabasePanel() {
           header={header}
           missingExplorerToken={missingExplorerToken}
         >
-          <OpeningsTable
-            openings={openingData?.openings || []}
-            loading={isLoading}
-          />
+          <OpeningsTable openings={openingData?.openings || []} loading={isLoading} />
         </PanelWithError>
         <PanelWithError
           value="games"
@@ -285,7 +261,11 @@ function DatabasePanel() {
           header={header}
           missingExplorerToken={missingExplorerToken}
         >
-          <GamesTable games={openingData?.games || []} loading={isLoading} />
+          <GamesTable
+            games={openingData?.games || []}
+            loading={isLoading}
+            databasePath={dbType.type === "local" ? dbType.options.path : null}
+          />
         </PanelWithError>
         <PanelWithError
           value="options"
@@ -296,9 +276,7 @@ function DatabasePanel() {
         >
           <ScrollArea flex={1} offsetScrollbars pt="sm">
             {match(db)
-              .with("local", () => (
-                <LocalOptionsPanel boardFen={debouncedFen} />
-              ))
+              .with("local", () => <LocalOptionsPanel boardFen={debouncedFen} />)
               .with("lch_all", () => <LichessOptionsPanel />)
               .with("lch_master", () => <MasterOptionsPanel />)
               .exhaustive()}
@@ -326,8 +304,7 @@ function PanelWithError(props: {
   if (props.missingExplorerToken && props.type !== "local") {
     children = (
       <Alert color="yellow">
-        {t("Board.Database.ExplorerAuthRequired1")}{" "}
-        <Link to="/accounts">Users</Link>{" "}
+        {t("Board.Database.ExplorerAuthRequired1")} <Link to="/accounts">Users</Link>{" "}
         {t("Board.Database.ExplorerAuthRequired2")}
       </Alert>
     );

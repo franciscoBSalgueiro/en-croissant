@@ -1,22 +1,10 @@
-import {
-  Button,
-  Modal,
-  SegmentedControl,
-  Stack,
-  Text,
-  TextInput,
-} from "@mantine/core";
+import { Button, Modal, SegmentedControl, Stack, Text, TextInput } from "@mantine/core";
 import { useLoaderData, useNavigate } from "@tanstack/react-router";
 import { INITIAL_FEN } from "chessops/fen";
 import { useAtom, useSetAtom, useStore } from "jotai";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  activeTabAtom,
-  addRecentFileAtom,
-  tabFamily,
-  tabsAtom,
-} from "@/state/atoms";
+import { activeTabAtom, addRecentFileAtom, tabFamily, tabsAtom } from "@/state/atoms";
 import { headersToPGN } from "@/utils/chess";
 import { createFile } from "@/utils/files";
 import { createTab } from "@/utils/tabs";
@@ -78,7 +66,11 @@ export default function CreateRepertoireModal({
       setTabs,
       setActiveTab,
       pgn,
-      fileInfo,
+      gameOrigin: {
+        kind: "file",
+        file: fileInfo,
+        gameNumber: 0,
+      },
     });
 
     store.set(tabFamily(id), "practice");

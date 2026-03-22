@@ -41,11 +41,7 @@ function PersonalPlayerCard({
   const [opened, setOpened] = useState(false);
   const sessions = useAtomValue(sessionsAtom);
   const players = Array.from(
-    new Set(
-      sessions.map(
-        (s) => s.player || s.lichess?.username || s.chessCom?.username || "",
-      ),
-    ),
+    new Set(sessions.map((s) => s.player || s.lichess?.username || s.chessCom?.username || "")),
   );
 
   return (
@@ -60,11 +56,7 @@ function PersonalPlayerCard({
       <Box pos="relative">
         {name !== "Stats" && (
           <MTTooltip label={t("Databases.FIDE.Info")}>
-            <ActionIcon
-              pos="absolute"
-              right={0}
-              onClick={() => setOpened(true)}
-            >
+            <ActionIcon pos="absolute" right={0} onClick={() => setOpened(true)}>
               <IconInfoCircle />
             </ActionIcon>
           </MTTooltip>
@@ -96,9 +88,7 @@ function PersonalPlayerCard({
         mt="xs"
         keepMounted={false}
         value={activeTab}
-        onChange={(v) =>
-          setActiveTab(v as DatabaseViewStore["players"]["activeTab"])
-        }
+        onChange={(v) => setActiveTab(v as DatabaseViewStore["players"]["activeTab"])}
         variant="outline"
         flex={1}
         style={{
@@ -113,18 +103,10 @@ function PersonalPlayerCard({
           <Tabs.Tab value="openings">{t("Home.Personal.Openings")}</Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel value="overview">
-          <OverviewPanel
-            playerName={name}
-            info={info}
-            isDatabase={isDatabase}
-          />
+          <OverviewPanel playerName={name} info={info} isDatabase={isDatabase} />
         </Tabs.Panel>
         <Tabs.Panel value="openings" style={{ overflow: "hidden" }}>
-          <OpeningsPanel
-            playerName={name}
-            info={info}
-            isDatabase={isDatabase}
-          />
+          <OpeningsPanel playerName={name} info={info} isDatabase={isDatabase} />
         </Tabs.Panel>
         <Tabs.Panel value="ratings">
           <RatingsPanel playerName={name} info={info} isDatabase={isDatabase} />

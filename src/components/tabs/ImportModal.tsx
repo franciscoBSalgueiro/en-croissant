@@ -12,8 +12,9 @@ import {
   TextInput,
 } from "@mantine/core";
 import { useLoaderData } from "@tanstack/react-router";
+import { resolve, tempDir } from "@tauri-apps/api/path";
 import { open } from "@tauri-apps/plugin-dialog";
-import { readTextFile } from "@tauri-apps/plugin-fs";
+import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { makeFen, parseFen } from "chessops/fen";
 import { useAtom, useStore } from "jotai";
 import { useState } from "react";
@@ -24,8 +25,9 @@ import { addRecentFileAtom, currentTabAtom } from "@/state/atoms";
 import { parsePGN } from "@/utils/chess";
 import { getChesscomGame } from "@/utils/chess.com/api";
 import { chessopsError } from "@/utils/chessops";
-import { createFile } from "@/utils/files";
+import { createFile, openFile } from "@/utils/files";
 import { getLichessGame } from "@/utils/lichess/api";
+import { isInTempDir, type Tab } from "@/utils/tabs";
 import { defaultTree, getGameName } from "@/utils/treeReducer";
 import { unwrap } from "@/utils/unwrap";
 import GenericCard from "../common/GenericCard";
@@ -44,9 +46,13 @@ const FILE_TYPES = [
 export default function ImportModal({
   openModal,
   setOpenModal,
+  setTabs,
+  setActiveTab,
 }: {
   openModal: boolean;
   setOpenModal: React.Dispatch<React.SetStateAction<boolean>>;
+  setTabs: React.Dispatch<React.SetStateAction<Tab[]>>;
+  setActiveTab: React.Dispatch<React.SetStateAction<string | null>>;
 }) {
   const { t } = useTranslation();
   const [pgn, setPgn] = useState("");
@@ -69,12 +75,11 @@ export default function ImportModal({
     setLoading(true);
     if (importType === "PGN") {
       if (file || pgn) {
-        let fileInfo: FileMetadata | undefined;
-        let input = pgn;
         if (file) {
+          let fileInfo: FileMetadata | undefined;
           const count = unwrap(await commands.countPgnGames(file));
           const fileContent = await readTextFile(file);
-          input = unwrap(await commands.readGames(file, 0, 0))[0];
+          const input = unwrap(await commands.readGames(file, 0, 0))[0];
           if (save) {
             const newFile = await createFile({
               filename,
@@ -101,28 +106,33 @@ export default function ImportModal({
               },
             };
           }
-        }
-        const tree = await parsePGN(input);
-        setCurrentTab((prev) => {
-          sessionStorage.setItem(
-            prev.value,
-            JSON.stringify({ version: 0, state: tree }),
-          );
-          return {
-            ...prev,
-            name: getGameName(tree.headers),
-            file: fileInfo,
-            gameNumber: 0,
-            type: "analysis",
-          };
-        });
-
-        if (fileInfo?.path) {
-          store.set(addRecentFileAtom, {
-            name: fileInfo.name,
-            path: fileInfo.path,
-            type: fileInfo.metadata.type,
+          const tree = await parsePGN(input);
+          const originKind = (await isInTempDir(fileInfo.path)) ? "temp_file" : "file";
+          setCurrentTab((prev) => {
+            sessionStorage.setItem(prev.value, JSON.stringify({ version: 0, state: tree }));
+            return {
+              ...prev,
+              name: getGameName(tree.headers),
+              gameOrigin: {
+                kind: originKind,
+                file: fileInfo,
+                gameNumber: 0,
+              },
+              type: "analysis",
+            };
           });
+
+          if (fileInfo?.path) {
+            store.set(addRecentFileAtom, {
+              name: fileInfo.name,
+              path: fileInfo.path,
+              type: fileInfo.metadata.type,
+            });
+          }
+        } else {
+          const tempFile = await resolve(await tempDir(), `import_${Date.now()}.pgn`);
+          await writeTextFile(tempFile, pgn);
+          await openFile(tempFile, setTabs, setActiveTab);
         }
       }
     } else if (importType === "Link") {
@@ -152,13 +162,13 @@ export default function ImportModal({
 
       const tree = await parsePGN(pgn);
       setCurrentTab((prev) => {
-        sessionStorage.setItem(
-          prev.value,
-          JSON.stringify({ version: 0, state: tree }),
-        );
+        sessionStorage.setItem(prev.value, JSON.stringify({ version: 0, state: tree }));
         return {
           ...prev,
           name: getGameName(tree.headers),
+          gameOrigin: {
+            kind: "none",
+          },
           type: "analysis",
         };
       });
@@ -174,13 +184,13 @@ export default function ImportModal({
       setCurrentTab((prev) => {
         const tree = defaultTree(parsedFen);
         tree.headers.fen = parsedFen;
-        sessionStorage.setItem(
-          prev.value,
-          JSON.stringify({ version: 0, state: tree }),
-        );
+        sessionStorage.setItem(prev.value, JSON.stringify({ version: 0, state: tree }));
         return {
           ...prev,
           name: t("Home.Card.AnalysisBoard.Title"),
+          gameOrigin: {
+            kind: "none",
+          },
           type: "analysis",
         };
       });

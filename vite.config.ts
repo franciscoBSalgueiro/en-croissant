@@ -1,42 +1,49 @@
-/// <reference types="vitest" />
+/// <reference types="vitest/config" />
 import { resolve } from "node:path";
-import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
-import react from "@vitejs/plugin-react";
-import { tanstackRouter } from '@tanstack/router-plugin/vite';
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
+import babel from "@rolldown/plugin-babel";
+import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import { defineConfig } from "vite";
 import * as os from "node:os";
 
 const isDebug = !!process.env.TAURI_ENV_DEBUG;
+const host = process.env.TAURI_DEV_HOST;
 
 // https://vitejs.dev/config/
 export default defineConfig({
     plugins: [
         tanstackRouter({
-            target: "react"
+            target: "react",
         }),
-        react({
-            babel: {
-                plugins: ["babel-plugin-react-compiler"],
-            },
+        react(),
+        babel({
+            presets: [reactCompilerPreset()],
         }),
-        vanillaExtractPlugin(),
     ],
     server: {
         port: 1420,
+        strictPort: true,
+        host: host || false,
+        hmr: host
+            ? {
+                  protocol: "ws",
+                  host,
+                  port: 1421,
+              }
+            : undefined,
+        watch: {
+            ignored: ["**/src-tauri/**"],
+        },
     },
     build: {
         minify: isDebug ? false : "esbuild",
         sourcemap: isDebug ? "inline" : false,
-        rollupOptions: {
-            output: {
-                entryFileNames: "assets/[name].js",
-                chunkFileNames: "assets/[name].js",
-                assetFileNames: "assets/[name].[ext]",
-            },
-        },
+        target: process.env.TAURI_ENV_PLATFORM == "windows" ? "chrome105" : "safari13",
     },
     resolve: {
-        alias: [{ find: "@", replacement: resolve(__dirname, "./src") }],
+        alias: {
+            "@": resolve(import.meta.dirname, "./src"),
+        },
     },
     test: {
         environment: "jsdom",

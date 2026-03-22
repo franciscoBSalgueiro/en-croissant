@@ -45,6 +45,7 @@ import {
   moveMethodAtom,
   moveNotationTypeAtom,
   nativeBarAtom,
+  practiceAutoDifficultyAtom,
   previewBoardOnHoverAtom,
   showArrowsAtom,
   showConsecutiveArrowsAtom,
@@ -67,7 +68,7 @@ import FontSizeSlider from "./FontSizeSlider";
 import KeybindInput from "./KeybindInput";
 import PiecesSelect from "./PiecesSelect";
 import RepertoireMinGamesSetting from "./RepertoireMinGamesSetting";
-import * as classes from "./SettingsPage.css";
+import classes from "./SettingsPage.module.css";
 import SettingsSwitch from "./SettingsSwitch";
 import SoundSelect from "./SoundSelect";
 import ThemeButton from "./ThemeButton";
@@ -110,11 +111,7 @@ function SettingRow({
       wrap="nowrap"
       gap="xl"
       className={classes.item}
-      style={
-        highlight
-          ? { backgroundColor: "var(--mantine-color-yellow-light)" }
-          : undefined
-      }
+      style={highlight ? { backgroundColor: "var(--mantine-color-yellow-light)" } : undefined}
     >
       <div>
         <Text>{title}</Text>
@@ -170,9 +167,7 @@ export default function Page() {
   } = useLoaderData({ from: "/settings" });
   let [filesDirectory, setFilesDirectory] = useAtom(storedDocumentDirAtom);
   filesDirectory = filesDirectory || documentDir;
-  let [databasesDirectory, setDatabasesDirectory] = useAtom(
-    storedDatabasesDirAtom,
-  );
+  let [databasesDirectory, setDatabasesDirectory] = useAtom(storedDatabasesDirAtom);
   databasesDirectory = databasesDirectory || defaultDatabasesDir;
   let [enginesDirectory, setEnginesDirectory] = useAtom(storedEnginesDirAtom);
   enginesDirectory = enginesDirectory || defaultEnginesDir;
@@ -183,6 +178,7 @@ export default function Page() {
   const [moveNotationType, setMoveNotationType] = useAtom(moveNotationTypeAtom);
   const [showCoordinates, setShowCoordinates] = useAtom(showCoordinatesAtom);
   const [materialDisplay, setMaterialDisplay] = useAtom(materialDisplayAtom);
+  const [practiceAutoDifficulty, setPracticeAutoDifficulty] = useAtom(practiceAutoDifficultyAtom);
 
   const settings: SettingItem[] = useMemo(
     () => [
@@ -233,9 +229,7 @@ export default function Page() {
             ]}
             allowDeselect={false}
             value={moveNotationType}
-            onChange={(val) =>
-              setMoveNotationType(val as "letters" | "symbols")
-            }
+            onChange={(val) => setMoveNotationType(val as "letters" | "symbols")}
           />
         ),
       },
@@ -416,12 +410,11 @@ export default function Page() {
             value={i18n.language.replace("-", "_")}
             onChange={(val) => {
               i18n.changeLanguage(val?.replace("_", "-") || "en-US");
-              localStorage.setItem("lang", val || "en_US");
             }}
           />
         ),
       },
-      ...(import.meta.env.VITE_PLATFORM === "win32"
+      ...(import.meta.env.VITE_PLATFORM === "win32" || import.meta.env.VITE_PLATFORM === "linux"
         ? [
             {
               id: "title-bar",
@@ -493,6 +486,27 @@ export default function Page() {
         description: t("Settings.Repertoire.Depth.Desc"),
         keywords: ["repertoire", "depth", "games", "min"],
         render: () => <RepertoireMinGamesSetting />,
+      },
+      {
+        id: "repertoire-auto-difficulty",
+        category: "repertoire",
+        title: t("Settings.Repertoire.AutoDifficulty"),
+        description: t("Settings.Repertoire.AutoDifficulty.Desc"),
+        keywords: ["repertoire", "auto", "difficulty", "select", "anki"],
+        render: () => (
+          <Select
+            allowDeselect={false}
+            data={[
+              { label: t("Settings.Repertoire.AutoDifficulty.None"), value: "none" },
+              { label: t("Board.Practice.Again"), value: "1" },
+              { label: t("Board.Practice.Hard"), value: "2" },
+              { label: t("Board.Practice.Good"), value: "3" },
+              { label: t("Board.Practice.Easy"), value: "4" },
+            ]}
+            value={practiceAutoDifficulty}
+            onChange={(val) => setPracticeAutoDifficulty(val as "none" | "1" | "2" | "3" | "4")}
+          />
+        ),
       },
       // Sound settings
       {
@@ -623,6 +637,8 @@ export default function Page() {
       setPuzzlesDirectory,
       setShowCoordinates,
       setMaterialDisplay,
+      practiceAutoDifficulty,
+      setPracticeAutoDifficulty,
     ],
   );
 
@@ -731,11 +747,7 @@ export default function Page() {
               </Text>
             </Group>
             {categorySettings.map((setting) => (
-              <SettingRow
-                key={setting.id}
-                title={setting.title}
-                description={setting.description}
-              >
+              <SettingRow key={setting.id} title={setting.title} description={setting.description}>
                 {setting.render()}
               </SettingRow>
             ))}
@@ -748,11 +760,7 @@ export default function Page() {
   const renderCategorySettings = (category: SettingCategory) => {
     const categorySettings = settings.filter((s) => s.category === category);
     return categorySettings.map((setting) => (
-      <SettingRow
-        key={setting.id}
-        title={setting.title}
-        description={setting.description}
-      >
+      <SettingRow key={setting.id} title={setting.title} description={setting.description}>
         {setting.render()}
       </SettingRow>
     ));
@@ -808,25 +816,16 @@ export default function Page() {
             <Tabs.Tab value="anarchy" leftSection={<IconFlag size="1rem" />}>
               {t("Settings.Anarchy")}
             </Tabs.Tab>
-            <Tabs.Tab
-              value="appearance"
-              leftSection={<IconBrush size="1rem" />}
-            >
+            <Tabs.Tab value="appearance" leftSection={<IconBrush size="1rem" />}>
               {t("Settings.Appearance")}
             </Tabs.Tab>
             <Tabs.Tab value="sound" leftSection={<IconVolume size="1rem" />}>
               {t("Settings.Sound")}
             </Tabs.Tab>
-            <Tabs.Tab
-              value="keybinds"
-              leftSection={<IconKeyboard size="1rem" />}
-            >
+            <Tabs.Tab value="keybinds" leftSection={<IconKeyboard size="1rem" />}>
               {t("Settings.Keybinds")}
             </Tabs.Tab>
-            <Tabs.Tab
-              value="directories"
-              leftSection={<IconFolder size="1rem" />}
-            >
+            <Tabs.Tab value="directories" leftSection={<IconFolder size="1rem" />}>
               {t("Settings.Directories")}
             </Tabs.Tab>
             <Tabs.Tab value="repertoire" leftSection={<IconBook size="1rem" />}>

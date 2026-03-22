@@ -33,12 +33,11 @@ function EvalListener() {
   const [engines] = useAtom(enginesAtom);
   const threat = useAtomValue(currentThreatAtom);
   const store = useContext(TreeStateContext)!;
-  const is960 = useStore(store, (s) => s.headers.variant === "Chess960");
   const fen = useStore(store, (s) => s.root.fen);
 
   const moves = useStore(
     store,
-    useShallow((s) => getVariationLine(s.root, s.position, is960)),
+    useShallow((s) => getVariationLine(s.root, s.position)),
   );
 
   const [pos, error] = positionFromFen(fen);
@@ -92,7 +91,6 @@ function EvalListener() {
         fen={fen}
         moves={moves}
         threat={threat}
-        chess960={is960}
       />
     ));
 }
@@ -107,7 +105,6 @@ function EngineListener({
   fen,
   moves,
   threat,
-  chess960,
 }: {
   engine: Engine;
   firstEngineWithLines: string | null;
@@ -118,19 +115,14 @@ function EngineListener({
   fen: string;
   moves: string[];
   threat: boolean;
-  chess960: boolean;
 }) {
   const store = useContext(TreeStateContext)!;
   const setScore = useStore(store, (s) => s.setScore);
   const activeTab = useAtomValue(activeTabAtom);
 
-  const [, setProgress] = useAtom(
-    engineProgressFamily({ engine: engine.id, tab: activeTab! }),
-  );
+  const [, setProgress] = useAtom(engineProgressFamily({ engine: engine.id, tab: activeTab! }));
 
-  const [, setEngineVariation] = useAtom(
-    engineMovesFamily({ engine: engine.id, tab: activeTab! }),
-  );
+  const [, setEngineVariation] = useAtom(engineMovesFamily({ engine: engine.id, tab: activeTab! }));
   const [settings] = useAtom(
     tabEngineSettingsFamily({
       engineId: engine.id,
@@ -213,9 +205,6 @@ function EngineListener({
               name: s.name,
               value: s.value?.toString() || "",
             })) ?? [];
-          if (chess960 && !options.find((o) => o.name === "UCI_Chess960")) {
-            options.push({ name: "UCI_Chess960", value: "true" });
-          }
           getBestMoves(activeTab!, settings.go, {
             moves: searchingMoves,
             fen: searchingFen,
@@ -225,10 +214,7 @@ function EngineListener({
               const [progress, bestMoves] = moves;
               setEngineVariation((prev) => {
                 const newMap = new Map(prev);
-                newMap.set(
-                  `${searchingFen}:${searchingMoves.join(",")}`,
-                  bestMoves,
-                );
+                newMap.set(`${searchingFen}:${searchingMoves.join(",")}`, bestMoves);
                 return newMap;
               });
               setProgress(progress);

@@ -48,32 +48,16 @@ export default function ShowMaterial({
     <IconChessFilled size="1.1rem" key={i} style={{ marginRight: "-7px" }} />
   ));
   const knights = [...Array(Math.abs(pieces.n)).keys()].map((i) => (
-    <IconChessKnightFilled
-      size="1.1rem"
-      key={i}
-      style={{ marginRight: "-7px" }}
-    />
+    <IconChessKnightFilled size="1.1rem" key={i} style={{ marginRight: "-7px" }} />
   ));
   const bishops = [...Array(Math.abs(pieces.b)).keys()].map((i) => (
-    <IconChessBishopFilled
-      size="1.1rem"
-      key={i}
-      style={{ marginRight: "-7px" }}
-    />
+    <IconChessBishopFilled size="1.1rem" key={i} style={{ marginRight: "-7px" }} />
   ));
   const rooks = [...Array(Math.abs(pieces.r)).keys()].map((i) => (
-    <IconChessRookFilled
-      size="1.1rem"
-      key={i}
-      style={{ marginRight: "-7px" }}
-    />
+    <IconChessRookFilled size="1.1rem" key={i} style={{ marginRight: "-7px" }} />
   ));
   const queens = [...Array(Math.abs(pieces.q)).keys()].map((i) => (
-    <IconChessQueenFilled
-      size="1.1rem"
-      key={i}
-      style={{ marginRight: "-7px" }}
-    />
+    <IconChessQueenFilled size="1.1rem" key={i} style={{ marginRight: "-7px" }} />
   ));
 
   return (

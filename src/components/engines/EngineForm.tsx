@@ -22,9 +22,7 @@ export default function EngineForm({
   const { t } = useTranslation();
 
   const { os } = usePlatform();
-  const config = useRef<{ name: string; options: UciOptionConfig[] } | null>(
-    null,
-  );
+  const config = useRef<{ name: string; options: UciOptionConfig[] } | null>(null);
   const settings = config.current?.options
     .filter((o) => requiredEngineSettings.includes(o.value.name))
     .filter((o) => o.type !== "button")
@@ -54,9 +52,7 @@ export default function EngineForm({
             filters,
           });
           if (!selected) return;
-          config.current = unwrap(
-            await commands.getEngineConfig(selected as string),
-          );
+          config.current = unwrap(await commands.getEngineConfig(selected as string));
           form.setFieldValue("path", selected as string);
           form.setFieldValue("name", config.current.name);
         }}

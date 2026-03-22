@@ -10,7 +10,7 @@ import { match } from "ts-pattern";
 import { commands } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
-import { createTab, genID, type Tab } from "@/utils/tabs";
+import { createTab, genID, isPersistentGameOrigin, type Tab } from "@/utils/tabs";
 import { unwrap } from "@/utils/unwrap";
 import BoardAnalysis from "../boards/BoardAnalysis";
 import BoardGame from "../boards/BoardGame";
@@ -25,7 +25,7 @@ import "react-mosaic-component/react-mosaic-component.css";
 import "@/styles/react-mosaic.css";
 import { platform } from "@tauri-apps/plugin-os";
 import { atomWithStorage } from "jotai/utils";
-import * as classes from "./BoardsPage.css";
+import classes from "./BoardsPage.module.css";
 
 export default function BoardsPage() {
   const { t } = useTranslation();
@@ -49,7 +49,7 @@ export default function BoardsPage() {
       if (value !== null) {
         const closedTab = tabs.find((tab) => tab.value === value);
         const tabState = JSON.parse(sessionStorage.getItem(value) || "{}");
-        if (tabState && closedTab?.file && tabState.state.dirty && !forced) {
+        if (tabState && isPersistentGameOrigin(closedTab) && tabState.state.dirty && !forced) {
           toggleSaveModal();
           return;
         }
@@ -70,7 +70,7 @@ export default function BoardsPage() {
         await commands.abortGame(`${value}-game`);
       }
     },
-    [tabs, activeTab, setTabs, toggleSaveModal, setActiveTab, startTransition],
+    [tabs, activeTab, setTabs, toggleSaveModal, setActiveTab],
   );
 
   function selectTab(index: number) {
@@ -123,12 +123,13 @@ export default function BoardsPage() {
             name: tab.name,
             value: id,
             type: tab.type,
+            gameOrigin: tab.gameOrigin,
           },
         ]);
         startTransition(() => setActiveTab(id));
       }
     },
-    [tabs, setTabs, setActiveTab, startTransition],
+    [tabs, setTabs, setActiveTab],
   );
 
   useEffect(() => {
@@ -144,8 +145,7 @@ export default function BoardsPage() {
 
     window.addEventListener("keydown", handler, { capture: true });
 
-    return () =>
-      window.removeEventListener("keydown", handler, { capture: true });
+    return () => window.removeEventListener("keydown", handler, { capture: true });
   }, [closeTab]);
 
   const keyMap = useAtomValue(keyMapAtom);
@@ -154,7 +154,7 @@ export default function BoardsPage() {
     (v: string) => {
       startTransition(() => setActiveTab(v));
     },
-    [setActiveTab, startTransition],
+    [setActiveTab],
   );
   useHotkeys([
     [keyMap.CLOSE_TAB.keys, () => closeTab(activeTab)],
@@ -201,11 +201,7 @@ export default function BoardsPage() {
         >
           <Droppable droppableId="droppable" direction="horizontal">
             {(provided) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                style={{ display: "flex" }}
-              >
+              <div ref={provided.innerRef} {...provided.droppableProps} style={{ display: "flex" }}>
                 {tabs.map((tab, i) => (
                   <Draggable key={tab.value} draggableId={tab.value} index={i}>
                     {(provided) => (
@@ -216,6 +212,7 @@ export default function BoardsPage() {
                       >
                         <BoardTab
                           tab={tab}
+                          tabType={tab.type}
                           setActiveTab={handleSetActiveTab}
                           closeTab={closeTab}
                           renameTab={renameTab}
@@ -253,14 +250,7 @@ export default function BoardsPage() {
         </DragDropContext>
       </ScrollArea>
       {tabs.map((tab) => (
-        <Tabs.Panel
-          key={tab.value}
-          value={tab.value}
-          h="100%"
-          w="100%"
-          pb="sm"
-          px="xs"
-        >
+        <Tabs.Panel key={tab.value} value={tab.value} h="100%" w="100%" pb="sm" px="xs">
           <TabSwitch
             tab={tab}
             saveModalOpened={saveModalOpened}

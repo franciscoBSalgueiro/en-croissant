@@ -65,12 +65,8 @@ function EngineSettingsForm({
 
   return (
     <Stack>
-      {!remote && (
-        <GoModeInput
-          gameMode={gameMode}
-          goMode={settings.go}
-          setGoMode={setGoMode}
-        />
+      {!remote && !minimal && (
+        <GoModeInput gameMode={gameMode} goMode={settings.go} setGoMode={setGoMode} />
       )}
 
       {!minimal && multipv && (
@@ -138,11 +134,7 @@ function EngineSettingsForm({
       )}
       {!minimal && (
         <Group>
-          <SyncSettings
-            settings={settings}
-            engine={engine.name}
-            setSettings={setSettings}
-          />
+          <SyncSettings settings={settings} engine={engine.name} setSettings={setSettings} />
           <ActionIcon.Group>
             {engine.type === "local" && (
               <Tooltip label="Kill engine">

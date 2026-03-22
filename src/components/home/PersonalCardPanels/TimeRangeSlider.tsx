@@ -7,11 +7,7 @@ interface TimeRangeSliderProps {
   onDateRangeChange: (range: { start: number; end: number }) => void;
 }
 
-const TimeRangeSlider = ({
-  ratingDates,
-  dateRange,
-  onDateRangeChange,
-}: TimeRangeSliderProps) => {
+const TimeRangeSlider = ({ ratingDates, dateRange, onDateRangeChange }: TimeRangeSliderProps) => {
   const [internalRange, setInternalRange] = useState<[number, number]>([
     dateRange?.start ?? 0,
     (dateRange?.end ?? ratingDates.length > 0) ? ratingDates.length - 1 : 0,

@@ -43,9 +43,7 @@ function FideInfo({
 
   const country = COUNTRIES.find((c) => c.ioc === player?.federation);
 
-  const Flag = player?.federation
-    ? flags.find((f) => f.key === country?.a2)?.component
-    : undefined;
+  const Flag = player?.federation ? flags.find((f) => f.key === country?.a2)?.component : undefined;
 
   return (
     <Modal
@@ -78,9 +76,7 @@ function FideInfo({
       ) : player ? (
         <Stack gap="md">
           <Group wrap="nowrap" align="flex-start">
-            {player.photo?.small && (
-              <Avatar src={player.photo.small} size={80} radius="sm" />
-            )}
+            {player.photo?.small && <Avatar src={player.photo.small} size={80} radius="sm" />}
             <Stack gap={4} style={{ flex: 1 }}>
               <Group gap="xs">
                 <Text fz="xl" fw="bold">
@@ -111,21 +107,15 @@ function FideInfo({
           <Group grow>
             <Card p="sm">
               <Text fw="bold">{t("Databases.FIDE.Standard")}</Text>
-              <Text fz="sm">
-                {player.standard || t("Databases.FIDE.NotRated")}
-              </Text>
+              <Text fz="sm">{player.standard || t("Databases.FIDE.NotRated")}</Text>
             </Card>
             <Card p="sm">
               <Text fw="bold">{t("Databases.FIDE.Rapid")}</Text>
-              <Text fz="sm">
-                {player.rapid || t("Databases.FIDE.NotRated")}
-              </Text>
+              <Text fz="sm">{player.rapid || t("Databases.FIDE.NotRated")}</Text>
             </Card>
             <Card p="sm">
               <Text fw="bold">{t("Databases.FIDE.Blitz")}</Text>
-              <Text fz="sm">
-                {player.blitz || t("Databases.FIDE.NotRated")}
-              </Text>
+              <Text fz="sm">{player.blitz || t("Databases.FIDE.NotRated")}</Text>
             </Card>
           </Group>
           <div />

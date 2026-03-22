@@ -46,12 +46,7 @@ export default function AnnotationHint({
               <title>{annotation}</title>
               <defs>
                 <filter id="shadow">
-                  <feDropShadow
-                    dx="0"
-                    dy="1"
-                    floodOpacity="0.3"
-                    stdDeviation="0"
-                  />
+                  <feDropShadow dx="0" dy="1" floodOpacity="0.3" stdDeviation="0" />
                 </filter>
               </defs>
               <g>{glyphToSvg[annotation]}</g>

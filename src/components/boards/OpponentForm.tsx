@@ -10,10 +10,11 @@ import {
 import { IconCpu, IconUser } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import type { GoMode } from "@/bindings";
+import GoModeInput from "@/components/common/GoModeInput";
 import TimeInput, { type TimeType } from "@/components/common/TimeInput";
 import EngineSettingsForm from "@/components/panels/analysis/EngineSettingsForm";
 import type { TimeControlField } from "@/utils/clock";
-import type { LocalEngine } from "@/utils/engines";
+import type { EngineSettings, LocalEngine } from "@/utils/engines";
 import { EnginesSelect } from "./EnginesSelect";
 
 export type OpponentSettings =
@@ -29,6 +30,7 @@ export type OpponentSettings =
       timeControl?: TimeControlField;
       engine: LocalEngine | null;
       go: GoMode;
+      engineSettings?: EngineSettings;
       timeUnit?: TimeType;
       incrementUnit?: TimeType;
     };
@@ -63,10 +65,7 @@ export function OpponentForm({
         ...prev,
         type: "engine",
         engine: null,
-        go: {
-          t: "Depth",
-          c: 24,
-        },
+        go: ("go" in prev && prev.go) || { t: "Depth", c: 24 },
       }));
     }
   }
@@ -101,16 +100,20 @@ export function OpponentForm({
       {opponent.type === "human" && (
         <TextInput
           value={opponent.name ?? ""}
-          onChange={(e) =>
-            setOpponent((prev) => ({ ...prev, name: e.target.value }))
-          }
+          onChange={(e) => setOpponent((prev) => ({ ...prev, name: e.target.value }))}
         />
       )}
 
       {opponent.type === "engine" && (
         <EnginesSelect
           engine={opponent.engine}
-          setEngine={(engine) => setOpponent((prev) => ({ ...prev, engine }))}
+          setEngine={(engine) =>
+            setOpponent((prev) => ({
+              ...prev,
+              engine,
+              engineSettings: engine?.settings || undefined,
+            }))
+          }
         />
       )}
 
@@ -205,14 +208,32 @@ export function OpponentForm({
 
       {opponent.type === "engine" && (
         <Stack>
-          {opponent.engine && !opponent.timeControl && (
+          {!opponent.timeControl && (
+            <GoModeInput
+              gameMode
+              goMode={opponent.go}
+              setGoMode={(go) =>
+                setOpponent((prev) => {
+                  if (prev.type === "human") {
+                    return prev;
+                  }
+                  return {
+                    ...prev,
+                    go,
+                  };
+                })
+              }
+            />
+          )}
+          <Divider variant="dashed" label={t("Board.Opponent.EngineSettings", "Engine Settings")} />
+          {opponent.engine && (
             <EngineSettingsForm
               engine={opponent.engine}
               remote={false}
               gameMode
               settings={{
                 go: opponent.go,
-                settings: opponent.engine.settings || [],
+                settings: opponent.engineSettings || opponent.engine.settings || [],
                 enabled: true,
                 synced: false,
               }}
@@ -223,11 +244,15 @@ export function OpponentForm({
                   }
                   const newSettings = fn({
                     go: prev.go,
-                    settings: prev.engine?.settings || [],
+                    settings: prev.engineSettings || prev.engine?.settings || [],
                     enabled: true,
                     synced: false,
                   });
-                  return { ...prev, ...newSettings };
+                  return {
+                    ...prev,
+                    go: newSettings.go,
+                    engineSettings: newSettings.settings,
+                  };
                 })
               }
               minimal={true}

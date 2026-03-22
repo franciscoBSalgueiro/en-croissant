@@ -23,22 +23,11 @@ import {
   IconPlayerPlay,
 } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
-import {
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
-import {
-  coverageMinGamesAtom,
-  currentTabAtom,
-  referenceDbAtom,
-} from "@/state/atoms";
+import { coverageMinGamesAtom, currentTabAtom, referenceDbAtom } from "@/state/atoms";
 import { searchPosition } from "@/utils/db";
 import { roundKeepSum } from "@/utils/format";
 import { isPrefix } from "@/utils/misc";
@@ -46,15 +35,11 @@ import {
   computeTreeCoverage,
   findBiggestGap,
   findNextGap,
-  getTreeStats,
+  getStats,
   type PositionMove,
 } from "@/utils/repertoire";
-import {
-  getNodeAtPath,
-  getTreeStructureHash,
-  type TreeNode,
-} from "@/utils/treeReducer";
-import * as classes from "./RepertoireInfo.css";
+import { getNodeAtPath, getTreeStructureHash, type TreeNode } from "@/utils/treeReducer";
+import classes from "./RepertoireInfo.module.css";
 
 function formatMoveNotation(halfMoves: number, san: string): string {
   const moveNum = Math.ceil(halfMoves / 2);
@@ -80,7 +65,7 @@ function RepertoireInfo() {
 
   const orientation = headers.orientation || "white";
 
-  const stats = useMemo(() => getTreeStats(root), [root]);
+  const stats = useStore(store, getStats);
 
   const rootStructureHash = useMemo(() => getTreeStructureHash(root), [root]);
 
@@ -124,13 +109,9 @@ function RepertoireInfo() {
       });
   }, [currentNode.fen, referenceDb]);
 
-  const [coverageMap, setCoverageMap] = useState<Map<string, number>>(
-    new Map(),
-  );
+  const [coverageMap, setCoverageMap] = useState<Map<string, number>>(new Map());
   const [gamesMap, setGamesMap] = useState<Map<string, number>>(new Map());
-  const [missingGamesMap, setMissingGamesMap] = useState<Map<string, number>>(
-    new Map(),
-  );
+  const [missingGamesMap, setMissingGamesMap] = useState<Map<string, number>>(new Map());
   const [coverageLoading, setCoverageLoading] = useState(false);
   const coverageVersionRef = useRef(0);
 
@@ -138,9 +119,7 @@ function RepertoireInfo() {
   const startPathKey = startPath.join(",");
   const hasStart = headers.start != null && headers.start.length > 0;
   const isBeforeStart =
-    hasStart &&
-    position.length < startPath.length &&
-    isPrefix(position, startPath);
+    hasStart && position.length < startPath.length && isPrefix(position, startPath);
   const isEmptyTree = root.children.length === 0;
 
   useEffect(() => {
@@ -153,13 +132,7 @@ function RepertoireInfo() {
     }
     const version = ++coverageVersionRef.current;
     setCoverageLoading(true);
-    computeTreeCoverage(
-      root,
-      orientation,
-      referenceDb,
-      minGames,
-      startPath,
-    ).then((result) => {
+    computeTreeCoverage(root, orientation, referenceDb, minGames, startPath).then((result) => {
       if (version === coverageVersionRef.current) {
         setCoverageMap(result.coverageMap);
         setGamesMap(result.gamesMap);
@@ -170,22 +143,15 @@ function RepertoireInfo() {
   }, [rootStructureHash, orientation, referenceDb, startPathKey, minGames]);
 
   const positionMoves = useMemo(() => {
-    const total = rawOpenings.reduce(
-      (acc, op) => acc + op.white + op.black + op.draw,
-      0,
-    );
+    const total = rawOpenings.reduce((acc, op) => acc + op.white + op.black + op.draw, 0);
 
     const fromDb: PositionMove[] = rawOpenings
       .map((op) => {
         const games = op.white + op.black + op.draw;
-        const childIndex = currentNode.children.findIndex(
-          (c) => c.san === op.move,
-        );
+        const childIndex = currentNode.children.findIndex((c) => c.san === op.move);
         const inRepertoire = childIndex !== -1;
         const coveragePath = [...position, childIndex].join(",");
-        const coverage = inRepertoire
-          ? (coverageMap.get(coveragePath) ?? 0)
-          : 0;
+        const coverage = inRepertoire ? (coverageMap.get(coveragePath) ?? 0) : 0;
 
         return {
           san: op.move,
@@ -230,9 +196,7 @@ function RepertoireInfo() {
   }, [rawOpenings, currentNode.children, position, coverageMap]);
 
   const isUserTurn =
-    orientation === "white"
-      ? currentNode.halfMoves % 2 === 0
-      : currentNode.halfMoves % 2 === 1;
+    orientation === "white" ? currentNode.halfMoves % 2 === 0 : currentNode.halfMoves % 2 === 1;
 
   const handleMoveClick = useCallback(
     (move: PositionMove) => {
@@ -246,8 +210,7 @@ function RepertoireInfo() {
   );
 
   const nextGap = useMemo(
-    () =>
-      findNextGap(root, position, orientation, coverageMap, gamesMap, minGames),
+    () => findNextGap(root, position, orientation, coverageMap, gamesMap, minGames),
     [root, position, orientation, coverageMap, gamesMap, minGames],
   );
 
@@ -262,15 +225,7 @@ function RepertoireInfo() {
         minGames,
         startPath,
       ),
-    [
-      root,
-      orientation,
-      coverageMap,
-      gamesMap,
-      missingGamesMap,
-      startPath,
-      minGames,
-    ],
+    [root, orientation, coverageMap, gamesMap, missingGamesMap, startPath, minGames],
   );
 
   if (!currentTab) return null;
@@ -279,9 +234,7 @@ function RepertoireInfo() {
     return (
       <Stack p="sm">
         <TreeStatsBar stats={stats} t={t} />
-        <Alert icon={<IconInfoCircle />} color="blue">
-          {t("Board.Practice.Build.NoRefDb")}
-        </Alert>
+        <Alert icon={<IconInfoCircle />}>{t("Board.Practice.Build.NoRefDb")}</Alert>
       </Stack>
     );
   }
@@ -351,18 +304,7 @@ function RepertoireInfo() {
                     { name: "King's Indian", moves: ["d4", "Nf6", "c4", "g6"] },
                     {
                       name: "Najdorf",
-                      moves: [
-                        "e4",
-                        "c5",
-                        "Nf3",
-                        "d6",
-                        "d4",
-                        "cxd4",
-                        "Nxd4",
-                        "Nf6",
-                        "Nc3",
-                        "a6",
-                      ],
+                      moves: ["e4", "c5", "Nf3", "d6", "d4", "cxd4", "Nxd4", "Nf6", "Nc3", "a6"],
                     },
                   ]
               ).map((preset) => (
@@ -486,14 +428,7 @@ function MovesView({
         childPath: [...position, idx],
       };
     });
-  }, [
-    isUserTurn,
-    hasResponses,
-    currentNode.children,
-    positionMoves,
-    position,
-    coverageMap,
-  ]);
+  }, [isUserTurn, hasResponses, currentNode.children, positionMoves, position, coverageMap]);
 
   const relevantMoves = useMemo(
     () => (isUserTurn ? [] : positionMoves.filter((m) => m.games >= minGames)),
@@ -658,15 +593,9 @@ function MovesView({
                 <Divider style={{ flex: 1 }} />
                 <Group gap={4} wrap="nowrap">
                   {showRare ? (
-                    <IconChevronDown
-                      size={12}
-                      color="var(--mantine-color-dimmed)"
-                    />
+                    <IconChevronDown size={12} color="var(--mantine-color-dimmed)" />
                   ) : (
-                    <IconChevronRight
-                      size={12}
-                      color="var(--mantine-color-dimmed)"
-                    />
+                    <IconChevronRight size={12} color="var(--mantine-color-dimmed)" />
                   )}
                   <Text fz="xs" c="dimmed">
                     {t("Board.Practice.Build.RareMoves")}
@@ -725,28 +654,21 @@ function MovesView({
               </>
             )}
 
-            {!nextGap &&
-              !biggestGap &&
-              (isUserTurn ? hasResponses : positionMoves.length > 0) && (
-                <>
-                  <Divider />
-                  <Paper p="sm" withBorder>
-                    <Group gap="xs" justify="center">
-                      <ThemeIcon
-                        size="sm"
-                        color="green"
-                        variant="light"
-                        radius="xl"
-                      >
-                        <IconCheck size={14} />
-                      </ThemeIcon>
-                      <Text fz="sm" c="green" fw={500}>
-                        {t("Board.Practice.Build.NoGapsFound")}
-                      </Text>
-                    </Group>
-                  </Paper>
-                </>
-              )}
+            {!nextGap && !biggestGap && (isUserTurn ? hasResponses : positionMoves.length > 0) && (
+              <>
+                <Divider />
+                <Paper p="sm" withBorder>
+                  <Group gap="xs" justify="center">
+                    <ThemeIcon size="sm" color="green" variant="light" radius="xl">
+                      <IconCheck size={14} />
+                    </ThemeIcon>
+                    <Text fz="sm" c="green" fw={500}>
+                      {t("Board.Practice.Build.NoGapsFound")}
+                    </Text>
+                  </Group>
+                </Paper>
+              </>
+            )}
           </>
         )}
       </Stack>
@@ -779,13 +701,8 @@ function MoveRow({
   const { t } = useTranslation();
   const notation = formatMoveNotation(halfMoves, move.san);
   const coverageColor = getCoverageColor(move.coverage);
-  const pct =
-    move.frequency > 0 ? `${(move.frequency * 100).toFixed(0)}%` : "—";
-  const [wPct, dPct, bPct] = roundKeepSum([
-    move.white * 100,
-    move.draw * 100,
-    move.black * 100,
-  ]);
+  const pct = move.frequency > 0 ? `${(move.frequency * 100).toFixed(0)}%` : "—";
+  const [wPct, dPct, bPct] = roundKeepSum([move.white * 100, move.draw * 100, move.black * 100]);
 
   return (
     <UnstyledButton
@@ -818,11 +735,7 @@ function MoveRow({
           <Text fz="sm" c="dimmed" w={70} ta="center">
             {move.games > 0 ? move.games.toLocaleString() : "—"}
           </Text>
-          <Tooltip
-            label={`${wPct}% / ${dPct}% / ${bPct}%`}
-            position="top"
-            withArrow
-          >
+          <Tooltip label={`${wPct}% / ${dPct}% / ${bPct}%`} position="top" withArrow>
             <Progress.Root size="xl" w={100}>
               <Progress.Section value={wPct} color="white">
                 {wPct > 20 && <Progress.Label c="black">{wPct}</Progress.Label>}
@@ -838,19 +751,14 @@ function MoveRow({
           {showCoverage && (
             <Box w={100}>
               {dimmed || move.games < minGames ? (
-                <Tooltip
-                  label={t("Board.Practice.Build.RareTooltip")}
-                  withArrow
-                >
+                <Tooltip label={t("Board.Practice.Build.RareTooltip")} withArrow>
                   <Text fz="xs" c="dimmed" ta="center">
                     N/A
                   </Text>
                 </Tooltip>
               ) : (
                 <Progress
-                  value={
-                    move.inRepertoire ? Math.max(move.coverage * 100, 3) : 0
-                  }
+                  value={move.inRepertoire ? Math.max(move.coverage * 100, 3) : 0}
                   color={coverageColor}
                   size="sm"
                   radius="xl"

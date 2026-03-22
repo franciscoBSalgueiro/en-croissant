@@ -10,7 +10,7 @@ import { commands, type Event, type TournamentSort } from "@/bindings";
 import { unwrap } from "@/utils/unwrap";
 import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
 import GridLayout from "./GridLayout";
-import * as classes from "./styles.css";
+import classes from "./styles.module.css";
 import TournamentCard from "./TournamentCard";
 
 function TournamentTable() {
@@ -123,11 +123,7 @@ function TournamentTable() {
       }
       preview={
         tournament != null ? (
-          <TournamentCard
-            tournament={tournament}
-            file={file}
-            key={tournament.id}
-          />
+          <TournamentCard tournament={tournament} file={file} key={tournament.id} />
         ) : (
           <Center h="100%">
             <Text>{t("Databases.Tournament.NoSelection")}</Text>

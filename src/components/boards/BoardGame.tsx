@@ -5,6 +5,7 @@ import {
   Checkbox,
   Divider,
   Group,
+  NumberInput,
   Paper,
   Portal,
   ScrollArea,
@@ -20,18 +21,12 @@ import {
   IconX,
   IconZoomCheck,
 } from "@tabler/icons-react";
+import { open } from "@tauri-apps/plugin-dialog";
 import type { Piece } from "chessops";
 import { makeUci, parseUci } from "chessops";
 import { INITIAL_FEN } from "chessops/fen";
 import { useAtom, useAtomValue } from "jotai";
-import {
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
@@ -51,6 +46,9 @@ import {
   currentGameStateAtom,
   currentPlayersAtom,
   gameInputColorAtom,
+  gameOpeningBookEnabledAtom,
+  gameOpeningBookMaxPlyAtom,
+  gameOpeningBookPathAtom,
   gamePlayer1SettingsAtom,
   gamePlayer2SettingsAtom,
   gameSameTimeControlAtom,
@@ -60,6 +58,7 @@ import { positionFromFen } from "@/utils/chessops";
 import type { GameHeaders } from "@/utils/treeReducer";
 import { unwrap } from "@/utils/unwrap";
 import EngineLogsView from "../common/EngineLogsView";
+import FileInput from "../common/FileInput";
 import GameInfo from "../common/GameInfo";
 import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
@@ -77,9 +76,7 @@ function gameResultToOutcome(result: GameResult): Outcome {
 
 type BackendMove = { uci: string; clock: number | null };
 
-function mapBackendMoves(
-  moves: { uci: string; clock: bigint | null }[],
-): BackendMove[] {
+function mapBackendMoves(moves: { uci: string; clock: bigint | null }[]): BackendMove[] {
   return moves.map((m) => ({
     uci: m.uci,
     clock: m.clock !== null ? Number(m.clock) : null,
@@ -104,12 +101,8 @@ function BoardGame() {
     );
   }
 
-  const [player1Settings, setPlayer1Settings] = useAtom(
-    gamePlayer1SettingsAtom,
-  );
-  const [player2Settings, setPlayer2Settings] = useAtom(
-    gamePlayer2SettingsAtom,
-  );
+  const [player1Settings, setPlayer1Settings] = useAtom(gamePlayer1SettingsAtom);
+  const [player2Settings, setPlayer2Settings] = useAtom(gamePlayer2SettingsAtom);
 
   function getPlayers() {
     let isPlayer1White = inputColor === "white";
@@ -131,6 +124,7 @@ function BoardGame() {
   const setHeaders = useStore(store, (s) => s.setHeaders);
   const setResult = useStore(store, (s) => s.setResult);
   const appendMove = useStore(store, (s) => s.appendMove);
+  const resetTree = useStore(store, (s) => s.reset);
 
   const [, setTabs] = useAtom(tabsAtom);
 
@@ -146,9 +140,11 @@ function BoardGame() {
   const [logsOpened, toggleLogsOpened] = useToggle();
   const [logsColor, setLogsColor] = useState<"white" | "black">("white");
   const [engineLogs, setEngineLogs] = useState<EngineLog[]>([]);
+  const [openingBookPath, setOpeningBookPath] = useAtom(gameOpeningBookPathAtom);
+  const [openingBookEnabled, setOpeningBookEnabled] = useAtom(gameOpeningBookEnabledAtom);
+  const [openingBookMaxPly, setOpeningBookMaxPly] = useAtom(gameOpeningBookMaxPlyAtom);
 
-  const hasEngine =
-    players.white.type === "engine" || players.black.type === "engine";
+  const hasEngine = players.white.type === "engine" || players.black.type === "engine";
 
   const isPlayerVsEngine =
     (players.white.type === "human" && players.black.type === "engine") ||
@@ -159,10 +155,7 @@ function BoardGame() {
     let color = logsColor;
     if (players.white.type === "human" && players.black.type === "engine") {
       color = "black";
-    } else if (
-      players.black.type === "human" &&
-      players.white.type === "engine"
-    ) {
+    } else if (players.black.type === "human" && players.white.type === "engine") {
       color = "white";
     }
     const result = await commands.getGameEngineLogs(gameId, color);
@@ -231,9 +224,7 @@ function BoardGame() {
 
   function changeToAnalysisMode() {
     setTabs((prev) =>
-      prev.map((tab) =>
-        tab.value === activeTab ? { ...tab, type: "analysis" } : tab,
-      ),
+      prev.map((tab) => (tab.value === activeTab ? { ...tab, type: "analysis" } : tab)),
     );
   }
 
@@ -256,7 +247,7 @@ function BoardGame() {
       type: "engine",
       name: settings.engine?.name ?? "Engine",
       path: settings.engine?.path ?? "",
-      options: (settings.engine?.settings ?? [])
+      options: (settings.engineSettings ?? settings.engine?.settings ?? [])
         .filter((s) => s.name !== "MultiPV")
         .map((s) => ({
           name: s.name,
@@ -282,6 +273,11 @@ function BoardGame() {
     const playerSettings = getPlayers();
     setPlayers(playerSettings);
 
+    const boardOrientation =
+      playerSettings.black.type === "human" && playerSettings.white.type === "engine"
+        ? "black"
+        : "white";
+
     const newGameId = `${activeTab}-game`;
     setGameId(newGameId);
 
@@ -304,6 +300,10 @@ function BoardGame() {
         : null,
       initialFen: root.fen === INITIAL_FEN ? null : root.fen,
       initialMoves,
+      openingBook:
+        openingBookEnabled && openingBookPath
+          ? { path: openingBookPath, maxPly: Math.max(1, openingBookMaxPly) }
+          : null,
     } as GameConfig;
 
     try {
@@ -314,6 +314,17 @@ function BoardGame() {
       setBlackTime(state.blackTime !== null ? Number(state.blackTime) : null);
 
       setGameState("playing");
+
+      setFen(state.initialFen);
+      for (const move of mapBackendMoves(state.moves)) {
+        const parsed = parseUci(move.uci);
+        if (parsed) {
+          appendMove({
+            payload: parsed,
+            clock: move.clock ?? undefined,
+          });
+        }
+      }
 
       const now = new Date();
       const dateStr = now.toISOString().slice(0, 10).replace(/-/g, ".");
@@ -349,6 +360,7 @@ function BoardGame() {
         date: dateStr,
         time: timeStr,
         time_control: undefined,
+        orientation: boardOrientation,
       };
 
       if (sameTimeControl) {
@@ -363,7 +375,7 @@ function BoardGame() {
       setHeaders({
         ...headers,
         ...newHeaders,
-        fen: root.fen,
+        fen: state.initialFen,
       });
 
       setTabs((prev) =>
@@ -391,9 +403,7 @@ function BoardGame() {
     [gameId, gameState],
   );
 
-  const pendingMovesRef = useRef<
-    { uci: string; clock: number | null }[] | null
-  >(null);
+  const pendingMovesRef = useRef<{ uci: string; clock: number | null }[] | null>(null);
   const pendingTimesRef = useRef<{
     white: number | null;
     black: number | null;
@@ -450,12 +460,8 @@ function BoardGame() {
 
     const unlistenClock = events.clockUpdateEvent.listen(({ payload }) => {
       if (payload.gameId !== currentGameId) return;
-      setWhiteTime(
-        payload.whiteTime !== null ? Number(payload.whiteTime) : null,
-      );
-      setBlackTime(
-        payload.blackTime !== null ? Number(payload.blackTime) : null,
-      );
+      setWhiteTime(payload.whiteTime !== null ? Number(payload.whiteTime) : null);
+      setBlackTime(payload.blackTime !== null ? Number(payload.blackTime) : null);
     });
 
     const unlistenGameOver = events.gameOverEvent.listen(({ payload }) => {
@@ -493,19 +499,12 @@ function BoardGame() {
 
           syncTreeWithMovesRef.current(mapBackendMoves(state.moves));
 
-          setWhiteTime(
-            state.whiteTime !== null ? Number(state.whiteTime) : null,
-          );
-          setBlackTime(
-            state.blackTime !== null ? Number(state.blackTime) : null,
-          );
+          setWhiteTime(state.whiteTime !== null ? Number(state.whiteTime) : null);
+          setBlackTime(state.blackTime !== null ? Number(state.blackTime) : null);
 
           if (state.status !== "playing") {
             setGameState("gameOver");
-            if (
-              typeof state.status === "object" &&
-              "finished" in state.status
-            ) {
+            if (typeof state.status === "object" && "finished" in state.status) {
               setResult(gameResultToOutcome(state.status.finished.result));
             }
           }
@@ -527,13 +526,10 @@ function BoardGame() {
     return "none";
   }, [players]);
 
-  const [sameTimeControl, setSameTimeControl] = useAtom(
-    gameSameTimeControlAtom,
-  );
+  const [sameTimeControl, setSameTimeControl] = useAtom(gameSameTimeControlAtom);
 
   const onePlayerIsEngine = players.white.type !== players.black.type;
-  const isEngineVsEngine =
-    players.white.type === "engine" && players.black.type === "engine";
+  const isEngineVsEngine = players.white.type === "engine" && players.black.type === "engine";
 
   function getResignationLosingColor(): "white" | "black" {
     if (isPlayerVsEngine) {
@@ -560,11 +556,23 @@ function BoardGame() {
     setGameState("settingUp");
     setWhiteTime(null);
     setBlackTime(null);
-    setFen(INITIAL_FEN);
-    setHeaders({
-      ...headers,
-      result: "*",
+    resetTree();
+  }
+
+  async function handleSelectOpeningBook() {
+    const selected = await open({
+      multiple: false,
+      filters: [
+        {
+          name: "Opening Book",
+          extensions: ["pgn", "epd", "bin", "zip"],
+        },
+      ],
     });
+
+    if (typeof selected === "string") {
+      setOpeningBookPath(selected);
+    }
   }
 
   return (
@@ -576,12 +584,8 @@ function BoardGame() {
           disableVariations
           boardRef={boardRef}
           movable={gameState === "settingUp" && editingMode ? "none" : movable}
-          whiteTime={
-            gameState === "playing" ? (whiteTime ?? undefined) : undefined
-          }
-          blackTime={
-            gameState === "playing" ? (blackTime ?? undefined) : undefined
-          }
+          whiteTime={gameState === "playing" ? (whiteTime ?? undefined) : undefined}
+          blackTime={gameState === "playing" ? (blackTime ?? undefined) : undefined}
           onMove={handleHumanMove}
           selectedPiece={selectedPiece}
           cgRef={cgRef}
@@ -596,13 +600,10 @@ function BoardGame() {
               onRefresh={fetchEngineLogs}
               additionalControls={
                 <>
-                  {players.white.type === "engine" &&
-                  players.black.type === "engine" ? (
+                  {players.white.type === "engine" && players.black.type === "engine" ? (
                     <SegmentedControl
                       value={logsColor}
-                      onChange={(value) =>
-                        setLogsColor(value as "white" | "black")
-                      }
+                      onChange={(value) => setLogsColor(value as "white" | "black")}
                       data={[
                         { value: "white", label: "White" },
                         { value: "black", label: "Black" },
@@ -620,74 +621,106 @@ function BoardGame() {
           ) : (
             <>
               {gameState === "settingUp" && (
-                <ScrollArea h="100%" offsetScrollbars>
-                  <Stack>
-                    <Group>
-                      <Text flex={1} ta="center" fz="lg" fw="bold">
-                        {match(inputColor)
-                          .with("white", () => "White")
-                          .with("random", () => "Random")
-                          .with("black", () => "Black")
-                          .exhaustive()}
-                      </Text>
-                      <ActionIcon onClick={cycleColor}>
-                        <IconArrowsExchange />
-                      </ActionIcon>
-                      <Text flex={1} ta="center" fz="lg" fw="bold">
-                        {match(inputColor)
-                          .with("white", () => "Black")
-                          .with("random", () => "Random")
-                          .with("black", () => "White")
-                          .exhaustive()}
-                      </Text>
-                    </Group>
-                    <Box flex={1}>
-                      <Group style={{ alignItems: "start" }}>
-                        <OpponentForm
-                          sameTimeControl={sameTimeControl}
-                          opponent={player1Settings}
-                          setOpponent={setPlayer1Settings}
-                          setOtherOpponent={setPlayer2Settings}
-                        />
-                        <Divider orientation="vertical" />
-                        <OpponentForm
-                          sameTimeControl={sameTimeControl}
-                          opponent={player2Settings}
-                          setOpponent={setPlayer2Settings}
-                          setOtherOpponent={setPlayer1Settings}
-                        />
+                <Stack h="100%" gap={0}>
+                  <ScrollArea style={{ flex: 1 }} offsetScrollbars>
+                    <Stack>
+                      <Group>
+                        <Text flex={1} ta="center" fz="lg" fw="bold">
+                          {match(inputColor)
+                            .with("white", () => "White")
+                            .with("random", () => "Random")
+                            .with("black", () => "Black")
+                            .exhaustive()}
+                        </Text>
+                        <ActionIcon onClick={cycleColor}>
+                          <IconArrowsExchange />
+                        </ActionIcon>
+                        <Text flex={1} ta="center" fz="lg" fw="bold">
+                          {match(inputColor)
+                            .with("white", () => "Black")
+                            .with("random", () => "Random")
+                            .with("black", () => "White")
+                            .exhaustive()}
+                        </Text>
                       </Group>
-                    </Box>
+                      <Box flex={1}>
+                        <Group style={{ alignItems: "start" }}>
+                          <OpponentForm
+                            sameTimeControl={sameTimeControl}
+                            opponent={player1Settings}
+                            setOpponent={setPlayer1Settings}
+                            setOtherOpponent={setPlayer2Settings}
+                          />
+                          <Divider orientation="vertical" />
+                          <OpponentForm
+                            sameTimeControl={sameTimeControl}
+                            opponent={player2Settings}
+                            setOpponent={setPlayer2Settings}
+                            setOtherOpponent={setPlayer1Settings}
+                          />
+                        </Group>
+                      </Box>
 
-                    <Checkbox
-                      label={t("Board.Opponent.SameTimeControl")}
-                      checked={sameTimeControl}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        setSameTimeControl(checked);
-                        if (checked) {
-                          setPlayer2Settings((prev) => ({
-                            ...prev,
-                            timeControl: player1Settings.timeControl,
-                            timeUnit: player1Settings.timeUnit,
-                            incrementUnit: player1Settings.incrementUnit,
-                          }));
-                        }
-                      }}
-                    />
+                      <Paper withBorder p="sm">
+                        <Stack>
+                          <Checkbox
+                            label={t("Board.Opponent.SameTimeControl")}
+                            checked={sameTimeControl}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setSameTimeControl(checked);
+                              if (checked) {
+                                setPlayer2Settings((prev) => ({
+                                  ...prev,
+                                  timeControl: player1Settings.timeControl,
+                                  timeUnit: player1Settings.timeUnit,
+                                  incrementUnit: player1Settings.incrementUnit,
+                                }));
+                              }
+                            }}
+                          />
 
-                    <Group>
-                      <Button
-                        onClick={startGame}
-                        fullWidth
-                        variant="light"
-                        disabled={error !== null}
-                      >
-                        {t("Board.Opponent.StartGame")}
-                      </Button>
-                    </Group>
-                  </Stack>
-                </ScrollArea>
+                          <Divider variant="dashed" />
+
+                          <Checkbox
+                            label={t("Board.Opponent.EnableOpeningBook")}
+                            checked={openingBookEnabled}
+                            onChange={(e) => setOpeningBookEnabled(e.currentTarget.checked)}
+                          />
+
+                          {openingBookEnabled && (
+                            <>
+                              <FileInput
+                                label="Opening book (.pgn/.epd/.bin/.zip)"
+                                description={t("Import.PGN.ClickToSelect")}
+                                filename={openingBookPath}
+                                onClick={handleSelectOpeningBook}
+                              />
+                              {openingBookPath?.includes(".bin") && (
+                                <NumberInput
+                                  label="Polyglot max plies"
+                                  description="Maximum number of plies from the starting position that the opening book will be used for."
+                                  min={1}
+                                  value={openingBookMaxPly}
+                                  onChange={(value) => {
+                                    if (typeof value === "number" && Number.isFinite(value)) {
+                                      setOpeningBookMaxPly(Math.max(1, Math.trunc(value)));
+                                    }
+                                  }}
+                                />
+                              )}
+                            </>
+                          )}
+                        </Stack>
+                      </Paper>
+                    </Stack>
+                  </ScrollArea>
+
+                  <Divider pb="sm" />
+                  <Button onClick={startGame} fullWidth variant="light" disabled={error !== null}>
+                    {t("Board.Opponent.StartGame")}
+                  </Button>
+                </Stack>
               )}
               {(gameState === "playing" || gameState === "gameOver") && (
                 <Stack h="100%">
@@ -706,11 +739,7 @@ function BoardGame() {
                       </Button>
                     )}
                     {gameState === "gameOver" && (
-                      <Button
-                        variant="default"
-                        onClick={handleNewGame}
-                        leftSection={<IconPlus />}
-                      >
+                      <Button variant="default" onClick={handleNewGame} leftSection={<IconPlus />}>
                         New Game
                       </Button>
                     )}
