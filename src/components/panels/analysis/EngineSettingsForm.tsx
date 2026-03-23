@@ -10,7 +10,7 @@ import {
 import { IconPlayerStopFilled, IconSettings } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtomValue } from "jotai";
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { GoMode } from "@/bindings";
 import GoModeInput from "@/components/common/GoModeInput";
@@ -48,6 +48,7 @@ function EngineSettingsForm({
 }: EngineSettingsProps) {
   const { t } = useTranslation();
 
+  const [limitStrength, setLimtStrength] = useState<any> (settings.settings.find((o) => o.name === "UCI_LimitStrength"))
   const multipv = settings.settings.find((o) => o.name === "MultiPV");
   const threads = settings.settings.find((o) => o.name === "Threads");
   const hash = settings.settings.find((o) => o.name === "Hash");
@@ -129,6 +130,25 @@ function EngineSettingsForm({
                 color={color}
               />
             </Group>
+          )}
+          <Checkbox
+          label={"Adjust Engine rating"}
+          checked={limitStrength}
+          onChange={(e) => {
+            const checked = e.target.checked;
+            setLimtStrength(checked)
+            if (checked) {
+              setSettings((prev) => ({
+            ...prev,
+            settings: prev.settings.map((o) =>
+              o.name === "UCI_LimitStrength" ? { ...o, value: e.target.checked } : o,
+            ),
+          }))
+            }
+          }}
+                                    />
+          {limitStrength && (
+            <h1> Can Limit Strength! </h1>
           )}
         </>
       )}
