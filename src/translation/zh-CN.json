@@ -353,7 +353,6 @@
     "Files.GameCountSuffix_other": "{{number}} 场对局",
     "Files.NoSelection": "未选择文件",
     "Files.Reload": "重新加载文件",
-    "Files.Search": "搜索文件",
     "Files.Title": "文件",
     "GameInfo.OpeningFor": "针对性开局：",
     "GoMode.Depth": "深度",

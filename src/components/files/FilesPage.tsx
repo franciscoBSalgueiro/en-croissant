@@ -265,7 +265,7 @@ function FilesPage() {
                 size="sm"
                 style={{ flexGrow: 1 }}
                 leftSection={<IconSearch size="1rem" />}
-                placeholder={t("Files.Search")}
+                placeholder={t("Common.Search")}
                 value={search}
                 onChange={(e) => setSearch(e.currentTarget.value)}
                 ref={searchInputRef}
