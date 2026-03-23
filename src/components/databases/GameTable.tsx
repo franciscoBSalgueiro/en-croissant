@@ -101,7 +101,7 @@ function GameTable() {
                     label="Player"
                   />
                 }
-                label="Player"
+                label={t("Common.Search")}
                 file={file}
               />
               <PlayerSearchInput
@@ -114,7 +114,7 @@ function GameTable() {
                     label="Opponent"
                   />
                 }
-                label="Opponent"
+                label={t("Common.Search")}
                 file={file}
               />
             </Group>
