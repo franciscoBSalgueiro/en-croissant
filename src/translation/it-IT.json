@@ -237,7 +237,7 @@
     "Databases.Add.Web": "Web",
     "Databases.Card.Games": "Partite",
     "Databases.Card.Players": "Giocatori",
-    "Databases.Card.Storage": "Archivio",
+    "Databases.Card.Storage": "Dimensione",
     "Databases.Delete.Message": "Sei sicuro di voler eliminare questo database?",
     "Databases.Delete.Title": "Elimina database",
     "Databases.Empty.AddHint": "Aggiungi un database per iniziare",
