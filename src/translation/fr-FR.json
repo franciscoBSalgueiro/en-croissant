@@ -352,7 +352,7 @@
     "Files.FileType.Repertoire": "Répertoire",
     "Files.FileType.Tournament": "Tournoi",
     "Files.GameCountSuffix_one": "{{number}} partie",
-    "Files.GameCountSuffix_many": "{{number}} parties",
+    "Files.GameCountSuffix_many": "",
     "Files.GameCountSuffix_other": "{{number}} parties",
     "Files.NoSelection": "Aucun fichier sélectionné",
     "Files.Reload": "Recharger le fichier",
