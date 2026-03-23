@@ -308,11 +308,11 @@ function FilesPage() {
             <ScrollArea flex={1}>
               {error ? (
                 <Center h="100%">
-                  <Text c="red">Failed to load files.</Text>
+                  <Text c="red">{t("Files.LoadingFailed")}</Text>
                 </Center>
               ) : isLoading ? (
                 <Center h="100%">
-                  <Text c="dimmed">Loading files...</Text>
+                  <Text c="dimmed">{t("Common.Loading")}</Text>
                 </Center>
               ) : (
                 <DragContext.Provider value={dragContextValue}>

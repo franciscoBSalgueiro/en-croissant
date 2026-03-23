@@ -68,7 +68,7 @@ function PlayerTable() {
           <Flex style={{ alignItems: "center", gap: 10 }}>
             <TextInput
               style={{ flexGrow: 1 }}
-              placeholder={t("Databases.Player.Search")}
+              placeholder={t("Common.Search")}
               leftSection={<IconSearch size="1rem" />}
               value={query.name ?? undefined}
               onChange={(e) =>
