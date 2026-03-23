@@ -15,6 +15,7 @@ import type { Tab } from "@/utils/tabs";
 import { InlineInput } from "../common/InlineInput";
 import classes from "./BoardTab.module.css";
 import { FileIcon } from "../files/FileIcon";
+import { useTranslation } from "react-i18next";
 
 export function BoardTab({
   tab,
@@ -33,6 +34,7 @@ export function BoardTab({
   duplicateTab: (v: string) => void;
   selected: boolean;
 }) {
+  const { t } = useTranslation();
   const [open, toggleOpen] = useToggle();
   const [renaming, toggleRenaming] = useToggle();
 
@@ -92,7 +94,7 @@ export function BoardTab({
           <InlineInput
             ref={ref}
             disabled={!renaming}
-            value={tab.name}
+            value={t(tab.name, { defaultValue: tab.name })}
             className={classes.input}
             onChange={(e) => renameTab(tab.value, e.target.value)}
             onFocus={(e) => e.target.select()}
