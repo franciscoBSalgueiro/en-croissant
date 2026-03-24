@@ -54,7 +54,7 @@
     "Board.Analysis.ReportGenerated": "Rapport généré",
     "Board.Analysis.Reversed": "Analyse inversée",
     "Board.Analysis.Reversed.Desc": "Analyse la partie en commençant par le dernier coup.",
-    "Board.Analysis.ShowVariations": "Afficher les variations",
+    "Board.Analysis.ShowVariations": "Afficher les variantes",
     "Board.Analysis.ShowVariations.Desc": "Ajoutez les meilleures lignes de continuation pour les erreurs",
     "Board.Analysis.SyncGlobally": "Synchronisation globale",
     "Board.Analysis.Tablebase": "Table de finales",
