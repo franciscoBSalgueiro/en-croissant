@@ -549,7 +549,7 @@
     "Settings.Inputs.TextInput": "Saisie des coups au clavier",
     "Settings.Inputs.TextInput.Desc": "Permets la saisie des coups au format texte",
     "Settings.Key": "Touche",
-    "Settings.Keybinds": "Configuration clavier",
+    "Settings.Keybinds": "Raccourcis clavier",
     "Settings.Keybinds.Desc": "Personnaliser les raccourcis clavier",
     "Settings.Keybinds.PressAnyKey": "Appuyez sur une touche",
     "Settings.MaterialDisplay": "Afficher le matériel",
