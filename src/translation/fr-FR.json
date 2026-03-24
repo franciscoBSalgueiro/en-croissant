@@ -518,7 +518,7 @@
     "Settings.Arrows": "Flèches",
     "Settings.Arrows.Desc": "Affiche une flèche pour les meilleurs coups",
     "Settings.AutoPromition": "Promotion automatique",
-    "Settings.AutoPromition.Desc": "Promotion en Reine automatique lorsqu'un pion est éligible",
+    "Settings.AutoPromition.Desc": "Promotion en Dame automatique lorsqu'un pion est éligible",
     "Settings.AutoSave": "Sauvegarde automatique",
     "Settings.AutoSave.Desc": "Sauvegarde la partie automatiquement après chaque coup",
     "Settings.Board": "Échiquier",
