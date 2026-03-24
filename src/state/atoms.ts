@@ -47,7 +47,7 @@ const zodArray = <Input, Output>(itemSchema: z.ZodType<Output, z.ZodTypeDef, Inp
 // Tabs
 
 const firstTab: Tab = {
-    name: "New Tab",
+    name: "Tab.NewTab",
     value: genID(),
     type: "new",
     gameOrigin: {
