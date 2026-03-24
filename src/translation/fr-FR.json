@@ -352,7 +352,7 @@
     "Files.GameCountSuffix_one": "{{number}} partie",
     "Files.GameCountSuffix_many": "",
     "Files.GameCountSuffix_other": "{{number}} parties",
-    "Files.LoadingFailed": "",
+    "Files.LoadingFailed": "Échec du chargement",
     "Files.NoSelection": "Aucun fichier sélectionné",
     "Files.Reload": "Recharger le fichier",
     "Files.Title": "Fichiers",
