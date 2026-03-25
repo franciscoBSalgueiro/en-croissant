@@ -349,7 +349,7 @@
     "Files.FileType.Tournament": "Tournament",
     "Files.GameCountSuffix_one": "{{number}} game",
     "Files.GameCountSuffix_other": "{{number}} games",
-    "Files.LoadingFailed": "",
+    "Files.LoadingFailed": "Failed to load file",
     "Files.NoSelection": "No file selected",
     "Files.Reload": "Reload file",
     "Files.Title": "Files",
