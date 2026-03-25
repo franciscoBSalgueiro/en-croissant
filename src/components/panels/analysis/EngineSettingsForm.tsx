@@ -19,6 +19,7 @@ import { type Engine, type EngineSettings, killEngine } from "@/utils/engines";
 import CoresSlider from "./CoresSlider";
 import HashSlider from "./HashSlider";
 import LinesSlider from "./LinesSlider";
+import EloSlider from "./EloSlider";
 
 export type Settings = {
   enabled: boolean;
@@ -49,6 +50,7 @@ function EngineSettingsForm({
   const { t } = useTranslation();
 
   const [limitStrength, setLimtStrength] = useState<any> (settings.settings.find((o) => o.name === "UCI_LimitStrength"))
+  const maxElo = engine.elo;
   const multipv = settings.settings.find((o) => o.name === "MultiPV");
   const threads = settings.settings.find((o) => o.name === "Threads");
   const hash = settings.settings.find((o) => o.name === "Hash");
@@ -147,8 +149,18 @@ function EngineSettingsForm({
             }
           }}
                                     />
-          {limitStrength && (
-            <h1> Can Limit Strength! </h1>
+          {limitStrength && maxElo &&(
+            <EloSlider value={maxElo}
+                setValue={(v) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    settings: prev.settings.map((o) =>
+                      o.name === "UCI_Elo" ? { ...o, value: v || 1} : o,
+                    ),
+                  }))
+                }
+                color={color}
+              />
           )}
         </>
       )}
