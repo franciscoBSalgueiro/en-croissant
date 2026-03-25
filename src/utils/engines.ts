@@ -61,6 +61,7 @@ const remoteEngineSchema = z.object({
     loaded: z.boolean().nullish(),
     enabled: z.boolean().nullish(),
     go: goModeSchema.nullish(),
+    elo: z.number().nullish(),
     settings: engineSettingsSchema.nullish(),
 });
 
