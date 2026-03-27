@@ -55,7 +55,7 @@ function TournamentTable() {
         <Flex style={{ alignItems: "center", gap: 10 }}>
           <TextInput
             style={{ flexGrow: 1 }}
-            placeholder={t("Databases.Tournament.Search")}
+            placeholder={t("Common.Search")}
             leftSection={<IconSearch size="1rem" />}
             value={query.name ?? ""}
             onChange={(v) =>

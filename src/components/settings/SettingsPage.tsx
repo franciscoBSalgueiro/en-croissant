@@ -771,7 +771,7 @@ export default function Page() {
       <Group px="md" pt="md" pb="sm">
         <TextInput
           ref={searchInputRef}
-          placeholder="Search settings..."
+          placeholder={t("Common.Search")}
           leftSection={<IconSearch size="1rem" />}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.currentTarget.value)}
