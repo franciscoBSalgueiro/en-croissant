@@ -112,7 +112,9 @@ pub async fn maia_eval_batch(
         .collect::<Result<_, _>>()?;
     let elos = vec![elo; setups.len()];
     let opts = ort::session::RunOptions::new().unwrap();
-    let results = maia.batch_evaluate_async(setups, &elos, &elos, &opts).await?;
+    let results = maia
+        .batch_evaluate_async(setups, &elos, &elos, &opts)
+        .await?;
     Ok(results.into_iter().map(Into::into).collect())
 }
 
