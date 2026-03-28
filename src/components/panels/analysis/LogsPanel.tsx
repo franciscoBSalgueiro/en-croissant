@@ -1,19 +1,24 @@
 import { Select, Stack } from "@mantine/core";
 import { useAtomValue } from "jotai";
+import { useEffect } from "react";
 import { useState } from "react";
 import useSWR from "swr";
 import { commands } from "@/bindings";
 import { activeTabAtom, enginesAtom } from "@/state/atoms";
-import { isLocalEngine, type LocalEngine } from "@/utils/engines";
+import { isLocalEngine, isUciEngine, type LocalEngine } from "@/utils/engines";
 import { unwrap } from "@/utils/unwrap";
 import EngineLogsView from "../../common/EngineLogsView";
 
 export default function LogsPanel() {
   const engines = useAtomValue(enginesAtom);
-  const localEngines = (engines ?? [])
-    .filter(isLocalEngine)
-    .filter((e) => e.loaded);
+  const localEngines = (engines ?? []).filter(isLocalEngine).filter(isUciEngine).filter((e) => e.loaded);
   const [engine, setEngine] = useState<LocalEngine | undefined>(localEngines[0]);
+  useEffect(() => {
+    if (engine && localEngines.some((candidate) => candidate.id === engine.id)) {
+      return;
+    }
+    setEngine(localEngines[0]);
+  }, [engine, localEngines]);
 
   const activeTab = useAtomValue(activeTabAtom);
   const { data, mutate } = useSWR(["logs", engine?.id, activeTab], async () => {

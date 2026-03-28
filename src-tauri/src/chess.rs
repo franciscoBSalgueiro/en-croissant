@@ -154,16 +154,17 @@ impl EngineProcess {
 #[derive(Clone, Serialize, Debug, Derivative, Type)]
 #[derivative(Default)]
 pub struct BestMoves {
-    nodes: u32,
-    depth: u32,
-    score: Score,
+    pub nodes: u32,
+    pub depth: u32,
+    pub score: Score,
     #[serde(rename = "uciMoves")]
-    uci_moves: Vec<String>,
+    pub uci_moves: Vec<String>,
     #[serde(rename = "sanMoves")]
-    san_moves: Vec<String>,
+    pub san_moves: Vec<String>,
     #[derivative(Default(value = "1"))]
-    multipv: u16,
-    nps: u32,
+    pub multipv: u16,
+    pub nps: u32,
+    pub probability: Option<f32>,
 }
 
 #[derive(Serialize, Debug, Clone, Type, Event)]

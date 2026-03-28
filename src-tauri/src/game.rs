@@ -1,16 +1,20 @@
 use std::{
-    collections::HashMap, fs::File, io::{BufRead, BufReader, Cursor, Read, Write}, ops::ControlFlow, path::PathBuf, sync::Arc, time::Instant
+    collections::HashMap,
+    fs::File,
+    io::{BufRead, BufReader, Cursor, Read, Write},
+    ops::ControlFlow,
+    path::PathBuf,
+    sync::Arc,
+    time::Instant,
 };
 
 use dashmap::DashMap;
 use log::{error, info};
-use pgn_reader::{Reader, RawTag, SanPlus, Skip, Visitor};
+use pgn_reader::{RawTag, Reader, SanPlus, Skip, Visitor};
 use polyglot_book_rs::PolyglotBook;
 use rand::{seq::IteratorRandom, Rng};
 use serde::{Deserialize, Serialize};
-use shakmaty::{
-    fen::Fen,  uci::UciMove, CastlingMode, Chess, Color, EnPassantMode, Position,
-};
+use shakmaty::{fen::Fen, uci::UciMove, CastlingMode, Chess, Color, EnPassantMode, Position};
 use specta::Type;
 use tauri::AppHandle;
 use tauri_specta::Event;
@@ -934,7 +938,7 @@ impl Visitor for OpeningBookPgnVisitor {
         if key == b"FEN" {
             // RawTag is bytes in 0.30, need manual conversion
             let fen_text = String::from_utf8_lossy(value.as_bytes()).into_owned();
-            
+
             match parse_fen_to_position(&fen_text) {
                 Ok(position) => {
                     let parsed_fen: Fen = match fen_text.parse() {
@@ -957,10 +961,7 @@ impl Visitor for OpeningBookPgnVisitor {
         ControlFlow::Continue(())
     }
 
-    fn begin_movetext(
-        &mut self,
-        _tags: Self::Tags,
-    ) -> ControlFlow<Self::Output, Self::Movetext> {
+    fn begin_movetext(&mut self, _tags: Self::Tags) -> ControlFlow<Self::Output, Self::Movetext> {
         ControlFlow::Continue(())
     }
 
@@ -969,14 +970,10 @@ impl Visitor for OpeningBookPgnVisitor {
         _movetext: &mut Self::Movetext,
     ) -> ControlFlow<Self::Output, Skip> {
         // Skip parsing moves if self.skip was set during headers
-        ControlFlow::Continue(Skip(self.skip)) 
+        ControlFlow::Continue(Skip(self.skip))
     }
 
-    fn san(
-        &mut self, 
-        _movetext: &mut Self::Movetext, 
-        san: SanPlus
-    ) -> ControlFlow<Self::Output> {
+    fn san(&mut self, _movetext: &mut Self::Movetext, san: SanPlus) -> ControlFlow<Self::Output> {
         // Double check skip, though begin_variation handles most cases
         if self.skip {
             return ControlFlow::Continue(());
@@ -993,7 +990,7 @@ impl Visitor for OpeningBookPgnVisitor {
         let uci = UciMove::from_move(mv, self.castling_mode).to_string();
         self.moves.push(uci);
         self.current_position.play_unchecked(mv);
-        
+
         ControlFlow::Continue(())
     }
 

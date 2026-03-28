@@ -57,6 +57,7 @@ export type LocalUciEngine = z.output<typeof localUciEngineSchema>;
 const localMaiaEngineSchema = z.object({
   ...localEngineBaseSchema.shape,
   runtime: z.literal("maia"),
+  showInDatabase: z.boolean().nullish(),
   // maia does not support time control. Put empty field here to make accessing localEngine's goMode when needed easier.
   // Also in case future ONNX models supports time control
   go: z.undefined(),
@@ -119,8 +120,24 @@ export function getBestMoves(
     goMode: GoMode,
     options: EngineOptions,
 ): Promise<[number, BestMoves[]] | null> {
+    if (isUciEngine(engine)) {
+        return commands
+            .getBestMoves(engine.id, engine.path, tab, goMode, options)
+            .then((r) => unwrap(r));
+    }
+    const multipvSetting = options.extraOptions.find((o) => o.name === "MultiPV")?.value;
+    const parsedMultipv = Number.parseInt(multipvSetting ?? "1", 10);
+    const multipv = Number.isFinite(parsedMultipv) ? Math.max(1, parsedMultipv) : 1;
     return commands
-        .getBestMoves(engine.id, engine.path, tab, goMode, options)
+        .maiaBestMoves(
+            engine.id,
+            engine.path,
+            tab,
+            options.fen,
+            options.moves,
+            engine.elo ?? 1500,
+            multipv,
+        )
         .then((r) => unwrap(r));
 }
 

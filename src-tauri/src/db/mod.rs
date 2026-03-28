@@ -26,11 +26,12 @@ use diesel::{
     sql_query,
     sql_types::Text,
 };
-use pgn_reader::{BufferedReader, Nag, RawTag, Reader, SanPlus, Skip, Visitor};
+use pgn_reader::{Nag, RawTag, Reader, SanPlus, Skip, Visitor};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
-    Board, ByColor, CastlingMode, Chess, EnPassantMode, FromSetup, Piece, Position, PositionError, Setup, fen::Fen
+    fen::Fen, Board, ByColor, CastlingMode, Chess, EnPassantMode, FromSetup, Piece, Position,
+    PositionError, Setup,
 };
 use specta::Type;
 use std::{
@@ -583,28 +584,28 @@ pub async fn convert_pgn(
         };
 
         let mut importer = Importer::new(timestamp.map(|t| t as i64));
+        let mut reader = Reader::new(uncompressed);
         let mut file_imported_games = 0usize;
 
         db.transaction::<_, diesel::result::Error, _>(|db| {
-            for game in BufferedReader::new(uncompressed)
-                .into_iter(&mut importer)
-                .flatten()
-                .flatten()
-            {
-                if (imported_games + file_imported_games).is_multiple_of(1000) {
-                    let elapsed = start.elapsed().as_millis() as u32;
-                    app.emit(
-                        "convert_progress",
-                        (
-                            imported_games + file_imported_games,
-                            elapsed,
-                            current_file_name.clone(),
-                        ),
-                    )
-                    .unwrap();
+            while let Ok(Some(result)) = reader.read_game(&mut importer) {
+                // Continue if the visitor did not return Some(game)
+                if let Some(game) = result {
+                    if (imported_games + file_imported_games).is_multiple_of(1000) {
+                        let elapsed = start.elapsed().as_millis() as u32;
+                        app.emit(
+                            "convert_progress",
+                            (
+                                imported_games + file_imported_games,
+                                elapsed,
+                                current_file_name.clone(),
+                            ),
+                        )
+                        .unwrap();
+                    }
+                    game.insert_to_db(db)?;
+                    file_imported_games += 1;
                 }
-                game.insert_to_db(db)?;
-                file_imported_games += 1;
             }
             Ok(())
         })?;
@@ -1825,7 +1826,10 @@ pub async fn write_db_game(
 
     let mut importer = Importer::new(None);
     let mut reader = Reader::new(pgn.as_bytes());
-    let temp_game = reader.read_game(&mut importer)?.flatten().ok_or(Error::NoMovesFound)?;
+    let temp_game = reader
+        .read_game(&mut importer)?
+        .flatten()
+        .ok_or(Error::NoMovesFound)?;
 
     let white_id = if let Some(name) = temp_game.white_name.as_deref() {
         create_player(db, name)?.id

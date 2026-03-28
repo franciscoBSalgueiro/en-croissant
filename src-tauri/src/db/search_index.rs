@@ -123,9 +123,8 @@ impl SearchIndex {
         writer.write_all(MAGIC)?;
         writer.write_all(&VERSION.to_le_bytes())?;
 
-        let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(self).map_err(|e| {
-            io::Error::other(format!("Serialization error: {}", e))
-        })?;
+        let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(self)
+            .map_err(|e| io::Error::other(format!("Serialization error: {}", e)))?;
 
         writer.write_all(&bytes)?;
         writer.flush()

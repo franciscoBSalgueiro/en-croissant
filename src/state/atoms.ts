@@ -423,9 +423,12 @@ export const masterOptionsAtom = atomWithStorage<MasterGamesOptions>(
 );
 
 const dbTypeFamily = atomFamily((_tab: string) =>
-    atom<"local" | "lch_all" | "lch_master">("local"),
+    atom<"local" | "lch_all" | "lch_master" | "maia">("local"),
 );
 export const currentDbTypeAtom = tabValue(dbTypeFamily);
+
+const maiaDbEngineFamily = atomFamily((_tab: string) => atom<string | null>(null));
+export const currentMaiaDbEngineAtom = tabValue(maiaDbEngineFamily);
 
 const dbTabFamily = atomFamily((_tab: string) => atom("stats"));
 export const currentDbTabAtom = tabValue(dbTabFamily);
@@ -586,12 +589,27 @@ export const bestMovesFamily = atomFamily(
                     engineMoves.get(`${swapMove(finalFen)}:`) ||
                     engineMoves.get(`${fen}:${gameMoves.join(",")}`);
                 if (moves && moves.length > 0) {
+                    const settingsAtom = tabEngineSettingsFamily({
+                        tab,
+                        engineId: engine.id,
+                        defaultSettings: engine.type === "local" ? engine.settings || [] : undefined,
+                        defaultGo: engine.go ?? undefined,
+                    });
+                    const multipvSetting = get(settingsAtom).settings.find(
+                        (setting) => setting.name === "MultiPV",
+                    )?.value;
+                    const parsedMultipv =
+                        typeof multipvSetting === "number"
+                            ? multipvSetting
+                            : Number.parseInt(multipvSetting?.toString() ?? "1", 10);
+                    const multipv = Number.isFinite(parsedMultipv) ? Math.max(1, parsedMultipv) : 1;
+                    const visibleMoves = moves.slice(0, multipv);
                     const bestWinChange = getWinChance(
-                        normalizeScore(moves[0].score.value, pos?.turn || "white"),
+                        normalizeScore(visibleMoves[0].score.value, pos?.turn || "white"),
                     );
                     bestMoves.set(
                         n,
-                        moves.reduce<{ pv: string[]; winChance: number }[]>((acc, m) => {
+                        visibleMoves.reduce<{ pv: string[]; winChance: number }[]>((acc, m) => {
                             const winChance = getWinChance(
                                 normalizeScore(m.score.value, pos?.turn || "white"),
                             );

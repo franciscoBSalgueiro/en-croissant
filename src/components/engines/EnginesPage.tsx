@@ -46,6 +46,7 @@ import {
   engineSchema,
   isUciEngine,
   type LocalEngine,
+  type LocalMaiaEngine,
   requiredEngineSettings,
 } from "@/utils/engines";
 import { unwrap } from "@/utils/unwrap";
@@ -93,8 +94,6 @@ export default function EnginesPage() {
   }, [enginesList, search]);
   const hasSearch = search.trim().length > 0;
   const hasEngines = enginesList.length > 0;
-
-  const maiaEloOptions = [1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000].map(String);
 
   return (
     <Stack h="100%">
@@ -210,24 +209,35 @@ export default function EnginesPage() {
 
                 {selectedEngine.type === "local" &&
                   selectedEngine.runtime === "maia" && (
-                    <Select
+                    <>
+                    <NumberInput
                       w="50%"
                       label={t("Engines.Settings.DefaultMaiaElo")}
-                      data={maiaEloOptions}
-                      value={
-                        selectedEngine.elo?.toString() || "1500"
-                      }
-                      onChange={(v) => {
+                      value={selectedEngine.elo || 1500}
+                      onChange={(value) => {
                         setEngines(async (prev) => {
                           const copy = [...(await prev)];
-                          const val = Number(v);
-                          if (val) {
-                            (copy[selected] as LocalEngine).elo = val;
-                          }
+                          (copy[selected] as LocalEngine).elo =
+                            typeof value === "number" ? value : 1500;
                           return copy;
                         });
                       }}
                     />
+                    <Checkbox
+                      w="50%"
+                      mt="sm"
+                      label={t("Engines.Settings.ShowInDatabase")}
+                      checked={selectedEngine.showInDatabase !== false}
+                      onChange={(event) => {
+                        setEngines(async (prev) => {
+                          const copy = [...(await prev)];
+                          (copy[selected] as LocalMaiaEngine).showInDatabase =
+                            event.currentTarget.checked;
+                          return copy;
+                        });
+                      }}
+                    />
+                    </>
                   )}
 
                 <Divider
@@ -246,19 +256,25 @@ export default function EnginesPage() {
                     setValue={(v) => {
                       setEngines(async (prev) => {
                         const copy = [...(await prev)];
-                        const setting = copy[selected].settings?.find(
-                          (setting) => setting.name === "MultiPV",
-                        );
-                        if (setting) {
-                          setting.value = v;
-                        } else {
-                          if (!copy[selected].settings)
-                            copy[selected].settings = [];
-                          copy[selected].settings?.push({
-                            name: "MultiPV",
-                            value: v,
-                          });
-                        }
+                        const engine = copy[selected];
+                        const settings = engine.settings ?? [];
+                        const settingIndex = settings.findIndex((setting) => setting.name === "MultiPV");
+                        const nextSettings =
+                          settingIndex >= 0
+                            ? settings.map((setting, index) =>
+                                index === settingIndex ? { ...setting, value: v } : setting,
+                              )
+                            : [
+                                ...settings,
+                                {
+                                  name: "MultiPV",
+                                  value: v,
+                                },
+                              ];
+                        copy[selected] = {
+                          ...engine,
+                          settings: nextSettings,
+                        };
                         return copy;
                       });
                     }}

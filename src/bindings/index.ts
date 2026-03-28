@@ -9,8 +9,9 @@ import type {
 export * from "./generated";
 export type ScoreValue = ScoreValueT | { type: "dtz"; value: number };
 export type Score = Omit<ScoreT, "value"> & { value: ScoreValue };
-export type BestMoves = Omit<BestMovesT, "score"> & {
+export type BestMoves = Omit<BestMovesT, "score" | "probability"> & {
     score: Score;
+    probability?: number | null;
 };
 
 export type DatabaseInfo =

@@ -63,12 +63,12 @@ use crate::puzzle::{
 use crate::sound::get_sound_server_port;
 use crate::{
     chess::get_best_moves,
-    onnx::maia_eval,
     db::{
         delete_duplicated_games, edit_db_info, get_db_info, get_games, get_players, merge_players,
         write_db_game,
     },
     fs::{download_file, file_exists, get_file_metadata},
+    onnx::{init_ort_log_level, maia_best_moves, maia_eval, maia_eval_batch},
     opening::{
         get_opening_from_fen, get_opening_from_fens, get_opening_from_name, search_opening_name,
     },
@@ -111,6 +111,8 @@ async fn close_splashscreen(window: Window) -> Result<(), String> {
 }
 
 fn main() {
+    init_ort_log_level();
+
     let specta_builder = tauri_specta::Builder::new()
         .commands(tauri_specta::collect_commands!(
             close_splashscreen,
@@ -174,6 +176,8 @@ fn main() {
             clear_progress,
             get_sound_server_port,
             maia_eval,
+            maia_eval_batch,
+            maia_best_moves,
         ))
         .events(tauri_specta::collect_events!(
             BestMovesPayload,

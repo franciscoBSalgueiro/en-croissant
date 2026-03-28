@@ -1,9 +1,9 @@
 import {
   Button,
+  Checkbox,
   Input,
   NumberInput,
   SegmentedControl,
-  Select,
   Stack,
   Text,
   TextInput,
@@ -18,8 +18,6 @@ import { requiredEngineSettings, type LocalEngine } from "@/utils/engines";
 import { usePlatform } from "@/utils/files";
 import { unwrap } from "@/utils/unwrap";
 import FileInput from "../common/FileInput";
-
-const maiaEloOptions = [1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000].map(String);
 
 export default function EngineForm({
   onSubmit,
@@ -90,7 +88,20 @@ export default function EngineForm({
                   value: o.value.default as string | number | boolean | null,
                 })) ?? [])
             : [];
-        onSubmit({ ...values, loaded: true, settings: defaults });
+        const submitted: LocalEngine =
+          values.runtime === "maia"
+            ? {
+                ...values,
+                loaded: true,
+                settings: defaults,
+                showInDatabase: values.showInDatabase !== false,
+              }
+            : {
+                ...values,
+                loaded: true,
+                settings: defaults,
+              };
+        onSubmit(submitted);
       })}
     >
       <Stack>
@@ -106,6 +117,7 @@ export default function EngineForm({
             form.setFieldValue("path", "");
             if (value === "maia") {
               form.setFieldValue("elo", 1500);
+              form.setFieldValue("showInDatabase", true);
             }
           }}
         />
@@ -133,20 +145,19 @@ export default function EngineForm({
           {...form.getInputProps("name")}
         />
 
-        {runtime === "uci" ? (
-          <NumberInput
-            label="Elo"
-            placeholder={t("Engines.Add.Elo.Desc")}
-            {...form.getInputProps("elo")}
-          />
-        ) : (
-          <Select
-            label={t("Engines.Settings.DefaultMaiaElo")}
-            placeholder={t("Engines.Add.Elo.Desc")}
-            data={maiaEloOptions}
-            value={form.values.elo?.toString()}
-            onChange={(val) => form.setFieldValue("elo", Number(val))}
-            allowDeselect={false}
+        <NumberInput
+          label={runtime === "maia" ? t("Engines.Settings.DefaultMaiaElo") : "Elo"}
+          placeholder={t("Engines.Add.Elo.Desc")}
+          {...form.getInputProps("elo")}
+        />
+
+        {runtime === "maia" && (
+          <Checkbox
+            label={t("Engines.Settings.ShowInDatabase")}
+            checked={form.values.showInDatabase !== false}
+            onChange={(event) => {
+              form.setFieldValue("showInDatabase", event.currentTarget.checked);
+            }}
           />
         )}
 

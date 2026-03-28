@@ -41,7 +41,7 @@ import {
   tabEngineSettingsFamily,
 } from "@/state/atoms";
 import { chessopsError, positionFromFen, swapMove } from "@/utils/chessops";
-import { type Engine, isUciEngine } from "@/utils/engines";
+import { type Engine, isLocalEngine, isMaiaEngine, isUciEngine } from "@/utils/engines";
 import { formatNodes } from "@/utils/format";
 import { formatScore } from "@/utils/score";
 import AnalysisRow from "./AnalysisRow";
@@ -163,6 +163,17 @@ function BestMovesComponent({
       [ev, searchingFen, searchingMoves],
     ),
   );
+  const multipvSetting = settings.settings.find((s) => s.name === "MultiPV")?.value;
+  const multipv =
+    typeof multipvSetting === "number"
+      ? Math.max(1, Math.floor(multipvSetting))
+      : Number.isFinite(Number(multipvSetting))
+        ? Math.max(1, Math.floor(Number(multipvSetting)))
+        : 1;
+  const visibleEngineVariations =
+    isLocalEngine(engine) && isMaiaEngine(engine)
+      ? (engineVariations ?? []).slice(0, multipv)
+      : engineVariations;
 
   return (
     <>
@@ -184,6 +195,8 @@ function BestMovesComponent({
           <EngineTop
             name={engine.name}
             engineVariations={engineVariations}
+            isMaia={isLocalEngine(engine) && isMaiaEngine(engine)}
+            isUci={isLocalEngine(engine) && isUciEngine(engine)}
             isGameOver={isGameOver}
             enabled={settings.enabled}
             progress={progress}
@@ -272,7 +285,7 @@ function BestMovesComponent({
                 </Table.Td>
               </Table.Tr>
             )}
-            {engineVariations && engineVariations.length === 0 && !isGameOver && (
+            {visibleEngineVariations && visibleEngineVariations.length === 0 && !isGameOver && (
               <Table.Tr>
                 <Table.Td>
                   <Text ta="center" my="lg">
@@ -283,7 +296,7 @@ function BestMovesComponent({
             )}
             {!isGameOver &&
               !error &&
-              !engineVariations &&
+              !visibleEngineVariations &&
               (settings.enabled ? (
                 [...Array(settings.settings.find((s) => s.name === "MultiPV")?.value ?? 1)].map(
                   (_, i) => (
@@ -306,14 +319,15 @@ function BestMovesComponent({
             {!isGameOver &&
               !error &&
               finalFen &&
-              engineVariations &&
-              engineVariations.map((engineVariation, index) => {
+              visibleEngineVariations &&
+              visibleEngineVariations.map((engineVariation, index) => {
                 return (
                   <AnalysisRow
                     key={index}
                     engine={engine.name}
                     moves={engineVariation.sanMoves}
                     score={engineVariation.score}
+                    probability={engineVariation.probability}
                     halfMoves={halfMoves}
                     threat={threat}
                     fen={threat ? swapMove(finalFen) : finalFen}
@@ -331,6 +345,8 @@ function BestMovesComponent({
 function EngineTop({
   name,
   engineVariations,
+  isMaia,
+  isUci,
   isGameOver,
   enabled,
   progress,
@@ -338,6 +354,8 @@ function EngineTop({
 }: {
   name: string;
   engineVariations: BestMoves[] | undefined;
+  isMaia: boolean;
+  isUci: boolean;
   isGameOver: boolean;
   enabled: boolean;
   progress: number;
@@ -347,6 +365,8 @@ function EngineTop({
   const isComputed = engineVariations && engineVariations.length > 0;
   const depth = isComputed ? engineVariations[0].depth : 0;
   const nps = isComputed ? formatNodes(engineVariations[0].nps) : 0;
+  const wdl = isComputed ? engineVariations[0].score.wdl : null;
+  const toPercent = (value: number) => (value > 100 ? value / 10 : value);
 
   return (
     <Group justify="space-between">
@@ -357,7 +377,8 @@ function EngineTop({
         {enabled && !isGameOver && !error && !engineVariations && (
           <Code fz="xs">{t("Common.Loading")}</Code>
         )}
-        {progress < 100 &&
+        {isUci &&
+          progress < 100 &&
           enabled &&
           !isGameOver &&
           engineVariations &&
@@ -370,22 +391,53 @@ function EngineTop({
       <Group gap="lg">
         {!isGameOver && engineVariations && engineVariations.length > 0 && (
           <>
-            <Stack align="center" gap={0}>
-              <Text size="0.7rem" tt="uppercase" fw={700} className={classes.subtitle}>
-                Eval
-              </Text>
-              <Text fw="bold" fz="md">
-                {formatScore(engineVariations[0].score.value, 1) ?? 0}
-              </Text>
-            </Stack>
-            <Stack align="center" gap={0}>
-              <Text size="0.7rem" tt="uppercase" fw={700} className={classes.subtitle}>
-                Depth
-              </Text>
-              <Text fw="bold" fz="md">
-                {depth}
-              </Text>
-            </Stack>
+            {isMaia && wdl ? (
+              <>
+                <Stack align="center" gap={0}>
+                  <Text size="0.7rem" tt="uppercase" fw={700} className={classes.subtitle}>
+                    Win
+                  </Text>
+                  <Text fw="bold" fz="md">
+                    {toPercent(wdl[0]).toFixed(1)}%
+                  </Text>
+                </Stack>
+                <Stack align="center" gap={0}>
+                  <Text size="0.7rem" tt="uppercase" fw={700} className={classes.subtitle}>
+                    Draw
+                  </Text>
+                  <Text fw="bold" fz="md">
+                    {toPercent(wdl[1]).toFixed(1)}%
+                  </Text>
+                </Stack>
+                <Stack align="center" gap={0}>
+                  <Text size="0.7rem" tt="uppercase" fw={700} className={classes.subtitle}>
+                    Loss
+                  </Text>
+                  <Text fw="bold" fz="md">
+                    {toPercent(wdl[2]).toFixed(1)}%
+                  </Text>
+                </Stack>
+              </>
+            ) : (
+              <>
+                <Stack align="center" gap={0}>
+                  <Text size="0.7rem" tt="uppercase" fw={700} className={classes.subtitle}>
+                    Eval
+                  </Text>
+                  <Text fw="bold" fz="md">
+                    {formatScore(engineVariations[0].score.value, 1) ?? 0}
+                  </Text>
+                </Stack>
+                <Stack align="center" gap={0}>
+                  <Text size="0.7rem" tt="uppercase" fw={700} className={classes.subtitle}>
+                    Depth
+                  </Text>
+                  <Text fw="bold" fz="md">
+                    {depth}
+                  </Text>
+                </Stack>
+              </>
+            )}
           </>
         )}
       </Group>
