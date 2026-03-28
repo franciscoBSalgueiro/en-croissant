@@ -62,9 +62,7 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
               { value: "black", label: t("Fen.Black") },
             ]}
             value={options.color}
-            onChange={(v) =>
-              setOptions({ ...options, color: v as "white" | "black" })
-            }
+            onChange={(v) => setOptions({ ...options, color: v as "white" | "black" })}
           />
         </Stack>
 
@@ -77,16 +75,12 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
             valueFormat="YYYY-MM-DD"
             clearable
             value={
-              options.start_date
-                ? dayjs(options.start_date, "YYYY.MM.DD").toDate()
-                : undefined
+              options.start_date ? dayjs(options.start_date, "YYYY.MM.DD").toDate() : undefined
             }
             onChange={(value) =>
               setOptions({
                 ...options,
-                start_date: value
-                  ? dayjs(value).format("YYYY.MM.DD")
-                  : undefined,
+                start_date: value ? dayjs(value).format("YYYY.MM.DD") : undefined,
               })
             }
           />
@@ -99,11 +93,7 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
             placeholder={t("Common.EndDate")}
             valueFormat="YYYY-MM-DD"
             clearable
-            value={
-              options.end_date
-                ? dayjs(options.end_date, "YYYY.MM.DD").toDate()
-                : null
-            }
+            value={options.end_date ? dayjs(options.end_date, "YYYY.MM.DD").toDate() : null}
             onChange={(value) =>
               setOptions({
                 ...options,
@@ -151,9 +141,7 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
             { value: "partial", label: t("Board.Database.Local.Partial") },
           ]}
           value={options.type}
-          onChange={(v) =>
-            setOptions({ ...options, type: v as "exact" | "partial" })
-          }
+          onChange={(v) => setOptions({ ...options, type: v as "exact" | "partial" })}
         />
       </Stack>
 
@@ -221,11 +209,7 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
           </Group>
         </Stack>
 
-        <Box
-          flex={1}
-          style={{ display: "flex", flexDirection: "column" }}
-          h="30rem"
-        >
+        <Box flex={1} style={{ display: "flex", flexDirection: "column" }} h="30rem">
           <PiecesGrid
             boardRef={boardRef}
             fen={options.fen}

@@ -14,7 +14,7 @@ import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 import { commands, type UciOptionConfig } from "@/bindings";
-import type { LocalEngine } from "@/utils/engines";
+import { requiredEngineSettings, type LocalEngine } from "@/utils/engines";
 import { usePlatform } from "@/utils/files";
 import { unwrap } from "@/utils/unwrap";
 import FileInput from "../common/FileInput";
@@ -33,14 +33,9 @@ export default function EngineForm({
   const { t } = useTranslation();
   const { os } = usePlatform();
 
-  // We track the runtime based on form state
   const runtime = form.values.runtime;
+  const config = useRef<{ name: string; options: UciOptionConfig[] } | null>(null);
 
-  const config = useRef<{ name: string; options: UciOptionConfig[] } | null>(
-    null,
-  );
-
-  // Define file filters based on OS and selected Runtime
   const binaryFilters = match({ os, runtime })
     .with({ runtime: "maia" }, () => [
       { name: "Maia Model", extensions: ["onnx"] },
@@ -84,9 +79,19 @@ export default function EngineForm({
 
   return (
     <form
-      onSubmit={form.onSubmit(async (values) =>
-        onSubmit({ ...values, loaded: true, settings: [] }),
-      )}
+      onSubmit={form.onSubmit(async (values) => {
+        const defaults =
+          runtime === "uci"
+            ? (config.current?.options
+                .filter((o) => requiredEngineSettings.includes(o.value.name))
+                .filter((o) => o.type !== "button")
+                .map((o) => ({
+                  name: o.value.name,
+                  value: o.value.default as string | number | boolean | null,
+                })) ?? [])
+            : [];
+        onSubmit({ ...values, loaded: true, settings: defaults });
+      })}
     >
       <Stack>
         <SegmentedControl
@@ -146,32 +151,32 @@ export default function EngineForm({
         )}
 
         {runtime === "uci" && (
-        <Input.Wrapper
-          label={t("Engines.Add.ImageFile")}
-          description={t("Engines.Add.ImageFile.Desc")}
-          {...form.getInputProps("image")}
-        >
-          <Input
-            component="button"
-            type="button"
-            onClick={async () => {
-              const selected = await open({
-                multiple: false,
-                filters: [
-                  {
-                    name: "Image",
-                    extensions: ["png", "jpeg", "jpg", "webp"],
-                  },
-                ],
-              });
-              if (selected) {
-                form.setFieldValue("image", selected as string);
-              }
-            }}
+          <Input.Wrapper
+            label={t("Engines.Add.ImageFile")}
+            description={t("Engines.Add.ImageFile.Desc")}
+            {...form.getInputProps("image")}
           >
-            <Text lineClamp={1}>{form.values.image}</Text>
-          </Input>
-        </Input.Wrapper>
+            <Input
+              component="button"
+              type="button"
+              onClick={async () => {
+                const selected = await open({
+                  multiple: false,
+                  filters: [
+                    {
+                      name: "Image",
+                      extensions: ["png", "jpeg", "jpg", "webp"],
+                    },
+                  ],
+                });
+                if (selected) {
+                  form.setFieldValue("image", selected as string);
+                }
+              }}
+            >
+              <Text lineClamp={1}>{form.values.image}</Text>
+            </Input>
+          </Input.Wrapper>
         )}
 
         <Button fullWidth mt="xl" type="submit">

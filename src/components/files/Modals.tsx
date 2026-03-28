@@ -1,14 +1,7 @@
-import {
-  Button,
-  Modal,
-  SimpleGrid,
-  Stack,
-  Text,
-  Textarea,
-  TextInput,
-} from "@mantine/core";
+import { Button, Modal, SimpleGrid, Stack, Text, Textarea, TextInput } from "@mantine/core";
 import { useLoaderData } from "@tanstack/react-router";
-import { rename, writeTextFile } from "@tauri-apps/plugin-fs";
+import { resolve, dirname } from "@tauri-apps/api/path";
+import { exists, mkdir, rename, writeTextFile } from "@tauri-apps/plugin-fs";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { createFile } from "@/utils/files";
@@ -29,12 +22,14 @@ export function CreateModal({
   files,
   setFiles,
   setSelected,
+  selected,
 }: {
   opened: boolean;
   setOpened: (opened: boolean) => void;
   files: (FileMetadata | Directory)[];
   setFiles: (files: (FileMetadata | Directory)[]) => void;
-  setSelected: React.Dispatch<React.SetStateAction<FileMetadata | null>>;
+  setSelected: React.Dispatch<React.SetStateAction<FileMetadata | Directory | null>>;
+  selected: FileMetadata | Directory | null;
 }) {
   const { t } = useTranslation();
 
@@ -51,11 +46,20 @@ export function CreateModal({
       return;
     }
 
+    let targetDir = documentDir;
+    if (selected) {
+      if (selected.type === "directory") {
+        targetDir = selected.path;
+      } else {
+        targetDir = await dirname(selected.path);
+      }
+    }
+
     const newFile = await createFile({
       filename: trimmedFilename,
       filetype,
       pgn,
-      dir: documentDir,
+      dir: targetDir,
     });
     if (newFile.isErr) {
       setError(newFile.error.message);
@@ -70,11 +74,7 @@ export function CreateModal({
   }
 
   return (
-    <Modal
-      opened={opened}
-      onClose={() => setOpened(false)}
-      title={t("Files.Create.Title")}
-    >
+    <Modal opened={opened} onClose={() => setOpened(false)} title={t("Files.Create.Title")}>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -104,9 +104,7 @@ export function CreateModal({
                 id={v.value}
                 isSelected={filetype === v.value}
                 setSelected={setFiletype}
-                Header={
-                  <Text ta="center">{t(`Files.FileType.${v.label}`)}</Text>
-                }
+                Header={<Text ta="center">{t(`Files.FileType.${v.label}`)}</Text>}
               />
             ))}
           </SimpleGrid>
@@ -138,7 +136,7 @@ export function EditModal({
   opened: boolean;
   setOpened: (opened: boolean) => void;
   mutate: () => void;
-  setSelected: React.Dispatch<React.SetStateAction<FileMetadata | null>>;
+  setSelected: React.Dispatch<React.SetStateAction<FileMetadata | Directory | null>>;
   metadata: FileMetadata;
 }) {
   const { t } = useTranslation();
@@ -155,16 +153,10 @@ export function EditModal({
     };
     await writeTextFile(metadataPath, JSON.stringify(newMetadata));
 
-    const newPGNPath = metadata.path.replace(
-      `${metadata.name}.pgn`,
-      `${filename}.pgn`,
-    );
+    const newPGNPath = metadata.path.replace(`${metadata.name}.pgn`, `${filename}.pgn`);
 
     await rename(metadata.path, newPGNPath);
-    await rename(
-      metadataPath.replace(".pgn", ".info"),
-      newPGNPath.replace(".pgn", ".info"),
-    );
+    await rename(metadataPath.replace(".pgn", ".info"), newPGNPath.replace(".pgn", ".info"));
 
     mutate();
     setSelected((selected) =>
@@ -184,11 +176,7 @@ export function EditModal({
   }
 
   return (
-    <Modal
-      opened={opened}
-      onClose={() => setOpened(false)}
-      title={t("Files.Edit.Title")}
-    >
+    <Modal opened={opened} onClose={() => setOpened(false)} title={t("Files.Edit.Title")}>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -216,15 +204,92 @@ export function EditModal({
                 id={v.value}
                 isSelected={filetype === v.value}
                 setSelected={setFiletype}
-                Header={
-                  <Text ta="center">{t(`Files.FileType.${v.label}`)}</Text>
-                }
+                Header={<Text ta="center">{t(`Files.FileType.${v.label}`)}</Text>}
               />
             ))}
           </SimpleGrid>
 
           <Button style={{ marginTop: "1rem" }} type="submit">
             {t("Common.Edit")}
+          </Button>
+        </Stack>
+      </form>
+    </Modal>
+  );
+}
+
+export function CreateDirectoryModal({
+  opened,
+  setOpened,
+  mutate,
+  selected,
+}: {
+  opened: boolean;
+  setOpened: (opened: boolean) => void;
+  mutate: () => void;
+  selected: FileMetadata | Directory | null;
+}) {
+  const { t } = useTranslation();
+  const [name, setName] = useState("");
+  const [error, setError] = useState("");
+  const { documentDir } = useLoaderData({ from: "/files" });
+
+  async function createDirectory() {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setError(t("Common.RequireName"));
+      return;
+    }
+    try {
+      let targetDir = documentDir;
+      if (selected) {
+        if (selected.type === "directory") {
+          targetDir = selected.path;
+        } else {
+          targetDir = await dirname(selected.path);
+        }
+      }
+      const newPath = await resolve(targetDir, trimmed);
+      if (await exists(newPath)) {
+        setError(t("Files.CreateDirectory.AlreadyExists"));
+        return;
+      }
+      await mkdir(newPath);
+      mutate();
+      setName("");
+      setError("");
+      setOpened(false);
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
+  return (
+    <Modal
+      opened={opened}
+      onClose={() => setOpened(false)}
+      title={t("Files.CreateDirectory.Title")}
+    >
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          createDirectory();
+        }}
+      >
+        <Stack>
+          <TextInput
+            label={t("Common.Name")}
+            placeholder={t("Files.CreateDirectory.Placeholder")}
+            value={name}
+            onChange={(e) => {
+              setName(e.currentTarget.value);
+              if (error) setError("");
+            }}
+            error={error}
+            data-autofocus
+          />
+          <Button style={{ marginTop: "1rem" }} type="submit">
+            {t("Common.Create")}
           </Button>
         </Stack>
       </form>

@@ -1,12 +1,12 @@
 import {
   ActionIcon,
-  Box,
   Button,
   Center,
   Checkbox,
   Divider,
   FileInput,
   Group,
+  Input,
   JsonInput,
   Modal,
   NumberInput,
@@ -20,6 +20,7 @@ import {
   TextInput,
   ThemeIcon,
   Title,
+  Tooltip,
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import {
@@ -28,16 +29,16 @@ import {
   IconCpu,
   IconPhotoPlus,
   IconPlus,
+  IconSearch,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useAtom } from "jotai";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWRImmutable from "swr/immutable";
 import { match, P } from "ts-pattern";
 import { commands } from "@/bindings";
-import * as classes from "@/components/common/GenericCard.css";
 import { Route } from "@/routes/engines";
 import { enginesAtom } from "@/state/atoms";
 import {
@@ -45,6 +46,7 @@ import {
   engineSchema,
   isUciEngine,
   type LocalEngine,
+  requiredEngineSettings,
 } from "@/utils/engines";
 import { unwrap } from "@/utils/unwrap";
 import ConfirmModal from "../common/ConfirmModal";
@@ -58,75 +60,119 @@ export default function EnginesPage() {
   const { t } = useTranslation();
 
   const [engines, setEngines] = useAtom(enginesAtom);
+  const enginesList = useMemo(() => engines ?? [], [engines]);
   const [opened, setOpened] = useState(false);
+  const [search, setSearch] = useState("");
   const { selected } = Route.useSearch();
   const navigate = useNavigate();
   const setSelected = (v: number | null) => {
     navigate({ to: "/engines", search: { selected: v ?? undefined } });
   };
 
-  if (!engines) return null;
+  const selectedEngine = selected !== undefined ? enginesList[selected] : null;
+  const filteredEngines = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    const indexedEngines = enginesList.map((item, index) => ({ item, index }));
 
-  const selectedEngine = selected !== undefined ? engines[selected] : null;
+    if (!normalizedSearch) {
+      return indexedEngines;
+    }
+
+    return indexedEngines.filter(({ item }) => {
+      const values = [
+        item.name,
+        item.id,
+        item.type,
+        item.type === "local" ? item.path : "",
+        item.type === "local" ? (item.version ?? "") : "",
+        item.type === "local" && item.elo ? item.elo.toString() : "",
+      ];
+
+      return values.some((value) => value.toLowerCase().includes(normalizedSearch));
+    });
+  }, [enginesList, search]);
+  const hasSearch = search.trim().length > 0;
+  const hasEngines = enginesList.length > 0;
 
   const maiaEloOptions = [1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000].map(String);
 
   return (
-    <Stack h="100%" px="lg" pb="lg">
+    <Stack h="100%">
       <AddEngine opened={opened} setOpened={setOpened} />
-      <Group align="baseline" py="sm">
+      <Group align="baseline" py="sm" pl="lg">
         <Title>{t("Engines.Title")}</Title>
         <OpenFolderButton base="Engines" folder="engines" />
       </Group>
-      <Group grow flex={1} style={{ overflow: "hidden" }} align="start">
-        <ScrollArea h="100%" offsetScrollbars>
-          <SimpleGrid
-            cols={{ base: 1, md: 2 }}
-            spacing={{ base: "md", md: "sm" }}
-          >
-            {engines.map((item, i) => {
-              const stats =
-                item.type === "local"
-                  ? [
-                      {
-                        label: "ELO",
-                        value: item.elo ? item.elo.toString() : "??",
-                      },
-                    ]
-                  : [{ label: "Type", value: "Cloud" }];
-              if (item.type === "local" && item.version) {
-                stats.push({
-                  label: t("Common.Version"),
-                  value: item.version,
-                });
-              }
-              return (
-                <GenericCard
-                  id={i}
-                  key={item.id}
-                  isSelected={selected === i}
-                  setSelected={setSelected}
-                  error={undefined}
-                  Header={<EngineName engine={item} />}
-                  stats={stats}
-                />
-              );
-            })}
-            <Box
-              className={classes.card}
-              component="button"
-              type="button"
-              onClick={() => setOpened(true)}
-            >
-              <Stack gap={0} justify="center" w="100%" h="100%">
-                <Text mb={10}>{t("Common.AddNew")}</Text>
-                <Box>
-                  <IconPlus size="1.3rem" />
-                </Box>
-              </Stack>
-            </Box>
-          </SimpleGrid>
-        </ScrollArea>
+      <Group grow flex={1} style={{ overflow: "hidden" }} align="start" px="md" pb="md">
+        <Paper withBorder style={{ borderWidth: 2 }} h="100%">
+          <Stack gap={0} h="100%" style={{ overflow: "hidden" }}>
+            <Group p="xs" gap="xs">
+              <Input
+                size="sm"
+                style={{ flexGrow: 1 }}
+                leftSection={<IconSearch size="1rem" />}
+                placeholder={t("Common.Search")}
+                value={search}
+                onChange={(e) => setSearch(e.currentTarget.value)}
+              />
+              <Tooltip label={t("Common.AddNew")}>
+                <ActionIcon variant="default" size="lg" onClick={() => setOpened(true)}>
+                  <IconPlus size="1rem" />
+                </ActionIcon>
+              </Tooltip>
+            </Group>
+            <Divider />
+            <ScrollArea flex={1}>
+              <SimpleGrid cols={{ base: 1, md: 2 }} spacing={{ base: "md", md: "sm" }} p="xs">
+                {filteredEngines.map(({ item, index }) => {
+                  const stats =
+                    item.type === "local"
+                      ? [
+                          {
+                            label: "ELO",
+                            value: item.elo ? item.elo.toString() : "??",
+                          },
+                        ]
+                      : [{ label: "Type", value: "Cloud" }];
+                  if (item.type === "local" && item.version) {
+                    stats.push({
+                      label: t("Common.Version"),
+                      value: item.version,
+                    });
+                  }
+                  return (
+                    <GenericCard
+                      id={index}
+                      key={item.id}
+                      isSelected={selected === index}
+                      setSelected={setSelected}
+                      error={undefined}
+                      Header={<EngineName engine={item} />}
+                      stats={stats}
+                    />
+                  );
+                })}
+              </SimpleGrid>
+            </ScrollArea>
+            {filteredEngines.length === 0 && (
+              <Center h="100%">
+                <Stack align="center" gap="sm">
+                  <ThemeIcon size={64} radius="100%" variant="light" color="gray">
+                    <IconCpu size={32} />
+                  </ThemeIcon>
+                  <Text c="dimmed" fw={500} ta="center">
+                    {hasSearch ? t("Common.NoResults") : t("Engines.Empty.NoInstalled")}
+                  </Text>
+                  {!hasSearch && !hasEngines && (
+                    <Text c="dimmed" size="sm" ta="center">
+                      {t("Engines.Empty.AddHint")}
+                    </Text>
+                  )}
+                </Stack>
+              </Center>
+            )}
+          </Stack>
+        </Paper>
         {!selectedEngine || selected === undefined ? (
           <Paper withBorder style={{ borderWidth: 2 }} p="md" h="100%">
             <Center h="100%">
@@ -193,9 +239,8 @@ export default function EnginesPage() {
                   <LinesSlider
                     value={
                       Number(
-                        selectedEngine.settings?.find(
-                          (setting) => setting.name === "MultiPV",
-                        )?.value,
+                        selectedEngine.settings?.find((setting) => setting.name === "MultiPV")
+                          ?.value,
                       ) || 1
                     }
                     setValue={(v) => {
@@ -255,12 +300,9 @@ function EngineSettings({
 
   const [engines, setEngines] = useAtom(enginesAtom);
   const engine = engines![selected] as LocalEngine;
-  const { data: options } = useSWRImmutable(
-    ["engine-config", engine.path],
-    async ([, path]) => {
-      return unwrap(await commands.getEngineConfig(path));
-    },
-  );
+  const { data: options } = useSWRImmutable(["engine-config", engine.path], async ([, path]) => {
+    return unwrap(await commands.getEngineConfig(path));
+  });
 
   function setEngine(newEngine: LocalEngine) {
     setEngines(async (prev) => {
@@ -270,21 +312,38 @@ function EngineSettings({
     });
   }
 
+  useEffect(() => {
+    if (options) {
+      const settings = [...(engine.settings || [])];
+      const missing = requiredEngineSettings.filter(
+        (field) => !settings.find((setting) => setting.name === field),
+      );
+      for (const field of requiredEngineSettings) {
+        if (!settings.find((setting) => setting.name === field)) {
+          const option = options.options.find((option) => option.value.name === field);
+          if (option && option.type !== "button") {
+            settings.push({
+              name: field,
+              value: option.value.default as string | number | boolean | null,
+            });
+          }
+        }
+      }
+      if (missing.length > 0) {
+        setEngine({ ...engine, settings });
+      }
+    }
+  }, [options]);
   const completeOptions =
     options?.options
       .filter((option) => option.type !== "button")
       .map((option) => {
-        const setting = engine.settings?.find(
-          (setting) => setting.name === option.value.name,
-        );
+        const setting = engine.settings?.find((setting) => setting.name === option.value.name);
         return {
           ...option,
           value: {
             ...option.value,
-            value:
-              setting?.value !== undefined
-                ? setting.value
-                : option.value.default,
+            value: setting?.value !== undefined ? setting.value : option.value.default,
           },
         };
       }) || [];
@@ -338,18 +397,14 @@ function EngineSettings({
                 flex={1}
                 label={t("Common.Name")}
                 value={engine.name}
-                onChange={(e) =>
-                  setEngine({ ...engine, name: e.currentTarget.value })
-                }
+                onChange={(e) => setEngine({ ...engine, name: e.currentTarget.value })}
               />
               <TextInput
                 label={t("Common.Version")}
                 w="5rem"
                 value={engine.version}
                 placeholder="?"
-                onChange={(e) =>
-                  setEngine({ ...engine, version: e.currentTarget.value })
-                }
+                onChange={(e) => setEngine({ ...engine, version: e.currentTarget.value })}
               />
             </Group>
             <Group grow>
@@ -369,11 +424,7 @@ function EngineSettings({
           </Stack>
           <Center>
             {engine.image ? (
-              <Paper
-                withBorder
-                style={{ cursor: "pointer" }}
-                onClick={changeImage}
-              >
+              <Paper withBorder style={{ cursor: "pointer" }} onClick={changeImage}>
                 <LocalImage
                   src={engine.image}
                   alt={engine.name}
@@ -411,10 +462,7 @@ function EngineSettings({
           </>
         )}
 
-        <Divider
-          variant="dashed"
-          label={t("Engines.Settings.AdvancedSettings")}
-        />
+        <Divider variant="dashed" label={t("Engines.Settings.AdvancedSettings")} />
         <SimpleGrid cols={2}>
           {completeOptions
             .filter((option: { type: string }) => option.type !== "check")
@@ -472,9 +520,7 @@ function EngineSettings({
                       key={v.name}
                       label={v.name}
                       value={v.value || ""}
-                      onChange={(e) =>
-                        setSetting(v.name, e.currentTarget.value, v.default)
-                      }
+                      onChange={(e) => setSetting(v.name, e.currentTarget.value, v.default)}
                     />
                   );
                 })
@@ -492,11 +538,7 @@ function EngineSettings({
                   checked={!!o.value.value}
                   disabled={o.value.name === "UCI_Chess960"}
                   onChange={(e) =>
-                    setSetting(
-                      o.value.name,
-                      e.currentTarget.checked,
-                      o.value.default as boolean,
-                    )
+                    setSetting(o.value.name, e.currentTarget.checked, o.value.default as boolean)
                   }
                 />
               );
@@ -512,7 +554,13 @@ function EngineSettings({
             onClick={() =>
               setEngine({
                 ...engine,
-                settings: [],
+                settings: options?.options
+                  .filter((option) => requiredEngineSettings.includes(option.value.name))
+                  .filter((option) => option.type !== "button")
+                  .map((option) => ({
+                    name: option.value.name,
+                    value: option.value.default as string | number | boolean | null,
+                  })),
               })
             }
           >
@@ -547,9 +595,7 @@ function EngineSettings({
           opened={deleteModal}
           onClose={toggleDeleteModal}
           onConfirm={() => {
-            setEngines(async (prev) =>
-              (await prev).filter((e) => e.name !== engine.name),
-            );
+            setEngines(async (prev) => (await prev).filter((e) => e.name !== engine.name));
             setSelected(null);
             toggleDeleteModal();
           }}
@@ -589,12 +635,7 @@ function JSONModal({
   const [value, setValue] = useState(JSON.stringify(engine, null, 2));
   const [error, setError] = useState<string | null>(null);
   return (
-    <Modal
-      opened={opened}
-      onClose={toggleOpened}
-      title={t("Engines.Settings.EditJSON")}
-      size="xl"
-    >
+    <Modal opened={opened} onClose={toggleOpened} title={t("Engines.Settings.EditJSON")} size="xl">
       <JsonInput
         autosize
         value={value}
@@ -639,13 +680,7 @@ function EngineName({ engine }: { engine: Engine }) {
   return (
     <Group wrap="nowrap">
       {engine.image ? (
-        <LocalImage
-          src={engine.image}
-          alt={engine.name}
-          h="2.5rem"
-          fit="contain"
-          flex={0}
-        />
+        <LocalImage src={engine.image} alt={engine.name} h="2.5rem" fit="contain" flex={0} />
       ) : engine.type !== "local" ? (
         <IconCloud size="2.5rem" />
       ) : (
@@ -655,15 +690,8 @@ function EngineName({ engine }: { engine: Engine }) {
         <Text fw="bold" lineClamp={1} c={hasError ? "red" : undefined}>
           {engine.name} {hasError ? "(file missing)" : ""}
         </Text>
-        <Text
-          size="xs"
-          c="dimmed"
-          style={{ wordWrap: "break-word" }}
-          lineClamp={1}
-        >
-          {engine.type === "local"
-            ? engine.path.split(/\/|\\/).slice(-1)[0]
-            : engine.url}
+        <Text size="xs" c="dimmed" style={{ wordWrap: "break-word" }} lineClamp={1}>
+          {engine.type === "local" ? engine.path.split(/\/|\\/).slice(-1)[0] : engine.url}
         </Text>
       </Stack>
     </Group>

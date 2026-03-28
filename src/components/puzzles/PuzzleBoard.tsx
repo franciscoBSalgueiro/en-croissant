@@ -8,12 +8,8 @@ import { useAtom, useAtomValue } from "jotai";
 import { useContext, useState } from "react";
 import { useStore } from "zustand";
 import { Chessground } from "@/chessground/Chessground";
-import {
-  jumpToNextPuzzleAtom,
-  moveHighlightAtom,
-  showCoordinatesAtom,
-} from "@/state/atoms";
-import { chessboard } from "@/styles/Chessboard.css";
+import { jumpToNextPuzzleAtom, moveHighlightAtom, showCoordinatesAtom } from "@/state/atoms";
+import classes from "@/styles/Chessboard.module.css";
 import { positionFromFen } from "@/utils/chessops";
 import type { Completion, Puzzle } from "@/utils/puzzles";
 import { getNodeAtPath, treeIteratorMainLine } from "@/utils/treeReducer";
@@ -29,14 +25,15 @@ function PuzzleBoard({
 }: {
   puzzles: Puzzle[];
   currentPuzzle: number;
-  changeCompletion: (completion: Completion) => void;
-  generatePuzzle: (db: string) => void;
+  changeCompletion: (completion: Completion) => Promise<void>;
+  generatePuzzle: (db: string) => Promise<void>;
   db: string | null;
 }) {
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
   const position = useStore(store, (s) => s.position);
   const moveHighlight = useAtomValue(moveHighlightAtom);
+  const boardShapes = useStore(store, (s) => s.currentNode().shapes);
   const makeMove = useStore(store, (s) => s.makeMove);
   const makeMoves = useStore(store, (s) => s.makeMoves);
   const reset = useForceUpdate();
@@ -71,11 +68,11 @@ function PuzzleBoard({
     : "white";
   const [pendingMove, setPendingMove] = useState<NormalMove | null>(null);
 
-  const dests = chessgroundDests(pos!);
+  const dests = pos ? chessgroundDests(pos) : new Map();
   const turn = pos?.turn || "white";
   const showCoordinates = useAtomValue(showCoordinatesAtom);
 
-  function checkMove(move: Move) {
+  async function checkMove(move: Move) {
     if (!pos) return;
     if (!puzzle) return;
 
@@ -86,12 +83,14 @@ function PuzzleBoard({
     if (puzzle.moves[currentMove] === uci || newPos.isCheckmate()) {
       if (currentMove === puzzle.moves.length - 1) {
         if (puzzle.completion !== "incorrect") {
-          changeCompletion("correct");
+          await changeCompletion("correct");
         }
         setEnded(false);
 
         if (db && jumpToNextPuzzleImmediately) {
-          generatePuzzle(db);
+          await generatePuzzle(db);
+          reset();
+          return;
         }
       }
       const newMoves = puzzle.moves.slice(currentMove, currentMove + 2);
@@ -107,7 +106,7 @@ function PuzzleBoard({
         changeHeaders: false,
       });
       if (!ended) {
-        changeCompletion("incorrect");
+        await changeCompletion("incorrect");
       }
       setEnded(true);
     }
@@ -119,7 +118,7 @@ function PuzzleBoard({
   return (
     <Box w="100%" h="100%" ref={parentRef}>
       <Box
-        className={chessboard}
+        className={classes.chessboard}
         style={{
           maxWidth: parentHeight,
         }}
@@ -127,9 +126,9 @@ function PuzzleBoard({
         <PromotionModal
           pendingMove={pendingMove}
           cancelMove={() => setPendingMove(null)}
-          confirmMove={(p) => {
+          confirmMove={async (p) => {
             if (pendingMove) {
-              checkMove({ ...pendingMove, promotion: p });
+              await checkMove({ ...pendingMove, promotion: p });
               setPendingMove(null);
             }
           }}
@@ -143,13 +142,17 @@ function PuzzleBoard({
           coordinates={showCoordinates !== "no"}
           coordinatesOnSquares={showCoordinates === "all"}
           orientation={orientation}
+          drawable={{
+            enabled: true,
+            visible: true,
+            autoShapes: boardShapes,
+          }}
           movable={{
             free: false,
             color:
               puzzle &&
               equal(position, Array(currentMove).fill(0)) &&
-              (puzzle.completion === "incomplete" ||
-                puzzle.completion === "incorrect")
+              (puzzle.completion === "incomplete" || puzzle.completion === "incorrect")
                 ? turn
                 : undefined,
             dests: dests,
@@ -160,8 +163,7 @@ function PuzzleBoard({
                 const move: NormalMove = { from, to };
                 if (
                   pos?.board.get(from)?.role === "pawn" &&
-                  ((dest[1] === "8" && turn === "white") ||
-                    (dest[1] === "1" && turn === "black"))
+                  ((dest[1] === "8" && turn === "white") || (dest[1] === "1" && turn === "black"))
                 ) {
                   setPendingMove(move);
                 } else {
@@ -171,9 +173,7 @@ function PuzzleBoard({
             },
           }}
           lastMove={
-            moveHighlight && currentNode.move
-              ? chessgroundMove(currentNode.move)
-              : undefined
+            moveHighlight && currentNode.move ? chessgroundMove(currentNode.move) : undefined
           }
           turnColor={turn}
           fen={currentNode.fen}

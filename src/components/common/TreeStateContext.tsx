@@ -15,9 +15,5 @@ export function TreeStateProvider({
 }) {
   const store = useRef(createTreeStore(id, initial)).current;
 
-  return (
-    <TreeStateContext.Provider value={store}>
-      {children}
-    </TreeStateContext.Provider>
-  );
+  return <TreeStateContext.Provider value={store}>{children}</TreeStateContext.Provider>;
 }

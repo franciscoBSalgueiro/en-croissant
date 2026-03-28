@@ -13,15 +13,11 @@ export default function LogsPanel() {
   const localEngines = (engines ?? [])
     .filter(isLocalEngine)
     .filter((e) => e.loaded);
-  const [engine, setEngine] = useState<LocalEngine | undefined>(
-    localEngines[0],
-  );
+  const [engine, setEngine] = useState<LocalEngine | undefined>(localEngines[0]);
 
   const activeTab = useAtomValue(activeTabAtom);
   const { data, mutate } = useSWR(["logs", engine?.id, activeTab], async () => {
-    return engine
-      ? unwrap(await commands.getEngineLogs(engine.id, activeTab!))
-      : undefined;
+    return engine ? unwrap(await commands.getEngineLogs(engine.id, activeTab!)) : undefined;
   });
 
   return (

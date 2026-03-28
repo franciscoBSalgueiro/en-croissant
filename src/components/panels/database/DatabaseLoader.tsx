@@ -8,31 +8,22 @@ type ProgressPayload = {
   finished: boolean;
 };
 
-function DatabaseLoader({
-  isLoading,
-  tab,
-}: {
-  isLoading: boolean;
-  tab: string | null;
-}) {
+function DatabaseLoader({ isLoading, tab }: { isLoading: boolean; tab: string | null }) {
   const [progress, setProgress] = useState(0);
   const [completed, setCompleted] = useState(false);
 
   useEffect(() => {
     async function getProgress() {
-      const unlisten = await listen<ProgressPayload>(
-        "search_progress",
-        async ({ payload }) => {
-          if (payload.id !== tab) return;
-          if (payload.finished) {
-            setCompleted(true);
-            setProgress(0);
-            unlisten();
-          } else {
-            setProgress(payload.progress);
-          }
-        },
-      );
+      const unlisten = await listen<ProgressPayload>("search_progress", async ({ payload }) => {
+        if (payload.id !== tab) return;
+        if (payload.finished) {
+          setCompleted(true);
+          setProgress(0);
+          unlisten();
+        } else {
+          setProgress(payload.progress);
+        }
+      });
     }
     getProgress();
   }, []);

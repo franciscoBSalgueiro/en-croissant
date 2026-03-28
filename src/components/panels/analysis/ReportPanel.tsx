@@ -1,9 +1,8 @@
 import { Grid, Group, Paper, ScrollArea, Stack, Text } from "@mantine/core";
-import { useToggle } from "@mantine/hooks";
 import { IconZoomCheck } from "@tabler/icons-react";
 import cx from "clsx";
 import equal from "fast-deep-equal";
-import { useAtomValue } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import React, { memo, useCallback, useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
@@ -11,10 +10,10 @@ import { commands } from "@/bindings";
 import EvalChart from "@/components/common/EvalChart";
 import ProgressButton from "@/components/common/ProgressButton";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
-import { activeTabAtom } from "@/state/atoms";
+import { activeTabAtom, currentReportModalOpenAtom } from "@/state/atoms";
 import { ANNOTATION_INFO, isBasicAnnotation } from "@/utils/annotation";
 import { getGameStats, getMainLine } from "@/utils/chess";
-import { label } from "./AnalysisPanel.css";
+import classes from "./AnalysisPanel.module.css";
 import ReportModal from "./ReportModal";
 
 function ReportPanel() {
@@ -24,9 +23,7 @@ function ReportPanel() {
 
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
-  const headers = useStore(store, (s) => s.headers);
-
-  const [reportingMode, toggleReportingMode] = useToggle();
+  const [reportingMode, setReportingMode] = useAtom(currentReportModalOpenAtom);
 
   const inProgress = useStore(store, (s) => s.report.inProgress);
   const setInProgress = useStore(store, (s) => s.setReportInProgress);
@@ -37,6 +34,14 @@ function ReportPanel() {
     commands.cancelAnalysis(`report_${activeTab}`);
   }, [activeTab]);
 
+  const openReportingMode = useCallback(() => {
+    setReportingMode(true);
+  }, [setReportingMode]);
+
+  const closeReportingMode = useCallback(() => {
+    setReportingMode(false);
+  }, [setReportingMode]);
+
   return (
     <ScrollArea offsetScrollbars>
       <ReportModal
@@ -44,7 +49,7 @@ function ReportPanel() {
         initialFen={root.fen}
         moves={getMainLine(root)}
         reportingMode={reportingMode}
-        toggleReportingMode={toggleReportingMode}
+        closeReportingMode={closeReportingMode}
         setInProgress={setInProgress}
       />
       <Stack mb="lg" gap="0.4rem" mr="xs">
@@ -53,7 +58,7 @@ function ReportPanel() {
           redoable
           disabled={root.children.length === 0}
           leftIcon={<IconZoomCheck size="0.875rem" />}
-          onClick={() => toggleReportingMode()}
+          onClick={openReportingMode}
           onCancel={handleCancel}
           initInstalled={false}
           labels={{
@@ -81,10 +86,7 @@ function ReportPanel() {
         )}
 
         <Paper withBorder p="md">
-          <EvalChart
-            isAnalysing={inProgress}
-            startAnalysis={toggleReportingMode}
-          />
+          <EvalChart isAnalysing={inProgress} startAnalysis={openReportingMode} />
         </Paper>
 
         <GameStats {...stats} />
@@ -115,7 +117,7 @@ const GameStats = memo(
               return (
                 <React.Fragment key={annotation}>
                   <Grid.Col
-                    className={cx(w > 0 && label)}
+                    className={cx(w > 0 && classes.label)}
                     span={3}
                     style={{ textAlign: "center" }}
                     c={w > 0 ? color : undefined}
@@ -138,7 +140,7 @@ const GameStats = memo(
                     {translationKey ? t(`Annotate.${translationKey}`) : name}
                   </Grid.Col>
                   <Grid.Col
-                    className={cx(b > 0 && label)}
+                    className={cx(b > 0 && classes.label)}
                     span={3}
                     style={{ textAlign: "center" }}
                     c={b > 0 ? color : undefined}
@@ -165,15 +167,7 @@ const GameStats = memo(
   },
 );
 
-function AccuracyCard({
-  color,
-  cpl,
-  accuracy,
-}: {
-  color: string;
-  cpl: number;
-  accuracy: number;
-}) {
+function AccuracyCard({ color, cpl, accuracy }: { color: string; cpl: number; accuracy: number }) {
   const { t } = useTranslation();
 
   return (

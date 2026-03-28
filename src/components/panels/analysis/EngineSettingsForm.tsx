@@ -157,11 +157,7 @@ function EngineSettingsForm({
       )}
       {!minimal && (
         <Group>
-          <SyncSettings
-            settings={settings}
-            engine={engine.name}
-            setSettings={setSettings}
-          />
+          <SyncSettings settings={settings} engine={engine.name} setSettings={setSettings} />
           <ActionIcon.Group>
             {local && (
               <Tooltip label="Kill engine">

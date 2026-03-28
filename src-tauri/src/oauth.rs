@@ -10,7 +10,7 @@ use std::{
     sync::Arc,
 };
 use tauri::{Emitter, Manager};
-use tauri_plugin_shell::ShellExt;
+use tauri_plugin_opener::OpenerExt;
 
 use crate::{error::Error, AppState};
 
@@ -72,8 +72,7 @@ pub async fn authenticate(
         .add_extra_param("username", username)
         .set_pkce_challenge(state.auth.pkce.0.clone())
         .url();
-    #[allow(deprecated)] // TODO: migrate to tauri-plugin-opener
-    app.shell().open(auth_url, None)?;
+    app.opener().open_url(auth_url.as_str(), None::<&str>)?;
     let _server_handle = tauri::async_runtime::spawn(async move { run_server(app).await });
     Ok(())
 }

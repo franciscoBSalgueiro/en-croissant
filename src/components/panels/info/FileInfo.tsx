@@ -22,8 +22,10 @@ function FileInfo({
     <>
       <Group justify="space-between" py="sm" px="md">
         <Text>
-          {formatNumber(tabFile.numGames || 0)} {t("Files.GameCountSuffix")}
-          {tabFile.numGames === 1 ? "" : "s"}
+          {t("Files.GameCountSuffix", {
+            count: tabFile.numGames ?? 0,
+            number: formatNumber(tabFile.numGames ?? 0),
+          })}
         </Text>
         <Group>
           <Tooltip label={tabFile.path}>
@@ -37,10 +39,7 @@ function FileInfo({
               onClick={() =>
                 commands.countPgnGames(tabFile.path).then((v) => {
                   setCurrentTab((prev) => {
-                    if (
-                      prev.gameOrigin.kind !== "file" &&
-                      prev.gameOrigin.kind !== "temp_file"
-                    ) {
+                    if (prev.gameOrigin.kind !== "file" && prev.gameOrigin.kind !== "temp_file") {
                       return prev;
                     }
                     return {

@@ -12,7 +12,7 @@ import { parsePGN } from "@/utils/chess";
 import { formatNumber } from "@/utils/format";
 import { getGameName } from "@/utils/treeReducer";
 import { unwrap } from "@/utils/unwrap";
-import * as classes from "./GameSelector.css";
+import classes from "./GameSelector.module.css";
 
 export default function GameSelector({
   games,
@@ -37,9 +37,7 @@ export default function GameSelector({
 
   const loadMoreRows = useCallback(
     async (startIndex: number, stopIndex: number) => {
-      const data = unwrap(
-        await commands.readGames(path, startIndex, stopIndex),
-      );
+      const data = unwrap(await commands.readGames(path, startIndex, stopIndex));
       const newGames = new Map(games);
       data.forEach(async (game, index) => {
         const { headers } = await parsePGN(game);

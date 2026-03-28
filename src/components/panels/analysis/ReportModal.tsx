@@ -1,12 +1,4 @@
-import {
-  Button,
-  Checkbox,
-  Group,
-  Modal,
-  NumberInput,
-  Select,
-  Stack,
-} from "@mantine/core";
+import { Button, Checkbox, Group, Modal, NumberInput, Select, Stack } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useAtom, useAtomValue } from "jotai";
 import { atomWithStorage } from "jotai/utils";
@@ -31,14 +23,14 @@ function ReportModal({
   initialFen,
   moves,
   reportingMode,
-  toggleReportingMode,
+  closeReportingMode,
   setInProgress,
 }: {
   tab: string;
   initialFen: string;
   moves: string[];
   reportingMode: boolean;
-  toggleReportingMode: () => void;
+  closeReportingMode: () => void;
   setInProgress: (value: boolean) => void;
 }) {
   const { t } = useTranslation();
@@ -70,8 +62,7 @@ function ReportModal({
     const engine =
       localEngines.length === 0
         ? ""
-        : !reportSettings.engine ||
-            !localEngines.some((l) => l.id === reportSettings.engine)
+        : !reportSettings.engine || !localEngines.some((l) => l.id === reportSettings.engine)
           ? localEngines[0].id
           : reportSettings.engine;
 
@@ -81,7 +72,7 @@ function ReportModal({
   function analyze() {
     setReportSettings(form.values);
     setInProgress(true);
-    toggleReportingMode();
+    closeReportingMode();
     const engine = localEngines.find((e) => e.id === form.values.engine);
     const engineSettings = (engine?.settings ?? []).map((s) => ({
       ...s,
@@ -115,7 +106,7 @@ function ReportModal({
   return (
     <Modal
       opened={reportingMode}
-      onClose={() => toggleReportingMode()}
+      onClose={closeReportingMode}
       title={t("Board.Analysis.GenerateReport")}
     >
       <form onSubmit={form.onSubmit(() => analyze())}>

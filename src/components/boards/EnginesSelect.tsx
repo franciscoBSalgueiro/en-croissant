@@ -15,8 +15,14 @@ export function EnginesSelect({
   const engines = (allEngines ?? []).filter(isLocalEngine);
 
   useEffect(() => {
-    if (engines.length > 0 && engine === null) {
+    if (engines.length === 0) return;
+    if (engine === null) {
       setEngine(engines[0]);
+    } else {
+      const updatedEngine = engines.find((e) => e.id === engine.id);
+      if (updatedEngine && updatedEngine !== engine) {
+        setEngine(updatedEngine);
+      }
     }
   }, [engine, engines, setEngine]);
 

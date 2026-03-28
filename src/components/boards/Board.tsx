@@ -1,12 +1,5 @@
 import type { DrawBrushes, DrawShape } from "@lichess-org/chessground/draw";
-import {
-  ActionIcon,
-  Box,
-  Center,
-  Group,
-  Text,
-  useMantineTheme,
-} from "@mantine/core";
+import { ActionIcon, Box, Center, Group, Text, useMantineTheme } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { IconChevronRight } from "@tabler/icons-react";
 import {
@@ -53,14 +46,10 @@ import {
   snapArrowsAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
-import { chessboard } from "@/styles/Chessboard.css";
+import classes from "@/styles/Chessboard.module.css";
 import { ANNOTATION_INFO, isBasicAnnotation } from "@/utils/annotation";
 import { getVariationLine } from "@/utils/chess";
-import {
-  chessopsError,
-  forceEnPassant,
-  positionFromFen,
-} from "@/utils/chessops";
+import { chessopsError, forceEnPassant, positionFromFen } from "@/utils/chessops";
 import { getTabFile, getTabGameNumber } from "@/utils/tabs";
 import ShowMaterial from "../common/ShowMaterial";
 import { TreeStateContext } from "../common/TreeStateContext";
@@ -152,9 +141,7 @@ function Board({
   const showCoordinates = useAtomValue(showCoordinatesAtom);
   const materialDisplay = useAtomValue(materialDisplayAtom);
 
-  let dests: Map<SquareName, SquareName[]> = pos
-    ? chessgroundDests(pos)
-    : new Map();
+  let dests: Map<SquareName, SquareName[]> = pos ? chessgroundDests(pos) : new Map();
   if (forcedEP && pos) {
     dests = forceEnPassant(dests, pos);
   }
@@ -278,10 +265,7 @@ function Board({
               )
               .otherwise(() => SMALL_BRUSH);
 
-            if (
-              ii === 0 ||
-              (showConsecutiveArrows && j === 0 && ii % 2 === 0)
-            ) {
+            if (ii === 0 || (showConsecutiveArrows && j === 0 && ii % 2 === 0)) {
               if (
                 ii < 5 && // max 3 arrows
                 !shapes.find((s) => s.orig === from && s.dest === to) &&
@@ -313,11 +297,7 @@ function Board({
         const m = child.move as NormalMove;
         const from = makeSquare(m.from);
         const to = makeSquare(m.to);
-        if (
-          from &&
-          to &&
-          !shapes.find((s) => s.orig === from && s.dest === to)
-        ) {
+        if (from && to && !shapes.find((s) => s.orig === from && s.dest === to)) {
           shapes.push({
             orig: from,
             dest: to,
@@ -342,8 +322,7 @@ function Board({
     !!headers.white_time_control ||
     !!headers.black_time_control;
 
-  const practiceLock =
-    !!practicing && !deck.positions.find((c) => c.fen === currentNode.fen);
+  const practiceLock = !!practicing && !deck.positions.find((c) => c.fen === currentNode.fen);
 
   const movableColor: "white" | "black" | "both" | undefined = useMemo(() => {
     return practiceLock
@@ -386,12 +365,8 @@ function Board({
   useHotkeys(keyMap.TOGGLE_EVAL_BAR.keys, () => setEvalOpen((e) => !e));
 
   const square = match(currentNode)
-    .with({ san: "O-O" }, ({ halfMoves }) =>
-      parseSquare(halfMoves % 2 === 1 ? "g1" : "g8"),
-    )
-    .with({ san: "O-O-O" }, ({ halfMoves }) =>
-      parseSquare(halfMoves % 2 === 1 ? "c1" : "c8"),
-    )
+    .with({ san: "O-O" }, ({ halfMoves }) => parseSquare(halfMoves % 2 === 1 ? "g1" : "g8"))
+    .with({ san: "O-O-O" }, ({ halfMoves }) => parseSquare(halfMoves % 2 === 1 ? "c1" : "c8"))
     .otherwise((node) => node.move?.to);
 
   const lastMove =
@@ -421,9 +396,7 @@ function Board({
         >
           <BoardBar
             name={topPlayer}
-            rating={
-              orientation === "white" ? headers.black_elo : headers.white_elo
-            }
+            rating={orientation === "white" ? headers.black_elo : headers.white_elo}
             onNameClick={() => {
               if (orientation === "white") {
                 setBlackFideOpen(true);
@@ -488,12 +461,7 @@ function Board({
                   </ActionIcon>
                 </Center>
               )}
-              {evalOpen && (
-                <EvalBar
-                  score={currentNode.score || null}
-                  orientation={orientation}
-                />
-              )}
+              {evalOpen && <EvalBar score={currentNode.score || null} orientation={orientation} />}
             </Box>
             <Box
               style={
@@ -504,7 +472,7 @@ function Board({
                     }
                   : undefined
               }
-              className={chessboard}
+              className={classes.chessboard}
               ref={boardRef}
               onClick={() => {
                 eraseDrawablesOnClick && clearShapes();
@@ -632,9 +600,7 @@ function Board({
           </Group>
           <BoardBar
             name={bottomPlayer}
-            rating={
-              orientation === "white" ? headers.white_elo : headers.black_elo
-            }
+            rating={orientation === "white" ? headers.white_elo : headers.black_elo}
             onNameClick={() => {
               if (orientation === "white") {
                 setWhiteFideOpen(true);
@@ -652,32 +618,15 @@ function Board({
 
             {moveInput && <MoveInput currentNode={currentNode} />}
 
-            <ShowMaterial
-              fen={currentNode.fen}
-              color={orientation}
-              mode={materialDisplay}
-            />
+            <ShowMaterial fen={currentNode.fen} color={orientation} mode={materialDisplay} />
             {hasClock && (
-              <Clock
-                color={orientation}
-                turn={turn}
-                whiteTime={whiteTime}
-                blackTime={blackTime}
-              />
+              <Clock color={orientation} turn={turn} whiteTime={whiteTime} blackTime={blackTime} />
             )}
           </BoardBar>
         </Box>
       </Box>
-      <FideInfo
-        opened={whiteFideOpen}
-        setOpened={setWhiteFideOpen}
-        name={headers.white}
-      />
-      <FideInfo
-        opened={blackFideOpen}
-        setOpened={setBlackFideOpen}
-        name={headers.black}
-      />
+      <FideInfo opened={whiteFideOpen} setOpened={setWhiteFideOpen} name={headers.white} />
+      <FideInfo opened={blackFideOpen} setOpened={setBlackFideOpen} name={headers.black} />
     </>
   );
 }

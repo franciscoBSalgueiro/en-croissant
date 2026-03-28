@@ -1,0 +1,9 @@
+.whiteClock {
+  color: var(--mantine-color-black);
+  background-color: var(--mantine-color-gray-2);
+}
+
+.blackClock {
+  color: var(--mantine-color-white);
+  background-color: var(--mantine-color-dark-6);
+}

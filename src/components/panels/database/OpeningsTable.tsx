@@ -8,14 +8,9 @@ import { moveNotationTypeAtom } from "@/state/atoms";
 import { addPieceSymbol } from "@/utils/annotation";
 import type { Opening } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
+import classes from "./OpeningsTable.module.css";
 
-function OpeningsTable({
-  openings,
-  loading,
-}: {
-  openings: Opening[];
-  loading: boolean;
-}) {
+function OpeningsTable({ openings, loading }: { openings: Opening[]; loading: boolean }) {
   const store = useContext(TreeStateContext)!;
   const makeMove = useStore(store, (s) => s.makeMove);
   const [moveNotationType] = useAtom(moveNotationTypeAtom);
@@ -65,9 +60,7 @@ function OpeningsTable({
                 </Text>
               );
             return (
-              <Text fz="sm">
-                {moveNotationType === "symbols" ? addPieceSymbol(move) : move}
-              </Text>
+              <Text fz="sm">{moveNotationType === "symbols" ? addPieceSymbol(move) : move}</Text>
             );
           },
         },
@@ -79,9 +72,7 @@ function OpeningsTable({
             const percentage = (total / grandTotal) * 100;
             return (
               <Group>
-                {move !== "Total" && (
-                  <Text fz="sm">{percentage.toFixed(0)}%</Text>
-                )}
+                {move !== "Total" && <Text fz="sm">{percentage.toFixed(0)}%</Text>}
                 <Text fz="sm" flex={1} ta="right">
                   {formatNumber(total)}
                 </Text>
@@ -97,8 +88,8 @@ function OpeningsTable({
             const drawPercent = (draw / total) * 100;
             const blackPercent = (black / total) * 100;
             return (
-              <Progress.Root size="xl">
-                <Progress.Section value={whitePercent} color="white">
+              <Progress.Root size="xl" className={classes.result}>
+                <Progress.Section value={whitePercent} className={classes.whiteResultsSection}>
                   <Progress.Label c="black">
                     {whitePercent > 10 ? `${whitePercent.toFixed(1)}%` : ""}
                   </Progress.Label>

@@ -2,6 +2,7 @@ import {
   Accordion,
   ActionIcon,
   Box,
+  Divider,
   Group,
   ScrollArea,
   Stack,
@@ -11,7 +12,7 @@ import {
 import { useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
-import { useContext, useMemo, useState } from "react";
+import { use, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
@@ -23,21 +24,23 @@ import { currentTabAtom } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { parsePGN } from "@/utils/chess";
 import { formatNumber } from "@/utils/format";
-import { getTreeStats } from "@/utils/repertoire";
 import { getTabFile, getTabGameNumber } from "@/utils/tabs";
-import { getNodeAtPath } from "@/utils/treeReducer";
 import { unwrap } from "@/utils/unwrap";
 import FenSearch from "./FenSearch";
 import FileInfo from "./FileInfo";
 import GameSelector from "./GameSelector";
+import classes from "./InfoPanel.module.css";
 import PgnInput from "./PgnInput";
+import { getStats } from "@/utils/repertoire";
+import useSWR from "swr";
+import { getDatabases } from "@/utils/db";
+import { useNavigate } from "@tanstack/react-router";
+import { useActiveDatabaseViewStore } from "@/state/store/database";
 
 function InfoPanel({ addGame }: { addGame?: () => void }) {
-  const store = useContext(TreeStateContext)!;
-  const root = useStore(store, (s) => s.root);
-  const position = useStore(store, (s) => s.position);
+  const store = use(TreeStateContext)!;
+  const stats = useStore(store, getStats);
   const headers = useStore(store, (s) => s.headers);
-  const currentNode = getNodeAtPath(root, position);
   const [games, setGames] = useState<Map<number, string>>(new Map());
   const currentTab = useAtomValue(currentTabAtom);
   const tabFile = getTabFile(currentTab);
@@ -46,18 +49,15 @@ function InfoPanel({ addGame }: { addGame?: () => void }) {
 
   const { t } = useTranslation();
 
-  const stats = useMemo(() => getTreeStats(root), [root]);
-
   return (
-    <Stack h="100%" pl="sm" pt="sm">
-      <GameSelectorAccordion
-        games={games}
-        setGames={setGames}
-        addGame={addGame}
-      />
-      <ScrollArea offsetScrollbars>
+    <Stack h="100%" gap={0}>
+      {currentTab?.gameOrigin.kind === "database" && (
+        <DatabaseInfo path={currentTab.gameOrigin.database} id={currentTab.gameOrigin.gameId} />
+      )}
+      <GameSelectorAccordion games={games} setGames={setGames} addGame={addGame} />
+      <ScrollArea pb="sm">
         <FileInfo setGames={setGames} />
-        <Stack>
+        <Stack px="sm">
           <GameInfo
             headers={headers}
             simplified={isReportoire}
@@ -69,22 +69,60 @@ function InfoPanel({ addGame }: { addGame?: () => void }) {
               });
             }}
           />
-          <FenSearch currentFen={currentNode.fen} />
+          <FenSearch />
           <PgnInput />
 
           <Group>
-            <Text>
+            <Text fz="xs" c="dimmed">
               {t("PgnInput.Variations")}: {stats.leafs}
             </Text>
-            <Text>
+            <Text fz="xs" c="dimmed">
               {t("PgnInput.MaxDepth")}: {stats.depth}
             </Text>
-            <Text>
+            <Text fz="xs" c="dimmed">
               {t("PgnInput.TotalMoves")}: {stats.total}
             </Text>
           </Group>
         </Stack>
       </ScrollArea>
+    </Stack>
+  );
+}
+
+function DatabaseInfo({ path, id: _id }: { path: string; id: number }) {
+  const { t } = useTranslation();
+  const { data: databases, isLoading } = useSWR("databases", () => getDatabases());
+
+  const dbInfo = databases?.find((db) => db.file === path);
+  const navigate = useNavigate();
+  const setActiveDatabase = useActiveDatabaseViewStore((store) => store.setDatabase);
+
+  if (isLoading || !dbInfo || dbInfo.type !== "success") {
+    return null;
+  }
+  return (
+    <Stack gap={0}>
+      <Box
+        className={classes.databaseCard}
+        onClick={async () => {
+          await navigate({
+            to: "/databases/$databaseId",
+            params: {
+              databaseId: dbInfo.title,
+            },
+          });
+          setActiveDatabase(dbInfo);
+        }}
+      >
+        <Text tt="uppercase" c="dimmed" fw={700} size="xs">
+          {t("Board.Tabs.Database")}
+        </Text>
+        <Text fw="bold">{dbInfo.title}</Text>
+        <Text size="xs" c="dimmed">
+          {dbInfo.description}
+        </Text>
+      </Box>
+      <Divider />
     </Stack>
   );
 }
@@ -98,7 +136,7 @@ function GameSelectorAccordion({
   setGames: React.Dispatch<React.SetStateAction<Map<number, string>>>;
   addGame?: () => void;
 }) {
-  const store = useContext(TreeStateContext)!;
+  const store = use(TreeStateContext)!;
   const dirty = useStore(store, (s) => s.dirty);
   const setState = useStore(store, (s) => s.setState);
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
@@ -117,20 +155,16 @@ function GameSelectorAccordion({
     keyMap.NEXT_GAME.keys,
     () => {
       if (!tabFile?.numGames) return;
-      setPage(Math.min(gameNumber + 1, tabFile.numGames - 1));
+      void setPage(Math.min(gameNumber + 1, tabFile.numGames - 1));
     },
     {
       enabled: !!tabFile,
     },
   );
 
-  useHotkeys(
-    keyMap.PREVIOUS_GAME.keys,
-    () => setPage(Math.max(0, gameNumber - 1)),
-    {
-      enabled: !!tabFile,
-    },
-  );
+  useHotkeys(keyMap.PREVIOUS_GAME.keys, () => setPage(Math.max(0, gameNumber - 1)), {
+    enabled: !!tabFile,
+  });
 
   if (!tabFile) return null;
   const filePath = tabFile.path;
@@ -147,10 +181,7 @@ function GameSelectorAccordion({
     setState(tree);
 
     setCurrentTab((prev) => {
-      if (
-        prev.gameOrigin.kind !== "file" &&
-        prev.gameOrigin.kind !== "temp_file"
-      ) {
+      if (prev.gameOrigin.kind !== "file" && prev.gameOrigin.kind !== "temp_file") {
         return prev;
       }
       return {
@@ -166,10 +197,7 @@ function GameSelectorAccordion({
   async function deleteGame(index: number) {
     await commands.deleteGame(filePath, index);
     setCurrentTab((prev) => {
-      if (
-        prev.gameOrigin.kind !== "file" &&
-        prev.gameOrigin.kind !== "temp_file"
-      ) {
+      if (prev.gameOrigin.kind !== "file" && prev.gameOrigin.kind !== "temp_file") {
         return prev;
       }
       return {
@@ -192,10 +220,17 @@ function GameSelectorAccordion({
         opened={confirmChanges}
         toggle={toggleConfirmChanges}
         closeTab={() => {
-          setPage(tempPage, true);
+          void setPage(tempPage, true);
         }}
       />
-      <Accordion pr="sm">
+      <Accordion
+        styles={{
+          control: {
+            borderBottom: "1px solid var(--mantine-color-default-border)",
+          },
+          content: { padding: 0 },
+        }}
+      >
         <Accordion.Item value="game">
           <Accordion.Control>
             <Group justify="space-between" wrap="nowrap" w="100%">

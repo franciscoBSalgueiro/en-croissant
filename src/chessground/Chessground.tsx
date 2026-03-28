@@ -3,19 +3,10 @@ import type { Api } from "@lichess-org/chessground/api";
 import type { Config } from "@lichess-org/chessground/config";
 import { Box } from "@mantine/core";
 import { useAtomValue } from "jotai";
-import {
-  type Ref,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-  useState,
-} from "react";
+import { type Ref, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { boardImageAtom, moveMethodAtom } from "@/state/atoms";
 
-const BOARD_COORDINATE_COLORS: Record<
-  string,
-  { white: string; black: string }
-> = {
+const BOARD_COORDINATE_COLORS: Record<string, { white: string; black: string }> = {
   blue: { white: "#dee3e6", black: "#788a94" },
   blue2: { white: "#97b2c7", black: "#546f82" },
   blue3: { white: "#d9e0e6", black: "#315991" },

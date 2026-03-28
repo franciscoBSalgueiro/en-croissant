@@ -26,7 +26,7 @@ use diesel::{
     sql_query,
     sql_types::Text,
 };
-use pgn_reader::{Nag, RawTag, Reader, SanPlus, Skip, Visitor};
+use pgn_reader::{BufferedReader, Nag, RawTag, Reader, SanPlus, Skip, Visitor};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
@@ -36,7 +36,7 @@ use specta::Type;
 use std::{
     fs::{remove_file, File, OpenOptions},
     ops::ControlFlow,
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::atomic::{AtomicUsize, Ordering},
     time::{Duration, Instant},
 };
@@ -523,7 +523,7 @@ impl Visitor for Importer {
 #[tauri::command]
 #[specta::specta]
 pub async fn convert_pgn(
-    file: PathBuf,
+    files: Vec<PathBuf>,
     db_path: PathBuf,
     timestamp: Option<i32>,
     app: tauri::AppHandle,
@@ -531,8 +531,11 @@ pub async fn convert_pgn(
     description: Option<String>,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
+    if files.is_empty() {
+        return Ok(());
+    }
+
     let description = description.unwrap_or_default();
-    let extension = file.extension();
 
     let db_exists = db_path.exists();
 
@@ -559,37 +562,55 @@ pub async fn convert_pgn(
         )?;
     }
 
-    let file = File::open(&file)?;
-
-    let uncompressed: Box<dyn std::io::Read + Send> = if extension == Some("bz2".as_ref()) {
-        Box::new(bzip2::read::MultiBzDecoder::new(file))
-    } else if extension == Some("zst".as_ref()) {
-        Box::new(zstd::Decoder::new(file)?)
-    } else {
-        Box::new(file)
-    };
-
     // start counting time
     let start = Instant::now();
 
-    let mut importer = Importer::new(timestamp.map(|t| t as i64));
-    let mut reader = Reader::new(uncompressed);
-    
-    db.transaction::<_, diesel::result::Error, _>(|db| {
-        let mut i = 0;
-        while let Ok(Some(result)) = reader.read_game(&mut importer) {
-            // Continue if the visitor did not return Some(game)
-            if let Some(game) = result {
-                if i % 1000 == 0 {
+    let mut imported_games = 0usize;
+
+    for file_path in files {
+        let current_file_name = file_path
+            .file_name()
+            .map(|name| name.to_string_lossy().into_owned());
+        let extension = file_path.extension();
+        let file = File::open(&file_path)?;
+
+        let uncompressed: Box<dyn std::io::Read + Send> = if extension == Some("bz2".as_ref()) {
+            Box::new(bzip2::read::MultiBzDecoder::new(file))
+        } else if extension == Some("zst".as_ref()) {
+            Box::new(zstd::Decoder::new(file)?)
+        } else {
+            Box::new(file)
+        };
+
+        let mut importer = Importer::new(timestamp.map(|t| t as i64));
+        let mut file_imported_games = 0usize;
+
+        db.transaction::<_, diesel::result::Error, _>(|db| {
+            for game in BufferedReader::new(uncompressed)
+                .into_iter(&mut importer)
+                .flatten()
+                .flatten()
+            {
+                if (imported_games + file_imported_games).is_multiple_of(1000) {
                     let elapsed = start.elapsed().as_millis() as u32;
-                    app.emit("convert_progress", (i, elapsed)).unwrap();
+                    app.emit(
+                        "convert_progress",
+                        (
+                            imported_games + file_imported_games,
+                            elapsed,
+                            current_file_name.clone(),
+                        ),
+                    )
+                    .unwrap();
                 }
                 game.insert_to_db(db)?;
-                i += 1;
+                file_imported_games += 1;
             }
-        }
-        Ok(())
-    })?;
+            Ok(())
+        })?;
+
+        imported_games += file_imported_games;
+    }
 
     if !db_exists {
         // Create all the necessary indexes
@@ -622,7 +643,7 @@ pub async fn convert_pgn(
 }
 
 pub fn generate_search_index(
-    db_path: &PathBuf,
+    db_path: &Path,
     state: &tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
     let db = &mut get_db_or_create(
@@ -1929,7 +1950,7 @@ pub async fn preload_reference_db(
                 *cache = Some(index);
             }
             Err(e) => {
-                return Err(Error::Io(e));
+                return Err(Error::from(e));
             }
         }
     }

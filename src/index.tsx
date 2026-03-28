@@ -21,32 +21,42 @@ import tr_TR from "./translation/tr-TR.json";
 import uk_UA from "./translation/uk-UA.json";
 import zh_CN from "./translation/zh-CN.json";
 import zh_TW from "./translation/zh-TW.json";
+import { setAutoFreeze } from "immer";
+import LanguageDetector from "i18next-browser-languagedetector";
 
-i18n.use(initReactI18next).init({
-  resources: {
-    "en-US": en_US,
-    "en-GB": en_GB,
-    "pt-PT": pt_PT,
-    "zh-CN": zh_CN,
-    "ru-RU": ru_RU,
-    "uk-UA": uk_UA,
-    "be-BY": be_BY,
-    "nb-NO": nb_NO,
-    "pl-PL": pl_PL,
-    "es-ES": es_ES,
-    "it-IT": it_IT,
-    "fr-FR": fr_FR,
-    "tr-TR": tr_TR,
-    "ko-KR": ko_KR,
-    "zh-TW": zh_TW,
-    "de-DE": de_DE,
-  },
-  lng: localStorage.getItem("lang") || "en-US",
-  fallbackLng: "en-US",
-  returnEmptyString: false,
-});
+i18n
+  .use(LanguageDetector)
+  .use(initReactI18next)
+  .init({
+    resources: {
+      "en-US": en_US,
+      "en-GB": en_GB,
+      "pt-PT": pt_PT,
+      "zh-CN": zh_CN,
+      "ru-RU": ru_RU,
+      "uk-UA": uk_UA,
+      "be-BY": be_BY,
+      "nb-NO": nb_NO,
+      "pl-PL": pl_PL,
+      "es-ES": es_ES,
+      "it-IT": it_IT,
+      "fr-FR": fr_FR,
+      "tr-TR": tr_TR,
+      "ko-KR": ko_KR,
+      "zh-TW": zh_TW,
+      "de-DE": de_DE,
+    },
+    detection: {
+      order: ["localStorage"],
+      caches: ["localStorage"],
+    },
+    fallbackLng: "en-US",
+    returnEmptyString: false,
+  });
 
 dayjs.extend(customParseFormat);
+
+setAutoFreeze(false);
 
 const container = document.getElementById("app");
 const root = createRoot(container!);

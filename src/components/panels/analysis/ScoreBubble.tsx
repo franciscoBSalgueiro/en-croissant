@@ -1,7 +1,7 @@
 import { Box, Progress, Text } from "@mantine/core";
 import type { Score } from "@/bindings";
 import { formatScore } from "@/utils/score";
-import * as classes from "./ScoreBubble.css";
+import classes from "./ScoreBubble.module.css";
 
 function ScoreBubble({
   size,
@@ -61,8 +61,7 @@ function ScoreBubble({
     <Box
       onClick={() => setEvalDisplay("wdl")}
       style={(theme) => ({
-        backgroundColor:
-          score.value.value >= 0 ? theme.colors.gray[0] : theme.colors.dark[9],
+        backgroundColor: score.value.value >= 0 ? theme.colors.gray[0] : theme.colors.dark[9],
         textAlign: "center",
         padding: "0.15rem",
         borderRadius: theme.radius.sm,

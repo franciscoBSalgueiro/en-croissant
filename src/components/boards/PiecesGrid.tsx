@@ -27,8 +27,7 @@ function PiecesGrid({
       {COLORS.map((color) =>
         ROLES.map((role) => {
           const piece = { role, color };
-          const isSelected =
-            selectedPiece?.role === role && selectedPiece?.color === color;
+          const isSelected = selectedPiece?.role === role && selectedPiece?.color === color;
           return (
             <Piece
               key={role + color}

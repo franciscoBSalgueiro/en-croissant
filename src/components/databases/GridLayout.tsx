@@ -1,6 +1,6 @@
 import { Box, Group } from "@mantine/core";
 import type { ReactNode } from "react";
-import * as classes from "./GridLayout.css";
+import classes from "./GridLayout.module.css";
 
 function GridLayout({
   search,

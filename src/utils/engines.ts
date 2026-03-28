@@ -2,12 +2,7 @@ import { fetch } from "@tauri-apps/plugin-http";
 import type { Platform } from "@tauri-apps/plugin-os";
 import useSWR from "swr";
 import { z } from "zod";
-import {
-  type BestMoves,
-  commands,
-  type EngineOptions,
-  type GoMode,
-} from "@/bindings";
+import { type BestMoves, commands, type EngineOptions, type GoMode } from "@/bindings";
 import { unwrap } from "./unwrap";
 
 const goModeSchema: z.ZodType<GoMode> = z.union([
@@ -27,12 +22,13 @@ const goModeSchema: z.ZodType<GoMode> = z.union([
     t: z.literal("Infinite"),
   }),
 ]);
+export const requiredEngineSettings = ["MultiPV", "Threads", "Hash"];
 
 const engineSettingsSchema = z.array(
-  z.object({
-    name: z.string(),
-    value: z.string().or(z.number()).or(z.boolean()).nullable(),
-  }),
+    z.object({
+        name: z.string(),
+        value: z.string().or(z.number()).or(z.boolean()).nullable(),
+    }),
 );
 
 export type EngineSettings = z.infer<typeof engineSettingsSchema>;
@@ -106,52 +102,46 @@ export const engineSchema = z.preprocess((val) => {
 export type Engine = z.output<typeof engineSchema>;
 
 export function stopEngine(engine: LocalEngine, tab: string): Promise<void> {
-  return commands.stopEngine(engine.id, tab).then((r) => {
-    unwrap(r);
-  });
+    return commands.stopEngine(engine.id, tab).then((r) => {
+        unwrap(r);
+    });
 }
 
 export function killEngine(engine: LocalEngine, tab: string): Promise<void> {
-  return commands.killEngine(engine.id, tab).then((r) => {
-    unwrap(r);
-  });
+    return commands.killEngine(engine.id, tab).then((r) => {
+        unwrap(r);
+    });
 }
 
 export function getBestMoves(
-  engine: LocalEngine,
-  tab: string,
-  goMode: GoMode,
-  options: EngineOptions,
+    engine: LocalEngine,
+    tab: string,
+    goMode: GoMode,
+    options: EngineOptions,
 ): Promise<[number, BestMoves[]] | null> {
-  return commands
-    .getBestMoves(engine.id, engine.path, tab, goMode, options)
-    .then((r) => unwrap(r));
+    return commands
+        .getBestMoves(engine.id, engine.path, tab, goMode, options)
+        .then((r) => unwrap(r));
 }
 
 export function useDefaultEngines(os: Platform | undefined, opened: boolean) {
-  const { data, error, isLoading } = useSWR(
-    opened ? os : null,
-    async (os: Platform) => {
-      const bmi2: boolean = await commands.isBmi2Compatible();
-      const data = await fetch(
-        `https://www.encroissant.org/engines?os=${os}&bmi2=${bmi2}`,
-        {
-          method: "GET",
-        },
-      );
-      if (!data.ok) {
-        throw new Error("Failed to fetch engines");
-      }
-      return (await data.json()).filter(
-        (e: { os: Platform; bmi2: boolean }) => e.os === os && e.bmi2 === bmi2,
-      );
-    },
-  );
-  return {
-    defaultEngines: data as LocalEngine[],
-    error,
-    isLoading,
-  };
+    const { data, error, isLoading } = useSWR(opened ? os : null, async (os: Platform) => {
+        const bmi2: boolean = await commands.isBmi2Compatible();
+        const data = await fetch(`https://www.encroissant.org/engines?os=${os}&bmi2=${bmi2}`, {
+            method: "GET",
+        });
+        if (!data.ok) {
+            throw new Error("Failed to fetch engines");
+        }
+        return (await data.json()).filter(
+            (e: { os: Platform; bmi2: boolean }) => e.os === os && e.bmi2 === bmi2,
+        );
+    });
+    return {
+        defaultEngines: data as LocalEngine[],
+        error,
+        isLoading,
+    };
 }
 export function isLocalEngine(engine: Engine): engine is LocalEngine {
   return engine.type === "local";

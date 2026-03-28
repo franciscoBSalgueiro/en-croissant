@@ -11,8 +11,9 @@ import {
 import { Notifications } from "@mantine/notifications";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { getMatches } from "@tauri-apps/plugin-cli";
+import { listen } from "@tauri-apps/api/event";
 import { attachConsole, error, info, warn } from "@tauri-apps/plugin-log";
-import { getDefaultStore, useAtom, useAtomValue } from "jotai";
+import { getDefaultStore, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { ContextMenuProvider } from "mantine-contextmenu";
 import posthog from "posthog-js";
 import { useEffect, useRef } from "react";
@@ -20,6 +21,7 @@ import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import {
   activeTabAtom,
+  databaseConversionStateAtom,
   fontSizeAtom,
   pieceSetAtom,
   primaryColorAtom,
@@ -59,12 +61,7 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check } from "@tauri-apps/plugin-updater";
 import ErrorComponent from "@/components/ErrorComponent";
-import {
-  getDatabasesDir,
-  getDocumentDir,
-  getEnginesDir,
-  getPuzzlesDir,
-} from "@/utils/directories";
+import { getDatabasesDir, getDocumentDir, getEnginesDir, getPuzzlesDir } from "@/utils/directories";
 import { initUserAgent } from "@/utils/http";
 import { routeTree } from "./routeTree.gen";
 
@@ -136,9 +133,7 @@ const checkForUpdates = async () => {
   }
 };
 
-const preloadReferenceDb = async (
-  store: ReturnType<typeof getDefaultStore>,
-) => {
+const preloadReferenceDb = async (store: ReturnType<typeof getDefaultStore>) => {
   const referenceDb = store.get(referenceDbAtom);
   if (referenceDb) {
     info(`Preloading reference database: ${referenceDb}`);
@@ -214,12 +209,34 @@ export default function App() {
   const pieceSet = useAtomValue(pieceSetAtom);
   const fontSize = useAtomValue(fontSizeAtom);
   const spellCheck = useAtomValue(spellCheckAtom);
+  const setDatabaseConversionState = useSetAtom(databaseConversionStateAtom);
 
   useAppStartup();
 
   useEffect(() => {
     document.documentElement.style.fontSize = `${fontSize}%`;
   }, [fontSize]);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+
+    void listen<[number, number, string | null]>("convert_progress", (event) => {
+      const [totalGames, elapsedMs, sourceFileName] = event.payload;
+      setDatabaseConversionState((prev) => ({
+        ...prev,
+        inProgress: true,
+        totalGames,
+        elapsedSeconds: elapsedMs / 1000,
+        sourceFileName: sourceFileName ?? prev.sourceFileName,
+      }));
+    }).then((fn) => {
+      unlisten = fn;
+    });
+
+    return () => {
+      unlisten?.();
+    };
+  }, [setDatabaseConversionState]);
 
   const theme = createTheme({
     primaryColor,

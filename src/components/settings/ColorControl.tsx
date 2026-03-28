@@ -1,10 +1,4 @@
-import {
-  CheckIcon,
-  ColorSwatch,
-  Group,
-  Input,
-  useMantineTheme,
-} from "@mantine/core";
+import { CheckIcon, ColorSwatch, Group, Input, useMantineTheme } from "@mantine/core";
 import { useColorScheme } from "@mantine/hooks";
 import { useAtom } from "jotai";
 import { primaryColorAtom } from "@/state/atoms";
@@ -16,9 +10,7 @@ export default function ColorControl() {
 
   const colors = Object.keys(theme.colors).map((color) => (
     <ColorSwatch
-      color={
-        colorScheme === "dark" ? theme.colors[color][7] : theme.colors[color][5]
-      }
+      color={colorScheme === "dark" ? theme.colors[color][7] : theme.colors[color][5]}
       component="button"
       key={color}
       onClick={() => setPrimaryColor(color)}

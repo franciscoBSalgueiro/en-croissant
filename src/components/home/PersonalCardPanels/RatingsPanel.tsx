@@ -17,16 +17,13 @@ import {
   linearGradientProps,
   tooltipContentStyle,
   tooltipCursorStyle,
-} from "./RatingsPanel.css";
+} from "./RatingsPanel.styles";
 import ResultsChart from "./ResultsChart";
 import TimeControlSelector from "./TimeControlSelector";
 import TimeRangeSlider from "./TimeRangeSlider";
 import WebsiteAccountSelector from "./WebsiteAccountSelector";
 
-function calculateEarliestDate(
-  dateRange: DateRange,
-  ratingDates: number[],
-): number {
+function calculateEarliestDate(dateRange: DateRange, ratingDates: number[]): number {
   const lastDate = ratingDates[ratingDates.length - 1];
   switch (dateRange) {
     case DateRange.SevenDays:
@@ -67,14 +64,10 @@ function RatingsPanel({
         today,
         ...info.site_stats_data
           .filter((games) => !website || games.site === website)
-          .filter(
-            (games) => account === "All accounts" || games.player === account,
-          )
+          .filter((games) => account === "All accounts" || games.player === account)
           .flatMap((games) => games.data)
           .filter(
-            (game) =>
-              !timeControl ||
-              getTimeControl(website, game.time_control) === timeControl,
+            (game) => !timeControl || getTimeControl(website, game.time_control) === timeControl,
           )
           .map((game) => new Date(game.date).getTime()),
       ]),
@@ -95,33 +88,22 @@ function RatingsPanel({
     const filteredGames =
       info.site_stats_data
         .filter((games) => !website || games.site === website)
-        .filter(
-          (games) => account === "All accounts" || games.player === account,
-        )
+        .filter((games) => account === "All accounts" || games.player === account)
         .flatMap((games) => games.data)
         .filter(
-          (game) =>
-            !timeControl ||
-            getTimeControl(website!, game.time_control) === timeControl,
+          (game) => !timeControl || getTimeControl(website!, game.time_control) === timeControl,
         )
         .filter((game) => {
           const gameDate = new Date(game.date).getTime();
           return (
-            gameDate >= (dates[timeRange.start] || 0) &&
-            gameDate <= (dates[timeRange.end] || 0)
+            gameDate >= (dates[timeRange.start] || 0) && gameDate <= (dates[timeRange.end] || 0)
           );
         }) ?? [];
 
     const totalGamesCount = filteredGames.length;
-    const wonCount = filteredGames.filter(
-      (game) => game.result === "Won",
-    ).length;
-    const drawCount = filteredGames.filter(
-      (game) => game.result === "Drawn",
-    ).length;
-    const lostCount = filteredGames.filter(
-      (game) => game.result === "Lost",
-    ).length;
+    const wonCount = filteredGames.filter((game) => game.result === "Won").length;
+    const drawCount = filteredGames.filter((game) => game.result === "Drawn").length;
+    const lostCount = filteredGames.filter((game) => game.result === "Lost").length;
 
     const ratingData = (() => {
       const map = new Map<number, { date: number; player_elo: number }>();
@@ -183,12 +165,7 @@ function RatingsPanel({
       {dates.length > 1 && (
         <>
           {summary.games > 0 && (
-            <ResultsChart
-              won={summary.won}
-              draw={summary.draw}
-              lost={summary.lost}
-              size="2rem"
-            />
+            <ResultsChart won={summary.won} draw={summary.draw} lost={summary.lost} size="2rem" />
           )}
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={ratingData}>

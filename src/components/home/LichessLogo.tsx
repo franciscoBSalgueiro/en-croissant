@@ -1,12 +1,8 @@
-import { logo } from "./LichessLogo.css";
+import classes from "./LichessLogo.module.css";
 
 function LichessLogo() {
   return (
-    <svg
-      viewBox="0 0 50 50"
-      xmlns="http://www.w3.org/2000/svg"
-      className={logo}
-    >
+    <svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg" className={classes.logo}>
       <title>Lichess</title>
       <path
         strokeLinejoin="round"

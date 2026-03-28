@@ -84,9 +84,7 @@ function BoardControls({
   }
 
   const takeSnapshot = async () => {
-    const snapshotTarget = document.querySelector(
-      ".cg-wrap",
-    ) as HTMLElement | null;
+    const snapshotTarget = document.querySelector(".cg-wrap") as HTMLElement | null;
     if (!snapshotTarget) return;
 
     domtoimage.toBlob(snapshotTarget).then(async (blob) => {
@@ -148,20 +146,13 @@ function BoardControls({
       {(!disableVariations || allowEditing) && (
         <Tooltip position="right" label={t("Board.Action.EditPosition")}>
           <ActionIcon onClick={() => toggleEditingMode()}>
-            {editingMode ? (
-              <IconEditOff size="1.2rem" />
-            ) : (
-              <IconEdit size="1.2rem" />
-            )}
+            {editingMode ? <IconEditOff size="1.2rem" /> : <IconEdit size="1.2rem" />}
           </ActionIcon>
         </Tooltip>
       )}
 
       {saveFile && (
-        <Tooltip
-          position="right"
-          label={t("Board.Action.SavePGN", { key: keyMap.SAVE_FILE.keys })}
-        >
+        <Tooltip position="right" label={t("Board.Action.SavePGN", { key: keyMap.SAVE_FILE.keys })}>
           <ActionIcon
             onClick={() => saveFile()}
             variant={dirty && !autoSave ? "default" : "transparent"}

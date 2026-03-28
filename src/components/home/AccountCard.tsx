@@ -19,6 +19,7 @@ import {
   IconRefresh,
   IconTrash,
 } from "@tabler/icons-react";
+import { basename } from "@tauri-apps/api/path";
 import { resolve } from "@tauri-apps/api/path";
 import { info } from "@tauri-apps/plugin-log";
 import { useAtom } from "jotai";
@@ -26,7 +27,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { DatabaseInfo } from "@/bindings";
 import { commands, events } from "@/bindings";
-import { storedDatabasesDirAtom } from "@/state/atoms";
+import { databaseConversionStateAtom, storedDatabasesDirAtom } from "@/state/atoms";
 import { downloadChessCom } from "@/utils/chess.com/api";
 import { getDatabases, query_games } from "@/utils/db";
 import { capitalize } from "@/utils/format";
@@ -84,12 +85,7 @@ export function AccountCard({
         </Text>
         <Group gap={4}>
           {stat.diff !== undefined && stat.diff !== 0 && (
-            <Badge
-              color={color}
-              variant="light"
-              size="xs"
-              leftSection={<DiffIcon size="0.8rem" />}
-            >
+            <Badge color={color} variant="light" size="xs" leftSection={<DiffIcon size="0.8rem" />}>
               {Math.abs(stat.diff)}
             </Badge>
           )}
@@ -103,6 +99,7 @@ export function AccountCard({
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
   const [databaseDir] = useAtom(storedDatabasesDirAtom);
+  const [, setConversionState] = useAtom(databaseConversionStateAtom);
 
   async function convert(filepath: string, timestamp: number | null) {
     info(`converting ${filepath} ${timestamp}`);
@@ -114,9 +111,17 @@ export function AccountCard({
         .pop()
         ?.replace(".pgn", ".db3")}`,
     );
+    const sourceFileName = await basename(filepath);
+    setConversionState((prev) => ({
+      ...prev,
+      inProgress: true,
+      targetDatabasePath: dbPath,
+      targetDatabaseTitle: filename,
+      sourceFileName,
+    }));
     unwrap(
       await commands.convertPgn(
-        filepath,
+        [filepath],
         dbPath,
         timestamp ? timestamp / 1000 : null,
         filename,
@@ -147,13 +152,10 @@ export function AccountCard({
     };
   }, [setDatabases]);
 
-  const downloadedGames =
-    database?.type === "success" ? database.game_count : 0;
+  const downloadedGames = database?.type === "success" ? database.game_count : 0;
   const effectiveTotal = Math.max(total, downloadedGames);
   const percentage =
-    effectiveTotal === 0
-      ? "0.00"
-      : ((downloadedGames / effectiveTotal) * 100).toFixed(2);
+    effectiveTotal === 0 ? "0.00" : ((downloadedGames / effectiveTotal) * 100).toFixed(2);
 
   async function getLastGameDate({ database }: { database: DatabaseInfo }) {
     const games = await query_games(database.file, {
@@ -197,11 +199,7 @@ export function AccountCard({
           </Group>
           <Group gap={4}>
             <Tooltip label={t("Home.Accounts.UpdateStats")}>
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                onClick={() => reload()}
-              >
+              <ActionIcon variant="subtle" color="gray" onClick={() => reload()}>
                 <IconRefresh size="1rem" />
               </ActionIcon>
             </Tooltip>
@@ -213,9 +211,7 @@ export function AccountCard({
                 disabled={loading}
                 onClick={async () => {
                   setLoading(true);
-                  const lastGameDate = database
-                    ? await getLastGameDate({ database })
-                    : null;
+                  const lastGameDate = database ? await getLastGameDate({ database }) : null;
                   if (type === "lichess") {
                     await downloadLichess(
                       title,
@@ -234,6 +230,16 @@ export function AccountCard({
                     await commands.deleteEmptyGames(dbPath);
                   } catch (e) {
                     console.error(e);
+                  } finally {
+                    setConversionState((prev) => ({
+                      ...prev,
+                      inProgress: false,
+                      totalGames: 0,
+                      elapsedSeconds: 0,
+                      targetDatabasePath: null,
+                      targetDatabaseTitle: null,
+                      sourceFileName: null,
+                    }));
                   }
                   setLoading(false);
                 }}

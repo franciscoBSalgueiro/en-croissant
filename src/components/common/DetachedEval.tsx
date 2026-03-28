@@ -1,16 +1,5 @@
-import {
-  ActionIcon,
-  Group,
-  Paper,
-  Text,
-  Tooltip,
-  useMantineTheme,
-} from "@mantine/core";
-import {
-  IconPinnedOff,
-  IconPlayerPause,
-  IconPlayerPlay,
-} from "@tabler/icons-react";
+import { ActionIcon, Group, Paper, Text, Tooltip, useMantineTheme } from "@mantine/core";
+import { IconPinnedOff, IconPlayerPause, IconPlayerPlay } from "@tabler/icons-react";
 import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import { useAtom, useAtomValue } from "jotai";
@@ -34,9 +23,7 @@ import ScoreBubble from "../panels/analysis/ScoreBubble";
 import { TreeStateContext } from "./TreeStateContext";
 
 function DetachedEval() {
-  const [detachedEngineId, setDetachedEngineId] = useAtom(
-    currentDetachedEngineAtom,
-  );
+  const [detachedEngineId, setDetachedEngineId] = useAtom(currentDetachedEngineAtom);
   const engines = useAtomValue(enginesAtom);
 
   if (!detachedEngineId || !engines) return null;
@@ -89,12 +76,7 @@ const DetachedEvalInner = memo(function DetachedEvalInner({
     }),
   );
 
-  const ev = useAtomValue(
-    engineMovesFamily({ engine: engineId, tab: activeTab! }),
-  );
-  const progress = useAtomValue(
-    engineProgressFamily({ engine: engineId, tab: activeTab! }),
-  );
+  const ev = useAtomValue(engineMovesFamily({ engine: engineId, tab: activeTab! }));
 
   const [pos] = positionFromFen(rootFen);
   if (pos) {
@@ -124,8 +106,7 @@ const DetachedEvalInner = memo(function DetachedEvalInner({
     ),
   );
 
-  const hasData =
-    engineVariations && engineVariations.length > 0 && !isGameOver;
+  const hasData = engineVariations && engineVariations.length > 0 && !isGameOver;
   const topLine = hasData ? engineVariations[0] : null;
 
   return (

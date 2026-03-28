@@ -119,10 +119,10 @@ impl EngineProcess {
         Ok(())
     }
 
-    async fn set_position(&mut self, fen: &str, moves: &Vec<String>) -> Result<(), Error> {
+    async fn set_position(&mut self, fen: &str, moves: &[String]) -> Result<(), Error> {
         self.base.set_position(fen, moves).await?;
         self.options.fen = fen.to_string();
-        self.options.moves = moves.clone();
+        self.options.moves = moves.to_owned();
         Ok(())
     }
 
@@ -193,7 +193,7 @@ fn invert_score(score: Score) -> Score {
 fn parse_uci_attrs(
     attrs: Vec<UciInfoAttribute>,
     fen: &Fen,
-    moves: &Vec<String>,
+    moves: &[String],
 ) -> Result<BestMoves, Error> {
     let mut best_moves = BestMoves::default();
 
@@ -499,7 +499,6 @@ pub async fn analyze_game(
     let fen = Fen::from_ascii(options.fen.as_bytes())?;
     let setup = fen.as_setup().clone();
     let castling_mode = CastlingMode::detect(&setup);
-    println!("Castling mode: {:?}", castling_mode);
 
     let mut chess: Chess = setup.position(castling_mode)?;
     let mut fens: Vec<(Fen, Vec<String>, bool)> = vec![(fen, vec![], false)];

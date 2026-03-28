@@ -124,7 +124,7 @@ impl SearchIndex {
         writer.write_all(&VERSION.to_le_bytes())?;
 
         let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(self).map_err(|e| {
-            io::Error::new(io::ErrorKind::Other, format!("Serialization error: {}", e))
+            io::Error::other(format!("Serialization error: {}", e))
         })?;
 
         writer.write_all(&bytes)?;
@@ -259,7 +259,7 @@ impl MmapSearchIndex {
     }
 
     #[allow(dead_code)]
-    pub fn iter(&self) -> impl Iterator<Item = SearchGameEntryRef<'_>> + ExactSizeIterator {
+    pub fn iter(&self) -> impl ExactSizeIterator {
         self.archived.entries.iter().map(SearchGameEntryRef::from)
     }
 

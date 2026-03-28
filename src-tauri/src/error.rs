@@ -4,52 +4,52 @@ use specta::Type;
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
-    Io(#[from] std::io::Error),
+    Io(Box<std::io::Error>),
 
     #[error(transparent)]
-    Zip(#[from] zip::result::ZipError),
+    Zip(Box<zip::result::ZipError>),
 
     #[error(transparent)]
-    ParseInt(#[from] std::num::ParseIntError),
+    ParseInt(Box<std::num::ParseIntError>),
 
     #[error(transparent)]
-    Tauri(#[from] tauri::Error),
+    Tauri(Box<tauri::Error>),
 
     #[error(transparent)]
-    TauriShell(#[from] tauri_plugin_shell::Error),
+    TauriOpener(Box<tauri_plugin_opener::Error>),
 
     #[error(transparent)]
-    Reqwest(#[from] reqwest::Error),
+    Reqwest(Box<reqwest::Error>),
 
     #[error(transparent)]
-    ChessPosition(#[from] shakmaty::PositionError<Chess>),
+    ChessPosition(Box<shakmaty::PositionError<Chess>>),
 
     #[error(transparent)]
-    IllegalUciMove(#[from] shakmaty::uci::IllegalUciMoveError),
+    IllegalUciMove(Box<shakmaty::uci::IllegalUciMoveError>),
 
     #[error(transparent)]
-    ParseUciMove(#[from] shakmaty::uci::ParseUciMoveError),
+    ParseUciMove(Box<shakmaty::uci::ParseUciMoveError>),
 
     #[error(transparent)]
-    Fen(#[from] shakmaty::fen::ParseFenError),
+    Fen(Box<shakmaty::fen::ParseFenError>),
 
     #[error(transparent)]
-    ParseSan(#[from] shakmaty::san::ParseSanError),
+    ParseSan(Box<shakmaty::san::ParseSanError>),
 
     #[error(transparent)]
-    IllegalSan(#[from] shakmaty::san::SanError),
+    IllegalSan(Box<shakmaty::san::SanError>),
 
     #[error(transparent)]
     Maia(#[from] maia_rust::Error),
 
     #[error(transparent)]
-    Diesel(#[from] diesel::result::Error),
+    Diesel(Box<diesel::result::Error>),
 
     #[error(transparent)]
-    R2d2(#[from] diesel::r2d2::PoolError),
+    R2d2(Box<diesel::r2d2::PoolError>),
 
     #[error(transparent)]
-    SystemTime(#[from] std::time::SystemTimeError),
+    SystemTime(Box<std::time::SystemTimeError>),
 
     #[error("No stdin")]
     NoStdin,
@@ -95,6 +95,96 @@ pub enum Error {
 
     #[error("Analysis cancelled")]
     AnalysisCancelled,
+}
+
+impl From<std::io::Error> for Error {
+    fn from(value: std::io::Error) -> Self {
+        Self::Io(Box::new(value))
+    }
+}
+
+impl From<zip::result::ZipError> for Error {
+    fn from(value: zip::result::ZipError) -> Self {
+        Self::Zip(Box::new(value))
+    }
+}
+
+impl From<std::num::ParseIntError> for Error {
+    fn from(value: std::num::ParseIntError) -> Self {
+        Self::ParseInt(Box::new(value))
+    }
+}
+
+impl From<tauri::Error> for Error {
+    fn from(value: tauri::Error) -> Self {
+        Self::Tauri(Box::new(value))
+    }
+}
+
+impl From<tauri_plugin_opener::Error> for Error {
+    fn from(value: tauri_plugin_opener::Error) -> Self {
+        Self::TauriOpener(Box::new(value))
+    }
+}
+
+impl From<reqwest::Error> for Error {
+    fn from(value: reqwest::Error) -> Self {
+        Self::Reqwest(Box::new(value))
+    }
+}
+
+impl From<shakmaty::PositionError<Chess>> for Error {
+    fn from(value: shakmaty::PositionError<Chess>) -> Self {
+        Self::ChessPosition(Box::new(value))
+    }
+}
+
+impl From<shakmaty::uci::IllegalUciMoveError> for Error {
+    fn from(value: shakmaty::uci::IllegalUciMoveError) -> Self {
+        Self::IllegalUciMove(Box::new(value))
+    }
+}
+
+impl From<shakmaty::uci::ParseUciMoveError> for Error {
+    fn from(value: shakmaty::uci::ParseUciMoveError) -> Self {
+        Self::ParseUciMove(Box::new(value))
+    }
+}
+
+impl From<shakmaty::fen::ParseFenError> for Error {
+    fn from(value: shakmaty::fen::ParseFenError) -> Self {
+        Self::Fen(Box::new(value))
+    }
+}
+
+impl From<shakmaty::san::ParseSanError> for Error {
+    fn from(value: shakmaty::san::ParseSanError) -> Self {
+        Self::ParseSan(Box::new(value))
+    }
+}
+
+impl From<shakmaty::san::SanError> for Error {
+    fn from(value: shakmaty::san::SanError) -> Self {
+        Self::IllegalSan(Box::new(value))
+    }
+}
+
+impl From<diesel::result::Error> for Error {
+    fn from(value: diesel::result::Error) -> Self {
+        Self::Diesel(Box::new(value))
+    }
+}
+
+impl From<diesel::r2d2::PoolError> for Error {
+    fn from(value: diesel::r2d2::PoolError) -> Self {
+        Self::R2d2(Box::new(value))
+    }
+}
+
+impl From<std::time::SystemTimeError> for Error {
+    fn from(value: std::time::SystemTimeError) -> Self {
+        Self::SystemTime(Box::new(value))
+    }
 }
 
 impl serde::Serialize for Error {

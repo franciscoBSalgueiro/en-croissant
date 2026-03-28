@@ -1301,10 +1301,8 @@ async fn game_loop(
             }
 
             _ = move_notify_rx.recv() => {
-                if engine_task.is_none() {
-                    if maybe_start_engine(&controller, &engine_task).await {
-                        engine_task = Some(spawn_engine_task(&game_id, &controller, &app));
-                    }
+                if engine_task.is_none() && maybe_start_engine(&controller, &engine_task).await {
+                    engine_task = Some(spawn_engine_task(&game_id, &controller, &app));
                 }
             }
 

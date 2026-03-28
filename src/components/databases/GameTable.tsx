@@ -31,7 +31,7 @@ import GameCard from "./GameCard";
 import GridLayout from "./GridLayout";
 import { PlayerSearchInput } from "./PlayerSearchInput";
 import { SideInput } from "./SideInput";
-import * as classes from "./styles.css";
+import classes from "./styles.module.css";
 
 function GameTable() {
   const { t } = useTranslation();
@@ -41,10 +41,7 @@ function GameTable() {
   const query = useStore(store, (s) => s.games.query);
   const setQuery = useStore(store, (s) => s.setGamesQuery);
   const openedSettings = useStore(store, (s) => s.games.isFilterExpanded);
-  const toggleOpenedSettings = useStore(
-    store,
-    (s) => s.toggleGamesOpenedSettings,
-  );
+  const toggleOpenedSettings = useStore(store, (s) => s.toggleGamesOpenedSettings);
 
   const selectedGame = useStore(store, (s) => s.games.selectedGame);
   const setSelectedGame = useStore(store, (s) => s.setGamesSelectedGame);
@@ -54,9 +51,8 @@ function GameTable() {
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
 
-  const { data, error, isLoading, mutate } = useSWR(
-    ["games", file, query],
-    () => query_games(file, query),
+  const { data, error, isLoading, mutate } = useSWR(["games", file, query], () =>
+    query_games(file, query),
   );
 
   const games = data?.data ?? [];
@@ -105,7 +101,7 @@ function GameTable() {
                     label="Player"
                   />
                 }
-                label="Player"
+                label={t("Common.Search")}
                 file={file}
               />
               <PlayerSearchInput
@@ -118,7 +114,7 @@ function GameTable() {
                     label="Opponent"
                   />
                 }
-                label="Opponent"
+                label={t("Common.Search")}
                 file={file}
               />
             </Group>
@@ -136,9 +132,7 @@ function GameTable() {
                         { value: 3000, label: "3000" },
                       ]}
                       value={query.range1 ?? undefined}
-                      onChangeEnd={(value) =>
-                        setQuery({ ...query, range1: value })
-                      }
+                      onChangeEnd={(value) => setQuery({ ...query, range1: value })}
                     />
                   </InputWrapper>
 
@@ -153,9 +147,7 @@ function GameTable() {
                         { value: 3000, label: "3000" },
                       ]}
                       value={query.range2 ?? undefined}
-                      onChangeEnd={(value) =>
-                        setQuery({ ...query, range2: value })
-                      }
+                      onChangeEnd={(value) => setQuery({ ...query, range2: value })}
                     />
                   </InputWrapper>
                 </Group>
@@ -182,17 +174,11 @@ function GameTable() {
                     placeholder="Start date"
                     clearable
                     valueFormat="YYYY-MM-DD"
-                    value={
-                      query.start_date
-                        ? dayjs(query.start_date, "YYYY.MM.DD").toDate()
-                        : null
-                    }
+                    value={query.start_date ? dayjs(query.start_date, "YYYY.MM.DD").toDate() : null}
                     onChange={(value) =>
                       setQuery({
                         ...query,
-                        start_date: value
-                          ? dayjs(value).format("YYYY.MM.DD")
-                          : undefined,
+                        start_date: value ? dayjs(value).format("YYYY.MM.DD") : undefined,
                       })
                     }
                   />
@@ -201,17 +187,11 @@ function GameTable() {
                     placeholder="End date"
                     clearable
                     valueFormat="YYYY-MM-DD"
-                    value={
-                      query.end_date
-                        ? dayjs(query.end_date, "YYYY.MM.DD").toDate()
-                        : null
-                    }
+                    value={query.end_date ? dayjs(query.end_date, "YYYY.MM.DD").toDate() : null}
                     onChange={(value) =>
                       setQuery({
                         ...query,
-                        end_date: value
-                          ? dayjs(value).format("YYYY.MM.DD")
-                          : undefined,
+                        end_date: value ? dayjs(value).format("YYYY.MM.DD") : undefined,
                       })
                     }
                   />
@@ -219,10 +199,7 @@ function GameTable() {
               </Stack>
             </Collapse>
           </Box>
-          <ActionIcon
-            style={{ flexGrow: 0 }}
-            onClick={() => toggleOpenedSettings()}
-          >
+          <ActionIcon style={{ flexGrow: 0 }} onClick={() => toggleOpenedSettings()}>
             <IconDotsVertical size="1rem" />
           </ActionIcon>
         </Flex>
@@ -332,9 +309,7 @@ function GameTable() {
         />
       }
       preview={
-        selectedGame !== undefined &&
-        selectedGame !== null &&
-        games[selectedGame] ? (
+        selectedGame !== undefined && selectedGame !== null && games[selectedGame] ? (
           <GameCard game={games[selectedGame]} file={file} mutate={mutate} />
         ) : (
           <Center h="100%">

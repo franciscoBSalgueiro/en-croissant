@@ -2,11 +2,7 @@ import { Switch } from "@mantine/core";
 import { type PrimitiveAtom, useAtom } from "jotai";
 import { useTranslation } from "react-i18next";
 
-export default function SettingsSwitch({
-  atom,
-}: {
-  atom: PrimitiveAtom<boolean>;
-}) {
+export default function SettingsSwitch({ atom }: { atom: PrimitiveAtom<boolean> }) {
   const { t } = useTranslation();
   const [checked, setChecked] = useAtom(atom);
   return (
