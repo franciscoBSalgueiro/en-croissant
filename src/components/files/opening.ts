@@ -10,9 +10,9 @@ const params = generatorParameters({ enable_fuzz: true });
 const f = fsrs(params);
 
 export const positionSchema = z.object({
-  fen: z.string(),
-  answer: z.string(),
-  card: z.looseObject({}),
+    fen: z.string(),
+    answer: z.string(),
+    card: z.looseObject({}),
 });
 
 export type Position = {

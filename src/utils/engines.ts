@@ -9,21 +9,21 @@ export const MAIA_ELO_MIN = 600;
 export const MAIA_ELO_MAX = 2600;
 
 const goModeSchema: z.ZodType<GoMode> = z.union([
-  z.object({
-    t: z.literal("Depth"),
-    c: z.number(),
-  }),
-  z.object({
-    t: z.literal("Time"),
-    c: z.number(),
-  }),
-  z.object({
-    t: z.literal("Nodes"),
-    c: z.number(),
-  }),
-  z.object({
-    t: z.literal("Infinite"),
-  }),
+    z.object({
+        t: z.literal("Depth"),
+        c: z.number(),
+    }),
+    z.object({
+        t: z.literal("Time"),
+        c: z.number(),
+    }),
+    z.object({
+        t: z.literal("Nodes"),
+        c: z.number(),
+    }),
+    z.object({
+        t: z.literal("Infinite"),
+    }),
 ]);
 export const requiredEngineSettings = ["MultiPV", "Threads", "Hash"];
 
@@ -37,72 +37,69 @@ const engineSettingsSchema = z.array(
 export type EngineSettings = z.infer<typeof engineSettingsSchema>;
 
 const localEngineBaseSchema = z.object({
-  type: z.literal("local"),
-  id: z.string().default(() => crypto.randomUUID()),
-  name: z.string(),
-  version: z.string(),
-  path: z.string(),
-  image: z.string().nullish(),
-  elo: z.number().nullish(),
-  downloadSize: z.number().nullish(),
-  downloadLink: z.string().nullish(),
-  loaded: z.boolean().nullish(),
-  enabled: z.boolean().nullish(),
-  settings: engineSettingsSchema.nullish(),
+    type: z.literal("local"),
+    id: z.string().default(() => crypto.randomUUID()),
+    name: z.string(),
+    version: z.string(),
+    path: z.string(),
+    image: z.string().nullish(),
+    elo: z.number().nullish(),
+    downloadSize: z.number().nullish(),
+    downloadLink: z.string().nullish(),
+    loaded: z.boolean().nullish(),
+    enabled: z.boolean().nullish(),
+    settings: engineSettingsSchema.nullish(),
 });
 
 const localUciEngineSchema = z.object({
-  ...localEngineBaseSchema.shape,
-  runtime: z.literal("uci"),
-  go: goModeSchema.optional(),
+    ...localEngineBaseSchema.shape,
+    runtime: z.literal("uci"),
+    go: goModeSchema.optional(),
 });
 export type LocalUciEngine = z.output<typeof localUciEngineSchema>;
 const localMaiaEngineSchema = z.object({
-  ...localEngineBaseSchema.shape,
-  runtime: z.literal("maia"),
-  elo: z.number().min(MAIA_ELO_MIN).max(MAIA_ELO_MAX).nullish(),
-  showInDatabase: z.boolean().nullish(),
-  // maia does not support time control. Put empty field here to make accessing localEngine's goMode when needed easier.
-  // Also in case future ONNX models supports time control
-  go: z.undefined(),
+    ...localEngineBaseSchema.shape,
+    runtime: z.literal("maia"),
+    elo: z.number().min(MAIA_ELO_MIN).max(MAIA_ELO_MAX).nullish(),
+    showInDatabase: z.boolean().nullish(),
+    // maia does not support time control. Put empty field here to make accessing localEngine's goMode when needed easier.
+    // Also in case future ONNX models supports time control
+    go: z.undefined(),
 });
 export type LocalMaiaEngine = z.output<typeof localMaiaEngineSchema>;
 
 const localEngineSchema = z.discriminatedUnion("runtime", [
-  localUciEngineSchema,
-  localMaiaEngineSchema,
+    localUciEngineSchema,
+    localMaiaEngineSchema,
 ]);
 export type LocalEngine = z.output<typeof localEngineSchema>;
 
 const remoteEngineSchema = z.object({
-  type: z.enum(["chessdb", "lichess"]),
-  id: z.string().default(() => crypto.randomUUID()),
-  name: z.string(),
-  url: z.string(),
-  image: z.string().nullish(),
-  loaded: z.boolean().nullish(),
-  enabled: z.boolean().nullish(),
-  go: goModeSchema.optional(),
-  settings: engineSettingsSchema.nullish(),
+    type: z.enum(["chessdb", "lichess"]),
+    id: z.string().default(() => crypto.randomUUID()),
+    name: z.string(),
+    url: z.string(),
+    image: z.string().nullish(),
+    loaded: z.boolean().nullish(),
+    enabled: z.boolean().nullish(),
+    go: goModeSchema.optional(),
+    settings: engineSettingsSchema.nullish(),
 });
 
 export type RemoteEngine = z.output<typeof remoteEngineSchema>;
 
-const rawEngineSchema = z.discriminatedUnion("type", [
-  localEngineSchema,
-  remoteEngineSchema,
-]);
+const rawEngineSchema = z.discriminatedUnion("type", [localEngineSchema, remoteEngineSchema]);
 export const engineSchema = z.preprocess((val) => {
-  if (!val || typeof val !== "object" || Array.isArray(val)) {
-    return val;
-  }
-  const processed = { ...val } as Record<string, any>;
-  // Migration logic: default to 'uci' for old local engine missing 'runtime'
-  if (processed.type === "local" && !("runtime" in processed)) {
-    processed.runtime = "uci";
-  }
+    if (!val || typeof val !== "object" || Array.isArray(val)) {
+        return val;
+    }
+    const processed = { ...val } as Record<string, any>;
+    // Migration logic: default to 'uci' for old local engine missing 'runtime'
+    if (processed.type === "local" && !("runtime" in processed)) {
+        processed.runtime = "uci";
+    }
 
-  return processed;
+    return processed;
 }, rawEngineSchema);
 export type Engine = z.output<typeof engineSchema>;
 
@@ -165,12 +162,12 @@ export function useDefaultEngines(os: Platform | undefined, opened: boolean) {
     };
 }
 export function isLocalEngine(engine: Engine): engine is LocalEngine {
-  return engine.type === "local";
+    return engine.type === "local";
 }
 export function isUciEngine(engine: LocalEngine): engine is LocalUciEngine {
-  return engine.runtime === "uci";
+    return engine.runtime === "uci";
 }
 
 export function isMaiaEngine(engine: LocalEngine): engine is LocalMaiaEngine {
-  return engine.runtime === "maia";
+    return engine.runtime === "maia";
 }

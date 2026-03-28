@@ -40,9 +40,7 @@ export default function EngineForm({
   const config = useRef<{ name: string; options: UciOptionConfig[] } | null>(null);
 
   const binaryFilters = match({ os, runtime })
-    .with({ runtime: "maia" }, () => [
-      { name: "Maia Model", extensions: ["onnx"] },
-    ])
+    .with({ runtime: "maia" }, () => [{ name: "Maia Model", extensions: ["onnx"] }])
     .with({ os: "windows", runtime: "uci" }, () => [
       { name: "Executable Files", extensions: ["exe"] },
     ])
@@ -135,15 +133,9 @@ export default function EngineForm({
         />
 
         <FileInput
-          label={
-            runtime === "maia"
-              ? t("Engines.Add.OnnxFile")
-              : t("Engines.Add.BinaryFile")
-          }
+          label={runtime === "maia" ? t("Engines.Add.OnnxFile") : t("Engines.Add.BinaryFile")}
           description={
-            runtime === "maia"
-              ? t("Engines.Add.OnnxFile.Desc")
-              : t("Engines.Add.BinaryFile.Desc")
+            runtime === "maia" ? t("Engines.Add.OnnxFile.Desc") : t("Engines.Add.BinaryFile.Desc")
           }
           filename={form.values.path}
           withAsterisk

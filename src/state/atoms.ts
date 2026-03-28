@@ -1,11 +1,6 @@
 import type { MantineColor } from "@mantine/core";
 import { resolve } from "@tauri-apps/api/path";
-import {
-  exists,
-  mkdir,
-  readTextFile,
-  writeTextFile,
-} from "@tauri-apps/plugin-fs";
+import { exists, mkdir, readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { warn } from "@tauri-apps/plugin-log";
 import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
@@ -40,20 +35,20 @@ import type { Session } from "../utils/session";
 import { createAsyncZodStorage, createZodStorage } from "./utils";
 
 const zodArray = <Input, Output>(itemSchema: z.ZodType<Output, Input>) => {
-  const catchValue = {} as never;
+    const catchValue = {} as never;
 
-  const res = z
-    .array(
-      itemSchema.catch((ctx) => {
-        // Log the actual Zod error here
-        warn(`Dropped invalid item: ${JSON.stringify(ctx.value)}`);
-        return catchValue;
-      }),
-    )
-    .transform((a) => a.filter((o): o is Output => o !== catchValue))
-    .catch([]);
+    const res = z
+        .array(
+            itemSchema.catch((ctx) => {
+                // Log the actual Zod error here
+                warn(`Dropped invalid item: ${JSON.stringify(ctx.value)}`);
+                return catchValue;
+            }),
+        )
+        .transform((a) => a.filter((o): o is Output => o !== catchValue))
+        .catch([]);
 
-  return res as z.ZodType<Output[], Input[]>;
+    return res as z.ZodType<Output[], Input[]>;
 };
 
 // Tabs
@@ -477,7 +472,7 @@ export const currentGameIdAtom = tabValue(gameIdFamily);
 // Practice
 
 const reviewLogSchema = z.looseObject({
-  fen: z.string(),
+    fen: z.string(),
 });
 
 const practiceDataSchema = z.object({
@@ -592,7 +587,8 @@ export const bestMovesFamily = atomFamily(
                     const settingsAtom = tabEngineSettingsFamily({
                         tab,
                         engineId: engine.id,
-                        defaultSettings: engine.type === "local" ? engine.settings || [] : undefined,
+                        defaultSettings:
+                            engine.type === "local" ? engine.settings || [] : undefined,
                         defaultGo: engine.go ?? undefined,
                     });
                     const multipvSetting = get(settingsAtom).settings.find(

@@ -189,8 +189,7 @@ export default function EnginesPage() {
           </Paper>
         ) : (
           <Paper withBorder style={{ borderWidth: 2 }} p="md" h="100%">
-            {selectedEngine.type === "local" &&
-            selectedEngine.runtime === "uci" ? (
+            {selectedEngine.type === "local" && selectedEngine.runtime === "uci" ? (
               <EngineSettings selected={selected} setSelected={setSelected} />
             ) : (
               <Stack>
@@ -209,9 +208,8 @@ export default function EnginesPage() {
                   }}
                 />
 
-                {selectedEngine.type === "local" &&
-                  selectedEngine.runtime === "maia" && (
-                    <>
+                {selectedEngine.type === "local" && selectedEngine.runtime === "maia" && (
+                  <>
                     <NumberInput
                       w="50%"
                       label={t("Engines.Settings.DefaultMaiaElo")}
@@ -225,8 +223,7 @@ export default function EnginesPage() {
                             typeof value === "number"
                               ? Math.max(MAIA_ELO_MIN, Math.min(MAIA_ELO_MAX, value))
                               : 1500;
-                          (copy[selected] as LocalEngine).elo =
-                            nextElo;
+                          (copy[selected] as LocalEngine).elo = nextElo;
                           return copy;
                         });
                       }}
@@ -245,13 +242,10 @@ export default function EnginesPage() {
                         });
                       }}
                     />
-                    </>
-                  )}
+                  </>
+                )}
 
-                <Divider
-                  variant="dashed"
-                  label={t("Engines.Settings.AdvancedSettings")}
-                />
+                <Divider variant="dashed" label={t("Engines.Settings.AdvancedSettings")} />
                 <Stack w="50%">
                   <Text fw="bold">{t("Engines.Settings.NumOfLines")}</Text>
                   <LinesSlider
@@ -266,7 +260,9 @@ export default function EnginesPage() {
                         const copy = [...(await prev)];
                         const engine = copy[selected];
                         const settings = engine.settings ?? [];
-                        const settingIndex = settings.findIndex((setting) => setting.name === "MultiPV");
+                        const settingIndex = settings.findIndex(
+                          (setting) => setting.name === "MultiPV",
+                        );
                         const nextSettings =
                           settingIndex >= 0
                             ? settings.map((setting, index) =>
@@ -475,14 +471,8 @@ function EngineSettings({
         </Group>
         {isUciEngine(engine) && (
           <>
-            <Divider
-              variant="dashed"
-              label={t("Engines.Settings.SearchSettings")}
-            />
-            <GoModeInput
-              goMode={engine.go}
-              setGoMode={(v) => setEngine({ ...engine, go: v })}
-            />
+            <Divider variant="dashed" label={t("Engines.Settings.SearchSettings")} />
+            <GoModeInput goMode={engine.go} setGoMode={(v) => setEngine({ ...engine, go: v })} />
           </>
         )}
 

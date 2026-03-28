@@ -16,12 +16,7 @@ import useSWRImmutable from "swr/immutable";
 import { commands, type GoMode } from "@/bindings";
 import GoModeInput from "@/components/common/GoModeInput";
 import { activeTabAtom, enginesAtom } from "@/state/atoms";
-import {
-  type Engine,
-  type EngineSettings,
-  isUciEngine,
-  killEngine,
-} from "@/utils/engines";
+import { type Engine, type EngineSettings, isUciEngine, killEngine } from "@/utils/engines";
 import { unwrap } from "@/utils/unwrap";
 import CoresSlider from "./CoresSlider";
 import HashSlider from "./HashSlider";
@@ -68,11 +63,7 @@ function EngineSettingsForm({
 
     if (config?.options) {
       const option = config.options.find((o) => o.value.name === name);
-      if (
-        option &&
-        option.type !== "button" &&
-        option.value.default !== undefined
-      ) {
+      if (option && option.type !== "button" && option.value.default !== undefined) {
         return option.value.default;
       }
     }
@@ -86,9 +77,7 @@ function EngineSettingsForm({
       if (exists) {
         return {
           ...prev,
-          settings: prev.settings.map((o) =>
-            o.name === name ? { ...o, value: newValue } : o,
-          ),
+          settings: prev.settings.map((o) => (o.name === name ? { ...o, value: newValue } : o)),
         };
       }
       return {
@@ -108,11 +97,7 @@ function EngineSettingsForm({
   return (
     <Stack>
       {local && isUciEngine(engine) && (
-        <GoModeInput
-          gameMode={gameMode}
-          goMode={settings.go}
-          setGoMode={setGoMode}
-        />
+        <GoModeInput gameMode={gameMode} goMode={settings.go} setGoMode={setGoMode} />
       )}
 
       {!minimal && (

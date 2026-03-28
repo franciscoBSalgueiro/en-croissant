@@ -12,7 +12,9 @@ export function EnginesSelect({
   setEngine: (engine: LocalEngine | null) => void;
 }) {
   const allEngines = useAtomValue(enginesAtom);
-  const engines = (allEngines ?? []).filter(isLocalEngine).filter((candidate) => !isMaiaEngine(candidate));
+  const engines = (allEngines ?? [])
+    .filter(isLocalEngine)
+    .filter((candidate) => !isMaiaEngine(candidate));
 
   useEffect(() => {
     if (engines.length === 0) {

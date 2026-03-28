@@ -187,7 +187,8 @@ function DatabasePanel() {
     .filter(isLocalEngine)
     .filter(isMaiaEngine)
     .filter((engine) => engine.showInDatabase !== false);
-  const selectedMaiaEngine = maiaEngines.find((engine) => engine.id === maiaEngineId) ?? maiaEngines[0];
+  const selectedMaiaEngine =
+    maiaEngines.find((engine) => engine.id === maiaEngineId) ?? maiaEngines[0];
   const explorerToken = sessions.find((session) => session.lichess?.accessToken)?.lichess
     ?.accessToken;
   const missingExplorerToken = (db === "lch_all" || db === "lch_master") && !explorerToken;

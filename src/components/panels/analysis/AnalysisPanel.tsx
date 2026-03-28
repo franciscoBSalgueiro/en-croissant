@@ -75,7 +75,9 @@ function AnalysisPanel() {
     () => optimisticEngines.filter((e) => e.loaded),
     [optimisticEngines],
   );
-  const enginesWithLogs = loadedEngines.filter((engine) => isLocalEngine(engine) && isUciEngine(engine));
+  const enginesWithLogs = loadedEngines.filter(
+    (engine) => isLocalEngine(engine) && isUciEngine(engine),
+  );
 
   const [, enable] = useAtom(enableAllAtom);
   const allEnabled = useAtomValue(allEnabledAtom);

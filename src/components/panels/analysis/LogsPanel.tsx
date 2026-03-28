@@ -11,7 +11,10 @@ import EngineLogsView from "../../common/EngineLogsView";
 
 export default function LogsPanel() {
   const engines = useAtomValue(enginesAtom);
-  const localEngines = (engines ?? []).filter(isLocalEngine).filter(isUciEngine).filter((e) => e.loaded);
+  const localEngines = (engines ?? [])
+    .filter(isLocalEngine)
+    .filter(isUciEngine)
+    .filter((e) => e.loaded);
   const [engine, setEngine] = useState<LocalEngine | undefined>(localEngines[0]);
   useEffect(() => {
     if (engine && localEngines.some((candidate) => candidate.id === engine.id)) {
