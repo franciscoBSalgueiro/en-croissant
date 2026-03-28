@@ -45,6 +45,8 @@ import {
   type Engine,
   engineSchema,
   isUciEngine,
+  MAIA_ELO_MAX,
+  MAIA_ELO_MIN,
   type LocalEngine,
   type LocalMaiaEngine,
   requiredEngineSettings,
@@ -214,11 +216,17 @@ export default function EnginesPage() {
                       w="50%"
                       label={t("Engines.Settings.DefaultMaiaElo")}
                       value={selectedEngine.elo || 1500}
+                      min={MAIA_ELO_MIN}
+                      max={MAIA_ELO_MAX}
                       onChange={(value) => {
                         setEngines(async (prev) => {
                           const copy = [...(await prev)];
+                          const nextElo =
+                            typeof value === "number"
+                              ? Math.max(MAIA_ELO_MIN, Math.min(MAIA_ELO_MAX, value))
+                              : 1500;
                           (copy[selected] as LocalEngine).elo =
-                            typeof value === "number" ? value : 1500;
+                            nextElo;
                           return copy;
                         });
                       }}

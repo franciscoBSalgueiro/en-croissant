@@ -10,7 +10,7 @@ use crate::{chess::BestMoves, engine::parse_fen_and_apply_moves, error::Error, A
 
 /// Call once at process startup, before any ONNX session is created.
 pub fn init_ort_log_level() {
-    if let Ok(env) = ort::environment::get_environment() {
+    if let Ok(env) = ort::environment::current() {
         env.set_log_level(ort::logging::LogLevel::Warning);
     }
 }

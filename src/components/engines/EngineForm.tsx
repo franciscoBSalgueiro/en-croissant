@@ -14,7 +14,12 @@ import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 import { commands, type UciOptionConfig } from "@/bindings";
-import { requiredEngineSettings, type LocalEngine } from "@/utils/engines";
+import {
+  MAIA_ELO_MAX,
+  MAIA_ELO_MIN,
+  requiredEngineSettings,
+  type LocalEngine,
+} from "@/utils/engines";
 import { usePlatform } from "@/utils/files";
 import { unwrap } from "@/utils/unwrap";
 import FileInput from "../common/FileInput";
@@ -88,10 +93,17 @@ export default function EngineForm({
                   value: o.value.default as string | number | boolean | null,
                 })) ?? [])
             : [];
+        const maiaElo =
+          values.runtime === "maia"
+            ? typeof values.elo === "number"
+              ? Math.max(MAIA_ELO_MIN, Math.min(MAIA_ELO_MAX, values.elo))
+              : 1500
+            : values.elo;
         const submitted: LocalEngine =
           values.runtime === "maia"
             ? {
                 ...values,
+                elo: maiaElo,
                 loaded: true,
                 settings: defaults,
                 showInDatabase: values.showInDatabase !== false,
@@ -148,6 +160,8 @@ export default function EngineForm({
         <NumberInput
           label={runtime === "maia" ? t("Engines.Settings.DefaultMaiaElo") : "Elo"}
           placeholder={t("Engines.Add.Elo.Desc")}
+          min={runtime === "maia" ? MAIA_ELO_MIN : undefined}
+          max={runtime === "maia" ? MAIA_ELO_MAX : undefined}
           {...form.getInputProps("elo")}
         />
 

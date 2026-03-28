@@ -5,6 +5,9 @@ import { z } from "zod";
 import { type BestMoves, commands, type EngineOptions, type GoMode } from "@/bindings";
 import { unwrap } from "./unwrap";
 
+export const MAIA_ELO_MIN = 600;
+export const MAIA_ELO_MAX = 2600;
+
 const goModeSchema: z.ZodType<GoMode> = z.union([
   z.object({
     t: z.literal("Depth"),
@@ -57,6 +60,7 @@ export type LocalUciEngine = z.output<typeof localUciEngineSchema>;
 const localMaiaEngineSchema = z.object({
   ...localEngineBaseSchema.shape,
   runtime: z.literal("maia"),
+  elo: z.number().min(MAIA_ELO_MIN).max(MAIA_ELO_MAX).nullish(),
   showInDatabase: z.boolean().nullish(),
   // maia does not support time control. Put empty field here to make accessing localEngine's goMode when needed easier.
   // Also in case future ONNX models supports time control
@@ -135,7 +139,7 @@ export function getBestMoves(
             tab,
             options.fen,
             options.moves,
-            engine.elo ?? 1500,
+            Math.max(MAIA_ELO_MIN, Math.min(MAIA_ELO_MAX, engine.elo ?? 1500)),
             multipv,
         )
         .then((r) => unwrap(r));
