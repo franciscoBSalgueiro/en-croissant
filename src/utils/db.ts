@@ -41,31 +41,62 @@ function normalizeRange(range?: [number, number] | null): [number, number] | und
     return range;
 }
 
+function build_game_query_for_commands(query: GameQuery): GameQuery {
+    return {
+        player1: query.player1,
+        range1: normalizeRange(query.range1),
+        player2: query.player2,
+        range2: normalizeRange(query.range2),
+        tournament_id: query.tournament_id,
+        sides: query.sides,
+        outcome: query.outcome,
+        start_date: query.start_date,
+        end_date: query.end_date,
+        position: null,
+        options: query.options
+            ? {
+                  skipCount: query.options.skipCount ?? false,
+                  page: query.options.page,
+                  pageSize: query.options.pageSize,
+                  sort: query.options.sort || "id",
+                  direction: query.options.direction || "desc",
+              }
+            : undefined,
+    };
+}
+
 export async function query_games(
     db: string,
     query: GameQuery,
 ): Promise<QueryResponse<NormalizedGame[]>> {
+    return unwrap(await commands.getGames(db, build_game_query_for_commands(query)));
+}
+
+/** Exports every game matching the current filters into a new `.db3` database (same filter semantics as the games table, without pagination). */
+export async function export_filtered_games(
+    db: string,
+    query: GameQuery,
+    destPath: string,
+    title: string,
+): Promise<number> {
     return unwrap(
-        await commands.getGames(db, {
-            player1: query.player1,
-            range1: normalizeRange(query.range1),
-            player2: query.player2,
-            range2: normalizeRange(query.range2),
-            tournament_id: query.tournament_id,
-            sides: query.sides,
-            outcome: query.outcome,
-            start_date: query.start_date,
-            end_date: query.end_date,
-            position: null,
-            options: {
-                skipCount: query.options?.skipCount ?? false,
-                page: query.options?.page,
-                pageSize: query.options?.pageSize,
-                sort: query.options?.sort || "id",
-                direction: query.options?.direction || "desc",
-            },
-        }),
+        await commands.exportFilteredGamesToDatabase(
+            db,
+            build_game_query_for_commands(query),
+            destPath,
+            title,
+        ),
     );
+}
+
+/** Board view: same `GameQuery` as `searchPosition` (includes `position`). */
+export async function export_board_filtered_games(
+    db: string,
+    query: GameQuery,
+    destPath: string,
+    title: string,
+): Promise<number> {
+    return unwrap(await commands.exportFilteredGamesToDatabase(db, query, destPath, title));
 }
 
 export async function query_players(

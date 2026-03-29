@@ -334,6 +334,17 @@ async getGames(file: string, query: GameQuery) : Promise<Result<QueryResponse<No
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * Copies every game matching `query` (ignoring pagination) into a new database file.
+ */
+async exportFilteredGamesToDatabase(source: string, query: GameQuery, destPath: string, title: string) : Promise<Result<number, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("export_filtered_games_to_database", { source, query, destPath, title }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async searchPosition(file: string, query: GameQuery, tabId: string) : Promise<Result<[PositionStats[], NormalizedGame[]], string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("search_position", { file, query, tabId }) };

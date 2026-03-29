@@ -461,6 +461,166 @@ pub async fn search_position(
     Ok((openings, normalized_games))
 }
 
+/// Loads every game row matching the same filters as [`search_position`] (full index scan, not the
+/// top-500 sample). Used when exporting the board database view to a new `.db3` file.
+pub(crate) async fn load_all_games_matching_position_export(
+    file: PathBuf,
+    query: GameQuery,
+    state: &tauri::State<'_, AppState>,
+) -> Result<Vec<(Game, Player, Player, Event, Site)>, Error> {
+    let db = &mut get_db_or_create(state, file.to_str().unwrap(), ConnectionOptions::default())?;
+
+    let collision_lock = {
+        let entry = state
+            .search_collisions
+            .entry((query.clone(), file.clone()))
+            .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())));
+        entry.value().clone()
+    };
+
+    let _guard = collision_lock.lock().await;
+
+    let start = Instant::now();
+    info!("export: loading mmap index for full position match");
+
+    let permit = state.new_request.acquire().await.unwrap();
+
+    let mmap_index = {
+        let mut cache = state.db_cache.lock().unwrap();
+        if cache.is_none() {
+            let index_path = get_index_path(&file);
+
+            if !MmapSearchIndex::is_valid(&index_path) {
+                info!("Search index not found, generating automatically...");
+                drop(cache);
+                if let Err(e) = super::generate_search_index(&file, &state) {
+                    return Err(Error::from(std::io::Error::other(format!(
+                        "Failed to generate search index: {}",
+                        e
+                    ))));
+                }
+                cache = state.db_cache.lock().unwrap();
+            }
+
+            match MmapSearchIndex::open(&index_path) {
+                Ok(index) => {
+                    info!(
+                        "Opened mmap index with {} games: {:?}",
+                        index.len(),
+                        start.elapsed()
+                    );
+                    *cache = Some(index);
+                }
+                Err(e) => {
+                    return Err(Error::from(e));
+                }
+            }
+        }
+        cache.as_ref().unwrap().clone()
+    };
+
+    let parsed_position_query: Option<PositionQuery> = if let Some(pq) = &query.position {
+        Some(convert_position_query(pq.clone())?)
+    } else {
+        return Err(std::io::Error::other("position query required for this export").into());
+    };
+
+    let wanted_result = query.wanted_result.as_ref().and_then(|r| match r.as_str() {
+        "whitewon" => Some(GameResult::WhiteWin),
+        "blackwon" => Some(GameResult::BlackWin),
+        "draw" => Some(GameResult::Draw),
+        _ => None,
+    });
+
+    let matched_ids: Mutex<Vec<i32>> = Mutex::new(Vec::new());
+
+    let process_entry = |entry: SearchGameEntryRef<'_>| {
+        if let Some(white) = query.player1 {
+            if white != entry.white_id {
+                return;
+            }
+        }
+
+        if let Some(black) = query.player2 {
+            if black != entry.black_id {
+                return;
+            }
+        }
+
+        if let Some(wanted) = wanted_result {
+            if entry.result != wanted {
+                return;
+            }
+        }
+
+        if let Some(start_date) = &query.start_date {
+            if let Some(date) = entry.date {
+                if date < start_date.as_str() {
+                    return;
+                }
+            }
+        }
+
+        if let Some(end_date) = &query.end_date {
+            if let Some(date) = entry.date {
+                if date > end_date.as_str() {
+                    return;
+                }
+            }
+        }
+
+        if let Some(position_query) = &parsed_position_query {
+            let end_material: MaterialCount = ByColor {
+                white: entry.white_material,
+                black: entry.black_material,
+            };
+            if position_query.can_reach(&end_material, entry.pawn_home) {
+                if let Ok(Some(_m)) = get_move_after_match(entry.moves, &entry.fen, position_query) {
+                    matched_ids.lock().unwrap().push(entry.id);
+                }
+            }
+        }
+    };
+
+    mmap_index.par_iter().for_each(process_entry);
+
+    let mut ids = matched_ids.into_inner().unwrap();
+    ids.sort_unstable();
+    ids.dedup();
+
+    info!(
+        "export: matched {} games in {:?}",
+        ids.len(),
+        start.elapsed()
+    );
+
+    let file_path = file.clone();
+    state.search_collisions.remove(&(query, file_path));
+
+    drop(permit);
+
+    if ids.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let (white_players, black_players) = diesel::alias!(players as white, players as black);
+    let mut all_games = Vec::with_capacity(ids.len());
+    for chunk in ids.chunks(500) {
+        let chunk_vec: Vec<i32> = chunk.to_vec();
+        let part: Vec<(Game, Player, Player, Event, Site)> = games::table
+            .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
+            .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
+            .inner_join(events::table.on(games::event_id.eq(events::id)))
+            .inner_join(sites::table.on(games::site_id.eq(sites::id)))
+            .filter(games::id.eq_any(chunk_vec))
+            .order(games::id.asc())
+            .load(db)?;
+        all_games.extend(part);
+    }
+
+    Ok(all_games)
+}
+
 pub async fn is_position_in_db(
     file: PathBuf,
     query: GameQuery,
