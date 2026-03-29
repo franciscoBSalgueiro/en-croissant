@@ -123,9 +123,8 @@ impl SearchIndex {
         writer.write_all(MAGIC)?;
         writer.write_all(&VERSION.to_le_bytes())?;
 
-        let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(self).map_err(|e| {
-            io::Error::other(format!("Serialization error: {}", e))
-        })?;
+        let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(self)
+            .map_err(|e| io::Error::other(format!("Serialization error: {}", e)))?;
 
         writer.write_all(&bytes)?;
         writer.flush()
@@ -252,7 +251,10 @@ impl MmapSearchIndex {
     #[inline]
     #[allow(dead_code)]
     pub fn get_entry_ref(&self, index: usize) -> Option<SearchGameEntryRef<'_>> {
-        self.archived.entries.get(index).map(SearchGameEntryRef::from)
+        self.archived
+            .entries
+            .get(index)
+            .map(SearchGameEntryRef::from)
     }
 
     #[allow(dead_code)]
@@ -362,7 +364,9 @@ mod tests {
         ];
 
         // Write
-        let index = SearchIndex { entries: entries.clone() };
+        let index = SearchIndex {
+            entries: entries.clone(),
+        };
         index.write_to(&path).unwrap();
 
         // Verify valid
