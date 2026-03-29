@@ -152,14 +152,6 @@ async mergePlayers(file: string, player1: number, player2: number) : Promise<Res
     else return { status: "error", error: e  as any };
 }
 },
-async convertPgn(files: string[], dbPath: string, timestamp: number | null, title: string, description: string | null) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("convert_pgn", { files, dbPath, timestamp, title, description }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
 async getPlayer(file: string, id: number) : Promise<Result<Player | null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_player", { file, id }) };
@@ -219,28 +211,9 @@ async deleteEmptyGames(file: string) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async clearGames() : Promise<void> {
-    await TAURI_INVOKE("clear_games");
-},
 async setFileAsExecutable(path: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("set_file_as_executable", { path }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async deleteIndexes(file: string) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("delete_indexes", { file }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async createIndexes(file: string) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("create_indexes", { file }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -438,14 +411,6 @@ async getGameEngineLogs(gameId: string, color: string) : Promise<Result<EngineLo
     else return { status: "error", error: e  as any };
 }
 },
-async preloadReferenceDb(file: string) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("preload_reference_db", { file }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
 async getProgress(id: string) : Promise<ProgressItem | null> {
     return await TAURI_INVOKE("get_progress", { id });
 },
@@ -491,7 +456,7 @@ export type AnalysisOptions = { fen: string; moves: string[]; annotateNovelties:
 export type BestMoves = { nodes: number; depth: number; score: Score; uciMoves: string[]; sanMoves: string[]; multipv: number; nps: number }
 export type BestMovesPayload = { bestLines: BestMoves[]; engine: string; tab: string; fen: string; moves: string[]; progress: number }
 export type ClockUpdateEvent = { gameId: string; whiteTime: bigint | null; blackTime: bigint | null }
-export type DatabaseInfo = { title: string; description: string; player_count: number; event_count: number; game_count: number; storage_size: bigint; filename: string; indexed: boolean }
+export type DatabaseInfo = { title: string; description: string; player_count: number; event_count: number; game_count: number; storage_size: bigint; filename: string }
 export type DatabaseProgress = { id: string; progress: number }
 export type DrawReason = "stalemate" | "insufficientMaterial" | "threefoldRepetition" | "fiftyMoveRule" | "agreement"
 export type EngineConfig = { name: string; options: UciOptionConfig[] }
@@ -513,7 +478,7 @@ export type GameState = { gameId: string; status: GameStatus; initialFen: string
 export type GameStatus = "playing" | { finished: { result: GameResult } }
 export type GoMode = { t: "PlayersTime"; c: PlayersTime } | { t: "Depth"; c: number } | { t: "Time"; c: number } | { t: "Nodes"; c: number } | { t: "Infinite" }
 export type MoveAnalysis = { best: BestMoves[]; novelty: boolean; is_sacrifice: boolean }
-export type NormalizedGame = { id: number; fen: string; event: string; event_id: number; site: string; site_id: number; date?: string | null; time?: string | null; round?: string | null; white: string; white_id: number; white_elo?: number | null; black: string; black_id: number; black_elo?: number | null; result: Outcome; time_control?: string | null; eco?: string | null; ply_count?: number | null; moves: string }
+export type NormalizedGame = { id: number; fen: string; event: string; site: string; date?: string | null; time?: string | null; round?: string | null; white: string; white_elo?: number | null; black: string; black_elo?: number | null; result: Outcome; time_control?: string | null; eco?: string | null; ply_count?: number | null; moves: string }
 export type OpeningBookConfig = { path: string; maxPly?: bigint }
 export type OutOpening = { name: string; fen: string }
 export type Outcome = "1-0" | "0-1" | "1/2-1/2" | "*"

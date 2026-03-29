@@ -149,9 +149,7 @@ pub struct NormalizedGame {
     pub id: i32,
     pub fen: String,
     pub event: String,
-    pub event_id: i32,
     pub site: String,
-    pub site_id: i32,
     #[specta(optional)]
     pub date: Option<String>,
     #[specta(optional)]
@@ -159,11 +157,9 @@ pub struct NormalizedGame {
     #[specta(optional)]
     pub round: Option<String>,
     pub white: String,
-    pub white_id: i32,
     #[specta(optional)]
     pub white_elo: Option<i32>,
     pub black: String,
-    pub black_id: i32,
     #[specta(optional)]
     pub black_elo: Option<i32>,
     pub result: Outcome,

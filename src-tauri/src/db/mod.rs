@@ -3,7 +3,6 @@ mod models;
 mod ops;
 mod schema;
 mod search;
-mod search_index;
 
 use crate::{
     db::{
@@ -23,9 +22,10 @@ use diesel::{
     insert_into,
     prelude::*,
     r2d2::{ConnectionManager, Pool},
-    sql_query,
+    row, sql_query,
     sql_types::Text,
 };
+use duckdb::Connection;
 use pgn_reader::{BufferedReader, Nag, RawHeader, SanPlus, Skip, Visitor};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -52,7 +52,6 @@ use tauri_specta::Event as _;
 use self::encoding::{
     encode_comment, encode_move, encode_nag, VARIATION_END_MARKER, VARIATION_START_MARKER,
 };
-pub use self::search_index::{get_index_path, MmapSearchIndex, SearchGameEntry, SearchIndex};
 
 pub use self::models::NormalizedGame;
 pub use self::models::Puzzle;
@@ -61,11 +60,7 @@ pub use self::schema::puzzles;
 pub use self::schema::themes;
 pub use self::search::{is_position_in_db, search_position, PositionQueryJs, PositionStats};
 
-const DATABASE_VERSION: &str = "1.0.0";
-
-const INDEXES_SQL: &str = include_str!("indexes.sql");
-
-const DELETE_INDEXES_SQL: &str = include_str!("delete_indexes.sql");
+const DATABASE_VERSION: &str = "2.0.0";
 
 const CREATE_TABLES_SQL: &str = include_str!("create.sql");
 
@@ -143,45 +138,6 @@ impl diesel::r2d2::CustomizeConnection<SqliteConnection, diesel::r2d2::Error>
         })()
         .map_err(diesel::r2d2::Error::QueryError)
     }
-}
-
-fn get_db_or_create(
-    state: &State<AppState>,
-    db_path: &str,
-    options: ConnectionOptions,
-) -> Result<
-    diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>,
-    Error,
-> {
-    let pool = match state.connection_pool.get(db_path) {
-        Some(pool) => pool.clone(),
-        None => {
-            let pool = Pool::builder()
-                .max_size(16)
-                .connection_customizer(Box::new(options))
-                .build(ConnectionManager::<SqliteConnection>::new(db_path))?;
-            state
-                .connection_pool
-                .insert(db_path.to_string(), pool.clone());
-            pool
-        }
-    };
-
-    Ok(pool.get()?)
-}
-
-fn update_info_count(
-    db: &mut SqliteConnection,
-    name: &str,
-    value: i64,
-) -> Result<(), diesel::result::Error> {
-    diesel::insert_into(info::table)
-        .values((info::name.eq(name), info::value.eq(value.to_string())))
-        .on_conflict(info::name)
-        .do_update()
-        .set(info::value.eq(value.to_string()))
-        .execute(db)?;
-    Ok(())
 }
 
 #[derive(Debug)]
@@ -489,209 +445,127 @@ impl Visitor for Importer {
     }
 }
 
-#[tauri::command]
-#[specta::specta]
-pub async fn convert_pgn(
-    files: Vec<PathBuf>,
-    db_path: PathBuf,
-    timestamp: Option<i32>,
-    app: tauri::AppHandle,
-    title: String,
-    description: Option<String>,
-    state: tauri::State<'_, AppState>,
-) -> Result<(), Error> {
-    if files.is_empty() {
-        return Ok(());
-    }
+// #[tauri::command]
+// #[specta::specta]
+// pub async fn convert_pgn(
+//     files: Vec<PathBuf>,
+//     db_path: PathBuf,
+//     timestamp: Option<i32>,
+//     app: tauri::AppHandle,
+//     title: String,
+//     description: Option<String>,
+//     state: tauri::State<'_, AppState>,
+// ) -> Result<(), Error> {
+//     if files.is_empty() {
+//         return Ok(());
+//     }
 
-    let description = description.unwrap_or_default();
+//     let description = description.unwrap_or_default();
 
-    let db_exists = db_path.exists();
+//     let db_exists = db_path.exists();
 
-    // create the database file
-    let db = &mut get_db_or_create(
-        &state,
-        db_path.to_str().unwrap(),
-        ConnectionOptions {
-            enable_foreign_keys: false,
-            busy_timeout: None,
-            journal_mode: JournalMode::Off,
-        },
-    )?;
+//     // create the database file
+//     let db = &mut get_db_or_create(
+//         &state,
+//         db_path.to_str().unwrap(),
+//         ConnectionOptions {
+//             enable_foreign_keys: false,
+//             busy_timeout: None,
+//             journal_mode: JournalMode::Off,
+//         },
+//     )?;
 
-    if !db_exists {
-        db.batch_execute(CREATE_TABLES_SQL)?;
-        db.batch_execute(
-            format!(
-                "INSERT INTO Info (Name, Value) VALUES (\"Version\", \"{DATABASE_VERSION}\");
-                INSERT INTO Info (Name, Value) VALUES (\"Title\", \"{title}\");
-                INSERT INTO Info (Name, Value) VALUES (\"Description\", \"{description}\");"
-            )
-            .as_str(),
-        )?;
-    }
+//     if !db_exists {
+//         db.batch_execute(CREATE_TABLES_SQL)?;
+//         db.batch_execute(
+//             format!(
+//                 "INSERT INTO Info (Name, Value) VALUES (\"Version\", \"{DATABASE_VERSION}\");
+//                 INSERT INTO Info (Name, Value) VALUES (\"Title\", \"{title}\");
+//                 INSERT INTO Info (Name, Value) VALUES (\"Description\", \"{description}\");"
+//             )
+//             .as_str(),
+//         )?;
+//     }
 
-    // start counting time
-    let start = Instant::now();
+//     // start counting time
+//     let start = Instant::now();
 
-    let mut imported_games = 0usize;
+//     let mut imported_games = 0usize;
 
-    for file_path in files {
-        let current_file_name = file_path
-            .file_name()
-            .map(|name| name.to_string_lossy().into_owned());
-        let extension = file_path.extension();
-        let file = File::open(&file_path)?;
+//     for file_path in files {
+//         let current_file_name = file_path
+//             .file_name()
+//             .map(|name| name.to_string_lossy().into_owned());
+//         let extension = file_path.extension();
+//         let file = File::open(&file_path)?;
 
-        let uncompressed: Box<dyn std::io::Read + Send> = if extension == Some("bz2".as_ref()) {
-            Box::new(bzip2::read::MultiBzDecoder::new(file))
-        } else if extension == Some("zst".as_ref()) {
-            Box::new(zstd::Decoder::new(file)?)
-        } else {
-            Box::new(file)
-        };
+//         let uncompressed: Box<dyn std::io::Read + Send> = if extension == Some("bz2".as_ref()) {
+//             Box::new(bzip2::read::MultiBzDecoder::new(file))
+//         } else if extension == Some("zst".as_ref()) {
+//             Box::new(zstd::Decoder::new(file)?)
+//         } else {
+//             Box::new(file)
+//         };
 
-        let mut importer = Importer::new(timestamp.map(|t| t as i64));
-        let mut file_imported_games = 0usize;
+//         let mut importer = Importer::new(timestamp.map(|t| t as i64));
+//         let mut file_imported_games = 0usize;
 
-        db.transaction::<_, diesel::result::Error, _>(|db| {
-            for game in BufferedReader::new(uncompressed)
-                .into_iter(&mut importer)
-                .flatten()
-                .flatten()
-            {
-                if (imported_games + file_imported_games).is_multiple_of(1000) {
-                    let elapsed = start.elapsed().as_millis() as u32;
-                    app.emit(
-                        "convert_progress",
-                        (
-                            imported_games + file_imported_games,
-                            elapsed,
-                            current_file_name.clone(),
-                        ),
-                    )
-                    .unwrap();
-                }
-                game.insert_to_db(db)?;
-                file_imported_games += 1;
-            }
-            Ok(())
-        })?;
+//         db.transaction::<_, diesel::result::Error, _>(|db| {
+//             for game in BufferedReader::new(uncompressed)
+//                 .into_iter(&mut importer)
+//                 .flatten()
+//                 .flatten()
+//             {
+//                 if (imported_games + file_imported_games).is_multiple_of(1000) {
+//                     let elapsed = start.elapsed().as_millis() as u32;
+//                     app.emit(
+//                         "convert_progress",
+//                         (
+//                             imported_games + file_imported_games,
+//                             elapsed,
+//                             current_file_name.clone(),
+//                         ),
+//                     )
+//                     .unwrap();
+//                 }
+//                 game.insert_to_db(db)?;
+//                 file_imported_games += 1;
+//             }
+//             Ok(())
+//         })?;
 
-        imported_games += file_imported_games;
-    }
+//         imported_games += file_imported_games;
+//     }
 
-    if !db_exists {
-        // Create all the necessary indexes
-        db.batch_execute(INDEXES_SQL)?;
-    }
+//     if !db_exists {
+//         // Create all the necessary indexes
+//         db.batch_execute(INDEXES_SQL)?;
+//     }
 
-    // get game, player, event and site counts and to the info table
-    let game_count: i64 = games::table.count().get_result(db)?;
-    let player_count: i64 = players::table.count().get_result(db)?;
-    let event_count: i64 = events::table.count().get_result(db)?;
-    let site_count: i64 = sites::table.count().get_result(db)?;
+//     // get game, player, event and site counts and to the info table
+//     let game_count: i64 = games::table.count().get_result(db)?;
+//     let player_count: i64 = players::table.count().get_result(db)?;
+//     let event_count: i64 = events::table.count().get_result(db)?;
+//     let site_count: i64 = sites::table.count().get_result(db)?;
 
-    let counts = [
-        ("GameCount", game_count),
-        ("PlayerCount", player_count),
-        ("EventCount", event_count),
-        ("SiteCount", site_count),
-    ];
+//     let counts = [
+//         ("GameCount", game_count),
+//         ("PlayerCount", player_count),
+//         ("EventCount", event_count),
+//         ("SiteCount", site_count),
+//     ];
 
-    for c in counts.iter() {
-        insert_into(info::table)
-            .values((info::name.eq(c.0), info::value.eq(c.1.to_string())))
-            .on_conflict(info::name)
-            .do_update()
-            .set(info::value.eq(c.1.to_string()))
-            .execute(db)?;
-    }
+//     for c in counts.iter() {
+//         insert_into(info::table)
+//             .values((info::name.eq(c.0), info::value.eq(c.1.to_string())))
+//             .on_conflict(info::name)
+//             .do_update()
+//             .set(info::value.eq(c.1.to_string()))
+//             .execute(db)?;
+//     }
 
-    Ok(())
-}
-
-pub fn generate_search_index(
-    db_path: &Path,
-    state: &tauri::State<'_, AppState>,
-) -> Result<(), Error> {
-    let db = &mut get_db_or_create(
-        state,
-        db_path.to_str().unwrap(),
-        ConnectionOptions::default(),
-    )?;
-    let index_path = get_index_path(db_path);
-
-    info!("Generating search index at {:?}", index_path);
-    let start = Instant::now();
-
-    let games: Vec<(
-        i32,
-        i32,
-        i32,
-        Option<String>,
-        Option<String>,
-        Vec<u8>,
-        Option<String>,
-        i32,
-        i32,
-        i32,
-        Option<i32>,
-        Option<i32>,
-    )> = games::table
-        .select((
-            games::id,
-            games::white_id,
-            games::black_id,
-            games::date,
-            games::result,
-            games::moves,
-            games::fen,
-            games::pawn_home,
-            games::white_material,
-            games::black_material,
-            games::white_elo,
-            games::black_elo,
-        ))
-        .load(db)?;
-
-    let mut writer = SearchIndex::with_capacity(games.len());
-    for (
-        id,
-        white_id,
-        black_id,
-        date,
-        result,
-        moves,
-        fen,
-        pawn_home,
-        white_material,
-        black_material,
-        white_elo,
-        black_elo,
-    ) in games
-    {
-        let entry = SearchGameEntry::from_game_data(
-            id,
-            white_id,
-            black_id,
-            date,
-            result,
-            moves,
-            fen,
-            pawn_home,
-            white_material,
-            black_material,
-            white_elo,
-            black_elo,
-        );
-        writer.push(entry);
-    }
-    writer.write_to(&index_path)?;
-
-    info!("Search index generated in {:?}", start.elapsed());
-    Ok(())
-}
+//     Ok(())
+// }
 
 #[derive(Serialize, Type)]
 pub struct DatabaseInfo {
@@ -702,19 +576,6 @@ pub struct DatabaseInfo {
     game_count: i32,
     storage_size: u64,
     filename: String,
-    indexed: bool,
-}
-
-#[derive(QueryableByName, Debug, Serialize)]
-struct IndexInfo {
-    #[diesel(sql_type = Text, column_name = "name")]
-    _name: String,
-}
-
-fn check_index_exists(conn: &mut SqliteConnection) -> Result<bool, Error> {
-    let query = sql_query("SELECT name FROM pragma_index_list('Games');");
-    let indexes: Vec<IndexInfo> = query.load(conn)?;
-    Ok(!indexes.is_empty())
 }
 
 #[tauri::command]
@@ -727,63 +588,48 @@ pub async fn get_db_info(
 
     let path = file;
 
-    let db = &mut get_db_or_create(&state, path.to_str().unwrap(), ConnectionOptions::default())?;
+    let db = Connection::open(&path).unwrap();
 
-    let info_records: Vec<Info> = info::table.load(db)?;
+    // let info = db.prepare("SELECT * FROM Info;")?;
+    // let mut rows = info.query([])?;
 
-    let get_info_value = |key: &str| -> Option<String> {
-        info_records
-            .iter()
-            .find(|i| i.name == key)
-            .and_then(|i| i.value.clone())
-    };
+    let event_count = db
+        .query_row("SELECT COUNT(DISTINCT event) FROM games;", [], |row| {
+            row.get::<_, i32>(0)
+        })
+        .unwrap();
 
-    let title = get_info_value("Title").unwrap_or_else(|| "Untitled".to_string());
-    let description = get_info_value("Description").unwrap_or_default();
-    let player_count = get_info_value("PlayerCount")
-        .and_then(|v| v.parse::<i32>().ok())
-        .unwrap_or(0);
-    let game_count = get_info_value("GameCount")
-        .and_then(|v| v.parse::<i32>().ok())
-        .unwrap_or(0);
-    let event_count = get_info_value("EventCount")
-        .and_then(|v| v.parse::<i32>().ok())
-        .unwrap_or(0);
+    let game_count = db
+        .query_row("SELECT COUNT(*) FROM games;", [], |row| {
+            row.get::<_, i32>(0)
+        })
+        .unwrap();
+
+    let player_count = db
+        .query_row(
+            "SELECT COUNT(DISTINCT name) AS total_unique_names
+            FROM (
+                SELECT white AS name FROM games
+                UNION ALL
+                SELECT black AS name FROM games
+            );",
+            [],
+            |row| row.get::<_, i32>(0),
+        )
+        .unwrap();
 
     let storage_size = path.metadata()?.len();
     let filename = path.file_name().expect("get filename").to_string_lossy();
 
-    let is_indexed = check_index_exists(db)?;
     Ok(DatabaseInfo {
-        title,
-        description,
+        title: filename.to_string(),
+        description: "".to_string(),
         player_count,
         game_count,
         event_count,
         storage_size,
         filename: filename.to_string(),
-        indexed: is_indexed,
     })
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn create_indexes(file: PathBuf, state: tauri::State<'_, AppState>) -> Result<(), Error> {
-    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-
-    db.batch_execute(INDEXES_SQL)?;
-
-    Ok(())
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn delete_indexes(file: PathBuf, state: tauri::State<'_, AppState>) -> Result<(), Error> {
-    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-
-    db.batch_execute(DELETE_INDEXES_SQL)?;
-
-    Ok(())
 }
 
 #[tauri::command]
@@ -794,28 +640,28 @@ pub async fn edit_db_info(
     description: Option<String>,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    // let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
-    if let Some(title) = title {
-        diesel::insert_into(info::table)
-            .values((info::name.eq("Title"), info::value.eq(title.clone())))
-            .on_conflict(info::name)
-            .do_update()
-            .set(info::value.eq(title))
-            .execute(db)?;
-    }
+    // if let Some(title) = title {
+    //     diesel::insert_into(info::table)
+    //         .values((info::name.eq("Title"), info::value.eq(title.clone())))
+    //         .on_conflict(info::name)
+    //         .do_update()
+    //         .set(info::value.eq(title))
+    //         .execute(db)?;
+    // }
 
-    if let Some(description) = description {
-        diesel::insert_into(info::table)
-            .values((
-                info::name.eq("Description"),
-                info::value.eq(description.clone()),
-            ))
-            .on_conflict(info::name)
-            .do_update()
-            .set(info::value.eq(description))
-            .execute(db)?;
-    }
+    // if let Some(description) = description {
+    //     diesel::insert_into(info::table)
+    //         .values((
+    //             info::name.eq("Description"),
+    //             info::value.eq(description.clone()),
+    //         ))
+    //         .on_conflict(info::name)
+    //         .do_update()
+    //         .set(info::value.eq(description))
+    //         .execute(db)?;
+    // }
 
     Ok(())
 }
@@ -914,247 +760,240 @@ pub async fn get_games(
     query: GameQuery,
     state: tauri::State<'_, AppState>,
 ) -> Result<QueryResponse<Vec<NormalizedGame>>, Error> {
-    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    let db = Connection::open(file).unwrap();
+    db.execute_batch("INSTALL aixchess FROM community; LOAD aixchess;")
+        .unwrap();
+    let count = db
+        .query_row("SELECT COUNT(*) FROM games;", [], |row| {
+            row.get::<_, i32>(0)
+        })
+        .unwrap();
+    let games = db
+        .prepare(
+            "SELECT event, site, date, utctime, round, white, black, whiteelo, blackelo, timecontrol, eco, to_pgn(movedata) AS moves, ply_count
+        FROM games
+        LIMIT 5;",
+        )
+        .unwrap()
+        .query_map([], |row| {
+            Ok(NormalizedGame {
+                id: 1,
+                event: row.get("event")?,
+                white: row.get("white")?,
+                black: row.get("black")?,
+                white_elo: row.get("whiteelo")?,
+                black_elo: row.get("blackelo")?,
+                date: row.get("date")?,
+                time: row.get("utctime")?,
+                time_control: row.get("timecontrol")?,
+                eco: row.get("eco")?,
+                fen: "".to_string(),
+                moves: row.get("moves")?,
+                result: Outcome::BlackWin,
+                ply_count: row.get("ply_count")?,
+                round: row.get("round")?,
+                site: row.get("site")?,
+            })
+        })
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
 
-    let mut count: Option<i64> = None;
-    let query_options = query.options.unwrap_or_default();
+    // let mut count: Option<i64> = None;
+    // let query_options = query.options.unwrap_or_default();
 
-    let (white_players, black_players) = diesel::alias!(players as white, players as black);
-    let mut sql_query = games::table
-        .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
-        .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
-        .inner_join(events::table.on(games::event_id.eq(events::id)))
-        .inner_join(sites::table.on(games::site_id.eq(sites::id)))
-        .into_boxed();
-    let mut count_query = games::table.into_boxed();
+    // let (white_players, black_players) = diesel::alias!(players as white, players as black);
+    // let mut sql_query = games::table
+    //     .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
+    //     .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
+    //     .inner_join(events::table.on(games::event_id.eq(events::id)))
+    //     .inner_join(sites::table.on(games::site_id.eq(sites::id)))
+    //     .into_boxed();
+    // let mut count_query = games::table.into_boxed();
 
-    // if let Some(speed) = query.speed {
-    //     sql_query = sql_query.filter(games::speed.eq(speed as i32));
-    //     count_query = count_query.filter(games::speed.eq(speed as i32));
+    // // if let Some(speed) = query.speed {
+    // //     sql_query = sql_query.filter(games::speed.eq(speed as i32));
+    // //     count_query = count_query.filter(games::speed.eq(speed as i32));
+    // // }
+
+    // if let Some(outcome) = query.outcome {
+    //     sql_query = sql_query.filter(games::result.eq(outcome.clone()));
+    //     count_query = count_query.filter(games::result.eq(outcome));
     // }
 
-    if let Some(outcome) = query.outcome {
-        sql_query = sql_query.filter(games::result.eq(outcome.clone()));
-        count_query = count_query.filter(games::result.eq(outcome));
-    }
+    // if let Some(start_date) = query.start_date {
+    //     sql_query = sql_query.filter(games::date.ge(start_date.clone()));
+    //     count_query = count_query.filter(games::date.ge(start_date));
+    // }
 
-    if let Some(start_date) = query.start_date {
-        sql_query = sql_query.filter(games::date.ge(start_date.clone()));
-        count_query = count_query.filter(games::date.ge(start_date));
-    }
+    // if let Some(end_date) = query.end_date {
+    //     sql_query = sql_query.filter(games::date.le(end_date.clone()));
+    //     count_query = count_query.filter(games::date.le(end_date));
+    // }
 
-    if let Some(end_date) = query.end_date {
-        sql_query = sql_query.filter(games::date.le(end_date.clone()));
-        count_query = count_query.filter(games::date.le(end_date));
-    }
+    // if let Some(tournament_id) = query.tournament_id {
+    //     sql_query = sql_query.filter(games::event_id.eq(tournament_id));
+    //     count_query = count_query.filter(games::event_id.eq(tournament_id));
+    // }
 
-    if let Some(tournament_id) = query.tournament_id {
-        sql_query = sql_query.filter(games::event_id.eq(tournament_id));
-        count_query = count_query.filter(games::event_id.eq(tournament_id));
-    }
+    // if let Some(limit) = query_options.page_size {
+    //     sql_query = sql_query.limit(limit as i64);
+    // }
 
-    if let Some(limit) = query_options.page_size {
-        sql_query = sql_query.limit(limit as i64);
-    }
+    // if let Some(page) = query_options.page {
+    //     sql_query = sql_query.offset(((page - 1) * query_options.page_size.unwrap_or(10)) as i64);
+    // }
 
-    if let Some(page) = query_options.page {
-        sql_query = sql_query.offset(((page - 1) * query_options.page_size.unwrap_or(10)) as i64);
-    }
+    // match query.sides {
+    //     Some(Sides::BlackWhite) => {
+    //         if let Some(player1) = query.player1 {
+    //             sql_query = sql_query.filter(games::black_id.eq(player1));
+    //             count_query = count_query.filter(games::black_id.eq(player1));
+    //         }
+    //         if let Some(player2) = query.player2 {
+    //             sql_query = sql_query.filter(games::white_id.eq(player2));
+    //             count_query = count_query.filter(games::white_id.eq(player2));
+    //         }
 
-    match query.sides {
-        Some(Sides::BlackWhite) => {
-            if let Some(player1) = query.player1 {
-                sql_query = sql_query.filter(games::black_id.eq(player1));
-                count_query = count_query.filter(games::black_id.eq(player1));
-            }
-            if let Some(player2) = query.player2 {
-                sql_query = sql_query.filter(games::white_id.eq(player2));
-                count_query = count_query.filter(games::white_id.eq(player2));
-            }
+    //         if let Some(range1) = query.range1 {
+    //             sql_query = sql_query.filter(games::black_elo.between(range1.0, range1.1));
+    //             count_query = count_query.filter(games::black_elo.between(range1.0, range1.1));
+    //         }
 
-            if let Some(range1) = query.range1 {
-                sql_query = sql_query.filter(games::black_elo.between(range1.0, range1.1));
-                count_query = count_query.filter(games::black_elo.between(range1.0, range1.1));
-            }
+    //         if let Some(range2) = query.range2 {
+    //             sql_query = sql_query.filter(games::white_elo.between(range2.0, range2.1));
+    //             count_query = count_query.filter(games::white_elo.between(range2.0, range2.1));
+    //         }
+    //     }
+    //     Some(Sides::WhiteBlack) => {
+    //         if let Some(player1) = query.player1 {
+    //             sql_query = sql_query.filter(games::white_id.eq(player1));
+    //             count_query = count_query.filter(games::white_id.eq(player1));
+    //         }
+    //         if let Some(player2) = query.player2 {
+    //             sql_query = sql_query.filter(games::black_id.eq(player2));
+    //             count_query = count_query.filter(games::black_id.eq(player2));
+    //         }
 
-            if let Some(range2) = query.range2 {
-                sql_query = sql_query.filter(games::white_elo.between(range2.0, range2.1));
-                count_query = count_query.filter(games::white_elo.between(range2.0, range2.1));
-            }
-        }
-        Some(Sides::WhiteBlack) => {
-            if let Some(player1) = query.player1 {
-                sql_query = sql_query.filter(games::white_id.eq(player1));
-                count_query = count_query.filter(games::white_id.eq(player1));
-            }
-            if let Some(player2) = query.player2 {
-                sql_query = sql_query.filter(games::black_id.eq(player2));
-                count_query = count_query.filter(games::black_id.eq(player2));
-            }
+    //         if let Some(range1) = query.range1 {
+    //             sql_query = sql_query.filter(games::white_elo.between(range1.0, range1.1));
+    //             count_query = count_query.filter(games::white_elo.between(range1.0, range1.1));
+    //         }
 
-            if let Some(range1) = query.range1 {
-                sql_query = sql_query.filter(games::white_elo.between(range1.0, range1.1));
-                count_query = count_query.filter(games::white_elo.between(range1.0, range1.1));
-            }
+    //         if let Some(range2) = query.range2 {
+    //             sql_query = sql_query.filter(games::black_elo.between(range2.0, range2.1));
+    //             count_query = count_query.filter(games::black_elo.between(range2.0, range2.1));
+    //         }
+    //     }
+    //     Some(Sides::Any) => {
+    //         if let Some(player1) = query.player1 {
+    //             sql_query =
+    //                 sql_query.filter(games::white_id.eq(player1).or(games::black_id.eq(player1)));
+    //             count_query =
+    //                 count_query.filter(games::white_id.eq(player1).or(games::black_id.eq(player1)));
+    //         }
+    //         if let Some(player2) = query.player2 {
+    //             sql_query =
+    //                 sql_query.filter(games::white_id.eq(player2).or(games::black_id.eq(player2)));
+    //             count_query =
+    //                 count_query.filter(games::white_id.eq(player2).or(games::black_id.eq(player2)));
+    //         }
 
-            if let Some(range2) = query.range2 {
-                sql_query = sql_query.filter(games::black_elo.between(range2.0, range2.1));
-                count_query = count_query.filter(games::black_elo.between(range2.0, range2.1));
-            }
-        }
-        Some(Sides::Any) => {
-            if let Some(player1) = query.player1 {
-                sql_query =
-                    sql_query.filter(games::white_id.eq(player1).or(games::black_id.eq(player1)));
-                count_query =
-                    count_query.filter(games::white_id.eq(player1).or(games::black_id.eq(player1)));
-            }
-            if let Some(player2) = query.player2 {
-                sql_query =
-                    sql_query.filter(games::white_id.eq(player2).or(games::black_id.eq(player2)));
-                count_query =
-                    count_query.filter(games::white_id.eq(player2).or(games::black_id.eq(player2)));
-            }
+    //         if let (Some(range1), Some(range2)) = (query.range1, query.range2) {
+    //             sql_query = sql_query.filter(
+    //                 games::white_elo
+    //                     .between(range1.0, range1.1)
+    //                     .or(games::black_elo.between(range1.0, range1.1))
+    //                     .or(games::white_elo
+    //                         .between(range2.0, range2.1)
+    //                         .or(games::black_elo.between(range2.0, range2.1))),
+    //             );
+    //             count_query = count_query.filter(
+    //                 games::white_elo
+    //                     .between(range1.0, range1.1)
+    //                     .or(games::black_elo.between(range1.0, range1.1))
+    //                     .or(games::white_elo
+    //                         .between(range2.0, range2.1)
+    //                         .or(games::black_elo.between(range2.0, range2.1))),
+    //             );
+    //         } else {
+    //             if let Some(range1) = query.range1 {
+    //                 sql_query = sql_query.filter(
+    //                     games::white_elo
+    //                         .between(range1.0, range1.1)
+    //                         .or(games::black_elo.between(range1.0, range1.1)),
+    //                 );
+    //                 count_query = count_query.filter(
+    //                     games::white_elo
+    //                         .between(range1.0, range1.1)
+    //                         .or(games::black_elo.between(range1.0, range1.1)),
+    //                 );
+    //             }
 
-            if let (Some(range1), Some(range2)) = (query.range1, query.range2) {
-                sql_query = sql_query.filter(
-                    games::white_elo
-                        .between(range1.0, range1.1)
-                        .or(games::black_elo.between(range1.0, range1.1))
-                        .or(games::white_elo
-                            .between(range2.0, range2.1)
-                            .or(games::black_elo.between(range2.0, range2.1))),
-                );
-                count_query = count_query.filter(
-                    games::white_elo
-                        .between(range1.0, range1.1)
-                        .or(games::black_elo.between(range1.0, range1.1))
-                        .or(games::white_elo
-                            .between(range2.0, range2.1)
-                            .or(games::black_elo.between(range2.0, range2.1))),
-                );
-            } else {
-                if let Some(range1) = query.range1 {
-                    sql_query = sql_query.filter(
-                        games::white_elo
-                            .between(range1.0, range1.1)
-                            .or(games::black_elo.between(range1.0, range1.1)),
-                    );
-                    count_query = count_query.filter(
-                        games::white_elo
-                            .between(range1.0, range1.1)
-                            .or(games::black_elo.between(range1.0, range1.1)),
-                    );
-                }
+    //             if let Some(range2) = query.range2 {
+    //                 sql_query = sql_query.filter(
+    //                     games::white_elo
+    //                         .between(range2.0, range2.1)
+    //                         .or(games::black_elo.between(range2.0, range2.1)),
+    //                 );
+    //                 count_query = count_query.filter(
+    //                     games::white_elo
+    //                         .between(range2.0, range2.1)
+    //                         .or(games::black_elo.between(range2.0, range2.1)),
+    //                 );
+    //             }
+    //         }
+    //     }
+    //     None => {}
+    // }
 
-                if let Some(range2) = query.range2 {
-                    sql_query = sql_query.filter(
-                        games::white_elo
-                            .between(range2.0, range2.1)
-                            .or(games::black_elo.between(range2.0, range2.1)),
-                    );
-                    count_query = count_query.filter(
-                        games::white_elo
-                            .between(range2.0, range2.1)
-                            .or(games::black_elo.between(range2.0, range2.1)),
-                    );
-                }
-            }
-        }
-        None => {}
-    }
+    // sql_query = match query_options.sort {
+    //     GameSort::Id => match query_options.direction {
+    //         SortDirection::Asc => sql_query.order(games::id.asc()),
+    //         SortDirection::Desc => sql_query.order(games::id.desc()),
+    //     },
+    //     GameSort::Date => match query_options.direction {
+    //         SortDirection::Asc => sql_query.order((games::date.asc(), games::time.asc())),
+    //         SortDirection::Desc => sql_query.order((games::date.desc(), games::time.desc())),
+    //     },
+    //     GameSort::WhiteElo => match query_options.direction {
+    //         SortDirection::Asc => sql_query.order(games::white_elo.asc()),
+    //         SortDirection::Desc => sql_query.order(games::white_elo.desc()),
+    //     },
+    //     GameSort::BlackElo => match query_options.direction {
+    //         SortDirection::Asc => sql_query.order(games::black_elo.asc()),
+    //         SortDirection::Desc => sql_query.order(games::black_elo.desc()),
+    //     },
+    //     GameSort::PlyCount => match query_options.direction {
+    //         SortDirection::Asc => sql_query.order(games::ply_count.asc()),
+    //         SortDirection::Desc => sql_query.order(games::ply_count.desc()),
+    //     },
+    // };
 
-    sql_query = match query_options.sort {
-        GameSort::Id => match query_options.direction {
-            SortDirection::Asc => sql_query.order(games::id.asc()),
-            SortDirection::Desc => sql_query.order(games::id.desc()),
-        },
-        GameSort::Date => match query_options.direction {
-            SortDirection::Asc => sql_query.order((games::date.asc(), games::time.asc())),
-            SortDirection::Desc => sql_query.order((games::date.desc(), games::time.desc())),
-        },
-        GameSort::WhiteElo => match query_options.direction {
-            SortDirection::Asc => sql_query.order(games::white_elo.asc()),
-            SortDirection::Desc => sql_query.order(games::white_elo.desc()),
-        },
-        GameSort::BlackElo => match query_options.direction {
-            SortDirection::Asc => sql_query.order(games::black_elo.asc()),
-            SortDirection::Desc => sql_query.order(games::black_elo.desc()),
-        },
-        GameSort::PlyCount => match query_options.direction {
-            SortDirection::Asc => sql_query.order(games::ply_count.asc()),
-            SortDirection::Desc => sql_query.order(games::ply_count.desc()),
-        },
-    };
+    // if !query_options.skip_count {
+    //     count = Some(
+    //         count_query
+    //             .select(diesel::dsl::count(games::id))
+    //             .first(db)?,
+    //     );
+    // }
 
-    if !query_options.skip_count {
-        count = Some(
-            count_query
-                .select(diesel::dsl::count(games::id))
-                .first(db)?,
-        );
-    }
+    // // println!(
+    // //     "{:?}\n",
+    // //     diesel::debug_query::<diesel::sqlite::Sqlite, _>(&sql_query)
+    // // );
 
-    // println!(
-    //     "{:?}\n",
-    //     diesel::debug_query::<diesel::sqlite::Sqlite, _>(&sql_query)
-    // );
+    // let games: Vec<(Game, Player, Player, Event, Site)> = sql_query.load(db)?;
+    // let normalized_games = normalize_games(games);
 
-    let games: Vec<(Game, Player, Player, Event, Site)> = sql_query.load(db)?;
-    let normalized_games = normalize_games(games);
-
+    // Ok(QueryResponse {
+    //     data: normalized_games,
+    //     count: count.map(|c| c as i32),
+    // })
     Ok(QueryResponse {
-        data: normalized_games,
-        count: count.map(|c| c as i32),
+        data: games,
+        count: Some(count),
     })
-}
-
-fn normalize_games(games: Vec<(Game, Player, Player, Event, Site)>) -> Vec<NormalizedGame> {
-    games
-        .into_iter()
-        .map(|(game, white, black, event, site)| {
-            let fen: Fen = game
-                .fen
-                .map(|f| Fen::from_ascii(f.as_bytes()).unwrap())
-                .unwrap_or_default();
-            let game_result = game.result.clone().unwrap_or_default();
-            let result_token = if game_result.is_empty() {
-                "*".to_string()
-            } else {
-                game_result.clone()
-            };
-
-            NormalizedGame {
-                id: game.id,
-                event: event.name.unwrap_or_default(),
-                event_id: event.id,
-                site: site.name.unwrap_or_default(),
-                site_id: site.id,
-                date: game.date,
-                time: game.time,
-                round: game.round,
-                white: white.name.unwrap_or_default(),
-                white_id: game.white_id,
-                white_elo: game.white_elo,
-                black: black.name.unwrap_or_default(),
-                black_id: game.black_id,
-                black_elo: game.black_elo,
-                result: Outcome::from_str(&game_result).unwrap_or_default(),
-                time_control: game.time_control,
-                eco: game.eco,
-                ply_count: game.ply_count,
-                fen: fen.to_string(),
-                moves: {
-                    let movetext = decode_game_to_movetext(&game.moves, fen).unwrap_or_default();
-                    if movetext.is_empty() {
-                        result_token
-                    } else {
-                        format!("{} {}", movetext, result_token)
-                    }
-                },
-            }
-        })
-        .collect()
 }
 
 #[derive(Debug, Clone, Deserialize, Type)]
@@ -1183,12 +1022,13 @@ pub async fn get_player(
     id: i32,
     state: tauri::State<'_, AppState>,
 ) -> Result<Option<Player>, Error> {
-    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-    let player = players::table
-        .filter(players::id.eq(id))
-        .first::<Player>(db)
-        .optional()?;
-    Ok(player)
+    // let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    // let player = players::table
+    //     .filter(players::id.eq(id))
+    //     .first::<Player>(db)
+    //     .optional()?;
+    // Ok(player)
+    Ok(None)
 }
 
 #[tauri::command]
@@ -1198,56 +1038,60 @@ pub async fn get_players(
     query: PlayerQuery,
     state: tauri::State<'_, AppState>,
 ) -> Result<QueryResponse<Vec<Player>>, Error> {
-    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-    let mut count: Option<i64> = None;
+    // let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    // let mut count: Option<i64> = None;
 
-    let mut sql_query = players::table.into_boxed();
-    let mut count_query = players::table.into_boxed();
-    sql_query = sql_query.filter(players::name.is_not("Unknown"));
-    count_query = count_query.filter(players::name.is_not("Unknown"));
+    // let mut sql_query = players::table.into_boxed();
+    // let mut count_query = players::table.into_boxed();
+    // sql_query = sql_query.filter(players::name.is_not("Unknown"));
+    // count_query = count_query.filter(players::name.is_not("Unknown"));
 
-    if let Some(name) = query.name {
-        sql_query = sql_query.filter(players::name.like(format!("%{}%", name)));
-        count_query = count_query.filter(players::name.like(format!("%{}%", name)));
-    }
+    // if let Some(name) = query.name {
+    //     sql_query = sql_query.filter(players::name.like(format!("%{}%", name)));
+    //     count_query = count_query.filter(players::name.like(format!("%{}%", name)));
+    // }
 
-    if let Some(range) = query.range {
-        sql_query = sql_query.filter(players::elo.between(range.0, range.1));
-        count_query = count_query.filter(players::elo.between(range.0, range.1));
-    }
+    // if let Some(range) = query.range {
+    //     sql_query = sql_query.filter(players::elo.between(range.0, range.1));
+    //     count_query = count_query.filter(players::elo.between(range.0, range.1));
+    // }
 
-    if !query.options.skip_count {
-        count = Some(count_query.count().get_result(db)?);
-    }
+    // if !query.options.skip_count {
+    //     count = Some(count_query.count().get_result(db)?);
+    // }
 
-    if let Some(limit) = query.options.page_size {
-        sql_query = sql_query.limit(limit as i64);
-    }
+    // if let Some(limit) = query.options.page_size {
+    //     sql_query = sql_query.limit(limit as i64);
+    // }
 
-    if let Some(page) = query.options.page {
-        sql_query = sql_query.offset(((page - 1) * query.options.page_size.unwrap_or(10)) as i64);
-    }
+    // if let Some(page) = query.options.page {
+    //     sql_query = sql_query.offset(((page - 1) * query.options.page_size.unwrap_or(10)) as i64);
+    // }
 
-    sql_query = match query.options.sort {
-        PlayerSort::Id => match query.options.direction {
-            SortDirection::Asc => sql_query.order(players::id.asc()),
-            SortDirection::Desc => sql_query.order(players::id.desc()),
-        },
-        PlayerSort::Name => match query.options.direction {
-            SortDirection::Asc => sql_query.order(players::name.asc()),
-            SortDirection::Desc => sql_query.order(players::name.desc()),
-        },
-        PlayerSort::Elo => match query.options.direction {
-            SortDirection::Asc => sql_query.order(players::elo.asc()),
-            SortDirection::Desc => sql_query.order(players::elo.desc()),
-        },
-    };
+    // sql_query = match query.options.sort {
+    //     PlayerSort::Id => match query.options.direction {
+    //         SortDirection::Asc => sql_query.order(players::id.asc()),
+    //         SortDirection::Desc => sql_query.order(players::id.desc()),
+    //     },
+    //     PlayerSort::Name => match query.options.direction {
+    //         SortDirection::Asc => sql_query.order(players::name.asc()),
+    //         SortDirection::Desc => sql_query.order(players::name.desc()),
+    //     },
+    //     PlayerSort::Elo => match query.options.direction {
+    //         SortDirection::Asc => sql_query.order(players::elo.asc()),
+    //         SortDirection::Desc => sql_query.order(players::elo.desc()),
+    //     },
+    // };
 
-    let players = sql_query.load::<Player>(db)?;
+    // let players = sql_query.load::<Player>(db)?;
 
+    // Ok(QueryResponse {
+    //     data: players,
+    //     count: count.map(|c| c as i32),
+    // })
     Ok(QueryResponse {
-        data: players,
-        count: count.map(|c| c as i32),
+        data: Vec::new(),
+        count: Some(0),
     })
 }
 
@@ -1272,47 +1116,51 @@ pub async fn get_tournaments(
     query: TournamentQuery,
     state: tauri::State<'_, AppState>,
 ) -> Result<QueryResponse<Vec<Event>>, Error> {
-    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-    let mut count: Option<i64> = None;
+    // let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    // let mut count: Option<i64> = None;
 
-    let mut sql_query = events::table.into_boxed();
-    let mut count_query = events::table.into_boxed();
-    sql_query = sql_query.filter(events::name.is_not("Unknown").and(events::name.is_not("")));
-    count_query = count_query.filter(events::name.is_not("Unknown").and(events::name.is_not("")));
+    // let mut sql_query = events::table.into_boxed();
+    // let mut count_query = events::table.into_boxed();
+    // sql_query = sql_query.filter(events::name.is_not("Unknown").and(events::name.is_not("")));
+    // count_query = count_query.filter(events::name.is_not("Unknown").and(events::name.is_not("")));
 
-    if let Some(name) = query.name {
-        sql_query = sql_query.filter(events::name.like(format!("%{}%", name)));
-        count_query = count_query.filter(events::name.like(format!("%{}%", name)));
-    }
+    // if let Some(name) = query.name {
+    //     sql_query = sql_query.filter(events::name.like(format!("%{}%", name)));
+    //     count_query = count_query.filter(events::name.like(format!("%{}%", name)));
+    // }
 
-    if !query.options.skip_count {
-        count = Some(count_query.count().get_result(db)?);
-    }
+    // if !query.options.skip_count {
+    //     count = Some(count_query.count().get_result(db)?);
+    // }
 
-    if let Some(limit) = query.options.page_size {
-        sql_query = sql_query.limit(limit as i64);
-    }
+    // if let Some(limit) = query.options.page_size {
+    //     sql_query = sql_query.limit(limit as i64);
+    // }
 
-    if let Some(page) = query.options.page {
-        sql_query = sql_query.offset(((page - 1) * query.options.page_size.unwrap_or(10)) as i64);
-    }
+    // if let Some(page) = query.options.page {
+    //     sql_query = sql_query.offset(((page - 1) * query.options.page_size.unwrap_or(10)) as i64);
+    // }
 
-    sql_query = match query.options.sort {
-        TournamentSort::Id => match query.options.direction {
-            SortDirection::Asc => sql_query.order(events::id.asc()),
-            SortDirection::Desc => sql_query.order(events::id.desc()),
-        },
-        TournamentSort::Name => match query.options.direction {
-            SortDirection::Asc => sql_query.order(events::name.asc()),
-            SortDirection::Desc => sql_query.order(events::name.desc()),
-        },
-    };
+    // sql_query = match query.options.sort {
+    //     TournamentSort::Id => match query.options.direction {
+    //         SortDirection::Asc => sql_query.order(events::id.asc()),
+    //         SortDirection::Desc => sql_query.order(events::id.desc()),
+    //     },
+    //     TournamentSort::Name => match query.options.direction {
+    //         SortDirection::Asc => sql_query.order(events::name.asc()),
+    //         SortDirection::Desc => sql_query.order(events::name.desc()),
+    //     },
+    // };
 
-    let events = sql_query.load::<Event>(db)?;
+    // let events = sql_query.load::<Event>(db)?;
 
+    // Ok(QueryResponse {
+    //     data: events,
+    //     count: count.map(|c| c as i32),
+    // })
     Ok(QueryResponse {
-        data: events,
-        count: count.map(|c| c as i32),
+        data: Vec::new(),
+        count: Some(0),
     })
 }
 
@@ -1380,149 +1228,150 @@ pub async fn get_players_game_info(
     state: tauri::State<'_, AppState>,
     app: tauri::AppHandle,
 ) -> Result<PlayerGameInfo, Error> {
-    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-    let timer = Instant::now();
+    // let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    // let timer = Instant::now();
 
-    let sql_query = games::table
-        .inner_join(sites::table.on(games::site_id.eq(sites::id)))
-        .inner_join(players::table.on(players::id.eq(id)))
-        .select((
-            games::white_id,
-            games::black_id,
-            games::result,
-            games::date,
-            games::moves,
-            games::white_elo,
-            games::black_elo,
-            games::time_control,
-            sites::name,
-            players::name,
-        ))
-        .filter(games::white_id.eq(id).or(games::black_id.eq(id)))
-        .filter(games::fen.is_null());
+    // let sql_query = games::table
+    //     .inner_join(sites::table.on(games::site_id.eq(sites::id)))
+    //     .inner_join(players::table.on(players::id.eq(id)))
+    //     .select((
+    //         games::white_id,
+    //         games::black_id,
+    //         games::result,
+    //         games::date,
+    //         games::moves,
+    //         games::white_elo,
+    //         games::black_elo,
+    //         games::time_control,
+    //         sites::name,
+    //         players::name,
+    //     ))
+    //     .filter(games::white_id.eq(id).or(games::black_id.eq(id)))
+    //     .filter(games::fen.is_null());
 
-    type GameInfo = (
-        i32,
-        i32,
-        Option<String>,
-        Option<String>,
-        Vec<u8>,
-        Option<i32>,
-        Option<i32>,
-        Option<String>,
-        Option<String>,
-        Option<String>,
-    );
-    let info: Vec<GameInfo> = sql_query.load(db)?;
+    // type GameInfo = (
+    //     i32,
+    //     i32,
+    //     Option<String>,
+    //     Option<String>,
+    //     Vec<u8>,
+    //     Option<i32>,
+    //     Option<i32>,
+    //     Option<String>,
+    //     Option<String>,
+    //     Option<String>,
+    // );
+    // let info: Vec<GameInfo> = sql_query.load(db)?;
 
-    let mut game_info = PlayerGameInfo::default();
-    let progress = AtomicUsize::new(0);
-    game_info.site_stats_data = info
-        .par_iter()
-        .filter_map(
-            |(
-                white_id,
-                black_id,
-                outcome,
-                date,
-                moves,
-                white_elo,
-                black_elo,
-                time_control,
-                site,
-                player,
-            )| {
-                let is_white = *white_id == id;
-                let is_black = *black_id == id;
-                let result = GameOutcome::from_str(outcome.as_deref()?, is_white);
+    // let mut game_info = PlayerGameInfo::default();
+    // let progress = AtomicUsize::new(0);
+    // game_info.site_stats_data = info
+    //     .par_iter()
+    //     .filter_map(
+    //         |(
+    //             white_id,
+    //             black_id,
+    //             outcome,
+    //             date,
+    //             moves,
+    //             white_elo,
+    //             black_elo,
+    //             time_control,
+    //             site,
+    //             player,
+    //         )| {
+    //             let is_white = *white_id == id;
+    //             let is_black = *black_id == id;
+    //             let result = GameOutcome::from_str(outcome.as_deref()?, is_white);
 
-                if !is_white && !is_black
-                    || is_white && white_elo.is_none()
-                    || is_black && black_elo.is_none()
-                    || result.is_none()
-                    || date.is_none()
-                    || site.is_none()
-                    || player.is_none()
-                {
-                    return None;
-                }
+    //             if !is_white && !is_black
+    //                 || is_white && white_elo.is_none()
+    //                 || is_black && black_elo.is_none()
+    //                 || result.is_none()
+    //                 || date.is_none()
+    //                 || site.is_none()
+    //                 || player.is_none()
+    //             {
+    //                 return None;
+    //             }
 
-                let site = site.as_deref().map(|s| {
-                    if s.starts_with("https://lichess.org/") {
-                        "Lichess".to_string()
-                    } else {
-                        s.to_string()
-                    }
-                })?;
+    //             let site = site.as_deref().map(|s| {
+    //                 if s.starts_with("https://lichess.org/") {
+    //                     "Lichess".to_string()
+    //                 } else {
+    //                     s.to_string()
+    //                 }
+    //             })?;
 
-                let mut setups = vec![];
-                let mut chess = Chess::default();
-                for (i, byte) in iter_mainline_move_bytes(moves).enumerate() {
-                    if i > 54 {
-                        // max length of opening in data
-                        break;
-                    }
-                    let Some(m) = decode_move(byte, &chess) else {
-                        break;
-                    };
-                    chess.play_unchecked(&m);
-                    setups.push(chess.clone().into_setup(EnPassantMode::Legal));
-                }
+    //             let mut setups = vec![];
+    //             let mut chess = Chess::default();
+    //             for (i, byte) in iter_mainline_move_bytes(moves).enumerate() {
+    //                 if i > 54 {
+    //                     // max length of opening in data
+    //                     break;
+    //                 }
+    //                 let Some(m) = decode_move(byte, &chess) else {
+    //                     break;
+    //                 };
+    //                 chess.play_unchecked(&m);
+    //                 setups.push(chess.clone().into_setup(EnPassantMode::Legal));
+    //             }
 
-                setups.reverse();
-                let opening = setups
-                    .iter()
-                    .find_map(|setup| get_opening_from_setup(setup.clone()).ok())
-                    .unwrap_or_default();
+    //             setups.reverse();
+    //             let opening = setups
+    //                 .iter()
+    //                 .find_map(|setup| get_opening_from_setup(setup.clone()).ok())
+    //                 .unwrap_or_default();
 
-                let p = progress.fetch_add(1, Ordering::Relaxed);
-                if p.is_multiple_of(1000) || p == info.len() - 1 {
-                    let _ = DatabaseProgress {
-                        id: id.to_string(),
-                        progress: (p as f64 / info.len() as f64) * 100_f64,
-                    }
-                    .emit(&app);
-                }
+    //             let p = progress.fetch_add(1, Ordering::Relaxed);
+    //             if p.is_multiple_of(1000) || p == info.len() - 1 {
+    //                 let _ = DatabaseProgress {
+    //                     id: id.to_string(),
+    //                     progress: (p as f64 / info.len() as f64) * 100_f64,
+    //                 }
+    //                 .emit(&app);
+    //             }
 
-                Some(SiteStatsData {
-                    site: site.clone(),
-                    player: player.clone().unwrap(),
-                    data: vec![StatsData {
-                        date: date.clone().unwrap(),
-                        is_player_white: is_white,
-                        player_elo: if is_white {
-                            white_elo.unwrap()
-                        } else {
-                            black_elo.unwrap()
-                        },
-                        result: result.unwrap(),
-                        time_control: time_control.clone().unwrap_or_default(),
-                        opening,
-                    }],
-                })
-            },
-        )
-        .fold(DashMap::new, |acc, data| {
-            acc.entry((data.site.clone(), data.player.clone()))
-                .or_insert_with(Vec::new)
-                .extend(data.data);
-            acc
-        })
-        .reduce(DashMap::new, |acc1, acc2| {
-            for ((site, player), data) in acc2 {
-                acc1.entry((site, player))
-                    .or_insert_with(Vec::new)
-                    .extend(data);
-            }
-            acc1
-        })
-        .into_iter()
-        .map(|((site, player), data)| SiteStatsData { site, player, data })
-        .collect();
+    //             Some(SiteStatsData {
+    //                 site: site.clone(),
+    //                 player: player.clone().unwrap(),
+    //                 data: vec![StatsData {
+    //                     date: date.clone().unwrap(),
+    //                     is_player_white: is_white,
+    //                     player_elo: if is_white {
+    //                         white_elo.unwrap()
+    //                     } else {
+    //                         black_elo.unwrap()
+    //                     },
+    //                     result: result.unwrap(),
+    //                     time_control: time_control.clone().unwrap_or_default(),
+    //                     opening,
+    //                 }],
+    //             })
+    //         },
+    //     )
+    //     .fold(DashMap::new, |acc, data| {
+    //         acc.entry((data.site.clone(), data.player.clone()))
+    //             .or_insert_with(Vec::new)
+    //             .extend(data.data);
+    //         acc
+    //     })
+    //     .reduce(DashMap::new, |acc1, acc2| {
+    //         for ((site, player), data) in acc2 {
+    //             acc1.entry((site, player))
+    //                 .or_insert_with(Vec::new)
+    //                 .extend(data);
+    //         }
+    //         acc1
+    //     })
+    //     .into_iter()
+    //     .map(|((site, player), data)| SiteStatsData { site, player, data })
+    //     .collect();
 
-    println!("get_players_game_info {:?}: {:?}", file, timer.elapsed());
+    // println!("get_players_game_info {:?}: {:?}", file, timer.elapsed());
 
-    Ok(game_info)
+    // Ok(game_info)
+    Ok(PlayerGameInfo::default())
 }
 
 #[tauri::command]
@@ -1535,36 +1384,7 @@ pub async fn delete_database(
     let path_str = file.to_str().unwrap();
     pool.remove(path_str);
 
-    // delete file
     remove_file(path_str)?;
-    remove_file(get_index_path(&PathBuf::from(path_str)))?;
-    Ok(())
-}
-
-fn delete_orphaned_data(db: &mut SqliteConnection) -> Result<(), Error> {
-    db.batch_execute(
-        "
-        DELETE FROM Players WHERE ID != 0 AND ID NOT IN (
-            SELECT WhiteID FROM Games UNION SELECT BlackID FROM Games
-        );
-        DELETE FROM Events WHERE ID != 0 AND ID NOT IN (
-            SELECT EventID FROM Games
-        );
-        DELETE FROM Sites WHERE ID != 0 AND ID NOT IN (
-            SELECT SiteID FROM Games
-        );
-        ",
-    )?;
-
-    let player_count: i64 = players::table.count().get_result(db)?;
-    update_info_count(db, "PlayerCount", player_count)?;
-
-    let event_count: i64 = events::table.count().get_result(db)?;
-    update_info_count(db, "EventCount", event_count)?;
-
-    let site_count: i64 = sites::table.count().get_result(db)?;
-    update_info_count(db, "SiteCount", site_count)?;
-
     Ok(())
 }
 
@@ -1574,26 +1394,22 @@ pub async fn delete_duplicated_games(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    // let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
-    db.batch_execute(
-        "
-        DELETE FROM Games
-        WHERE ID IN (
-            SELECT ID
-            FROM (
-                SELECT ID,
-                    ROW_NUMBER() OVER (PARTITION BY EventID, SiteID, Round, WhiteID, BlackID, Moves, Date, UTCTime ORDER BY ID) AS RowNum
-                FROM Games
-            ) AS Subquery
-            WHERE RowNum > 1
-        );
-        ",
-    )?;
-
-    let game_count: i64 = games::table.count().get_result(db)?;
-    update_info_count(db, "GameCount", game_count)?;
-    delete_orphaned_data(db)?;
+    // db.batch_execute(
+    //     "
+    //     DELETE FROM Games
+    //     WHERE ID IN (
+    //         SELECT ID
+    //         FROM (
+    //             SELECT ID,
+    //                 ROW_NUMBER() OVER (PARTITION BY EventID, SiteID, Round, WhiteID, BlackID, Moves, Date, UTCTime ORDER BY ID) AS RowNum
+    //             FROM Games
+    //         ) AS Subquery
+    //         WHERE RowNum > 1
+    //     );
+    //     ",
+    // )?;
 
     Ok(())
 }
@@ -1604,13 +1420,9 @@ pub async fn delete_empty_games(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    // let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
-    diesel::delete(games::table.filter(games::ply_count.eq(0))).execute(db)?;
-
-    let game_count: i64 = games::table.count().get_result(db)?;
-    update_info_count(db, "GameCount", game_count)?;
-    delete_orphaned_data(db)?;
+    // diesel::delete(games::table.filter(games::ply_count.eq(0))).execute(db)?;
 
     Ok(())
 }
@@ -1712,55 +1524,55 @@ pub async fn export_to_pgn(
     dest_file: PathBuf,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    // let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
-    let file = OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(true)
-        .open(dest_file)?;
+    // let file = OpenOptions::new()
+    //     .create(true)
+    //     .write(true)
+    //     .truncate(true)
+    //     .open(dest_file)?;
 
-    let mut writer = BufWriter::new(file);
+    // let mut writer = BufWriter::new(file);
 
-    let (white_players, black_players) = diesel::alias!(players as white, players as black);
-    games::table
-        .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
-        .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
-        .inner_join(events::table.on(games::event_id.eq(events::id)))
-        .inner_join(sites::table.on(games::site_id.eq(sites::id)))
-        .load_iter::<(Game, Player, Player, Event, Site), DefaultLoadingMode>(db)?
-        .flatten()
-        .map(|(game, white, black, event, site)| {
-            let pgn = PgnGame {
-                event: event.name,
-                site: site.name,
-                date: game.date,
-                round: game.round,
-                white: white.name,
-                black: black.name,
-                result: game.result,
-                time_control: game.time_control,
-                eco: game.eco,
-                white_elo: game.white_elo.map(|e| e.to_string()),
-                black_elo: game.black_elo.map(|e| e.to_string()),
-                ply_count: game.ply_count.map(|e| e.to_string()),
-                fen: game.fen.clone(),
-                moves: decode_game_to_movetext(
-                    &game.moves,
-                    if let Some(fen) = game.fen {
-                        Fen::from_ascii(fen.as_bytes()).unwrap_or_default()
-                    } else {
-                        Fen::default()
-                    },
-                )
-                .ok(),
-            };
+    // let (white_players, black_players) = diesel::alias!(players as white, players as black);
+    // games::table
+    //     .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
+    //     .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
+    //     .inner_join(events::table.on(games::event_id.eq(events::id)))
+    //     .inner_join(sites::table.on(games::site_id.eq(sites::id)))
+    //     .load_iter::<(Game, Player, Player, Event, Site), DefaultLoadingMode>(db)?
+    //     .flatten()
+    //     .map(|(game, white, black, event, site)| {
+    //         let pgn = PgnGame {
+    //             event: event.name,
+    //             site: site.name,
+    //             date: game.date,
+    //             round: game.round,
+    //             white: white.name,
+    //             black: black.name,
+    //             result: game.result,
+    //             time_control: game.time_control,
+    //             eco: game.eco,
+    //             white_elo: game.white_elo.map(|e| e.to_string()),
+    //             black_elo: game.black_elo.map(|e| e.to_string()),
+    //             ply_count: game.ply_count.map(|e| e.to_string()),
+    //             fen: game.fen.clone(),
+    //             moves: decode_game_to_movetext(
+    //                 &game.moves,
+    //                 if let Some(fen) = game.fen {
+    //                     Fen::from_ascii(fen.as_bytes()).unwrap_or_default()
+    //                 } else {
+    //                     Fen::default()
+    //                 },
+    //             )
+    //             .ok(),
+    //         };
 
-            pgn.write(&mut writer)?;
+    //         pgn.write(&mut writer)?;
 
-            Ok(())
-        })
-        .collect::<Result<Vec<_>, Error>>()?;
+    //         Ok(())
+    //     })
+    //     .collect::<Result<Vec<_>, Error>>()?;
     Ok(())
 }
 
@@ -1771,13 +1583,9 @@ pub async fn delete_db_game(
     game_id: i32,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    // let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
-    diesel::delete(games::table.filter(games::id.eq(game_id))).execute(db)?;
-
-    let game_count: i64 = games::table.count().get_result(db)?;
-    update_info_count(db, "GameCount", game_count)?;
-    delete_orphaned_data(db)?;
+    // diesel::delete(games::table.filter(games::id.eq(game_id))).execute(db)?;
 
     Ok(())
 }
@@ -1790,68 +1598,68 @@ pub async fn write_db_game(
     pgn: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    // let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
-    let mut importer = Importer::new(None);
-    let mut parsed = BufferedReader::new(pgn.as_bytes())
-        .into_iter(&mut importer)
-        .flatten()
-        .flatten();
-    let temp_game = parsed.next().ok_or(Error::NoMovesFound)?;
+    // let mut importer = Importer::new(None);
+    // let mut parsed = BufferedReader::new(pgn.as_bytes())
+    //     .into_iter(&mut importer)
+    //     .flatten()
+    //     .flatten();
+    // let temp_game = parsed.next().ok_or(Error::NoMovesFound)?;
 
-    let white_id = if let Some(name) = temp_game.white_name.as_deref() {
-        create_player(db, name)?.id
-    } else {
-        0
-    };
-    let black_id = if let Some(name) = temp_game.black_name.as_deref() {
-        create_player(db, name)?.id
-    } else {
-        0
-    };
-    let event_id = if let Some(name) = temp_game.event_name.as_deref() {
-        create_event(db, name)?.id
-    } else {
-        0
-    };
-    let site_id = if let Some(name) = temp_game.site_name.as_deref() {
-        create_site(db, name)?.id
-    } else {
-        0
-    };
+    // let white_id = if let Some(name) = temp_game.white_name.as_deref() {
+    //     create_player(db, name)?.id
+    // } else {
+    //     0
+    // };
+    // let black_id = if let Some(name) = temp_game.black_name.as_deref() {
+    //     create_player(db, name)?.id
+    // } else {
+    //     0
+    // };
+    // let event_id = if let Some(name) = temp_game.event_name.as_deref() {
+    //     create_event(db, name)?.id
+    // } else {
+    //     0
+    // };
+    // let site_id = if let Some(name) = temp_game.site_name.as_deref() {
+    //     create_site(db, name)?.id
+    // } else {
+    //     0
+    // };
 
-    let final_material = get_material_count(temp_game.position.board());
-    let minimal_white_material = temp_game.material_count.white.min(final_material.white) as i32;
-    let minimal_black_material = temp_game.material_count.black.min(final_material.black) as i32;
-    let pawn_home = get_pawn_home(temp_game.position.board()) as i32;
-    let ply_count = iter_mainline_move_bytes(&temp_game.moves).count() as i32;
+    // let final_material = get_material_count(temp_game.position.board());
+    // let minimal_white_material = temp_game.material_count.white.min(final_material.white) as i32;
+    // let minimal_black_material = temp_game.material_count.black.min(final_material.black) as i32;
+    // let pawn_home = get_pawn_home(temp_game.position.board()) as i32;
+    // let ply_count = iter_mainline_move_bytes(&temp_game.moves).count() as i32;
 
-    let updated_rows = diesel::update(games::table.filter(games::id.eq(game_id)))
-        .set((
-            games::event_id.eq(event_id),
-            games::site_id.eq(site_id),
-            games::date.eq(temp_game.date),
-            games::time.eq(temp_game.time),
-            games::round.eq(temp_game.round),
-            games::white_id.eq(white_id),
-            games::white_elo.eq(temp_game.white_elo),
-            games::black_id.eq(black_id),
-            games::black_elo.eq(temp_game.black_elo),
-            games::white_material.eq(minimal_white_material),
-            games::black_material.eq(minimal_black_material),
-            games::result.eq(temp_game.result),
-            games::time_control.eq(temp_game.time_control),
-            games::eco.eq(temp_game.eco),
-            games::ply_count.eq(ply_count),
-            games::fen.eq(temp_game.fen),
-            games::moves.eq(temp_game.moves),
-            games::pawn_home.eq(pawn_home),
-        ))
-        .execute(db)?;
+    // let updated_rows = diesel::update(games::table.filter(games::id.eq(game_id)))
+    //     .set((
+    //         games::event_id.eq(event_id),
+    //         games::site_id.eq(site_id),
+    //         games::date.eq(temp_game.date),
+    //         games::time.eq(temp_game.time),
+    //         games::round.eq(temp_game.round),
+    //         games::white_id.eq(white_id),
+    //         games::white_elo.eq(temp_game.white_elo),
+    //         games::black_id.eq(black_id),
+    //         games::black_elo.eq(temp_game.black_elo),
+    //         games::white_material.eq(minimal_white_material),
+    //         games::black_material.eq(minimal_black_material),
+    //         games::result.eq(temp_game.result),
+    //         games::time_control.eq(temp_game.time_control),
+    //         games::eco.eq(temp_game.eco),
+    //         games::ply_count.eq(ply_count),
+    //         games::fen.eq(temp_game.fen),
+    //         games::moves.eq(temp_game.moves),
+    //         games::pawn_home.eq(pawn_home),
+    //     ))
+    //     .execute(db)?;
 
-    if updated_rows == 0 {
-        return Err(Error::GameNotFound(game_id.to_string()));
-    }
+    // if updated_rows == 0 {
+    //     return Err(Error::GameNotFound(game_id.to_string()));
+    // }
 
     Ok(())
 }
@@ -1864,68 +1672,28 @@ pub async fn merge_players(
     player2: i32,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    // let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
-    // Check if the players never played against each other
-    let count: i64 = games::table
-        .filter(games::white_id.eq(player1).and(games::black_id.eq(player2)))
-        .or_filter(games::white_id.eq(player2).and(games::black_id.eq(player1)))
-        .limit(1)
-        .count()
-        .get_result(db)?;
+    // // Check if the players never played against each other
+    // let count: i64 = games::table
+    //     .filter(games::white_id.eq(player1).and(games::black_id.eq(player2)))
+    //     .or_filter(games::white_id.eq(player2).and(games::black_id.eq(player1)))
+    //     .limit(1)
+    //     .count()
+    //     .get_result(db)?;
 
-    if count > 0 {
-        return Err(Error::NotDistinctPlayers);
-    }
+    // if count > 0 {
+    //     return Err(Error::NotDistinctPlayers);
+    // }
 
-    diesel::update(games::table.filter(games::white_id.eq(player1)))
-        .set(games::white_id.eq(player2))
-        .execute(db)?;
-    diesel::update(games::table.filter(games::black_id.eq(player1)))
-        .set(games::black_id.eq(player2))
-        .execute(db)?;
+    // diesel::update(games::table.filter(games::white_id.eq(player1)))
+    //     .set(games::white_id.eq(player2))
+    //     .execute(db)?;
+    // diesel::update(games::table.filter(games::black_id.eq(player1)))
+    //     .set(games::black_id.eq(player2))
+    //     .execute(db)?;
 
-    diesel::delete(players::table.filter(players::id.eq(player1))).execute(db)?;
-
-    let player_count: i64 = players::table.count().get_result(db)?;
-    update_info_count(db, "PlayerCount", player_count)?;
-
-    Ok(())
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn clear_games(state: tauri::State<'_, AppState>) {
-    let mut state = state.db_cache.lock().unwrap();
-    *state = None;
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn preload_reference_db(
-    file: PathBuf,
-    state: tauri::State<'_, AppState>,
-) -> Result<(), Error> {
-    let index_path = get_index_path(&file);
-
-    if !MmapSearchIndex::is_valid(&index_path) {
-        info!("Search index not found for reference database, generating...");
-        generate_search_index(&file, &state)?;
-    }
-
-    let mut cache = state.db_cache.lock().unwrap();
-    if cache.is_none() {
-        info!("Preloading reference database from {:?}", index_path);
-        match MmapSearchIndex::open(&index_path) {
-            Ok(index) => {
-                info!("Preloaded reference database with {} games", index.len());
-                *cache = Some(index);
-            }
-            Err(e) => {
-                return Err(Error::from(e));
-            }
-        }
-    }
+    // diesel::delete(players::table.filter(players::id.eq(player1))).execute(db)?;
 
     Ok(())
 }
@@ -2007,184 +1775,5 @@ mod tests {
         conn.batch_execute("PRAGMA foreign_keys = ON;").unwrap();
         conn.batch_execute(CREATE_TABLES_SQL).unwrap();
         conn
-    }
-
-    #[test]
-    fn delete_orphaned_data_removes_unreferenced_players_events_sites() {
-        let db = &mut setup_test_db();
-
-        // Create players, events, sites
-        let player1 = create_player(db, "Magnus").unwrap();
-        let player2 = create_player(db, "Hikaru").unwrap();
-        let event = create_event(db, "World Championship").unwrap();
-        let site = create_site(db, "Reykjavik").unwrap();
-
-        // Insert a game referencing them
-        let game = create_game(
-            db,
-            NewGame {
-                event_id: event.id,
-                site_id: site.id,
-                white_id: player1.id,
-                black_id: player2.id,
-                white_elo: None,
-                black_elo: None,
-                white_material: 0,
-                black_material: 0,
-                date: None,
-                time: None,
-                round: None,
-                result: None,
-                time_control: None,
-                eco: None,
-                ply_count: 10,
-                fen: None,
-                moves: &[],
-                pawn_home: 0,
-            },
-        )
-        .unwrap();
-
-        // Verify everything exists: 3 players (Unknown + 2), 2 events, 2 sites
-        let player_count: i64 = players::table.count().get_result(db).unwrap();
-        assert_eq!(player_count, 3);
-        let event_count: i64 = events::table.count().get_result(db).unwrap();
-        assert_eq!(event_count, 2);
-        let site_count: i64 = sites::table.count().get_result(db).unwrap();
-        assert_eq!(site_count, 2);
-
-        // Delete the game
-        diesel::delete(games::table.filter(games::id.eq(game.id)))
-            .execute(db)
-            .unwrap();
-
-        // Before fix: orphans would remain. Call our cleanup function.
-        delete_orphaned_data(db).unwrap();
-
-        // Players: only the sentinel "Unknown" (ID=0) should remain
-        let player_count: i64 = players::table.count().get_result(db).unwrap();
-        assert_eq!(player_count, 1, "Orphaned players should be deleted");
-
-        let remaining_player: Player = players::table.first(db).unwrap();
-        assert_eq!(
-            remaining_player.id, 0,
-            "Only the Unknown player should remain"
-        );
-
-        // Events: only the sentinel should remain
-        let event_count: i64 = events::table.count().get_result(db).unwrap();
-        assert_eq!(event_count, 1, "Orphaned events should be deleted");
-
-        // Sites: only the sentinel should remain
-        let site_count: i64 = sites::table.count().get_result(db).unwrap();
-        assert_eq!(site_count, 1, "Orphaned sites should be deleted");
-
-        // Info table counts should be updated
-        let pc: String = info::table
-            .filter(info::name.eq("PlayerCount"))
-            .select(info::value)
-            .first::<Option<String>>(db)
-            .unwrap()
-            .unwrap();
-        assert_eq!(pc, "1");
-
-        let ec: String = info::table
-            .filter(info::name.eq("EventCount"))
-            .select(info::value)
-            .first::<Option<String>>(db)
-            .unwrap()
-            .unwrap();
-        assert_eq!(ec, "1");
-
-        let sc: String = info::table
-            .filter(info::name.eq("SiteCount"))
-            .select(info::value)
-            .first::<Option<String>>(db)
-            .unwrap()
-            .unwrap();
-        assert_eq!(sc, "1");
-    }
-
-    #[test]
-    fn delete_orphaned_data_preserves_referenced_records() {
-        let db = &mut setup_test_db();
-
-        // Create players, events, sites for two games
-        let magnus = create_player(db, "Magnus").unwrap();
-        let hikaru = create_player(db, "Hikaru").unwrap();
-        let fabiano = create_player(db, "Fabiano").unwrap();
-        let event1 = create_event(db, "World Championship").unwrap();
-        let event2 = create_event(db, "Candidates").unwrap();
-        let site1 = create_site(db, "Reykjavik").unwrap();
-        let site2 = create_site(db, "Toronto").unwrap();
-
-        let make_game = |db: &mut SqliteConnection, w: i32, b: i32, e: i32, s: i32| {
-            create_game(
-                db,
-                NewGame {
-                    event_id: e,
-                    site_id: s,
-                    white_id: w,
-                    black_id: b,
-                    white_elo: None,
-                    black_elo: None,
-                    white_material: 0,
-                    black_material: 0,
-                    date: None,
-                    time: None,
-                    round: None,
-                    result: None,
-                    time_control: None,
-                    eco: None,
-                    ply_count: 10,
-                    fen: None,
-                    moves: &[],
-                    pawn_home: 0,
-                },
-            )
-            .unwrap()
-        };
-
-        // Game 1: Magnus vs Hikaru at World Championship in Reykjavik
-        let game1 = make_game(db, magnus.id, hikaru.id, event1.id, site1.id);
-        // Game 2: Fabiano vs Hikaru at Candidates in Toronto
-        let game2 = make_game(db, fabiano.id, hikaru.id, event2.id, site2.id);
-
-        // Delete only game 1
-        diesel::delete(games::table.filter(games::id.eq(game1.id)))
-            .execute(db)
-            .unwrap();
-        delete_orphaned_data(db).unwrap();
-
-        // Magnus should be gone (only in game 1), but Hikaru and Fabiano should remain
-        let player_count: i64 = players::table.count().get_result(db).unwrap();
-        assert_eq!(player_count, 3, "Unknown + Hikaru + Fabiano should remain");
-
-        let magnus_exists: i64 = players::table
-            .filter(players::name.eq("Magnus"))
-            .count()
-            .get_result(db)
-            .unwrap();
-        assert_eq!(magnus_exists, 0, "Magnus should be deleted (orphaned)");
-
-        // Event1 and Site1 should be gone, Event2 and Site2 should remain
-        let event_count: i64 = events::table.count().get_result(db).unwrap();
-        assert_eq!(event_count, 2, "Unknown + Candidates should remain");
-
-        let site_count: i64 = sites::table.count().get_result(db).unwrap();
-        assert_eq!(site_count, 2, "Unknown + Toronto should remain");
-
-        // Delete game 2 — now everything should be orphaned
-        diesel::delete(games::table.filter(games::id.eq(game2.id)))
-            .execute(db)
-            .unwrap();
-        delete_orphaned_data(db).unwrap();
-
-        let player_count: i64 = players::table.count().get_result(db).unwrap();
-        assert_eq!(player_count, 1, "Only Unknown should remain");
-        let event_count: i64 = events::table.count().get_result(db).unwrap();
-        assert_eq!(event_count, 1, "Only Unknown should remain");
-        let site_count: i64 = sites::table.count().get_result(db).unwrap();
-        assert_eq!(site_count, 1, "Only Unknown should remain");
     }
 }

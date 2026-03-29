@@ -43,6 +43,9 @@ pub enum Error {
     Diesel(Box<diesel::result::Error>),
 
     #[error(transparent)]
+    Duckdb(Box<duckdb::Error>),
+
+    #[error(transparent)]
     R2d2(Box<diesel::r2d2::PoolError>),
 
     #[error(transparent)]

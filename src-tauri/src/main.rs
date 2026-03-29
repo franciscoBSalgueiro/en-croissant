@@ -41,9 +41,8 @@ use crate::chess::{
     stop_engine,
 };
 use crate::db::{
-    clear_games, convert_pgn, create_indexes, delete_database, delete_db_game, delete_empty_games,
-    delete_indexes, export_to_pgn, get_player, get_players_game_info, get_tournaments,
-    preload_reference_db, search_position, MmapSearchIndex,
+    delete_database, delete_db_game, delete_empty_games, export_to_pgn, get_player,
+    get_players_game_info, get_tournaments, search_position,
 };
 use crate::game::{
     abort_game, get_game_engine_logs, get_game_state, make_game_move, resign_game, start_game,
@@ -81,7 +80,6 @@ pub struct AppState {
         diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>,
     >,
     line_cache: DashMap<(GameQuery, PathBuf), (Vec<PositionStats>, Vec<NormalizedGame>)>,
-    db_cache: Mutex<Option<MmapSearchIndex>>,
     #[derivative(Default(value = "Arc::new(Semaphore::new(2))"))]
     new_request: Arc<Semaphore>,
     #[derivative(Default(value = "DashMap::new()"))]
@@ -128,7 +126,7 @@ fn main() {
             file_exists,
             get_file_metadata,
             merge_players,
-            convert_pgn,
+            // convert_pgn,
             get_player,
             count_pgn_games,
             read_games,
@@ -137,10 +135,7 @@ fn main() {
             delete_game,
             delete_duplicated_games,
             delete_empty_games,
-            clear_games,
             set_file_as_executable,
-            delete_indexes,
-            create_indexes,
             edit_db_info,
             delete_db_game,
             write_db_game,
@@ -165,7 +160,6 @@ fn main() {
             resign_game,
             abort_game,
             get_game_engine_logs,
-            preload_reference_db,
             get_progress,
             clear_progress,
             get_sound_server_port

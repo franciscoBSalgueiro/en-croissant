@@ -22,11 +22,9 @@ use tauri::Emitter;
 use crate::{
     db::{
         encoding::{decode_move, iter_mainline_move_bytes},
-        get_db_or_create, get_material_count, get_pawn_home,
+        get_material_count, get_pawn_home,
         models::*,
-        normalize_games,
         schema::*,
-        search_index::{get_index_path, GameResult, MmapSearchIndex, SearchGameEntryRef},
         ConnectionOptions, MaterialCount,
     },
     error::Error,
@@ -241,224 +239,190 @@ pub async fn search_position(
     tab_id: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(Vec<PositionStats>, Vec<NormalizedGame>), Error> {
-    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    // let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
-    let collision_lock = {
-        let entry = state
-            .search_collisions
-            .entry((query.clone(), file.clone()))
-            .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())));
-        entry.value().clone()
-    };
+    // let collision_lock = {
+    //     let entry = state
+    //         .search_collisions
+    //         .entry((query.clone(), file.clone()))
+    //         .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())));
+    //     entry.value().clone()
+    // };
 
-    let _guard = collision_lock.lock().await;
+    // let _guard = collision_lock.lock().await;
 
-    if let Some(pos) = state.line_cache.get(&(query.clone(), file.clone())) {
-        return Ok(pos.clone());
-    }
+    // if let Some(pos) = state.line_cache.get(&(query.clone(), file.clone())) {
+    //     return Ok(pos.clone());
+    // }
 
-    let start = Instant::now();
-    info!("start loading games");
+    // let start = Instant::now();
+    // info!("start loading games");
 
-    let permit = state.new_request.acquire().await.unwrap();
+    // let permit = state.new_request.acquire().await.unwrap();
 
-    let mmap_index = {
-        let mut cache = state.db_cache.lock().unwrap();
-        if cache.is_none() {
-            let index_path = get_index_path(&file);
+    // let game_count = mmap_index.len();
 
-            if !MmapSearchIndex::is_valid(&index_path) {
-                info!("Search index not found, generating automatically...");
-                drop(cache);
-                if let Err(e) = super::generate_search_index(&file, &state) {
-                    return Err(Error::from(std::io::Error::other(format!(
-                        "Failed to generate search index: {}",
-                        e
-                    ))));
-                }
-                cache = state.db_cache.lock().unwrap();
-            }
+    // info!(
+    //     "Ready to search {} games: {:?}",
+    //     game_count,
+    //     start.elapsed()
+    // );
 
-            info!("Loading games from mmap binary search index");
-            match MmapSearchIndex::open(&index_path) {
-                Ok(index) => {
-                    info!(
-                        "Opened mmap index with {} games: {:?}",
-                        index.len(),
-                        start.elapsed()
-                    );
-                    *cache = Some(index);
-                }
-                Err(e) => {
-                    return Err(Error::from(e));
-                }
-            }
-        }
-        cache.as_ref().unwrap().clone()
-    };
+    // let openings: DashMap<String, PositionStats> = DashMap::new();
+    // const MAX_SAMPLES: usize = 500;
+    // // Min-heap of (elo_key, game_id) to track top-rated sample games.
+    // // Using Reverse so peek() returns the entry with the lowest ELO,
+    // // which we can evict when a higher-rated game is found.
+    // let top_games: Mutex<BinaryHeap<Reverse<(i16, i32)>>> =
+    //     Mutex::new(BinaryHeap::with_capacity(MAX_SAMPLES + 1));
 
-    let game_count = mmap_index.len();
+    // let processed = AtomicUsize::new(0);
 
-    info!(
-        "Ready to search {} games: {:?}",
-        game_count,
-        start.elapsed()
-    );
+    // let parsed_position_query: Option<PositionQuery> = if let Some(pq) = &query.position {
+    //     Some(convert_position_query(pq.clone())?)
+    // } else {
+    //     None
+    // };
 
-    let openings: DashMap<String, PositionStats> = DashMap::new();
-    const MAX_SAMPLES: usize = 500;
-    // Min-heap of (elo_key, game_id) to track top-rated sample games.
-    // Using Reverse so peek() returns the entry with the lowest ELO,
-    // which we can evict when a higher-rated game is found.
-    let top_games: Mutex<BinaryHeap<Reverse<(i16, i32)>>> =
-        Mutex::new(BinaryHeap::with_capacity(MAX_SAMPLES + 1));
+    // let wanted_result = query.wanted_result.as_ref().and_then(|r| match r.as_str() {
+    //     "whitewon" => Some(GameResult::WhiteWin),
+    //     "blackwon" => Some(GameResult::BlackWin),
+    //     "draw" => Some(GameResult::Draw),
+    //     _ => None,
+    // });
 
-    let processed = AtomicUsize::new(0);
+    // info!("start search on {tab_id}");
 
-    let parsed_position_query: Option<PositionQuery> = if let Some(pq) = &query.position {
-        Some(convert_position_query(pq.clone())?)
-    } else {
-        None
-    };
+    // let process_entry = |entry: SearchGameEntryRef<'_>| {
+    //     let index = processed.fetch_add(1, Ordering::Relaxed) + 1;
+    //     if index.is_multiple_of(50000) {
+    //         let _ = app.emit(
+    //             "search_progress",
+    //             ProgressPayload {
+    //                 progress: (index as f64 / game_count as f64) * 100.0,
+    //                 id: tab_id.clone(),
+    //                 finished: false,
+    //             },
+    //         );
+    //     }
 
-    let wanted_result = query.wanted_result.as_ref().and_then(|r| match r.as_str() {
-        "whitewon" => Some(GameResult::WhiteWin),
-        "blackwon" => Some(GameResult::BlackWin),
-        "draw" => Some(GameResult::Draw),
-        _ => None,
-    });
+    //     if let Some(white) = query.player1 {
+    //         if white != entry.white_id {
+    //             return;
+    //         }
+    //     }
 
-    info!("start search on {tab_id}");
+    //     if let Some(black) = query.player2 {
+    //         if black != entry.black_id {
+    //             return;
+    //         }
+    //     }
 
-    let process_entry = |entry: SearchGameEntryRef<'_>| {
-        let index = processed.fetch_add(1, Ordering::Relaxed) + 1;
-        if index.is_multiple_of(50000) {
-            let _ = app.emit(
-                "search_progress",
-                ProgressPayload {
-                    progress: (index as f64 / game_count as f64) * 100.0,
-                    id: tab_id.clone(),
-                    finished: false,
-                },
-            );
-        }
+    //     if let Some(wanted) = wanted_result {
+    //         if entry.result != wanted {
+    //             return;
+    //         }
+    //     }
 
-        if let Some(white) = query.player1 {
-            if white != entry.white_id {
-                return;
-            }
-        }
+    //     if let Some(start_date) = &query.start_date {
+    //         if let Some(date) = entry.date {
+    //             if date < start_date.as_str() {
+    //                 return;
+    //             }
+    //         }
+    //     }
 
-        if let Some(black) = query.player2 {
-            if black != entry.black_id {
-                return;
-            }
-        }
+    //     if let Some(end_date) = &query.end_date {
+    //         if let Some(date) = entry.date {
+    //             if date > end_date.as_str() {
+    //                 return;
+    //             }
+    //         }
+    //     }
 
-        if let Some(wanted) = wanted_result {
-            if entry.result != wanted {
-                return;
-            }
-        }
+    //     if let Some(position_query) = &parsed_position_query {
+    //         let end_material: MaterialCount = ByColor {
+    //             white: entry.white_material,
+    //             black: entry.black_material,
+    //         };
+    //         if position_query.can_reach(&end_material, entry.pawn_home) {
+    //             if let Ok(Some(m)) = get_move_after_match(entry.moves, &entry.fen, position_query) {
+    //                 let elo_key = entry.white_elo.max(entry.black_elo);
+    //                 let mut heap = top_games.lock().unwrap();
+    //                 if heap.len() < MAX_SAMPLES {
+    //                     heap.push(Reverse((elo_key, entry.id)));
+    //                 } else if let Some(&Reverse((min_elo, _))) = heap.peek() {
+    //                     if elo_key > min_elo {
+    //                         heap.pop();
+    //                         heap.push(Reverse((elo_key, entry.id)));
+    //                     }
+    //                 }
+    //                 drop(heap);
 
-        if let Some(start_date) = &query.start_date {
-            if let Some(date) = entry.date {
-                if date < start_date.as_str() {
-                    return;
-                }
-            }
-        }
+    //                 openings
+    //                     .entry(m)
+    //                     .and_modify(|opening| match entry.result {
+    //                         GameResult::WhiteWin => opening.white += 1,
+    //                         GameResult::BlackWin => opening.black += 1,
+    //                         GameResult::Draw => opening.draw += 1,
+    //                         GameResult::Other | GameResult::None => opening.draw += 1,
+    //                     })
+    //                     .or_insert_with(|| PositionStats {
+    //                         black: i32::from(entry.result == GameResult::BlackWin),
+    //                         white: i32::from(entry.result == GameResult::WhiteWin),
+    //                         draw: i32::from(
+    //                             entry.result == GameResult::Draw
+    //                                 || entry.result == GameResult::Other
+    //                                 || entry.result == GameResult::None,
+    //                         ),
+    //                         move_: String::new(),
+    //                     });
+    //             }
+    //         }
+    //     }
+    // };
 
-        if let Some(end_date) = &query.end_date {
-            if let Some(date) = entry.date {
-                if date > end_date.as_str() {
-                    return;
-                }
-            }
-        }
+    // mmap_index.par_iter().for_each(process_entry);
 
-        if let Some(position_query) = &parsed_position_query {
-            let end_material: MaterialCount = ByColor {
-                white: entry.white_material,
-                black: entry.black_material,
-            };
-            if position_query.can_reach(&end_material, entry.pawn_home) {
-                if let Ok(Some(m)) = get_move_after_match(entry.moves, &entry.fen, position_query) {
-                    let elo_key = entry.white_elo.max(entry.black_elo);
-                    let mut heap = top_games.lock().unwrap();
-                    if heap.len() < MAX_SAMPLES {
-                        heap.push(Reverse((elo_key, entry.id)));
-                    } else if let Some(&Reverse((min_elo, _))) = heap.peek() {
-                        if elo_key > min_elo {
-                            heap.pop();
-                            heap.push(Reverse((elo_key, entry.id)));
-                        }
-                    }
-                    drop(heap);
+    // let openings: Vec<PositionStats> = openings
+    //     .into_iter()
+    //     .map(|(k, mut v)| {
+    //         v.move_ = k;
+    //         v
+    //     })
+    //     .collect();
+    // let ids: Vec<i32> = top_games
+    //     .into_inner()
+    //     .unwrap()
+    //     .into_iter()
+    //     .map(|Reverse((_, id))| id)
+    //     .collect();
 
-                    openings
-                        .entry(m)
-                        .and_modify(|opening| match entry.result {
-                            GameResult::WhiteWin => opening.white += 1,
-                            GameResult::BlackWin => opening.black += 1,
-                            GameResult::Draw => opening.draw += 1,
-                            GameResult::Other | GameResult::None => opening.draw += 1,
-                        })
-                        .or_insert_with(|| PositionStats {
-                            black: i32::from(entry.result == GameResult::BlackWin),
-                            white: i32::from(entry.result == GameResult::WhiteWin),
-                            draw: i32::from(
-                                entry.result == GameResult::Draw
-                                    || entry.result == GameResult::Other
-                                    || entry.result == GameResult::None,
-                            ),
-                            move_: String::new(),
-                        });
-                }
-            }
-        }
-    };
+    // info!("finished search in {:?}", start.elapsed());
 
-    mmap_index.par_iter().for_each(process_entry);
+    // let (white_players, black_players) = diesel::alias!(players as white, players as black);
+    // let games: Vec<(Game, Player, Player, Event, Site)> = games::table
+    //     .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
+    //     .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
+    //     .inner_join(events::table.on(games::event_id.eq(events::id)))
+    //     .inner_join(sites::table.on(games::site_id.eq(sites::id)))
+    //     .filter(games::id.eq_any(ids))
+    //     .order((games::white_elo.desc(), games::black_elo.desc()))
+    //     .load(db)?;
+    // let normalized_games = normalize_games(games);
+    // let file_path = file.clone();
 
-    let openings: Vec<PositionStats> = openings
-        .into_iter()
-        .map(|(k, mut v)| {
-            v.move_ = k;
-            v
-        })
-        .collect();
-    let ids: Vec<i32> = top_games
-        .into_inner()
-        .unwrap()
-        .into_iter()
-        .map(|Reverse((_, id))| id)
-        .collect();
+    // state.line_cache.insert(
+    //     (query.clone(), file),
+    //     (openings.clone(), normalized_games.clone()),
+    // );
 
-    info!("finished search in {:?}", start.elapsed());
+    // state.search_collisions.remove(&(query, file_path));
 
-    let (white_players, black_players) = diesel::alias!(players as white, players as black);
-    let games: Vec<(Game, Player, Player, Event, Site)> = games::table
-        .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
-        .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
-        .inner_join(events::table.on(games::event_id.eq(events::id)))
-        .inner_join(sites::table.on(games::site_id.eq(sites::id)))
-        .filter(games::id.eq_any(ids))
-        .order((games::white_elo.desc(), games::black_elo.desc()))
-        .load(db)?;
-    let normalized_games = normalize_games(games);
-    let file_path = file.clone();
+    // drop(permit);
 
-    state.line_cache.insert(
-        (query.clone(), file),
-        (openings.clone(), normalized_games.clone()),
-    );
-
-    state.search_collisions.remove(&(query, file_path));
-
-    drop(permit);
-
-    Ok((openings, normalized_games))
+    // Ok((openings, normalized_games))
+    Ok((vec![], vec![]))
 }
 
 pub async fn is_position_in_db(
@@ -466,96 +430,97 @@ pub async fn is_position_in_db(
     query: GameQuery,
     state: tauri::State<'_, AppState>,
 ) -> Result<bool, Error> {
-    let collision_lock = {
-        let entry = state
-            .search_collisions
-            .entry((query.clone(), file.clone()))
-            .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())));
-        entry.value().clone()
-    };
+    // let collision_lock = {
+    //     let entry = state
+    //         .search_collisions
+    //         .entry((query.clone(), file.clone()))
+    //         .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())));
+    //     entry.value().clone()
+    // };
 
-    let _guard = collision_lock.lock().await;
+    // let _guard = collision_lock.lock().await;
 
-    if let Some(pos) = state.line_cache.get(&(query.clone(), file.clone())) {
-        return Ok(!pos.0.is_empty());
-    }
+    // if let Some(pos) = state.line_cache.get(&(query.clone(), file.clone())) {
+    //     return Ok(!pos.0.is_empty());
+    // }
 
-    let parsed_position_query: Option<PositionQuery> = if let Some(pq) = &query.position {
-        Some(convert_position_query(pq.clone())?)
-    } else {
-        None
-    };
+    // let parsed_position_query: Option<PositionQuery> = if let Some(pq) = &query.position {
+    //     Some(convert_position_query(pq.clone())?)
+    // } else {
+    //     None
+    // };
 
-    let start = Instant::now();
-    info!("start loading games for is_position_in_db");
+    // let start = Instant::now();
+    // info!("start loading games for is_position_in_db");
 
-    let permit = state.new_request.acquire().await.unwrap();
+    // let permit = state.new_request.acquire().await.unwrap();
 
-    let mmap_index = {
-        let mut cache = state.db_cache.lock().unwrap();
-        if cache.is_none() {
-            let index_path = get_index_path(&file);
+    // let mmap_index = {
+    //     let mut cache = state.db_cache.lock().unwrap();
+    //     if cache.is_none() {
+    //         let index_path = get_index_path(&file);
 
-            if !MmapSearchIndex::is_valid(&index_path) {
-                info!("Search index not found, generating automatically...");
-                drop(cache);
-                if let Err(e) = super::generate_search_index(&file, &state) {
-                    return Err(Error::from(std::io::Error::other(format!(
-                        "Failed to generate search index: {}",
-                        e
-                    ))));
-                }
-                cache = state.db_cache.lock().unwrap();
-            }
+    //         if !MmapSearchIndex::is_valid(&index_path) {
+    //             info!("Search index not found, generating automatically...");
+    //             drop(cache);
+    //             if let Err(e) = super::generate_search_index(&file, &state) {
+    //                 return Err(Error::from(std::io::Error::other(format!(
+    //                     "Failed to generate search index: {}",
+    //                     e
+    //                 ))));
+    //             }
+    //             cache = state.db_cache.lock().unwrap();
+    //         }
 
-            info!("Loading games from mmap binary search index");
-            match MmapSearchIndex::open(&index_path) {
-                Ok(index) => {
-                    info!(
-                        "Opened mmap index with {} games: {:?}",
-                        index.len(),
-                        start.elapsed()
-                    );
-                    *cache = Some(index);
-                }
-                Err(e) => {
-                    return Err(Error::from(e));
-                }
-            }
-        }
-        cache.as_ref().unwrap().clone()
-    };
+    //         info!("Loading games from mmap binary search index");
+    //         match MmapSearchIndex::open(&index_path) {
+    //             Ok(index) => {
+    //                 info!(
+    //                     "Opened mmap index with {} games: {:?}",
+    //                     index.len(),
+    //                     start.elapsed()
+    //                 );
+    //                 *cache = Some(index);
+    //             }
+    //             Err(e) => {
+    //                 return Err(Error::from(e));
+    //             }
+    //         }
+    //     }
+    //     cache.as_ref().unwrap().clone()
+    // };
 
-    let check_entry = |entry: SearchGameEntryRef<'_>| -> bool {
-        let end_material: MaterialCount = ByColor {
-            white: entry.white_material,
-            black: entry.black_material,
-        };
-        if let Some(position_query) = &parsed_position_query {
-            position_query.can_reach(&end_material, entry.pawn_home)
-                && get_move_after_match(entry.moves, &entry.fen, position_query)
-                    .unwrap_or(None)
-                    .is_some()
-        } else {
-            false
-        }
-    };
+    // let check_entry = |entry: SearchGameEntryRef<'_>| -> bool {
+    //     let end_material: MaterialCount = ByColor {
+    //         white: entry.white_material,
+    //         black: entry.black_material,
+    //     };
+    //     if let Some(position_query) = &parsed_position_query {
+    //         position_query.can_reach(&end_material, entry.pawn_home)
+    //             && get_move_after_match(entry.moves, &entry.fen, position_query)
+    //                 .unwrap_or(None)
+    //                 .is_some()
+    //     } else {
+    //         false
+    //     }
+    // };
 
-    let exists = mmap_index.par_iter().any(check_entry);
+    // let exists = mmap_index.par_iter().any(check_entry);
 
-    info!("finished search in {:?}", start.elapsed());
+    // info!("finished search in {:?}", start.elapsed());
 
-    if !exists {
-        state
-            .line_cache
-            .insert((query.clone(), file.clone()), (vec![], vec![]));
-    }
+    // if !exists {
+    //     state
+    //         .line_cache
+    //         .insert((query.clone(), file.clone()), (vec![], vec![]));
+    // }
 
-    state.search_collisions.remove(&(query, file));
+    // state.search_collisions.remove(&(query, file));
 
-    drop(permit);
+    // drop(permit);
 
-    Ok(exists)
+    // Ok(exists)
+    Ok(false)
 }
 
 #[cfg(test)]
