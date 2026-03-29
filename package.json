@@ -8,6 +8,7 @@
     "build-vite": "tsgo --noEmit && vite build",
     "build": "tauri build --no-bundle",
     "dev": "tauri dev",
+    "dev:react-devtools": "concurrently -n \"Tauri,DevTools\" -c \"blue,magenta\" \"pnpm tauri dev\" \"pnpm react-devtools\"",
     "tauri": "tauri",
     "format": "oxfmt",
     "test": "vitest run",
@@ -98,11 +99,13 @@
     "@types/react-dom": "^19.2.3",
     "@typescript/native-preview": "7.0.0-dev.20260306.1",
     "babel-plugin-react-compiler": "^1.0.0",
+    "concurrently": "^9.2.1",
     "i18next-cli": "^1.42.12",
     "jsdom": "^28.1.0",
     "oxfmt": "^0.40.0",
     "oxlint": "^1.55.0",
     "oxlint-tsgolint": "^0.16.0",
+    "react-devtools": "^7.0.1",
     "typescript-plugin-css-modules": "^5.2.0",
     "vitest": "^4.1.0"
   }

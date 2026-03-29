@@ -17,7 +17,7 @@ serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 tauri = { version = "2.10.2", features = ["protocol-asset"] }
 zip = "2.1.6"
-tokio = { version = "1.33", features = ["full"] }
+tokio = { version = "1.48", features = ["full"] }
 futures-util = "0.3.24"
 reqwest = { version = "0.12.5", features = ["stream", "blocking", "json"] }
 shakmaty = "0.27.1"

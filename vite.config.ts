@@ -16,6 +16,19 @@ export default defineConfig({
             target: "react",
         }),
         react(),
+        {
+            name: "html-inject-react-devtools",
+            transformIndexHtml(html, ctx) {
+                // Only inject the script if we are running the dev server
+                if (ctx.server) {
+                    return html.replace(
+                        "<head>",
+                        '<head>\n    <script src="http://localhost:8097"></script>'
+                    );
+                }
+                return html;
+            },
+        },
         babel({
             presets: [reactCompilerPreset()],
         }),
@@ -26,10 +39,10 @@ export default defineConfig({
         host: host || false,
         hmr: host
             ? {
-                  protocol: "ws",
-                  host,
-                  port: 1421,
-              }
+                protocol: "ws",
+                host,
+                port: 1421,
+            }
             : undefined,
         watch: {
             ignored: ["**/src-tauri/**"],

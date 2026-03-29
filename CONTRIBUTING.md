@@ -9,6 +9,7 @@ your contribution.
 - [Initial Steps](#initial-steps)
 - [Development](#development)
   - [Commands](#commands)
+  - [Developer Tools](#developer-tools)
 - [Submitting a Pull Request](#submitting-a-pull-request)
 - [Extra Notes](#extra-notes)
 
@@ -26,40 +27,36 @@ The following steps will get you setup to contribute changes to this repo:
 - Clone your forked repository: `git clone git@github.com:{your_username}/en-croissant.git`
 - Enter the en-croissant directory: `cd en-croissant`
 - Create a new branch off the `master` branch: `git checkout -b your-feature-name`
-- Install dependencies `pnpm i`
+- Install dependencies `pnpm i` (or `pnpm install`)
 - Open the code in your preferred IDE and contribute your changes
 
 > It is recommended take a look at the [Commands](#commands) and [Extra Notes](#extra-notes) sections before starting.
 
 ### Commands
 
-`pnpm i`
+- `pnpm i` / `pnpm install` - Installs all dependencies.
+- `pnpm dev` - Starts the app in development mode.
+- `pnpm dev:react-devtools` - Starts the app and React DevTools together.
+- `pnpm test` - Runs all tests.
+- `pnpm format` - Formats the project according to project guidelines.
+- `pnpm lint` - Runs type-checking (`tsgo --noEmit`) and linting.
+- `pnpm lint:fix` - Runs lint auto-fixes where possible.
+- `pnpm lint:ci` - Runs CI-style checks (types, formatting check, lint, i18n extract check).
+- `pnpm i18n:extract` - Extracts translation keys and updates files in [src/translation](./src/translation/).
+- `pnpm i18n:status` - Shows translation status.
+- `pnpm i18n:types` - Generates i18n types.
+- `pnpm i18n:sync` - Synchronizes translation resources.
+- `pnpm tauri` - Runs Tauri CLI commands directly.
+- `pnpm build` - Builds the app from source. The built app can be found at [src-tauri/target/release](./src-tauri/target/release/).
 
-- Installs all dependencies
+### Developer Tools
 
-`pnpm dev`
+#### React DevTools (standalone)
 
-- Starts the app in development mode to see changes in real time
+1. Start en-croissant together with React DevTools using `pnpm dev:react-devtools`.
+2. React DevTools will connect to the app automatically on `localhost:8097` and let you inspect the React tree.
 
-`pnpm test`
-
-- Runs all tests, generating a report
-
-`pnpm format`
-
-- Formats the project according to the project guidelines
-
-`pnpm lint:fix`
-
-- Lints the project according to the project guidelines
-
-`pnpm i18n:extract`
-
-- Extracts all translation keys from the code and updates the translation files in [src/translation](./src/translation/)
-
-`pnpm build`
-
-- Builds the entire app from source. The built app can be found at [src-tauri/target/release](./src-tauri/target/release/)
+If React DevTools does not connect, restart `pnpm dev:react-devtools` and refresh the app window.
 
 ## Submitting a Pull Request
 
