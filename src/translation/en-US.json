@@ -297,7 +297,7 @@
     "Engines.Add.OnnxFile": "ONNX file",
     "Engines.Add.OnnxFile.Desc": "Click to select the ONNX file",
     "Engines.Add.Title": "Add Engine",
-    "Engines.Add.TypeMaiaOnnx": "Maia2 ONNX",
+    "Engines.Add.TypeMaiaOnnx": "Maia3 ONNX",
     "Engines.Add.TypeUciBinary": "UCI Binary",
     "Engines.Empty.AddHint": "",
     "Engines.Empty.NoInstalled": "",
