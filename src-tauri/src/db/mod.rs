@@ -52,56 +52,27 @@ fn sql_literal(value: &str) -> String {
     format!("'{}'", value.replace('\'', "''"))
 }
 
-#[derive(Debug, Clone, Copy, Default)]
-pub enum DuckDbConnectionMode {
-    ReadOnly,
-    #[default]
-    ReadWrite,
-}
-
-#[derive(Debug, Clone, Copy, Default)]
-pub struct DuckDbOpenOptions {
-    pub mode: DuckDbConnectionMode,
-}
-
-pub fn create_duckdb_pool(
-    path: &Path,
-    options: DuckDbOpenOptions,
-) -> Result<Pool<DuckdbConnectionManager>, Error> {
-    let access_mode = match options.mode {
-        DuckDbConnectionMode::ReadOnly => AccessMode::ReadOnly,
-        DuckDbConnectionMode::ReadWrite => AccessMode::ReadWrite,
-    };
-
+pub fn create_duckdb_pool(path: &Path) -> Result<Pool<DuckdbConnectionManager>, Error> {
     let config = Config::default()
         .allow_unsigned_extensions()?
-        .access_mode(access_mode)?;
+        .access_mode(AccessMode::ReadWrite)?;
     let manager = DuckdbConnectionManager::file_with_flags(path, config)?;
     let pool = Pool::builder().build(manager)?;
     Ok(pool)
 }
 
-fn duckdb_pool_key(path: &Path, mode: DuckDbConnectionMode) -> String {
-    let mode_str = match mode {
-        DuckDbConnectionMode::ReadOnly => "ro",
-        DuckDbConnectionMode::ReadWrite => "rw",
-    };
-
-    format!("{mode_str}:{}", path.to_string_lossy())
+fn duckdb_pool_key(path: &Path) -> String {
+    path.to_string_lossy().into_owned()
 }
 
-fn get_duckdb_pool(
-    state: &AppState,
-    path: &Path,
-    mode: DuckDbConnectionMode,
-) -> Result<Pool<DuckdbConnectionManager>, Error> {
-    let key = duckdb_pool_key(path, mode);
+fn get_duckdb_pool(state: &AppState, path: &Path) -> Result<Pool<DuckdbConnectionManager>, Error> {
+    let key = duckdb_pool_key(path);
 
     if let Some(pool) = state.duckdb_connection_pool.get(&key) {
         return Ok(pool.clone());
     }
 
-    let pool = create_duckdb_pool(path, DuckDbOpenOptions { mode })?;
+    let pool = create_duckdb_pool(path)?;
     match state.duckdb_connection_pool.entry(key) {
         Entry::Occupied(entry) => Ok(entry.get().clone()),
         Entry::Vacant(entry) => {
@@ -111,25 +82,9 @@ fn get_duckdb_pool(
     }
 }
 
-pub fn get_duckdb_readonly_pool(
-    state: &AppState,
-    path: &Path,
-) -> Result<Pool<DuckdbConnectionManager>, Error> {
-    get_duckdb_pool(state, path, DuckDbConnectionMode::ReadOnly)
-}
-
-pub fn get_duckdb_readwrite_pool(
-    state: &AppState,
-    path: &Path,
-) -> Result<Pool<DuckdbConnectionManager>, Error> {
-    get_duckdb_pool(state, path, DuckDbConnectionMode::ReadWrite)
-}
-
-pub fn remove_duckdb_pools_for_path(state: &AppState, path: &Path) {
-    let ro_key = duckdb_pool_key(path, DuckDbConnectionMode::ReadOnly);
-    let rw_key = duckdb_pool_key(path, DuckDbConnectionMode::ReadWrite);
-    state.duckdb_connection_pool.remove(&ro_key);
-    state.duckdb_connection_pool.remove(&rw_key);
+pub fn remove_duckdb_pool(state: &AppState, path: &Path) {
+    let key = duckdb_pool_key(path);
+    state.duckdb_connection_pool.remove(&key);
 }
 
 pub fn load_aixchess_extension(connection: &Connection) -> Result<(), Error> {
@@ -490,11 +445,9 @@ pub async fn convert_pgn(
         return Ok(());
     }
 
-    let _ = (&title, &description);
-
     let db_exists = db_path.exists();
 
-    let db_pool = get_duckdb_readwrite_pool(&state, &db_path)?;
+    let db_pool = get_duckdb_pool(&state, &db_path)?;
     let db = db_pool.get()?;
 
     if !db_exists {
@@ -519,6 +472,25 @@ pub async fn convert_pgn(
             ",
         )?;
     }
+
+    db.execute_batch(
+        "
+        CREATE TABLE IF NOT EXISTS db_info (
+            name VARCHAR PRIMARY KEY,
+            value VARCHAR
+        );
+        ",
+    )?;
+
+    let description_value = description.unwrap_or_default();
+    db.execute(
+        "DELETE FROM db_info WHERE name IN ('title', 'description');",
+        [],
+    )?;
+    db.execute(
+        "INSERT INTO db_info (name, value) VALUES ('title', ?), ('description', ?);",
+        params![title, description_value],
+    )?;
 
     let start = Instant::now();
     let mut imported_games = 0usize;
@@ -609,11 +581,8 @@ pub async fn get_db_info(
 
     let path = file;
 
-    let db_pool = get_duckdb_readonly_pool(&state, &path)?;
+    let db_pool = get_duckdb_pool(&state, &path)?;
     let db = db_pool.get()?;
-
-    // let info = db.prepare("SELECT * FROM Info;")?;
-    // let mut rows = info.query([])?;
 
     let event_count = db.query_row("SELECT COUNT(DISTINCT event) FROM games;", [], |row| {
         row.get::<_, i32>(0)
@@ -637,9 +606,28 @@ pub async fn get_db_info(
     let storage_size = path.metadata()?.len();
     let filename = path.file_name().expect("get filename").to_string_lossy();
 
+    let mut title = filename.to_string();
+    let mut description = String::new();
+
+    if let Ok(db_title) = db.query_row(
+        "SELECT value FROM db_info WHERE name = 'title' LIMIT 1;",
+        [],
+        |row| row.get::<_, String>(0),
+    ) {
+        title = db_title;
+    }
+
+    if let Ok(db_description) = db.query_row(
+        "SELECT value FROM db_info WHERE name = 'description' LIMIT 1;",
+        [],
+        |row| row.get::<_, String>(0),
+    ) {
+        description = db_description;
+    }
+
     Ok(DatabaseInfo {
-        title: filename.to_string(),
-        description: "".to_string(),
+        title,
+        description,
         player_count,
         game_count,
         event_count,
@@ -656,28 +644,33 @@ pub async fn edit_db_info(
     description: Option<String>,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    // let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    let db_pool = get_duckdb_pool(&state, &file)?;
+    let db = db_pool.get()?;
 
-    // if let Some(title) = title {
-    //     diesel::insert_into(info::table)
-    //         .values((info::name.eq("Title"), info::value.eq(title.clone())))
-    //         .on_conflict(info::name)
-    //         .do_update()
-    //         .set(info::value.eq(title))
-    //         .execute(db)?;
-    // }
+    db.execute_batch(
+        "
+        CREATE TABLE IF NOT EXISTS db_info (
+            name VARCHAR PRIMARY KEY,
+            value VARCHAR
+        );
+        ",
+    )?;
 
-    // if let Some(description) = description {
-    //     diesel::insert_into(info::table)
-    //         .values((
-    //             info::name.eq("Description"),
-    //             info::value.eq(description.clone()),
-    //         ))
-    //         .on_conflict(info::name)
-    //         .do_update()
-    //         .set(info::value.eq(description))
-    //         .execute(db)?;
-    // }
+    if let Some(title) = title {
+        db.execute("DELETE FROM db_info WHERE name = 'title';", [])?;
+        db.execute(
+            "INSERT INTO db_info (name, value) VALUES ('title', ?);",
+            params![title],
+        )?;
+    }
+
+    if let Some(description) = description {
+        db.execute("DELETE FROM db_info WHERE name = 'description';", [])?;
+        db.execute(
+            "INSERT INTO db_info (name, value) VALUES ('description', ?);",
+            params![description],
+        )?;
+    }
 
     Ok(())
 }
@@ -776,7 +769,7 @@ pub async fn get_games(
     query: GameQuery,
     state: tauri::State<'_, AppState>,
 ) -> Result<QueryResponse<Vec<NormalizedGame>>, Error> {
-    let db_pool = get_duckdb_readonly_pool(&state, &file)?;
+    let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
     load_aixchess_extension(&db)?;
     let count = db.query_row("SELECT COUNT(*) FROM games;", [], |row| {
@@ -1413,7 +1406,7 @@ pub async fn delete_database(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    remove_duckdb_pools_for_path(&state, &file);
+    remove_duckdb_pool(&state, &file);
 
     let path_str = file.to_str().unwrap();
 
@@ -1557,7 +1550,7 @@ pub async fn export_to_pgn(
     dest_file: PathBuf,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    let db_pool = get_duckdb_readonly_pool(&state, &file)?;
+    let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
     load_aixchess_extension(&db)?;
 

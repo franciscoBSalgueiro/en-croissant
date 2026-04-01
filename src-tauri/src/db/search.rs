@@ -9,7 +9,7 @@ use crate::{
     AppState,
 };
 
-use super::{get_duckdb_readonly_pool, load_aixchess_extension, GameQuery};
+use super::{get_duckdb_pool, load_aixchess_extension, GameQuery};
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct ExactData {
@@ -174,7 +174,7 @@ pub async fn search_position(
         PositionQuery::Partial(data) => ("partial", data.piece_positions.board.to_string()),
     };
 
-    let db_pool = get_duckdb_readonly_pool(&state, &file)?;
+    let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
     load_aixchess_extension(&db)?;
 
@@ -286,7 +286,7 @@ pub async fn is_position_in_db(
     }
     .0;
 
-    let db_pool = get_duckdb_readonly_pool(&state, &file)?;
+    let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
     load_aixchess_extension(&db)?;
 
