@@ -1,11 +1,10 @@
 mod encoding;
 mod models;
-mod ops;
 mod schema;
 mod search;
 
 use crate::{
-    db::{encoding::decode_move, models::*, ops::*},
+    db::{encoding::decode_move, models::*},
     error::Error,
     AppState,
 };
@@ -14,17 +13,9 @@ use aix_chess_compression::{
 };
 use chrono::{NaiveDate, NaiveTime};
 use dashmap::mapref::entry::Entry;
-use dashmap::DashMap;
-use diesel::{
-    connection::{DefaultLoadingMode, SimpleConnection},
-    insert_into,
-    prelude::*,
-    r2d2::{ConnectionManager, Pool},
-    row, sql_query,
-    sql_types::Text,
-};
 use duckdb::{params, AccessMode, Config, Connection, DuckdbConnectionManager};
 use pgn_reader::{RawTag, Reader, SanPlus, Skip, Visitor};
+use r2d2::Pool;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
@@ -392,7 +383,7 @@ impl Visitor for AixImporter {
             Ok(chess_move) => {
                 game.position_before_last_move = Some(game.position.clone());
                 game.ply_before_last_move = game.ply_count;
-                if game.encoder.encode_move(chess_move.clone()).is_err() {
+                if game.encoder.encode_move(chess_move).is_err() {
                     self.skip = true;
                     return ControlFlow::Continue(());
                 }

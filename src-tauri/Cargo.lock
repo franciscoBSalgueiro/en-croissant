@@ -1688,6 +1688,7 @@ dependencies = [
  "once_cell",
  "pgn-reader",
  "polyglot-book-rs",
+ "r2d2",
  "rand 0.8.5",
  "rayon",
  "reqwest 0.12.5",

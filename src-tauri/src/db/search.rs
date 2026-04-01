@@ -106,7 +106,7 @@ fn uci_to_san(uci_move: &str, position: &Chess) -> String {
         return uci_move.to_string();
     };
 
-    SanPlus::from_move(position.clone(), &chess_move).to_string()
+    SanPlus::from_move(position.clone(), chess_move).to_string()
 }
 
 fn build_position_where_clauses(
