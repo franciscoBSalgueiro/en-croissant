@@ -2,6 +2,7 @@ use std::{
     collections::HashMap,
     fs::File,
     io::{BufRead, BufReader, Cursor, Read, Write},
+    ops::ControlFlow,
     path::PathBuf,
     sync::Arc,
     time::Instant,
@@ -9,7 +10,7 @@ use std::{
 
 use dashmap::DashMap;
 use log::{error, info};
-use pgn_reader::{BufferedReader, RawHeader, Skip, Visitor};
+use pgn_reader::{RawTag, Reader, Visitor};
 use polyglot_book_rs::PolyglotBook;
 use rand::{seq::IteratorRandom, Rng};
 use serde::{Deserialize, Serialize};
@@ -912,9 +913,11 @@ impl OpeningBookPgnVisitor {
 }
 
 impl Visitor for OpeningBookPgnVisitor {
-    type Result = Option<OpeningBookSelection>;
+    type Tags = ();
+    type Movetext = ();
+    type Output = Option<OpeningBookSelection>;
 
-    fn begin_game(&mut self) {
+    fn begin_tags(&mut self) -> ControlFlow<Self::Output, Self::Tags> {
         let start = Chess::default();
         self.current_position = start.clone();
         self.initial_position = start;
@@ -922,9 +925,15 @@ impl Visitor for OpeningBookPgnVisitor {
         self.initial_fen = None;
         self.moves.clear();
         self.skip = false;
+        ControlFlow::Continue(())
     }
 
-    fn header(&mut self, key: &[u8], value: RawHeader<'_>) {
+    fn tag(
+        &mut self,
+        _tags: &mut Self::Tags,
+        key: &[u8],
+        value: RawTag<'_>,
+    ) -> ControlFlow<Self::Output> {
         if key == b"FEN" {
             let fen_text = value.decode_utf8_lossy().into_owned();
             match parse_fen_to_position(&fen_text) {
@@ -946,37 +955,40 @@ impl Visitor for OpeningBookPgnVisitor {
                 }
             }
         }
+
+        ControlFlow::Continue(())
     }
 
-    fn end_headers(&mut self) -> Skip {
-        Skip(self.skip)
+    fn begin_movetext(&mut self, _tags: Self::Tags) -> ControlFlow<Self::Output, Self::Movetext> {
+        ControlFlow::Continue(())
     }
 
-    fn san(&mut self, san: SanPlus) {
+    fn san(&mut self, _movetext: &mut Self::Movetext, san: SanPlus) -> ControlFlow<Self::Output> {
         if self.skip {
-            return;
+            return ControlFlow::Continue(());
         }
 
         let mv = match san.san.to_move(&self.current_position) {
             Ok(mv) => mv,
             Err(_) => {
                 self.skip = true;
-                return;
+                return ControlFlow::Continue(());
             }
         };
 
-        let uci = UciMove::from_move(&mv, self.castling_mode).to_string();
+        let uci = UciMove::from_move(mv.clone(), self.castling_mode).to_string();
         self.moves.push(uci);
-        self.current_position.play_unchecked(&mv);
+        self.current_position.play_unchecked(mv);
+        ControlFlow::Continue(())
     }
 
-    fn end_game(&mut self) -> Self::Result {
+    fn end_game(&mut self, _movetext: Self::Movetext) -> Self::Output {
         if self.skip || self.moves.is_empty() {
             return None;
         }
 
         let initial_fen = self.initial_fen.clone().unwrap_or_else(|| {
-            Fen::from_position(self.initial_position.clone(), EnPassantMode::Legal).to_string()
+            Fen::from_position(&self.initial_position, EnPassantMode::Legal).to_string()
         });
 
         let candidate = OpeningBookSelection {
@@ -995,7 +1007,7 @@ impl Visitor for OpeningBookPgnVisitor {
 }
 
 fn select_random_pgn_entry(input: impl Read) -> Result<OpeningBookSelection, Error> {
-    let mut reader = BufferedReader::new(input);
+    let mut reader = Reader::new(input);
     let mut visitor = OpeningBookPgnVisitor::new();
 
     while reader.read_game(&mut visitor)?.is_some() {}

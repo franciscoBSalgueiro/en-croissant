@@ -5,15 +5,12 @@ mod schema;
 mod search;
 
 use crate::{
-    db::{
-        encoding::{decode_game_to_movetext, decode_move, iter_mainline_move_bytes},
-        models::*,
-        ops::*,
-        schema::*,
-    },
+    db::{encoding::decode_move, models::*, ops::*},
     error::Error,
-    opening::get_opening_from_setup,
     AppState,
+};
+use aix_chess_compression::{
+    CompressionLevel as AixCompressionLevel, Encode as AixEncode, Encoder as AixEncoder,
 };
 use chrono::{NaiveDate, NaiveTime};
 use dashmap::mapref::entry::Entry;
@@ -26,8 +23,8 @@ use diesel::{
     row, sql_query,
     sql_types::Text,
 };
-use duckdb::{AccessMode, Config, Connection, DuckdbConnectionManager};
-use pgn_reader::{BufferedReader, Nag, RawHeader, SanPlus, Skip, Visitor};
+use duckdb::{params, AccessMode, Config, Connection, DuckdbConnectionManager};
+use pgn_reader::{RawTag, Reader, SanPlus, Skip, Visitor};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
@@ -37,22 +34,18 @@ use shakmaty::{
 use specta::Type;
 use std::{
     fs::{remove_file, File, OpenOptions},
+    ops::ControlFlow,
     path::{Path, PathBuf},
-    sync::atomic::{AtomicUsize, Ordering},
-    time::{Duration, Instant},
+    time::Instant,
 };
 use std::{
     io::{BufWriter, Write},
     str::FromStr,
 };
-use tauri::{Emitter, State};
+use tauri::Emitter;
 
 use log::info;
 use tauri_specta::Event as _;
-
-use self::encoding::{
-    encode_comment, encode_move, encode_nag, VARIATION_END_MARKER, VARIATION_START_MARKER,
-};
 
 pub use self::models::NormalizedGame;
 pub use self::models::Puzzle;
@@ -61,9 +54,6 @@ pub use self::schema::puzzles;
 pub use self::schema::themes;
 pub use self::search::{is_position_in_db, search_position, PositionQueryJs, PositionStats};
 
-const DATABASE_VERSION: &str = "2.0.0";
-
-const CREATE_TABLES_SQL: &str = include_str!("create.sql");
 const DEFAULT_AIXCHESS_EXTENSION_PATH: &str =
     "/home/fbsal/dev/aix/build/release/extension/aixchess/aixchess.duckdb_extension";
 
@@ -200,352 +190,297 @@ fn get_pawn_home(board: &Board) -> u16 {
     (second_rank_pawns as u16) | ((seventh_rank_pawns as u16) << 8)
 }
 
-#[derive(Debug)]
-pub enum JournalMode {
-    Delete,
-    Off,
+#[derive(Default, Debug, Clone)]
+struct AixTags {
+    event: Option<String>,
+    site: Option<String>,
+    date: Option<String>,
+    utctime: Option<String>,
+    round: Option<String>,
+    white: Option<String>,
+    black: Option<String>,
+    whiteelo: Option<i32>,
+    blackelo: Option<i32>,
+    result: Option<String>,
+    timecontrol: Option<String>,
+    eco: Option<String>,
+    setup: bool,
+    fen: Option<String>,
 }
 
 #[derive(Debug)]
-pub struct ConnectionOptions {
-    pub journal_mode: JournalMode,
-    pub enable_foreign_keys: bool,
-    pub busy_timeout: Option<Duration>,
+struct AixGameRow {
+    event: String,
+    site: String,
+    date: Option<String>,
+    utctime: Option<String>,
+    round: Option<String>,
+    white: String,
+    black: String,
+    whiteelo: Option<i32>,
+    blackelo: Option<i32>,
+    result: Option<String>,
+    timecontrol: Option<String>,
+    eco: Option<String>,
+    movedata: Vec<u8>,
+    ply_count: u16,
 }
 
-impl Default for ConnectionOptions {
-    fn default() -> Self {
-        Self {
-            journal_mode: JournalMode::Delete,
-            enable_foreign_keys: true,
-            busy_timeout: Some(Duration::from_secs(30)),
-        }
-    }
+struct AixGameInProgress {
+    tags: AixTags,
+    encoder: AixEncoder<'static>,
+    position: Chess,
+    ply_count: u16,
+    position_stack: Vec<(Chess, u16)>,
+    position_before_last_move: Option<Chess>,
+    ply_before_last_move: u16,
 }
 
-impl diesel::r2d2::CustomizeConnection<SqliteConnection, diesel::r2d2::Error>
-    for ConnectionOptions
-{
-    fn on_acquire(&self, conn: &mut SqliteConnection) -> Result<(), diesel::r2d2::Error> {
-        (|| {
-            match self.journal_mode {
-                JournalMode::Delete => conn.batch_execute("PRAGMA journal_mode = DELETE;")?,
-                JournalMode::Off => conn.batch_execute("PRAGMA journal_mode = OFF;")?,
-            }
-            if self.enable_foreign_keys {
-                conn.batch_execute("PRAGMA foreign_keys = ON;")?;
-            }
-            if let Some(d) = self.busy_timeout {
-                conn.batch_execute(&format!("PRAGMA busy_timeout = {};", d.as_millis()))?;
-            }
-            Ok(())
-        })()
-        .map_err(diesel::r2d2::Error::QueryError)
-    }
-}
-
-#[derive(Debug)]
-pub struct MaterialColor {
-    white: u8,
-    black: u8,
-}
-
-impl Default for MaterialColor {
-    fn default() -> Self {
-        Self {
-            white: 39,
-            black: 39,
-        }
-    }
-}
-
-#[derive(Default, Debug)]
-pub struct TempGame {
-    pub event_name: Option<String>,
-    pub site_name: Option<String>,
-    pub date: Option<String>,
-    pub time: Option<String>,
-    pub round: Option<String>,
-    pub white_name: Option<String>,
-    pub white_elo: Option<i32>,
-    pub black_name: Option<String>,
-    pub black_elo: Option<i32>,
-    pub result: Option<String>,
-    pub time_control: Option<String>,
-    pub eco: Option<String>,
-    pub fen: Option<String>,
-    pub moves: Vec<u8>,
-    pub position: Chess,
-    pub material_count: MaterialColor,
-}
-
-impl TempGame {
-    pub fn insert_to_db(&self, db: &mut SqliteConnection) -> Result<(), diesel::result::Error> {
-        let pawn_home = get_pawn_home(self.position.board());
-
-        let white_id = if let Some(name) = &self.white_name {
-            create_player(db, name)?.id
-        } else {
-            0
-        };
-        let black_id = if let Some(name) = &self.black_name {
-            create_player(db, name)?.id
-        } else {
-            0
-        };
-
-        let event_id = if let Some(name) = &self.event_name {
-            create_event(db, name)?.id
-        } else {
-            0
-        };
-
-        let site_id = if let Some(name) = &self.site_name {
-            create_site(db, name)?.id
-        } else {
-            0
-        };
-
-        let ply_count = iter_mainline_move_bytes(&self.moves).count() as i32;
-        let final_material = get_material_count(self.position.board());
-        let minimal_white_material = self.material_count.white.min(final_material.white) as i32;
-        let minimal_black_material = self.material_count.black.min(final_material.black) as i32;
-
-        let new_game = NewGame {
-            white_id,
-            black_id,
-            ply_count,
-            eco: self.eco.as_deref(),
-            round: self.round.as_deref(),
-            white_elo: self.white_elo,
-            black_elo: self.black_elo,
-            white_material: minimal_white_material,
-            black_material: minimal_black_material,
-            // max_rating: self.game.white.rating.max(self.game.black.rating),
-            date: self.date.as_deref(),
-            time: self.time.as_deref(),
-            time_control: self.time_control.as_deref(),
-            site_id,
-            event_id,
-            fen: self.fen.as_deref(),
-            result: self.result.as_deref(),
-            moves: self.moves.as_slice(),
-            pawn_home: pawn_home as i32,
-        };
-
-        create_game(db, new_game)?;
-        Ok(())
-    }
-}
-
-struct Importer {
-    game: TempGame,
+struct AixImporter {
+    tags: AixTags,
+    game: Option<AixGameInProgress>,
     timestamp: Option<i64>,
     skip: bool,
-    frames: Vec<ImportFrame>,
 }
 
-struct ImportFrame {
-    position: Chess,
-    pre_move_positions: Vec<Chess>,
-}
-
-impl ImportFrame {
-    fn new(position: Chess) -> Self {
+impl AixImporter {
+    fn new(timestamp: Option<i64>) -> Self {
         Self {
-            position,
-            pre_move_positions: Vec::new(),
-        }
-    }
-}
-
-impl Importer {
-    fn new(timestamp: Option<i64>) -> Importer {
-        Importer {
-            game: TempGame::default(),
+            tags: AixTags::default(),
+            game: None,
             timestamp,
             skip: false,
-            frames: Vec::new(),
         }
+    }
+
+    fn should_skip_by_timestamp(tags: &AixTags, timestamp: Option<i64>) -> bool {
+        let Some(timestamp) = timestamp else {
+            return false;
+        };
+
+        let Some(date) = tags.date.as_deref() else {
+            return false;
+        };
+
+        let Some(time) = tags.utctime.as_deref() else {
+            return false;
+        };
+
+        let Some(parsed_date) = NaiveDate::parse_from_str(date, "%Y.%m.%d").ok() else {
+            return false;
+        };
+        let Some(parsed_time) = NaiveTime::parse_from_str(time, "%H:%M:%S").ok() else {
+            return false;
+        };
+
+        parsed_date.and_time(parsed_time).and_utc().timestamp() <= timestamp
+    }
+
+    fn position_from_tags(tags: &AixTags) -> Result<(Chess, Option<String>), ()> {
+        let initial_fen = if tags.setup { tags.fen.clone() } else { None };
+
+        let position = match initial_fen.as_deref() {
+            Some(fen) => {
+                let fen = Fen::from_ascii(fen.as_bytes()).map_err(|_| ())?;
+                let setup = fen.into_setup();
+                let castling_mode = CastlingMode::detect(&setup);
+                Chess::from_setup(setup, castling_mode)
+                    .or_else(PositionError::ignore_too_much_material)
+                    .map_err(|_| ())?
+            }
+            None => Chess::new(),
+        };
+
+        Ok((position, initial_fen))
     }
 }
 
-impl Visitor for Importer {
-    type Result = Option<TempGame>;
+impl Visitor for AixImporter {
+    type Tags = ();
+    type Movetext = ();
+    type Output = Option<AixGameRow>;
 
-    fn begin_game(&mut self) {
-        self.game = TempGame::default();
+    fn begin_tags(&mut self) -> ControlFlow<Self::Output, Self::Tags> {
+        self.tags = AixTags::default();
+        self.game = None;
         self.skip = false;
-        self.frames.clear();
+        ControlFlow::Continue(())
     }
 
-    fn header(&mut self, key: &[u8], value: RawHeader<'_>) {
-        if key == b"White" {
-            self.game.white_name = Some(value.decode_utf8_lossy().into_owned());
-        } else if key == b"Black" {
-            self.game.black_name = Some(value.decode_utf8_lossy().into_owned());
-        } else if key == b"WhiteElo" {
-            if value.as_bytes() == b"-" {
-                self.game.white_elo = Some(0);
-            } else {
-                self.game.white_elo = btoi::btoi(value.as_bytes()).ok();
-            }
-        } else if key == b"BlackElo" {
-            if value.as_bytes() == b"-" {
-                self.game.black_elo = Some(0);
-            } else {
-                self.game.black_elo = btoi::btoi(value.as_bytes()).ok();
-            }
-        } else if key == b"TimeControl" {
-            self.game.time_control = Some(value.decode_utf8_lossy().into_owned());
-        } else if key == b"ECO" {
-            self.game.eco = Some(value.decode_utf8_lossy().into_owned());
-        } else if key == b"Round" {
-            self.game.round = Some(value.decode_utf8_lossy().into_owned());
-        } else if key == b"Date" || key == b"UTCDate" {
-            self.game.date = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
-        } else if key == b"UTCTime" {
-            self.game.time = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
-        } else if key == b"Site" {
-            self.game.site_name = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
-        } else if key == b"Event" {
-            self.game.event_name = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
-        } else if key == b"Result" {
-            self.game.result = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
-        } else if key == b"FEN" {
-            if value.as_bytes() == b"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" {
-                self.game.fen = None;
-            } else {
-                let fen = Fen::from_ascii(value.as_bytes());
-                if let Ok(fen) = fen {
-                    self.game.fen = Some(value.decode_utf8_lossy().into_owned());
-                    let setup = fen.into_setup();
-                    let castling_mode = CastlingMode::detect(&setup);
-                    if let Ok(setup) = Chess::from_setup(setup, castling_mode)
-                        .or_else(PositionError::ignore_too_much_material)
-                    {
-                        self.game.position = setup;
-                    } else {
-                        self.skip = true;
-                    }
+    fn tag(
+        &mut self,
+        _tags: &mut Self::Tags,
+        key: &[u8],
+        value: RawTag<'_>,
+    ) -> ControlFlow<Self::Output> {
+        let value = value.decode_utf8_lossy().into_owned();
+        match key {
+            b"Event" => self.tags.event = Some(value),
+            b"Site" => self.tags.site = Some(value),
+            b"Date" | b"UTCDate" => self.tags.date = Some(value),
+            b"UTCTime" => self.tags.utctime = Some(value),
+            b"Round" => self.tags.round = Some(value),
+            b"White" => self.tags.white = Some(value),
+            b"Black" => self.tags.black = Some(value),
+            b"WhiteElo" => {
+                self.tags.whiteelo = if value == "-" {
+                    Some(0)
                 } else {
-                    self.skip = true;
+                    value.parse().ok()
                 }
             }
+            b"BlackElo" => {
+                self.tags.blackelo = if value == "-" {
+                    Some(0)
+                } else {
+                    value.parse().ok()
+                }
+            }
+            b"Result" => self.tags.result = Some(value),
+            b"TimeControl" => self.tags.timecontrol = Some(value),
+            b"ECO" => self.tags.eco = Some(value),
+            b"SetUp" => self.tags.setup = value == "1",
+            b"FEN" => self.tags.fen = Some(value),
+            _ => {}
         }
+
+        ControlFlow::Continue(())
     }
 
-    fn end_headers(&mut self) -> Skip {
-        // Skip games with timestamp before
-        let cur_timestamp = self.game.date.as_ref().and_then(|date| {
-            let date = NaiveDate::parse_from_str(date, "%Y.%m.%d").ok()?;
-            let time = self
-                .game
-                .time
-                .as_ref()
-                .and_then(|time| NaiveTime::parse_from_str(time, "%H:%M:%S").ok())?;
-            Some(date.and_time(time).and_utc().timestamp())
+    fn begin_movetext(&mut self, _tags: Self::Tags) -> ControlFlow<Self::Output, Self::Movetext> {
+        if Self::should_skip_by_timestamp(&self.tags, self.timestamp) {
+            self.skip = true;
+            return ControlFlow::Continue(());
+        }
+
+        let Ok((position, initial_fen)) = Self::position_from_tags(&self.tags) else {
+            self.skip = true;
+            return ControlFlow::Continue(());
+        };
+
+        let Ok(encoder) =
+            AixEncoder::new_with_initial_fen(AixCompressionLevel::Low, initial_fen.as_deref())
+        else {
+            self.skip = true;
+            return ControlFlow::Continue(());
+        };
+
+        self.game = Some(AixGameInProgress {
+            tags: self.tags.clone(),
+            encoder,
+            position,
+            ply_count: 0,
+            position_stack: Vec::new(),
+            position_before_last_move: None,
+            ply_before_last_move: 0,
         });
 
-        if let (Some(cur_timestamp), Some(timestamp)) = (cur_timestamp, self.timestamp) {
-            if cur_timestamp <= timestamp {
+        ControlFlow::Continue(())
+    }
+
+    fn san(&mut self, _movetext: &mut Self::Movetext, san: SanPlus) -> ControlFlow<Self::Output> {
+        if self.skip {
+            return ControlFlow::Continue(());
+        }
+
+        let Some(game) = self.game.as_mut() else {
+            self.skip = true;
+            return ControlFlow::Continue(());
+        };
+
+        match san.san.to_move(&game.position) {
+            Ok(chess_move) => {
+                game.position_before_last_move = Some(game.position.clone());
+                game.ply_before_last_move = game.ply_count;
+                if game.encoder.encode_move(chess_move.clone()).is_err() {
+                    self.skip = true;
+                    return ControlFlow::Continue(());
+                }
+                game.position.play_unchecked(chess_move);
+                game.ply_count += 1;
+            }
+            Err(_) => {
                 self.skip = true;
             }
         }
 
-        // Skip games without ELO
-        // self.skip |= self.current.white_elo.is_none() || self.current.black_elo.is_none();
-
-        self.frames.clear();
-        self.frames
-            .push(ImportFrame::new(self.game.position.clone()));
-
-        Skip(self.skip)
+        ControlFlow::Continue(())
     }
 
-    fn san(&mut self, san: SanPlus) {
-        if self.frames.is_empty() {
-            self.frames
-                .push(ImportFrame::new(self.game.position.clone()));
-        }
-
-        let is_mainline = self.frames.len() == 1;
-        let frame = self.frames.last_mut().unwrap();
-        let pre_move_position = frame.position.clone();
-
-        let m = san.san.to_move(&frame.position).ok();
-        if let Some(m) = m {
-            if is_mainline && m.is_promotion() {
-                let cur_material = get_material_count(frame.position.board());
-                if cur_material.white < self.game.material_count.white {
-                    self.game.material_count.white = cur_material.white;
-                }
-                if cur_material.black < self.game.material_count.black {
-                    self.game.material_count.black = cur_material.black;
-                }
-            }
-            self.game
-                .moves
-                .push(encode_move(&m, &frame.position).unwrap());
-            frame.pre_move_positions.push(pre_move_position);
-            frame.position.play_unchecked(&m);
-
-            if is_mainline {
-                self.game.position = frame.position.clone();
-            }
-        } else {
-            self.skip = true;
-        }
-    }
-
-    fn begin_variation(&mut self) -> Skip {
-        if self.frames.is_empty() {
-            self.frames
-                .push(ImportFrame::new(self.game.position.clone()));
-        }
-
-        let parent = self.frames.last().unwrap();
-        let variation_start = parent
-            .pre_move_positions
-            .last()
-            .cloned()
-            .unwrap_or_else(|| parent.position.clone());
-
-        self.game.moves.push(VARIATION_START_MARKER);
-        self.frames.push(ImportFrame::new(variation_start));
-        Skip(false)
-    }
-
-    fn end_variation(&mut self) {
-        self.game.moves.push(VARIATION_END_MARKER);
-        if self.frames.len() > 1 {
-            self.frames.pop();
-        } else {
-            self.skip = true;
-        }
-
-        if let Some(root) = self.frames.first() {
-            self.game.position = root.position.clone();
-        }
-    }
-
-    fn comment(&mut self, comment: pgn_reader::RawComment<'_>) {
-        let comment = String::from_utf8_lossy(comment.as_bytes());
-        encode_comment(comment.as_ref(), &mut self.game.moves);
-    }
-
-    fn nag(&mut self, nag: Nag) {
-        encode_nag(&nag.to_string(), &mut self.game.moves);
-    }
-
-    fn end_game(&mut self) -> Self::Result {
-        self.frames.clear();
+    fn begin_variation(
+        &mut self,
+        _movetext: &mut Self::Movetext,
+    ) -> ControlFlow<Self::Output, Skip> {
         if self.skip {
-            self.game = TempGame::default();
-            None
-        } else {
-            Some(std::mem::take(&mut self.game))
+            return ControlFlow::Continue(Skip(true));
         }
+
+        let Some(game) = self.game.as_mut() else {
+            self.skip = true;
+            return ControlFlow::Continue(Skip(true));
+        };
+
+        game.encoder.encode_start_variation();
+        game.position_stack
+            .push((game.position.clone(), game.ply_count));
+
+        if let Some(previous_position) = game.position_before_last_move.as_ref() {
+            game.position = previous_position.clone();
+            game.ply_count = game.ply_before_last_move;
+        }
+
+        ControlFlow::Continue(Skip(false))
+    }
+
+    fn end_variation(&mut self, _movetext: &mut Self::Movetext) -> ControlFlow<Self::Output> {
+        if self.skip {
+            return ControlFlow::Continue(());
+        }
+
+        let Some(game) = self.game.as_mut() else {
+            self.skip = true;
+            return ControlFlow::Continue(());
+        };
+
+        game.encoder.encode_end_variation();
+        if let Some((position, ply_count)) = game.position_stack.pop() {
+            game.position = position;
+            game.ply_count = ply_count;
+        } else {
+            self.skip = true;
+        }
+
+        ControlFlow::Continue(())
+    }
+
+    fn end_game(&mut self, _movetext: Self::Movetext) -> Self::Output {
+        if self.skip {
+            self.tags = AixTags::default();
+            self.game = None;
+            return None;
+        }
+
+        let Some(game) = self.game.take() else {
+            return None;
+        };
+
+        let movedata = game.encoder.finish().into_bytes();
+        Some(AixGameRow {
+            event: game.tags.event.unwrap_or_else(|| "Unknown".to_string()),
+            site: game.tags.site.unwrap_or_else(|| "Unknown".to_string()),
+            date: game.tags.date,
+            utctime: game.tags.utctime,
+            round: game.tags.round,
+            white: game.tags.white.unwrap_or_else(|| "Unknown".to_string()),
+            black: game.tags.black.unwrap_or_else(|| "Unknown".to_string()),
+            whiteelo: game.tags.whiteelo,
+            blackelo: game.tags.blackelo,
+            result: game.tags.result,
+            timecontrol: game.tags.timecontrol,
+            eco: game.tags.eco,
+            movedata,
+            ply_count: game.ply_count,
+        })
     }
 }
 
@@ -560,118 +495,107 @@ pub async fn convert_pgn(
     description: Option<String>,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    return Ok(());
+    if files.is_empty() {
+        return Ok(());
+    }
+
+    let _ = (&title, &description);
+
+    let db_exists = db_path.exists();
+
+    let db_pool = get_duckdb_readwrite_pool(&state, &db_path)?;
+    let db = db_pool.get()?;
+
+    if !db_exists {
+        db.execute_batch(
+            "
+            CREATE TABLE IF NOT EXISTS games (
+                event VARCHAR,
+                site VARCHAR,
+                date VARCHAR,
+                utctime VARCHAR,
+                round VARCHAR,
+                white VARCHAR,
+                black VARCHAR,
+                whiteelo INTEGER,
+                blackelo INTEGER,
+                result VARCHAR,
+                timecontrol VARCHAR,
+                eco VARCHAR,
+                movedata BLOB,
+                ply_count USMALLINT
+            );
+            ",
+        )?;
+    }
+
+    let start = Instant::now();
+    let mut imported_games = 0usize;
+    let ts = timestamp.map(i64::from);
+    let mut appender = db.appender("games")?;
+
+    for file_path in files {
+        let current_file_name = file_path
+            .file_name()
+            .map(|name| name.to_string_lossy().into_owned());
+
+        let extension = file_path.extension().and_then(|ext| ext.to_str());
+        let file = File::open(&file_path)?;
+
+        let uncompressed: Box<dyn std::io::Read + Send> = if extension == Some("bz2") {
+            Box::new(bzip2::read::MultiBzDecoder::new(file))
+        } else if extension == Some("zst") {
+            Box::new(zstd::Decoder::new(file)?)
+        } else {
+            Box::new(file)
+        };
+
+        let mut importer = AixImporter::new(ts);
+        let mut reader = Reader::new(uncompressed);
+        while let Some(game) = reader.read_game(&mut importer)? {
+            let Some(game) = game else {
+                continue;
+            };
+
+            appender.append_row(params![
+                game.event,
+                game.site,
+                game.date,
+                game.utctime,
+                game.round,
+                game.white,
+                game.black,
+                game.whiteelo,
+                game.blackelo,
+                game.result,
+                game.timecontrol,
+                game.eco,
+                game.movedata,
+                game.ply_count,
+            ])?;
+
+            imported_games += 1;
+            if imported_games.is_multiple_of(1000) {
+                let elapsed = start.elapsed().as_millis() as u32;
+                let _ = app.emit(
+                    "convert_progress",
+                    (imported_games, elapsed, current_file_name.clone()),
+                );
+            }
+        }
+    }
+
+    appender.flush()?;
+    db.execute("CHECKPOINT", [])?;
+
+    let elapsed = start.elapsed().as_millis() as u32;
+    let _ = app.emit(
+        "convert_progress",
+        (imported_games, elapsed, Option::<String>::None),
+    );
+
+    Ok(())
 }
-//     if files.is_empty() {
-//         return Ok(());
-//     }
-
-//     let description = description.unwrap_or_default();
-
-//     let db_exists = db_path.exists();
-
-//     // create the database file
-//     let db = &mut get_db_or_create(
-//         &state,
-//         db_path.to_str().unwrap(),
-//         ConnectionOptions {
-//             enable_foreign_keys: false,
-//             busy_timeout: None,
-//             journal_mode: JournalMode::Off,
-//         },
-//     )?;
-
-//     if !db_exists {
-//         db.batch_execute(CREATE_TABLES_SQL)?;
-//         db.batch_execute(
-//             format!(
-//                 "INSERT INTO Info (Name, Value) VALUES (\"Version\", \"{DATABASE_VERSION}\");
-//                 INSERT INTO Info (Name, Value) VALUES (\"Title\", \"{title}\");
-//                 INSERT INTO Info (Name, Value) VALUES (\"Description\", \"{description}\");"
-//             )
-//             .as_str(),
-//         )?;
-//     }
-
-//     // start counting time
-//     let start = Instant::now();
-
-//     let mut imported_games = 0usize;
-
-//     for file_path in files {
-//         let current_file_name = file_path
-//             .file_name()
-//             .map(|name| name.to_string_lossy().into_owned());
-//         let extension = file_path.extension();
-//         let file = File::open(&file_path)?;
-
-//         let uncompressed: Box<dyn std::io::Read + Send> = if extension == Some("bz2".as_ref()) {
-//             Box::new(bzip2::read::MultiBzDecoder::new(file))
-//         } else if extension == Some("zst".as_ref()) {
-//             Box::new(zstd::Decoder::new(file)?)
-//         } else {
-//             Box::new(file)
-//         };
-
-//         let mut importer = Importer::new(timestamp.map(|t| t as i64));
-//         let mut file_imported_games = 0usize;
-
-//         db.transaction::<_, diesel::result::Error, _>(|db| {
-//             for game in BufferedReader::new(uncompressed)
-//                 .into_iter(&mut importer)
-//                 .flatten()
-//                 .flatten()
-//             {
-//                 if (imported_games + file_imported_games).is_multiple_of(1000) {
-//                     let elapsed = start.elapsed().as_millis() as u32;
-//                     app.emit(
-//                         "convert_progress",
-//                         (
-//                             imported_games + file_imported_games,
-//                             elapsed,
-//                             current_file_name.clone(),
-//                         ),
-//                     )
-//                     .unwrap();
-//                 }
-//                 game.insert_to_db(db)?;
-//                 file_imported_games += 1;
-//             }
-//             Ok(())
-//         })?;
-
-//         imported_games += file_imported_games;
-//     }
-
-//     if !db_exists {
-//         // Create all the necessary indexes
-//         db.batch_execute(INDEXES_SQL)?;
-//     }
-
-//     // get game, player, event and site counts and to the info table
-//     let game_count: i64 = games::table.count().get_result(db)?;
-//     let player_count: i64 = players::table.count().get_result(db)?;
-//     let event_count: i64 = events::table.count().get_result(db)?;
-//     let site_count: i64 = sites::table.count().get_result(db)?;
-
-//     let counts = [
-//         ("GameCount", game_count),
-//         ("PlayerCount", player_count),
-//         ("EventCount", event_count),
-//         ("SiteCount", site_count),
-//     ];
-
-//     for c in counts.iter() {
-//         insert_into(info::table)
-//             .values((info::name.eq(c.0), info::value.eq(c.1.to_string())))
-//             .on_conflict(info::name)
-//             .do_update()
-//             .set(info::value.eq(c.1.to_string()))
-//             .execute(db)?;
-//     }
-
-//     Ok(())
-// }
 
 #[derive(Serialize, Type)]
 pub struct DatabaseInfo {
@@ -1829,7 +1753,6 @@ pub async fn merge_players(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pgn_reader::BufferedReader;
 
     #[test]
     fn home_row() {
@@ -1845,63 +1768,5 @@ mod tests {
 
         let pawn_home = get_pawn_home(&Board::from_ascii_board_fen(b"8/8/8/8/8/8/8/8").unwrap());
         assert_eq!(pawn_home, 0b0000000000000000);
-    }
-
-    #[test]
-    fn importer_handles_nested_variations() {
-        let pgn = r#"[Event "T"]
-[Site "S"]
-[Date "2026.02.27"]
-[UTCTime "12:00:00"]
-[White "W"]
-[Black "B"]
-[Result "*"]
-
-1. e4 (1. d4 d5 (1... Nf6) {inner}) e5 *
-"#;
-
-        let mut importer = Importer::new(None);
-        let games: Vec<TempGame> = BufferedReader::new(pgn.as_bytes())
-            .into_iter(&mut importer)
-            .flatten()
-            .flatten()
-            .collect();
-
-        assert_eq!(games.len(), 1);
-        let movetext = decode_game_to_movetext(&games[0].moves, Fen::default()).unwrap();
-
-        assert_eq!(movetext, "1. e4 (1. d4 d5 (1... Nf6) {inner}) 1... e5");
-    }
-
-    #[test]
-    fn importer_handles_symbolic_and_numeric_nags() {
-        let pgn = r#"[Event "T"]
-[Site "S"]
-[Date "2026.02.27"]
-[UTCTime "12:00:00"]
-[White "W"]
-[Black "B"]
-[Result "*"]
-
-1. e4! (1. d4 $2) e5 $1 *
-"#;
-
-        let mut importer = Importer::new(None);
-        let games: Vec<TempGame> = BufferedReader::new(pgn.as_bytes())
-            .into_iter(&mut importer)
-            .flatten()
-            .flatten()
-            .collect();
-
-        assert_eq!(games.len(), 1);
-        let movetext = decode_game_to_movetext(&games[0].moves, Fen::default()).unwrap();
-        assert_eq!(movetext, "1. e4! (1. d4?) 1... e5!");
-    }
-
-    fn setup_test_db() -> SqliteConnection {
-        let mut conn = SqliteConnection::establish(":memory:").unwrap();
-        conn.batch_execute("PRAGMA foreign_keys = ON;").unwrap();
-        conn.batch_execute(CREATE_TABLES_SQL).unwrap();
-        conn
     }
 }

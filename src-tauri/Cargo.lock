@@ -75,6 +75,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "aix-chess-compression"
+version = "0.1.1"
+source = "git+https://github.com/franciscoBSalgueiro/aix#9cacddc25f7a842699e1aa63b615e4604eec92b3"
+dependencies = [
+ "bitm",
+ "chess-huffman",
+ "shakmaty",
+]
+
+[[package]]
 name = "alloc-no-stdlib"
 version = "2.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -612,6 +622,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
+name = "binout"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "222fb4925a15bea6a68075021910e03d6aa2d04951d71ff1d956190a551d738f"
+
+[[package]]
 name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -624,6 +640,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "843867be96c8daad0d758b57df9392b6d8d271134fce549de6ce169ff98a92af"
 dependencies = [
  "serde_core",
+]
+
+[[package]]
+name = "bitm"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "31468ea4a856000d83cb61960dfdc2980ecd96b15b61321c8c76cc96aea6e688"
+dependencies = [
+ "dyn_size_of",
 ]
 
 [[package]]
@@ -953,6 +978,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
+name = "chess-huffman"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4490e024b4f29e1d7ed2dd41ab0349f569f138f8e826fb25fd327b408941b8f3"
+dependencies = [
+ "bitm",
+ "byteorder",
+ "minimum_redundancy",
+ "pgn-reader",
+ "shakmaty",
+]
+
+[[package]]
 name = "chrono"
 version = "0.4.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1002,6 +1040,12 @@ name = "clap_lex"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1462739cb27611015575c0c11df5df7601141071f07518d56fcc1be504cbec97"
+
+[[package]]
+name = "co_sort"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5cc18e115ded94ba1e1b820c7631d25b7364e27c25f066ecbce37aaf88abdcf4"
 
 [[package]]
 name = "colorchoice"
@@ -1590,6 +1634,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d6ef0072f8a535281e4876be788938b528e9a1d43900b82c2569af7da799125"
 
 [[package]]
+name = "dyn_size_of"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a742b95783b1f45b900129082cbc47717b6a77ee8d17eea70a8ea62462f5de3"
+
+[[package]]
 name = "either"
 version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1619,6 +1669,7 @@ checksum = "4ef6b89e5b37196644d8796de5268852ff179b44e96276cf4290264843743bb7"
 name = "en-croissant"
 version = "0.15.0"
 dependencies = [
+ "aix-chess-compression",
  "axum",
  "btoi 0.4.3",
  "bzip2",
@@ -1906,6 +1957,12 @@ checksum = "e13624c2627564efccf4934284bdd98cbaa14e79b0b5a141218e507b3a823456"
 dependencies = [
  "percent-encoding",
 ]
+
+[[package]]
+name = "fsum"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f5f673e5179fc055a5cb48fb40fc3f317160598d60c93b0ef8173504117765b0"
 
 [[package]]
 name = "funty"
@@ -3349,6 +3406,18 @@ name = "mime"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
+
+[[package]]
+name = "minimum_redundancy"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a28ed9f799347e3fc3b0cc999332dbba53499551bbcf1070fcc12737645ac05b"
+dependencies = [
+ "binout",
+ "co_sort",
+ "dyn_size_of",
+ "fsum",
+]
 
 [[package]]
 name = "minisign-verify"

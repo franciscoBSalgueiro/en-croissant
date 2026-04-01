@@ -22,6 +22,7 @@ futures-util = "0.3.24"
 reqwest = { version = "0.12.5", features = ["stream", "blocking", "json"] }
 shakmaty = "0.30.0"
 pgn-reader = "0.29.0"
+aix-chess-compression = { git = "https://github.com/franciscoBSalgueiro/aix", package = "aix-chess-compression" }
 csv = "1.1.6"
 lazy_static = "1.4.0"
 btoi = "0.4.2"
