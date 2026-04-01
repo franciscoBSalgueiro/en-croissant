@@ -733,6 +733,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "btoi"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b5ab9db53bcda568284df0fd39f6eac24ad6f7ba7ff1168b9e76eba6576b976"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -966,12 +975,6 @@ dependencies = [
  "crypto-common",
  "inout",
 ]
-
-[[package]]
-name = "circular"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0fc239e0f6cb375d2402d48afb92f76f5404fd1df208a41930ec81eda078bea"
 
 [[package]]
 name = "clap"
@@ -1617,7 +1620,7 @@ name = "en-croissant"
 version = "0.15.0"
 dependencies = [
  "axum",
- "btoi",
+ "btoi 0.4.3",
  "bzip2",
  "chrono",
  "csv",
@@ -4118,12 +4121,11 @@ dependencies = [
 
 [[package]]
 name = "pgn-reader"
-version = "0.26.0"
+version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1994b0ce2a74829bff0462e229b3f0a138cfb293e22c6a65f7966ff26d304e74"
+checksum = "b822a2cfc1c90c109ea35458ad9bff6669198fdd4ea8de1132e702b4d9f64b88"
 dependencies = [
- "btoi",
- "circular",
+ "btoi 0.5.0",
  "memchr",
  "shakmaty",
 ]
@@ -5533,14 +5535,15 @@ dependencies = [
 
 [[package]]
 name = "shakmaty"
-version = "0.27.1"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8969aea589c3356aa6c0251dbd9c27d0586224f2cb1f068f33d756966f58fb7a"
+checksum = "41cef923c4ad8bf68e6f52a3091499108b8fec71ea8c4ba27d1acfb263f53241"
 dependencies = [
  "arrayvec",
  "bitflags 2.11.0",
- "btoi",
+ "btoi 0.5.0",
  "nohash-hasher",
+ "serde",
 ]
 
 [[package]]
