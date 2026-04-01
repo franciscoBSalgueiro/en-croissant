@@ -25,7 +25,7 @@ use diesel::{
     row, sql_query,
     sql_types::Text,
 };
-use duckdb::Connection;
+use duckdb::{AccessMode, Config, Connection};
 use pgn_reader::{BufferedReader, Nag, RawHeader, SanPlus, Skip, Visitor};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -63,6 +63,56 @@ pub use self::search::{is_position_in_db, search_position, PositionQueryJs, Posi
 const DATABASE_VERSION: &str = "2.0.0";
 
 const CREATE_TABLES_SQL: &str = include_str!("create.sql");
+const AIXCHESS_EXTENSION_SQL: &str = "INSTALL aixchess FROM community; LOAD aixchess;";
+
+#[derive(Debug, Clone, Copy, Default)]
+pub enum DuckDbConnectionMode {
+    ReadOnly,
+    #[default]
+    ReadWrite,
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct DuckDbOpenOptions {
+    pub mode: DuckDbConnectionMode,
+}
+
+pub fn open_duckdb_connection(
+    path: &Path,
+    options: DuckDbOpenOptions,
+) -> Result<Connection, Error> {
+    let access_mode = match options.mode {
+        DuckDbConnectionMode::ReadOnly => AccessMode::ReadOnly,
+        DuckDbConnectionMode::ReadWrite => AccessMode::ReadWrite,
+    };
+
+    let config = Config::default().access_mode(access_mode)?;
+    let connection = Connection::open_with_flags(path, config)?;
+    Ok(connection)
+}
+
+pub fn open_duckdb_readonly(path: &Path) -> Result<Connection, Error> {
+    open_duckdb_connection(
+        path,
+        DuckDbOpenOptions {
+            mode: DuckDbConnectionMode::ReadOnly,
+        },
+    )
+}
+
+pub fn open_duckdb_readwrite(path: &Path) -> Result<Connection, Error> {
+    open_duckdb_connection(
+        path,
+        DuckDbOpenOptions {
+            mode: DuckDbConnectionMode::ReadWrite,
+        },
+    )
+}
+
+pub fn load_aixchess_extension(connection: &Connection) -> Result<(), Error> {
+    connection.execute_batch(AIXCHESS_EXTENSION_SQL)?;
+    Ok(())
+}
 
 const WHITE_PAWN: Piece = Piece {
     color: shakmaty::Color::White,
@@ -445,17 +495,19 @@ impl Visitor for Importer {
     }
 }
 
-// #[tauri::command]
-// #[specta::specta]
-// pub async fn convert_pgn(
-//     files: Vec<PathBuf>,
-//     db_path: PathBuf,
-//     timestamp: Option<i32>,
-//     app: tauri::AppHandle,
-//     title: String,
-//     description: Option<String>,
-//     state: tauri::State<'_, AppState>,
-// ) -> Result<(), Error> {
+#[tauri::command]
+#[specta::specta]
+pub async fn convert_pgn(
+    files: Vec<PathBuf>,
+    db_path: PathBuf,
+    timestamp: Option<i32>,
+    app: tauri::AppHandle,
+    title: String,
+    description: Option<String>,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), Error> {
+    return Ok(());
+}
 //     if files.is_empty() {
 //         return Ok(());
 //     }
@@ -588,35 +640,29 @@ pub async fn get_db_info(
 
     let path = file;
 
-    let db = Connection::open(&path).unwrap();
+    let db = open_duckdb_readonly(&path)?;
 
     // let info = db.prepare("SELECT * FROM Info;")?;
     // let mut rows = info.query([])?;
 
-    let event_count = db
-        .query_row("SELECT COUNT(DISTINCT event) FROM games;", [], |row| {
-            row.get::<_, i32>(0)
-        })
-        .unwrap();
+    let event_count = db.query_row("SELECT COUNT(DISTINCT event) FROM games;", [], |row| {
+        row.get::<_, i32>(0)
+    })?;
 
-    let game_count = db
-        .query_row("SELECT COUNT(*) FROM games;", [], |row| {
-            row.get::<_, i32>(0)
-        })
-        .unwrap();
+    let game_count = db.query_row("SELECT COUNT(*) FROM games;", [], |row| {
+        row.get::<_, i32>(0)
+    })?;
 
-    let player_count = db
-        .query_row(
-            "SELECT COUNT(DISTINCT name) AS total_unique_names
+    let player_count = db.query_row(
+        "SELECT COUNT(DISTINCT name) AS total_unique_names
             FROM (
                 SELECT white AS name FROM games
                 UNION ALL
                 SELECT black AS name FROM games
             );",
-            [],
-            |row| row.get::<_, i32>(0),
-        )
-        .unwrap();
+        [],
+        |row| row.get::<_, i32>(0),
+    )?;
 
     let storage_size = path.metadata()?.len();
     let filename = path.file_name().expect("get filename").to_string_lossy();
@@ -760,24 +806,42 @@ pub async fn get_games(
     query: GameQuery,
     state: tauri::State<'_, AppState>,
 ) -> Result<QueryResponse<Vec<NormalizedGame>>, Error> {
-    let db = Connection::open(file).unwrap();
-    db.execute_batch("INSTALL aixchess FROM community; LOAD aixchess;")
-        .unwrap();
-    let count = db
-        .query_row("SELECT COUNT(*) FROM games;", [], |row| {
-            row.get::<_, i32>(0)
-        })
-        .unwrap();
+    let db = open_duckdb_readonly(&file)?;
+    load_aixchess_extension(&db)?;
+    let count = db.query_row("SELECT COUNT(*) FROM games;", [], |row| {
+        row.get::<_, i32>(0)
+    })?;
     let games = db
         .prepare(
-            "SELECT event, site, date, utctime, round, white, black, whiteelo, blackelo, timecontrol, eco, to_pgn(movedata) AS moves, ply_count
+            "SELECT
+            row_number() OVER () AS id,
+            event,
+            site,
+            date,
+            utctime,
+            round,
+            white,
+            black,
+            whiteelo,
+            blackelo,
+            result,
+            timecontrol,
+            eco,
+            to_pgn(movedata) AS moves,
+            ply_count
         FROM games
         LIMIT 5;",
-        )
-        .unwrap()
+        )?
         .query_map([], |row| {
+            let result = match row.get::<_, Option<String>>("result")?.as_deref() {
+                Some("1-0") => Outcome::WhiteWin,
+                Some("0-1") => Outcome::BlackWin,
+                Some("1/2-1/2") => Outcome::Draw,
+                _ => Outcome::Unknown,
+            };
+
             Ok(NormalizedGame {
-                id: 1,
+                id: row.get("id")?,
                 event: row.get("event")?,
                 white: row.get("white")?,
                 black: row.get("black")?,
@@ -789,15 +853,13 @@ pub async fn get_games(
                 eco: row.get("eco")?,
                 fen: "".to_string(),
                 moves: row.get("moves")?,
-                result: Outcome::BlackWin,
+                result,
                 ply_count: row.get("ply_count")?,
                 round: row.get("round")?,
                 site: row.get("site")?,
             })
-        })
-        .unwrap()
-        .collect::<Result<Vec<_>, _>>()
-        .unwrap();
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
 
     // let mut count: Option<i64> = None;
     // let query_options = query.options.unwrap_or_default();
@@ -1524,55 +1586,64 @@ pub async fn export_to_pgn(
     dest_file: PathBuf,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    // let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    let db = open_duckdb_readonly(&file)?;
+    load_aixchess_extension(&db)?;
 
-    // let file = OpenOptions::new()
-    //     .create(true)
-    //     .write(true)
-    //     .truncate(true)
-    //     .open(dest_file)?;
+    let output_file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open(dest_file)?;
 
-    // let mut writer = BufWriter::new(file);
+    let mut writer = BufWriter::new(output_file);
+    let mut statement = db.prepare(
+        "SELECT
+            event,
+            site,
+            date,
+            round,
+            white,
+            black,
+            result,
+            timecontrol,
+            eco,
+            whiteelo,
+            blackelo,
+            ply_count,
+            fen,
+            to_pgn(movedata) AS moves
+        FROM games;",
+    )?;
 
-    // let (white_players, black_players) = diesel::alias!(players as white, players as black);
-    // games::table
-    //     .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
-    //     .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
-    //     .inner_join(events::table.on(games::event_id.eq(events::id)))
-    //     .inner_join(sites::table.on(games::site_id.eq(sites::id)))
-    //     .load_iter::<(Game, Player, Player, Event, Site), DefaultLoadingMode>(db)?
-    //     .flatten()
-    //     .map(|(game, white, black, event, site)| {
-    //         let pgn = PgnGame {
-    //             event: event.name,
-    //             site: site.name,
-    //             date: game.date,
-    //             round: game.round,
-    //             white: white.name,
-    //             black: black.name,
-    //             result: game.result,
-    //             time_control: game.time_control,
-    //             eco: game.eco,
-    //             white_elo: game.white_elo.map(|e| e.to_string()),
-    //             black_elo: game.black_elo.map(|e| e.to_string()),
-    //             ply_count: game.ply_count.map(|e| e.to_string()),
-    //             fen: game.fen.clone(),
-    //             moves: decode_game_to_movetext(
-    //                 &game.moves,
-    //                 if let Some(fen) = game.fen {
-    //                     Fen::from_ascii(fen.as_bytes()).unwrap_or_default()
-    //                 } else {
-    //                     Fen::default()
-    //                 },
-    //             )
-    //             .ok(),
-    //         };
+    let rows = statement.query_map([], |row| {
+        Ok(PgnGame {
+            event: row.get("event")?,
+            site: row.get("site")?,
+            date: row.get("date")?,
+            round: row.get("round")?,
+            white: row.get("white")?,
+            black: row.get("black")?,
+            result: row.get("result")?,
+            time_control: row.get("timecontrol")?,
+            eco: row.get("eco")?,
+            white_elo: row
+                .get::<_, Option<i32>>("whiteelo")?
+                .map(|v| v.to_string()),
+            black_elo: row
+                .get::<_, Option<i32>>("blackelo")?
+                .map(|v| v.to_string()),
+            ply_count: row
+                .get::<_, Option<i32>>("ply_count")?
+                .map(|v| v.to_string()),
+            fen: row.get("fen")?,
+            moves: row.get("moves")?,
+        })
+    })?;
 
-    //         pgn.write(&mut writer)?;
+    for row in rows {
+        row?.write(&mut writer)?;
+    }
 
-    //         Ok(())
-    //     })
-    //     .collect::<Result<Vec<_>, Error>>()?;
     Ok(())
 }
 

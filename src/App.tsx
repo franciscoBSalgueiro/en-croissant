@@ -133,16 +133,6 @@ const checkForUpdates = async () => {
   }
 };
 
-const preloadReferenceDb = async (store: ReturnType<typeof getDefaultStore>) => {
-  const referenceDb = store.get(referenceDbAtom);
-  if (referenceDb) {
-    info(`Preloading reference database: ${referenceDb}`);
-    commands.preloadReferenceDb(referenceDb).catch((e: unknown) => {
-      info(`Failed to preload reference database: ${e}`);
-    });
-  }
-};
-
 function useAppStartup() {
   const initialized = useRef(false);
   const [, setTabs] = useAtom(tabsAtom);
@@ -187,8 +177,6 @@ function useAppStartup() {
       } catch (e) {
         warn(`Failed to parse CLI args: ${e}`);
       }
-
-      await preloadReferenceDb(store);
 
       return detach;
     };

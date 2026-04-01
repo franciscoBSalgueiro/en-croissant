@@ -197,8 +197,7 @@ function DatabasePanel() {
             <Select
               data={dbSelectData}
               value={referenceDatabase}
-              onChange={async (value) => {
-                await commands.clearGames();
+              onChange={(value) => {
                 setReferenceDatabase(value);
               }}
               placeholder={t("Board.Database.SelectReference")}

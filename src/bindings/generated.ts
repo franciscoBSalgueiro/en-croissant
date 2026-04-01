@@ -152,6 +152,14 @@ async mergePlayers(file: string, player1: number, player2: number) : Promise<Res
     else return { status: "error", error: e  as any };
 }
 },
+async convertPgn(files: string[], dbPath: string, timestamp: number | null, title: string, description: string | null) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("convert_pgn", { files, dbPath, timestamp, title, description }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getPlayer(file: string, id: number) : Promise<Result<Player | null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_player", { file, id }) };

@@ -175,6 +175,12 @@ impl From<diesel::result::Error> for Error {
     }
 }
 
+impl From<duckdb::Error> for Error {
+    fn from(value: duckdb::Error) -> Self {
+        Self::Duckdb(Box::new(value))
+    }
+}
+
 impl From<diesel::r2d2::PoolError> for Error {
     fn from(value: diesel::r2d2::PoolError) -> Self {
         Self::R2d2(Box::new(value))
