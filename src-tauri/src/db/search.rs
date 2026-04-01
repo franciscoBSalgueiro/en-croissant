@@ -178,7 +178,6 @@ pub async fn search_position(
     let db = db_pool.get()?;
     load_aixchess_extension(&db)?;
 
-    let sub_fen_query = format!(r#"{{"sub-fen": "{}"}}"#, sub_fen);
     let where_clauses = build_position_where_clauses(&query, position_type, &position_query.fen);
 
     let where_sql = if where_clauses.is_empty() {
@@ -187,35 +186,66 @@ pub async fn search_position(
         format!("WHERE {}", where_clauses.join(" AND "))
     };
 
-    let sql = format!(
-        "WITH candidate_games AS (
-            SELECT movedata, result, scoutfish_query_plies(movedata, {sub_fen_json}) AS plies
-            FROM games
-            {where_clause}
-        ), matching_positions AS (
-            SELECT UNNEST(plies) AS ply, movedata, result
-            FROM candidate_games
+    let sql = if position_type == "exact" {
+        format!(
+            "WITH matching_positions AS (
+                SELECT movedata, result, matches_fen_ply(movedata, {full_fen}) AS ply
+                FROM games
+                {where_clause}
+            )
+            SELECT
+                CASE
+                    WHEN move_details_at(movedata, ply::SMALLINT).\"from\" IS NULL
+                        OR move_details_at(movedata, ply::SMALLINT).\"to\" IS NULL
+                    THEN '*'
+                    ELSE
+                        move_details_at(movedata, ply::SMALLINT).\"from\" ||
+                        move_details_at(movedata, ply::SMALLINT).\"to\" ||
+                        COALESCE(move_details_at(movedata, ply::SMALLINT).promotion, '')
+                END AS next_move,
+                COUNT(*) AS total_games,
+                SUM(CASE WHEN result = '1-0' THEN 1 ELSE 0 END) AS white_wins,
+                SUM(CASE WHEN result = '0-1' THEN 1 ELSE 0 END) AS black_wins,
+                SUM(CASE WHEN result = '1/2-1/2' THEN 1 ELSE 0 END) AS draws
+            FROM matching_positions
+            WHERE ply IS NOT NULL
+            GROUP BY next_move
+            ORDER BY total_games DESC;",
+            full_fen = sql_literal(&position_query.fen),
+            where_clause = where_sql,
         )
-        SELECT
-            CASE
-                WHEN move_details_at(movedata, ply::SMALLINT).\"from\" IS NULL
-                    OR move_details_at(movedata, ply::SMALLINT).\"to\" IS NULL
-                THEN '*'
-                ELSE
-                    move_details_at(movedata, ply::SMALLINT).\"from\" ||
-                    move_details_at(movedata, ply::SMALLINT).\"to\" ||
-                    COALESCE(move_details_at(movedata, ply::SMALLINT).promotion, '')
-            END AS next_move,
-            COUNT(*) AS total_games,
-            SUM(CASE WHEN result = '1-0' THEN 1 ELSE 0 END) AS white_wins,
-            SUM(CASE WHEN result = '0-1' THEN 1 ELSE 0 END) AS black_wins,
-            SUM(CASE WHEN result = '1/2-1/2' THEN 1 ELSE 0 END) AS draws
-        FROM matching_positions
-        GROUP BY next_move
-        ORDER BY total_games DESC;",
-        sub_fen_json = sql_literal(&sub_fen_query),
-        where_clause = where_sql,
-    );
+    } else {
+        let sub_fen_query = format!(r#"{{"sub-fen": "{}"}}"#, sub_fen);
+        format!(
+            "WITH candidate_games AS (
+                SELECT movedata, result, scoutfish_query_plies(movedata, {sub_fen_json}) AS plies
+                FROM games
+                {where_clause}
+            ), matching_positions AS (
+                SELECT UNNEST(plies) AS ply, movedata, result
+                FROM candidate_games
+            )
+            SELECT
+                CASE
+                    WHEN move_details_at(movedata, ply::SMALLINT).\"from\" IS NULL
+                        OR move_details_at(movedata, ply::SMALLINT).\"to\" IS NULL
+                    THEN '*'
+                    ELSE
+                        move_details_at(movedata, ply::SMALLINT).\"from\" ||
+                        move_details_at(movedata, ply::SMALLINT).\"to\" ||
+                        COALESCE(move_details_at(movedata, ply::SMALLINT).promotion, '')
+                END AS next_move,
+                COUNT(*) AS total_games,
+                SUM(CASE WHEN result = '1-0' THEN 1 ELSE 0 END) AS white_wins,
+                SUM(CASE WHEN result = '0-1' THEN 1 ELSE 0 END) AS black_wins,
+                SUM(CASE WHEN result = '1/2-1/2' THEN 1 ELSE 0 END) AS draws
+            FROM matching_positions
+            GROUP BY next_move
+            ORDER BY total_games DESC;",
+            sub_fen_json = sql_literal(&sub_fen_query),
+            where_clause = where_sql,
+        )
+    };
 
     // println!("Executing SQL:\n{sql}");
 
@@ -250,10 +280,11 @@ pub async fn is_position_in_db(
     };
 
     let parsed_query = convert_position_query(position_query.clone())?;
-    let (position_type, sub_fen) = match parsed_query {
+    let position_type = match parsed_query {
         PositionQuery::Exact(data) => ("exact", data.position.board().to_string()),
         PositionQuery::Partial(data) => ("partial", data.piece_positions.board.to_string()),
-    };
+    }
+    .0;
 
     let db_pool = get_duckdb_readonly_pool(&state, &file)?;
     let db = db_pool.get()?;
