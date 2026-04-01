@@ -9,7 +9,7 @@ use crate::{
     AppState,
 };
 
-use super::{load_aixchess_extension, open_duckdb_readonly, GameQuery};
+use super::{get_duckdb_readonly_pool, load_aixchess_extension, GameQuery};
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct ExactData {
@@ -159,8 +159,6 @@ pub async fn search_position(
     _tab_id: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(Vec<PositionStats>, Vec<NormalizedGame>), Error> {
-    let _ = state;
-
     let Some(position_query) = query.position.clone() else {
         return Ok((vec![], vec![]));
     };
@@ -176,16 +174,12 @@ pub async fn search_position(
         PositionQuery::Partial(data) => ("partial", data.piece_positions.board.to_string()),
     };
 
-    let db = open_duckdb_readonly(&file)?;
+    let db_pool = get_duckdb_readonly_pool(&state, &file)?;
+    let db = db_pool.get()?;
     load_aixchess_extension(&db)?;
 
     let sub_fen_query = format!(r#"{{"sub-fen": "{}"}}"#, sub_fen);
-    let mut where_clauses =
-        build_position_where_clauses(&query, position_type, &position_query.fen);
-    where_clauses.push(format!(
-        "array_length(scoutfish_query_plies(movedata, {})) > 0",
-        sql_literal(&sub_fen_query)
-    ));
+    let where_clauses = build_position_where_clauses(&query, position_type, &position_query.fen);
 
     let where_sql = if where_clauses.is_empty() {
         String::new()
@@ -223,6 +217,8 @@ pub async fn search_position(
         where_clause = where_sql,
     );
 
+    // println!("Executing SQL:\n{sql}");
+
     let openings = db
         .prepare(&sql)?
         .query_map([], |row| {
@@ -249,8 +245,6 @@ pub async fn is_position_in_db(
     query: GameQuery,
     state: tauri::State<'_, AppState>,
 ) -> Result<bool, Error> {
-    let _ = state;
-
     let Some(position_query) = query.position.clone() else {
         return Ok(false);
     };
@@ -261,16 +255,11 @@ pub async fn is_position_in_db(
         PositionQuery::Partial(data) => ("partial", data.piece_positions.board.to_string()),
     };
 
-    let db = open_duckdb_readonly(&file)?;
+    let db_pool = get_duckdb_readonly_pool(&state, &file)?;
+    let db = db_pool.get()?;
     load_aixchess_extension(&db)?;
 
-    let sub_fen_query = format!(r#"{{"sub-fen": "{}"}}"#, sub_fen);
-    let mut where_clauses =
-        build_position_where_clauses(&query, position_type, &position_query.fen);
-    where_clauses.push(format!(
-        "array_length(scoutfish_query_plies(movedata, {})) > 0",
-        sql_literal(&sub_fen_query)
-    ));
+    let where_clauses = build_position_where_clauses(&query, position_type, &position_query.fen);
 
     let where_sql = if where_clauses.is_empty() {
         String::new()

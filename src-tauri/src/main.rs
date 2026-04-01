@@ -75,15 +75,8 @@ use tokio::sync::Semaphore;
 #[derive(Derivative)]
 #[derivative(Default)]
 pub struct AppState {
-    connection_pool: DashMap<
-        String,
-        diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>,
-    >,
+    duckdb_connection_pool: DashMap<String, diesel::r2d2::Pool<duckdb::DuckdbConnectionManager>>,
     line_cache: DashMap<(GameQuery, PathBuf), (Vec<PositionStats>, Vec<NormalizedGame>)>,
-    #[derivative(Default(value = "Arc::new(Semaphore::new(2))"))]
-    new_request: Arc<Semaphore>,
-    #[derivative(Default(value = "DashMap::new()"))]
-    search_collisions: DashMap<(GameQuery, PathBuf), Arc<tokio::sync::Mutex<()>>>,
     pgn_offsets: DashMap<String, Vec<u64>>,
 
     engine_processes: DashMap<(String, String), Arc<tokio::sync::Mutex<EngineProcess>>>,

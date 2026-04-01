@@ -1569,6 +1569,7 @@ dependencies = [
  "hashlink 0.10.0",
  "libduckdb-sys",
  "num-integer",
+ "r2d2",
  "rust_decimal",
  "strum",
 ]

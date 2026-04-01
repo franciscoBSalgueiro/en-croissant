@@ -16,6 +16,7 @@ use crate::{
     AppState,
 };
 use chrono::{NaiveDate, NaiveTime};
+use dashmap::mapref::entry::Entry;
 use dashmap::DashMap;
 use diesel::{
     connection::{DefaultLoadingMode, SimpleConnection},
@@ -25,7 +26,7 @@ use diesel::{
     row, sql_query,
     sql_types::Text,
 };
-use duckdb::{AccessMode, Config, Connection};
+use duckdb::{AccessMode, Config, Connection, DuckdbConnectionManager};
 use pgn_reader::{BufferedReader, Nag, RawHeader, SanPlus, Skip, Visitor};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -63,7 +64,12 @@ pub use self::search::{is_position_in_db, search_position, PositionQueryJs, Posi
 const DATABASE_VERSION: &str = "2.0.0";
 
 const CREATE_TABLES_SQL: &str = include_str!("create.sql");
-const AIXCHESS_EXTENSION_SQL: &str = "INSTALL aixchess FROM community; LOAD aixchess;";
+const DEFAULT_AIXCHESS_EXTENSION_PATH: &str =
+    "/home/fbsal/dev/aix/build/release/extension/aixchess/aixchess.duckdb_extension";
+
+fn sql_literal(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "''"))
+}
 
 #[derive(Debug, Clone, Copy, Default)]
 pub enum DuckDbConnectionMode {
@@ -77,40 +83,88 @@ pub struct DuckDbOpenOptions {
     pub mode: DuckDbConnectionMode,
 }
 
-pub fn open_duckdb_connection(
+pub fn create_duckdb_pool(
     path: &Path,
     options: DuckDbOpenOptions,
-) -> Result<Connection, Error> {
+) -> Result<Pool<DuckdbConnectionManager>, Error> {
     let access_mode = match options.mode {
         DuckDbConnectionMode::ReadOnly => AccessMode::ReadOnly,
         DuckDbConnectionMode::ReadWrite => AccessMode::ReadWrite,
     };
 
-    let config = Config::default().access_mode(access_mode)?;
-    let connection = Connection::open_with_flags(path, config)?;
-    Ok(connection)
+    let config = Config::default()
+        .allow_unsigned_extensions()?
+        .access_mode(access_mode)?;
+    let manager = DuckdbConnectionManager::file_with_flags(path, config)?;
+    let pool = Pool::builder().build(manager)?;
+    Ok(pool)
 }
 
-pub fn open_duckdb_readonly(path: &Path) -> Result<Connection, Error> {
-    open_duckdb_connection(
-        path,
-        DuckDbOpenOptions {
-            mode: DuckDbConnectionMode::ReadOnly,
-        },
-    )
+fn duckdb_pool_key(path: &Path, mode: DuckDbConnectionMode) -> String {
+    let mode_str = match mode {
+        DuckDbConnectionMode::ReadOnly => "ro",
+        DuckDbConnectionMode::ReadWrite => "rw",
+    };
+
+    format!("{mode_str}:{}", path.to_string_lossy())
 }
 
-pub fn open_duckdb_readwrite(path: &Path) -> Result<Connection, Error> {
-    open_duckdb_connection(
-        path,
-        DuckDbOpenOptions {
-            mode: DuckDbConnectionMode::ReadWrite,
-        },
-    )
+fn get_duckdb_pool(
+    state: &AppState,
+    path: &Path,
+    mode: DuckDbConnectionMode,
+) -> Result<Pool<DuckdbConnectionManager>, Error> {
+    let key = duckdb_pool_key(path, mode);
+
+    if let Some(pool) = state.duckdb_connection_pool.get(&key) {
+        return Ok(pool.clone());
+    }
+
+    let pool = create_duckdb_pool(path, DuckDbOpenOptions { mode })?;
+    match state.duckdb_connection_pool.entry(key) {
+        Entry::Occupied(entry) => Ok(entry.get().clone()),
+        Entry::Vacant(entry) => {
+            entry.insert(pool.clone());
+            Ok(pool)
+        }
+    }
+}
+
+pub fn get_duckdb_readonly_pool(
+    state: &AppState,
+    path: &Path,
+) -> Result<Pool<DuckdbConnectionManager>, Error> {
+    get_duckdb_pool(state, path, DuckDbConnectionMode::ReadOnly)
+}
+
+pub fn get_duckdb_readwrite_pool(
+    state: &AppState,
+    path: &Path,
+) -> Result<Pool<DuckdbConnectionManager>, Error> {
+    get_duckdb_pool(state, path, DuckDbConnectionMode::ReadWrite)
+}
+
+pub fn remove_duckdb_pools_for_path(state: &AppState, path: &Path) {
+    let ro_key = duckdb_pool_key(path, DuckDbConnectionMode::ReadOnly);
+    let rw_key = duckdb_pool_key(path, DuckDbConnectionMode::ReadWrite);
+    state.duckdb_connection_pool.remove(&ro_key);
+    state.duckdb_connection_pool.remove(&rw_key);
 }
 
 pub fn load_aixchess_extension(connection: &Connection) -> Result<(), Error> {
-    connection.execute_batch(AIXCHESS_EXTENSION_SQL)?;
+    let extension_path = std::env::var("AIXCHESS_EXTENSION_PATH")
+        .unwrap_or_else(|_| DEFAULT_AIXCHESS_EXTENSION_PATH.to_string());
+
+    if !Path::new(&extension_path).exists() {
+        return Err(Error::Io(Box::new(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            format!("aixchess extension not found at: {extension_path}"),
+        ))));
+    }
+
+    let load_local_sql = format!("LOAD {};", sql_literal(&extension_path));
+    connection.execute_batch(&load_local_sql)?;
+    info!("Loaded local unsigned aixchess extension from: {extension_path}");
     Ok(())
 }
 
@@ -640,7 +694,8 @@ pub async fn get_db_info(
 
     let path = file;
 
-    let db = open_duckdb_readonly(&path)?;
+    let db_pool = get_duckdb_readonly_pool(&state, &path)?;
+    let db = db_pool.get()?;
 
     // let info = db.prepare("SELECT * FROM Info;")?;
     // let mut rows = info.query([])?;
@@ -806,7 +861,8 @@ pub async fn get_games(
     query: GameQuery,
     state: tauri::State<'_, AppState>,
 ) -> Result<QueryResponse<Vec<NormalizedGame>>, Error> {
-    let db = open_duckdb_readonly(&file)?;
+    let db_pool = get_duckdb_readonly_pool(&state, &file)?;
+    let db = db_pool.get()?;
     load_aixchess_extension(&db)?;
     let count = db.query_row("SELECT COUNT(*) FROM games;", [], |row| {
         row.get::<_, i32>(0)
@@ -1442,9 +1498,9 @@ pub async fn delete_database(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    let pool = &state.connection_pool;
+    remove_duckdb_pools_for_path(&state, &file);
+
     let path_str = file.to_str().unwrap();
-    pool.remove(path_str);
 
     remove_file(path_str)?;
     Ok(())
@@ -1586,7 +1642,8 @@ pub async fn export_to_pgn(
     dest_file: PathBuf,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    let db = open_duckdb_readonly(&file)?;
+    let db_pool = get_duckdb_readonly_pool(&state, &file)?;
+    let db = db_pool.get()?;
     load_aixchess_extension(&db)?;
 
     let output_file = OpenOptions::new()
