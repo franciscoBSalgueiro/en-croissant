@@ -1439,35 +1439,70 @@ pub async fn export_to_pgn(
 #[tauri::command]
 #[specta::specta]
 pub async fn delete_db_game(
-    _file: PathBuf,
-    _game_id: i32,
-    _state: tauri::State<'_, AppState>,
+    file: PathBuf,
+    game_id: i32,
+    state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    // TODO: re-implement for DuckDB (no stable row ID)
+    let db_pool = get_duckdb_pool(&state, &file)?;
+    let db = db_pool.get()?;
+
+    db.execute("DELETE FROM games WHERE rowid = ?;", params![game_id])?;
+
     Ok(())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn write_db_game(
-    _file: PathBuf,
-    _game_id: i32,
-    _pgn: String,
-    _state: tauri::State<'_, AppState>,
+    file: PathBuf,
+    game_id: i32,
+    pgn: String,
+    state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    // TODO: re-implement for DuckDB
+    let db_pool = get_duckdb_pool(&state, &file)?;
+    let db = db_pool.get()?;
+    load_aixchess_extension(&db)?;
+
+    let mut importer = AixImporter::new(None);
+    let mut reader = Reader::new(pgn.as_bytes());
+    let game_result = reader.read_game(&mut importer)?;
+
+    if let Some(Some(game_row)) = game_result {
+        db.execute(
+            "UPDATE games SET movedata = ? WHERE rowid = ?;",
+            params![game_row.movedata, game_id],
+        )?;
+    } else {
+        return Err(Error::Io(Box::new(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Failed to parse PGN",
+        ))));
+    }
+
     Ok(())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn merge_players(
-    _file: PathBuf,
-    _player1: i32,
-    _player2: i32,
-    _state: tauri::State<'_, AppState>,
+    file: PathBuf,
+    player1_name: String,
+    player2_name: String,
+    state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    // TODO: re-implement for DuckDB (no separate player table)
+    let db_pool = get_duckdb_pool(&state, &file)?;
+    let db = db_pool.get()?;
+
+    db.execute(
+        "UPDATE games SET white = ? WHERE white = ?;",
+        params![player1_name, player2_name],
+    )?;
+
+    db.execute(
+        "UPDATE games SET black = ? WHERE black = ?;",
+        params![player1_name, player2_name],
+    )?;
+
     Ok(())
 }
 
