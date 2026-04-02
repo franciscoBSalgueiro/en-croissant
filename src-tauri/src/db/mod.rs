@@ -3,11 +3,7 @@ mod models;
 mod schema;
 mod search;
 
-use crate::{
-    db::{encoding::decode_move, models::*},
-    error::Error,
-    AppState,
-};
+use crate::{db::models::*, error::Error, AppState};
 use aix_chess_compression::{
     CompressionLevel as AixCompressionLevel, Encode as AixEncode, Encoder as AixEncoder,
 };
@@ -16,27 +12,22 @@ use dashmap::mapref::entry::Entry;
 use duckdb::{params, AccessMode, Config, Connection, DuckdbConnectionManager};
 use pgn_reader::{RawTag, Reader, SanPlus, Skip, Visitor};
 use r2d2::Pool;
-use rayon::prelude::*;
+
 use serde::{Deserialize, Serialize};
 use shakmaty::{
-    fen::Fen, Board, ByColor, CastlingMode, Chess, EnPassantMode, FromSetup, Piece, Position,
-    PositionError,
+    fen::Fen, Board, ByColor, CastlingMode, Chess, FromSetup, Piece, Position, PositionError,
 };
 use specta::Type;
+use std::io::{BufWriter, Write};
 use std::{
     fs::{remove_file, File, OpenOptions},
     ops::ControlFlow,
     path::{Path, PathBuf},
     time::Instant,
 };
-use std::{
-    io::{BufWriter, Write},
-    str::FromStr,
-};
 use tauri::Emitter;
 
 use log::info;
-use tauri_specta::Event as _;
 
 pub use self::models::NormalizedGame;
 pub use self::models::Puzzle;
@@ -158,8 +149,7 @@ struct AixTags {
 struct AixGameRow {
     event: String,
     site: String,
-    date: Option<String>,
-    utctime: Option<String>,
+    utc_timestamp: Option<String>,
     round: Option<String>,
     white: String,
     black: String,
@@ -199,27 +189,24 @@ impl AixImporter {
         }
     }
 
+    fn parse_utc_naive_datetime(tags: &AixTags) -> Option<chrono::NaiveDateTime> {
+        let date = tags.date.as_deref()?;
+        let time = tags.utctime.as_deref()?;
+
+        let parsed_date = NaiveDate::parse_from_str(date, "%Y.%m.%d").ok()?;
+        let parsed_time = NaiveTime::parse_from_str(time, "%H:%M:%S").ok()?;
+
+        Some(parsed_date.and_time(parsed_time))
+    }
+
     fn should_skip_by_timestamp(tags: &AixTags, timestamp: Option<i64>) -> bool {
         let Some(timestamp) = timestamp else {
             return false;
         };
 
-        let Some(date) = tags.date.as_deref() else {
-            return false;
-        };
-
-        let Some(time) = tags.utctime.as_deref() else {
-            return false;
-        };
-
-        let Some(parsed_date) = NaiveDate::parse_from_str(date, "%Y.%m.%d").ok() else {
-            return false;
-        };
-        let Some(parsed_time) = NaiveTime::parse_from_str(time, "%H:%M:%S").ok() else {
-            return false;
-        };
-
-        parsed_date.and_time(parsed_time).and_utc().timestamp() <= timestamp
+        Self::parse_utc_naive_datetime(tags)
+            .map(|dt| dt.and_utc().timestamp() <= timestamp)
+            .unwrap_or(false)
     }
 
     fn position_from_tags(tags: &AixTags) -> Result<(Chess, Option<String>), ()> {
@@ -411,19 +398,22 @@ impl Visitor for AixImporter {
         };
 
         let movedata = game.encoder.finish().into_bytes();
+        let tags = game.tags;
+        let utc_timestamp = Self::parse_utc_naive_datetime(&tags)
+            .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string());
+
         Some(AixGameRow {
-            event: game.tags.event.unwrap_or_else(|| "Unknown".to_string()),
-            site: game.tags.site.unwrap_or_else(|| "Unknown".to_string()),
-            date: game.tags.date,
-            utctime: game.tags.utctime,
-            round: game.tags.round,
-            white: game.tags.white.unwrap_or_else(|| "Unknown".to_string()),
-            black: game.tags.black.unwrap_or_else(|| "Unknown".to_string()),
-            whiteelo: game.tags.whiteelo,
-            blackelo: game.tags.blackelo,
-            result: game.tags.result,
-            timecontrol: game.tags.timecontrol,
-            eco: game.tags.eco,
+            event: tags.event.unwrap_or_else(|| "Unknown".to_string()),
+            site: tags.site.unwrap_or_else(|| "Unknown".to_string()),
+            utc_timestamp,
+            round: tags.round,
+            white: tags.white.unwrap_or_else(|| "Unknown".to_string()),
+            black: tags.black.unwrap_or_else(|| "Unknown".to_string()),
+            whiteelo: tags.whiteelo,
+            blackelo: tags.blackelo,
+            result: tags.result,
+            timecontrol: tags.timecontrol,
+            eco: tags.eco,
             movedata,
             ply_count: game.ply_count,
         })
@@ -456,8 +446,7 @@ pub async fn convert_pgn(
             CREATE TABLE IF NOT EXISTS games (
                 event VARCHAR,
                 site VARCHAR,
-                date VARCHAR,
-                utctime VARCHAR,
+                utc_timestamp TIMESTAMP,
                 round VARCHAR,
                 white VARCHAR,
                 black VARCHAR,
@@ -523,8 +512,7 @@ pub async fn convert_pgn(
             appender.append_row(params![
                 game.event,
                 game.site,
-                game.date,
-                game.utctime,
+                game.utc_timestamp,
                 game.round,
                 game.white,
                 game.black,
@@ -723,11 +711,11 @@ pub struct GameQuery {
     #[specta(optional)]
     pub options: Option<QueryOptions<GameSort>>,
     #[specta(optional)]
-    pub player1: Option<i32>,
+    pub player1: Option<String>,
     #[specta(optional)]
-    pub player2: Option<i32>,
+    pub player2: Option<String>,
     #[specta(optional)]
-    pub tournament_id: Option<i32>,
+    pub tournament: Option<String>,
     #[specta(optional)]
     pub start_date: Option<String>,
     #[specta(optional)]
@@ -762,6 +750,141 @@ pub struct QueryResponse<T> {
     pub count: Option<i32>,
 }
 
+fn build_game_where_clauses(query: &GameQuery) -> Vec<String> {
+    let mut clauses = Vec::new();
+
+    if let Some(outcome) = query.outcome.as_deref() {
+        clauses.push(format!("result = {}", sql_literal(outcome)));
+    }
+
+    if let Some(start_date) = query.start_date.as_deref() {
+        clauses.push(format!(
+            "utc_timestamp >= strptime({}, '%Y.%m.%d')",
+            sql_literal(start_date)
+        ));
+    }
+
+    if let Some(end_date) = query.end_date.as_deref() {
+        clauses.push(format!(
+            "utc_timestamp < strptime({}, '%Y.%m.%d') + INTERVAL 1 DAY",
+            sql_literal(end_date)
+        ));
+    }
+
+    if let Some(tournament) = query.tournament.as_deref() {
+        clauses.push(format!("event = {}", sql_literal(tournament)));
+    }
+
+    match query.sides.as_ref() {
+        Some(Sides::WhiteBlack) => {
+            if let Some(player1) = query.player1.as_deref() {
+                clauses.push(format!("white = {}", sql_literal(player1)));
+            }
+            if let Some(player2) = query.player2.as_deref() {
+                clauses.push(format!("black = {}", sql_literal(player2)));
+            }
+            if let Some(range1) = query.range1 {
+                clauses.push(format!("whiteelo BETWEEN {} AND {}", range1.0, range1.1));
+            }
+            if let Some(range2) = query.range2 {
+                clauses.push(format!("blackelo BETWEEN {} AND {}", range2.0, range2.1));
+            }
+        }
+        Some(Sides::BlackWhite) => {
+            if let Some(player1) = query.player1.as_deref() {
+                clauses.push(format!("black = {}", sql_literal(player1)));
+            }
+            if let Some(player2) = query.player2.as_deref() {
+                clauses.push(format!("white = {}", sql_literal(player2)));
+            }
+            if let Some(range1) = query.range1 {
+                clauses.push(format!("blackelo BETWEEN {} AND {}", range1.0, range1.1));
+            }
+            if let Some(range2) = query.range2 {
+                clauses.push(format!("whiteelo BETWEEN {} AND {}", range2.0, range2.1));
+            }
+        }
+        Some(Sides::Any) => {
+            if let Some(player1) = query.player1.as_deref() {
+                let lit = sql_literal(player1);
+                clauses.push(format!("(white = {} OR black = {})", lit, lit));
+            }
+            if let Some(player2) = query.player2.as_deref() {
+                let lit = sql_literal(player2);
+                clauses.push(format!("(white = {} OR black = {})", lit, lit));
+            }
+            if let (Some(range1), Some(range2)) = (query.range1, query.range2) {
+                clauses.push(format!(
+                    "((whiteelo BETWEEN {} AND {}) OR (blackelo BETWEEN {} AND {}) OR (whiteelo BETWEEN {} AND {}) OR (blackelo BETWEEN {} AND {}))",
+                    range1.0, range1.1, range1.0, range1.1,
+                    range2.0, range2.1, range2.0, range2.1,
+                ));
+            } else {
+                if let Some(range1) = query.range1 {
+                    clauses.push(format!(
+                        "((whiteelo BETWEEN {} AND {}) OR (blackelo BETWEEN {} AND {}))",
+                        range1.0, range1.1, range1.0, range1.1,
+                    ));
+                }
+                if let Some(range2) = query.range2 {
+                    clauses.push(format!(
+                        "((whiteelo BETWEEN {} AND {}) OR (blackelo BETWEEN {} AND {}))",
+                        range2.0, range2.1, range2.0, range2.1,
+                    ));
+                }
+            }
+        }
+        None => {}
+    }
+
+    clauses
+}
+
+fn build_game_order_clause(query_options: &QueryOptions<GameSort>) -> String {
+    let dir = match query_options.direction {
+        SortDirection::Asc => "ASC",
+        SortDirection::Desc => "DESC",
+    };
+
+    let col = match query_options.sort {
+        GameSort::Id => "rowid",
+        GameSort::Date => "utc_timestamp",
+        GameSort::WhiteElo => "whiteelo",
+        GameSort::BlackElo => "blackelo",
+        GameSort::PlyCount => "ply_count",
+    };
+
+    format!("ORDER BY {col} {dir}")
+}
+
+fn parse_normalized_game(row: &duckdb::Row) -> duckdb::Result<NormalizedGame> {
+    let result = match row.get::<_, Option<String>>("result")?.as_deref() {
+        Some("1-0") => Outcome::WhiteWin,
+        Some("0-1") => Outcome::BlackWin,
+        Some("1/2-1/2") => Outcome::Draw,
+        _ => Outcome::Unknown,
+    };
+
+    Ok(NormalizedGame {
+        id: row.get("id")?,
+        event: row.get("event")?,
+        white: row.get("white")?,
+        black: row.get("black")?,
+        white_elo: row.get("whiteelo")?,
+        black_elo: row.get("blackelo")?,
+        date: row.get("date")?,
+        time: row.get("time")?,
+        time_control: row.get("timecontrol")?,
+        eco: row.get("eco")?,
+        fen: "".to_string(),
+        moves: row.get("moves")?,
+        result,
+        ply_count: row.get("ply_count")?,
+        round: row.get("round")?,
+        site: row.get("site")?,
+    })
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn get_games(
@@ -772,17 +895,31 @@ pub async fn get_games(
     let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
     load_aixchess_extension(&db)?;
-    let count = db.query_row("SELECT COUNT(*) FROM games;", [], |row| {
-        row.get::<_, i32>(0)
-    })?;
-    let games = db
-        .prepare(
-            "SELECT
-            row_number() OVER () AS id,
+
+    let query_options = query.options.clone().unwrap_or_default();
+    let where_clauses = build_game_where_clauses(&query);
+
+    let where_sql = if where_clauses.is_empty() {
+        String::new()
+    } else {
+        format!("WHERE {}", where_clauses.join(" AND "))
+    };
+
+    let order_sql = build_game_order_clause(&query_options);
+
+    let page_size = query_options.page_size.unwrap_or(25) as i64;
+    let offset = query_options
+        .page
+        .map(|p| ((p - 1) as i64) * page_size)
+        .unwrap_or(0);
+
+    let data_sql = format!(
+        "SELECT
+            CAST(rowid AS INTEGER) AS id,
             event,
             site,
-            date,
-            utctime,
+            strftime(utc_timestamp, '%Y.%m.%d') AS date,
+            strftime(utc_timestamp, '%H:%M:%S') AS time,
             round,
             white,
             black,
@@ -794,232 +931,25 @@ pub async fn get_games(
             to_pgn(movedata) AS moves,
             ply_count
         FROM games
-        LIMIT 5;",
-        )?
-        .query_map([], |row| {
-            let result = match row.get::<_, Option<String>>("result")?.as_deref() {
-                Some("1-0") => Outcome::WhiteWin,
-                Some("0-1") => Outcome::BlackWin,
-                Some("1/2-1/2") => Outcome::Draw,
-                _ => Outcome::Unknown,
-            };
+        {where_sql}
+        {order_sql}
+        LIMIT {page_size} OFFSET {offset};"
+    );
+    println!("Data SQL: {data_sql}");
 
-            Ok(NormalizedGame {
-                id: row.get("id")?,
-                event: row.get("event")?,
-                white: row.get("white")?,
-                black: row.get("black")?,
-                white_elo: row.get("whiteelo")?,
-                black_elo: row.get("blackelo")?,
-                date: row.get("date")?,
-                time: row.get("utctime")?,
-                time_control: row.get("timecontrol")?,
-                eco: row.get("eco")?,
-                fen: "".to_string(),
-                moves: row.get("moves")?,
-                result,
-                ply_count: row.get("ply_count")?,
-                round: row.get("round")?,
-                site: row.get("site")?,
-            })
-        })?
+    let games = db
+        .prepare(&data_sql)?
+        .query_map([], |row| parse_normalized_game(row))?
         .collect::<Result<Vec<_>, _>>()?;
 
-    // let mut count: Option<i64> = None;
-    // let query_options = query.options.unwrap_or_default();
+    let count = if query_options.skip_count {
+        None
+    } else {
+        let count_sql = format!("SELECT COUNT(*) FROM games {where_sql};");
+        Some(db.query_row(&count_sql, [], |row| row.get::<_, i32>(0))?)
+    };
 
-    // let (white_players, black_players) = diesel::alias!(players as white, players as black);
-    // let mut sql_query = games::table
-    //     .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
-    //     .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
-    //     .inner_join(events::table.on(games::event_id.eq(events::id)))
-    //     .inner_join(sites::table.on(games::site_id.eq(sites::id)))
-    //     .into_boxed();
-    // let mut count_query = games::table.into_boxed();
-
-    // // if let Some(speed) = query.speed {
-    // //     sql_query = sql_query.filter(games::speed.eq(speed as i32));
-    // //     count_query = count_query.filter(games::speed.eq(speed as i32));
-    // // }
-
-    // if let Some(outcome) = query.outcome {
-    //     sql_query = sql_query.filter(games::result.eq(outcome.clone()));
-    //     count_query = count_query.filter(games::result.eq(outcome));
-    // }
-
-    // if let Some(start_date) = query.start_date {
-    //     sql_query = sql_query.filter(games::date.ge(start_date.clone()));
-    //     count_query = count_query.filter(games::date.ge(start_date));
-    // }
-
-    // if let Some(end_date) = query.end_date {
-    //     sql_query = sql_query.filter(games::date.le(end_date.clone()));
-    //     count_query = count_query.filter(games::date.le(end_date));
-    // }
-
-    // if let Some(tournament_id) = query.tournament_id {
-    //     sql_query = sql_query.filter(games::event_id.eq(tournament_id));
-    //     count_query = count_query.filter(games::event_id.eq(tournament_id));
-    // }
-
-    // if let Some(limit) = query_options.page_size {
-    //     sql_query = sql_query.limit(limit as i64);
-    // }
-
-    // if let Some(page) = query_options.page {
-    //     sql_query = sql_query.offset(((page - 1) * query_options.page_size.unwrap_or(10)) as i64);
-    // }
-
-    // match query.sides {
-    //     Some(Sides::BlackWhite) => {
-    //         if let Some(player1) = query.player1 {
-    //             sql_query = sql_query.filter(games::black_id.eq(player1));
-    //             count_query = count_query.filter(games::black_id.eq(player1));
-    //         }
-    //         if let Some(player2) = query.player2 {
-    //             sql_query = sql_query.filter(games::white_id.eq(player2));
-    //             count_query = count_query.filter(games::white_id.eq(player2));
-    //         }
-
-    //         if let Some(range1) = query.range1 {
-    //             sql_query = sql_query.filter(games::black_elo.between(range1.0, range1.1));
-    //             count_query = count_query.filter(games::black_elo.between(range1.0, range1.1));
-    //         }
-
-    //         if let Some(range2) = query.range2 {
-    //             sql_query = sql_query.filter(games::white_elo.between(range2.0, range2.1));
-    //             count_query = count_query.filter(games::white_elo.between(range2.0, range2.1));
-    //         }
-    //     }
-    //     Some(Sides::WhiteBlack) => {
-    //         if let Some(player1) = query.player1 {
-    //             sql_query = sql_query.filter(games::white_id.eq(player1));
-    //             count_query = count_query.filter(games::white_id.eq(player1));
-    //         }
-    //         if let Some(player2) = query.player2 {
-    //             sql_query = sql_query.filter(games::black_id.eq(player2));
-    //             count_query = count_query.filter(games::black_id.eq(player2));
-    //         }
-
-    //         if let Some(range1) = query.range1 {
-    //             sql_query = sql_query.filter(games::white_elo.between(range1.0, range1.1));
-    //             count_query = count_query.filter(games::white_elo.between(range1.0, range1.1));
-    //         }
-
-    //         if let Some(range2) = query.range2 {
-    //             sql_query = sql_query.filter(games::black_elo.between(range2.0, range2.1));
-    //             count_query = count_query.filter(games::black_elo.between(range2.0, range2.1));
-    //         }
-    //     }
-    //     Some(Sides::Any) => {
-    //         if let Some(player1) = query.player1 {
-    //             sql_query =
-    //                 sql_query.filter(games::white_id.eq(player1).or(games::black_id.eq(player1)));
-    //             count_query =
-    //                 count_query.filter(games::white_id.eq(player1).or(games::black_id.eq(player1)));
-    //         }
-    //         if let Some(player2) = query.player2 {
-    //             sql_query =
-    //                 sql_query.filter(games::white_id.eq(player2).or(games::black_id.eq(player2)));
-    //             count_query =
-    //                 count_query.filter(games::white_id.eq(player2).or(games::black_id.eq(player2)));
-    //         }
-
-    //         if let (Some(range1), Some(range2)) = (query.range1, query.range2) {
-    //             sql_query = sql_query.filter(
-    //                 games::white_elo
-    //                     .between(range1.0, range1.1)
-    //                     .or(games::black_elo.between(range1.0, range1.1))
-    //                     .or(games::white_elo
-    //                         .between(range2.0, range2.1)
-    //                         .or(games::black_elo.between(range2.0, range2.1))),
-    //             );
-    //             count_query = count_query.filter(
-    //                 games::white_elo
-    //                     .between(range1.0, range1.1)
-    //                     .or(games::black_elo.between(range1.0, range1.1))
-    //                     .or(games::white_elo
-    //                         .between(range2.0, range2.1)
-    //                         .or(games::black_elo.between(range2.0, range2.1))),
-    //             );
-    //         } else {
-    //             if let Some(range1) = query.range1 {
-    //                 sql_query = sql_query.filter(
-    //                     games::white_elo
-    //                         .between(range1.0, range1.1)
-    //                         .or(games::black_elo.between(range1.0, range1.1)),
-    //                 );
-    //                 count_query = count_query.filter(
-    //                     games::white_elo
-    //                         .between(range1.0, range1.1)
-    //                         .or(games::black_elo.between(range1.0, range1.1)),
-    //                 );
-    //             }
-
-    //             if let Some(range2) = query.range2 {
-    //                 sql_query = sql_query.filter(
-    //                     games::white_elo
-    //                         .between(range2.0, range2.1)
-    //                         .or(games::black_elo.between(range2.0, range2.1)),
-    //                 );
-    //                 count_query = count_query.filter(
-    //                     games::white_elo
-    //                         .between(range2.0, range2.1)
-    //                         .or(games::black_elo.between(range2.0, range2.1)),
-    //                 );
-    //             }
-    //         }
-    //     }
-    //     None => {}
-    // }
-
-    // sql_query = match query_options.sort {
-    //     GameSort::Id => match query_options.direction {
-    //         SortDirection::Asc => sql_query.order(games::id.asc()),
-    //         SortDirection::Desc => sql_query.order(games::id.desc()),
-    //     },
-    //     GameSort::Date => match query_options.direction {
-    //         SortDirection::Asc => sql_query.order((games::date.asc(), games::time.asc())),
-    //         SortDirection::Desc => sql_query.order((games::date.desc(), games::time.desc())),
-    //     },
-    //     GameSort::WhiteElo => match query_options.direction {
-    //         SortDirection::Asc => sql_query.order(games::white_elo.asc()),
-    //         SortDirection::Desc => sql_query.order(games::white_elo.desc()),
-    //     },
-    //     GameSort::BlackElo => match query_options.direction {
-    //         SortDirection::Asc => sql_query.order(games::black_elo.asc()),
-    //         SortDirection::Desc => sql_query.order(games::black_elo.desc()),
-    //     },
-    //     GameSort::PlyCount => match query_options.direction {
-    //         SortDirection::Asc => sql_query.order(games::ply_count.asc()),
-    //         SortDirection::Desc => sql_query.order(games::ply_count.desc()),
-    //     },
-    // };
-
-    // if !query_options.skip_count {
-    //     count = Some(
-    //         count_query
-    //             .select(diesel::dsl::count(games::id))
-    //             .first(db)?,
-    //     );
-    // }
-
-    // // println!(
-    // //     "{:?}\n",
-    // //     diesel::debug_query::<diesel::sqlite::Sqlite, _>(&sql_query)
-    // // );
-
-    // let games: Vec<(Game, Player, Player, Event, Site)> = sql_query.load(db)?;
-    // let normalized_games = normalize_games(games);
-
-    // Ok(QueryResponse {
-    //     data: normalized_games,
-    //     count: count.map(|c| c as i32),
-    // })
-    Ok(QueryResponse {
-        data: games,
-        count: Some(count),
-    })
+    Ok(QueryResponse { data: games, count })
 }
 
 #[derive(Debug, Clone, Deserialize, Type)]
@@ -1033,8 +963,6 @@ pub struct PlayerQuery {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub enum PlayerSort {
-    #[serde(rename = "id")]
-    Id,
     #[serde(rename = "name")]
     Name,
     #[serde(rename = "elo")]
@@ -1044,16 +972,10 @@ pub enum PlayerSort {
 #[tauri::command]
 #[specta::specta]
 pub async fn get_player(
-    file: PathBuf,
-    id: i32,
-    state: tauri::State<'_, AppState>,
+    _file: PathBuf,
+    _id: i32,
+    _state: tauri::State<'_, AppState>,
 ) -> Result<Option<Player>, Error> {
-    // let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-    // let player = players::table
-    //     .filter(players::id.eq(id))
-    //     .first::<Player>(db)
-    //     .optional()?;
-    // Ok(player)
     Ok(None)
 }
 
@@ -1064,67 +986,87 @@ pub async fn get_players(
     query: PlayerQuery,
     state: tauri::State<'_, AppState>,
 ) -> Result<QueryResponse<Vec<Player>>, Error> {
-    // let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-    // let mut count: Option<i64> = None;
+    let db_pool = get_duckdb_pool(&state, &file)?;
+    let db = db_pool.get()?;
 
-    // let mut sql_query = players::table.into_boxed();
-    // let mut count_query = players::table.into_boxed();
-    // sql_query = sql_query.filter(players::name.is_not("Unknown"));
-    // count_query = count_query.filter(players::name.is_not("Unknown"));
+    let mut where_clauses = vec!["name != 'Unknown'".to_string()];
 
-    // if let Some(name) = query.name {
-    //     sql_query = sql_query.filter(players::name.like(format!("%{}%", name)));
-    //     count_query = count_query.filter(players::name.like(format!("%{}%", name)));
-    // }
+    if let Some(name) = query.name.as_deref() {
+        where_clauses.push(format!("name ILIKE '%{}%'", name.replace('\'', "''")));
+    }
 
-    // if let Some(range) = query.range {
-    //     sql_query = sql_query.filter(players::elo.between(range.0, range.1));
-    //     count_query = count_query.filter(players::elo.between(range.0, range.1));
-    // }
+    if let Some(range) = query.range {
+        where_clauses.push(format!("elo BETWEEN {} AND {}", range.0, range.1));
+    }
 
-    // if !query.options.skip_count {
-    //     count = Some(count_query.count().get_result(db)?);
-    // }
+    let where_sql = format!("WHERE {}", where_clauses.join(" AND "));
 
-    // if let Some(limit) = query.options.page_size {
-    //     sql_query = sql_query.limit(limit as i64);
-    // }
+    let dir = match query.options.direction {
+        SortDirection::Asc => "ASC",
+        SortDirection::Desc => "DESC",
+    };
+    let order_col = match query.options.sort {
+        PlayerSort::Name => "name",
+        PlayerSort::Elo => "elo",
+    };
+    let order_sql = format!("ORDER BY {order_col} {dir}");
 
-    // if let Some(page) = query.options.page {
-    //     sql_query = sql_query.offset(((page - 1) * query.options.page_size.unwrap_or(10)) as i64);
-    // }
+    let page_size = query.options.page_size.unwrap_or(25) as i64;
+    let offset = query
+        .options
+        .page
+        .map(|p| ((p - 1) as i64) * page_size)
+        .unwrap_or(0);
 
-    // sql_query = match query.options.sort {
-    //     PlayerSort::Id => match query.options.direction {
-    //         SortDirection::Asc => sql_query.order(players::id.asc()),
-    //         SortDirection::Desc => sql_query.order(players::id.desc()),
-    //     },
-    //     PlayerSort::Name => match query.options.direction {
-    //         SortDirection::Asc => sql_query.order(players::name.asc()),
-    //         SortDirection::Desc => sql_query.order(players::name.desc()),
-    //     },
-    //     PlayerSort::Elo => match query.options.direction {
-    //         SortDirection::Asc => sql_query.order(players::elo.asc()),
-    //         SortDirection::Desc => sql_query.order(players::elo.desc()),
-    //     },
-    // };
+    let data_sql = format!(
+        "WITH all_players AS (
+            SELECT white AS name, MAX(whiteelo) AS elo FROM games GROUP BY white
+            UNION ALL
+            SELECT black AS name, MAX(blackelo) AS elo FROM games GROUP BY black
+        ), players AS (
+            SELECT name, MAX(elo) AS elo FROM all_players GROUP BY name
+        )
+        SELECT name, elo
+        FROM players
+        {where_sql}
+        {order_sql}
+        LIMIT {page_size} OFFSET {offset};"
+    );
 
-    // let players = sql_query.load::<Player>(db)?;
+    let players = db
+        .prepare(&data_sql)?
+        .query_map([], |row| {
+            Ok(Player {
+                name: row.get("name")?,
+                elo: row.get("elo")?,
+            })
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
 
-    // Ok(QueryResponse {
-    //     data: players,
-    //     count: count.map(|c| c as i32),
-    // })
+    let count = if query.options.skip_count {
+        None
+    } else {
+        let count_sql = format!(
+            "WITH all_players AS (
+                SELECT white AS name, MAX(whiteelo) AS elo FROM games GROUP BY white
+                UNION ALL
+                SELECT black AS name, MAX(blackelo) AS elo FROM games GROUP BY black
+            ), players AS (
+                SELECT name, MAX(elo) AS elo FROM all_players GROUP BY name
+            )
+            SELECT COUNT(*) FROM players {where_sql};"
+        );
+        Some(db.query_row(&count_sql, [], |row| row.get::<_, i32>(0))?)
+    };
+
     Ok(QueryResponse {
-        data: Vec::new(),
-        count: Some(0),
+        data: players,
+        count,
     })
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub enum TournamentSort {
-    #[serde(rename = "id")]
-    Id,
     #[serde(rename = "name")]
     Name,
 }
@@ -1142,51 +1084,70 @@ pub async fn get_tournaments(
     query: TournamentQuery,
     state: tauri::State<'_, AppState>,
 ) -> Result<QueryResponse<Vec<Event>>, Error> {
-    // let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-    // let mut count: Option<i64> = None;
+    let db_pool = get_duckdb_pool(&state, &file)?;
+    let db = db_pool.get()?;
 
-    // let mut sql_query = events::table.into_boxed();
-    // let mut count_query = events::table.into_boxed();
-    // sql_query = sql_query.filter(events::name.is_not("Unknown").and(events::name.is_not("")));
-    // count_query = count_query.filter(events::name.is_not("Unknown").and(events::name.is_not("")));
+    let mut where_clauses = vec!["name != 'Unknown'".to_string(), "name != ''".to_string()];
 
-    // if let Some(name) = query.name {
-    //     sql_query = sql_query.filter(events::name.like(format!("%{}%", name)));
-    //     count_query = count_query.filter(events::name.like(format!("%{}%", name)));
-    // }
+    if let Some(name) = query.name.as_deref() {
+        if !name.is_empty() {
+            where_clauses.push(format!("name ILIKE '%{}%'", name.replace('\'', "''")));
+        }
+    }
 
-    // if !query.options.skip_count {
-    //     count = Some(count_query.count().get_result(db)?);
-    // }
+    let where_sql = format!("WHERE {}", where_clauses.join(" AND "));
 
-    // if let Some(limit) = query.options.page_size {
-    //     sql_query = sql_query.limit(limit as i64);
-    // }
+    let dir = match query.options.direction {
+        SortDirection::Asc => "ASC",
+        SortDirection::Desc => "DESC",
+    };
+    let order_col = match query.options.sort {
+        TournamentSort::Name => "name",
+    };
+    let order_sql = format!("ORDER BY {order_col} {dir}");
 
-    // if let Some(page) = query.options.page {
-    //     sql_query = sql_query.offset(((page - 1) * query.options.page_size.unwrap_or(10)) as i64);
-    // }
+    let page_size = query.options.page_size.unwrap_or(25) as i64;
+    let offset = query
+        .options
+        .page
+        .map(|p| ((p - 1) as i64) * page_size)
+        .unwrap_or(0);
 
-    // sql_query = match query.options.sort {
-    //     TournamentSort::Id => match query.options.direction {
-    //         SortDirection::Asc => sql_query.order(events::id.asc()),
-    //         SortDirection::Desc => sql_query.order(events::id.desc()),
-    //     },
-    //     TournamentSort::Name => match query.options.direction {
-    //         SortDirection::Asc => sql_query.order(events::name.asc()),
-    //         SortDirection::Desc => sql_query.order(events::name.desc()),
-    //     },
-    // };
+    let data_sql = format!(
+        "WITH events AS (
+            SELECT DISTINCT event AS name FROM games
+        )
+        SELECT name
+        FROM events
+        {where_sql}
+        {order_sql}
+        LIMIT {page_size} OFFSET {offset};"
+    );
 
-    // let events = sql_query.load::<Event>(db)?;
+    let events = db
+        .prepare(&data_sql)?
+        .query_map([], |row| {
+            Ok(Event {
+                name: row.get("name")?,
+            })
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
 
-    // Ok(QueryResponse {
-    //     data: events,
-    //     count: count.map(|c| c as i32),
-    // })
+    let count = if query.options.skip_count {
+        None
+    } else {
+        let count_sql = format!(
+            "WITH events AS (
+                SELECT DISTINCT event AS name FROM games
+            )
+            SELECT COUNT(*) FROM events {where_sql};"
+        );
+        Some(db.query_row(&count_sql, [], |row| row.get::<_, i32>(0))?)
+    };
+
     Ok(QueryResponse {
-        data: Vec::new(),
-        count: Some(0),
+        data: events,
+        count,
     })
 }
 
@@ -1249,154 +1210,12 @@ pub struct DatabaseProgress {
 #[tauri::command]
 #[specta::specta]
 pub async fn get_players_game_info(
-    file: PathBuf,
-    id: i32,
-    state: tauri::State<'_, AppState>,
-    app: tauri::AppHandle,
+    _file: PathBuf,
+    _id: i32,
+    _state: tauri::State<'_, AppState>,
+    _app: tauri::AppHandle,
 ) -> Result<PlayerGameInfo, Error> {
-    // let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-    // let timer = Instant::now();
-
-    // let sql_query = games::table
-    //     .inner_join(sites::table.on(games::site_id.eq(sites::id)))
-    //     .inner_join(players::table.on(players::id.eq(id)))
-    //     .select((
-    //         games::white_id,
-    //         games::black_id,
-    //         games::result,
-    //         games::date,
-    //         games::moves,
-    //         games::white_elo,
-    //         games::black_elo,
-    //         games::time_control,
-    //         sites::name,
-    //         players::name,
-    //     ))
-    //     .filter(games::white_id.eq(id).or(games::black_id.eq(id)))
-    //     .filter(games::fen.is_null());
-
-    // type GameInfo = (
-    //     i32,
-    //     i32,
-    //     Option<String>,
-    //     Option<String>,
-    //     Vec<u8>,
-    //     Option<i32>,
-    //     Option<i32>,
-    //     Option<String>,
-    //     Option<String>,
-    //     Option<String>,
-    // );
-    // let info: Vec<GameInfo> = sql_query.load(db)?;
-
-    // let mut game_info = PlayerGameInfo::default();
-    // let progress = AtomicUsize::new(0);
-    // game_info.site_stats_data = info
-    //     .par_iter()
-    //     .filter_map(
-    //         |(
-    //             white_id,
-    //             black_id,
-    //             outcome,
-    //             date,
-    //             moves,
-    //             white_elo,
-    //             black_elo,
-    //             time_control,
-    //             site,
-    //             player,
-    //         )| {
-    //             let is_white = *white_id == id;
-    //             let is_black = *black_id == id;
-    //             let result = GameOutcome::from_str(outcome.as_deref()?, is_white);
-
-    //             if !is_white && !is_black
-    //                 || is_white && white_elo.is_none()
-    //                 || is_black && black_elo.is_none()
-    //                 || result.is_none()
-    //                 || date.is_none()
-    //                 || site.is_none()
-    //                 || player.is_none()
-    //             {
-    //                 return None;
-    //             }
-
-    //             let site = site.as_deref().map(|s| {
-    //                 if s.starts_with("https://lichess.org/") {
-    //                     "Lichess".to_string()
-    //                 } else {
-    //                     s.to_string()
-    //                 }
-    //             })?;
-
-    //             let mut setups = vec![];
-    //             let mut chess = Chess::default();
-    //             for (i, byte) in iter_mainline_move_bytes(moves).enumerate() {
-    //                 if i > 54 {
-    //                     // max length of opening in data
-    //                     break;
-    //                 }
-    //                 let Some(m) = decode_move(byte, &chess) else {
-    //                     break;
-    //                 };
-    //                 chess.play_unchecked(&m);
-    //                 setups.push(chess.clone().into_setup(EnPassantMode::Legal));
-    //             }
-
-    //             setups.reverse();
-    //             let opening = setups
-    //                 .iter()
-    //                 .find_map(|setup| get_opening_from_setup(setup.clone()).ok())
-    //                 .unwrap_or_default();
-
-    //             let p = progress.fetch_add(1, Ordering::Relaxed);
-    //             if p.is_multiple_of(1000) || p == info.len() - 1 {
-    //                 let _ = DatabaseProgress {
-    //                     id: id.to_string(),
-    //                     progress: (p as f64 / info.len() as f64) * 100_f64,
-    //                 }
-    //                 .emit(&app);
-    //             }
-
-    //             Some(SiteStatsData {
-    //                 site: site.clone(),
-    //                 player: player.clone().unwrap(),
-    //                 data: vec![StatsData {
-    //                     date: date.clone().unwrap(),
-    //                     is_player_white: is_white,
-    //                     player_elo: if is_white {
-    //                         white_elo.unwrap()
-    //                     } else {
-    //                         black_elo.unwrap()
-    //                     },
-    //                     result: result.unwrap(),
-    //                     time_control: time_control.clone().unwrap_or_default(),
-    //                     opening,
-    //                 }],
-    //             })
-    //         },
-    //     )
-    //     .fold(DashMap::new, |acc, data| {
-    //         acc.entry((data.site.clone(), data.player.clone()))
-    //             .or_insert_with(Vec::new)
-    //             .extend(data.data);
-    //         acc
-    //     })
-    //     .reduce(DashMap::new, |acc1, acc2| {
-    //         for ((site, player), data) in acc2 {
-    //             acc1.entry((site, player))
-    //                 .or_insert_with(Vec::new)
-    //                 .extend(data);
-    //         }
-    //         acc1
-    //     })
-    //     .into_iter()
-    //     .map(|((site, player), data)| SiteStatsData { site, player, data })
-    //     .collect();
-
-    // println!("get_players_game_info {:?}: {:?}", file, timer.elapsed());
-
-    // Ok(game_info)
+    // TODO: re-implement for DuckDB flat table (no player IDs)
     Ok(PlayerGameInfo::default())
 }
 
@@ -1420,22 +1239,26 @@ pub async fn delete_duplicated_games(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    // let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    let db_pool = get_duckdb_pool(&state, &file)?;
+    let db = db_pool.get()?;
 
-    // db.batch_execute(
-    //     "
-    //     DELETE FROM Games
-    //     WHERE ID IN (
-    //         SELECT ID
-    //         FROM (
-    //             SELECT ID,
-    //                 ROW_NUMBER() OVER (PARTITION BY EventID, SiteID, Round, WhiteID, BlackID, Moves, Date, UTCTime ORDER BY ID) AS RowNum
-    //             FROM Games
-    //         ) AS Subquery
-    //         WHERE RowNum > 1
-    //     );
-    //     ",
-    // )?;
+    db.execute_batch(
+        "
+        DELETE FROM games
+        WHERE rowid IN (
+            SELECT rowid
+            FROM (
+                SELECT rowid,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY event, site, round, white, black, movedata, utc_timestamp
+                        ORDER BY rowid
+                    ) AS row_num
+                FROM games
+            )
+            WHERE row_num > 1
+        );
+        ",
+    )?;
 
     Ok(())
 }
@@ -1446,9 +1269,10 @@ pub async fn delete_empty_games(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    // let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    let db_pool = get_duckdb_pool(&state, &file)?;
+    let db = db_pool.get()?;
 
-    // diesel::delete(games::table.filter(games::ply_count.eq(0))).execute(db)?;
+    db.execute("DELETE FROM games WHERE ply_count = 0;", [])?;
 
     Ok(())
 }
@@ -1565,7 +1389,7 @@ pub async fn export_to_pgn(
         "SELECT
             event,
             site,
-            date,
+            strftime(utc_timestamp, '%Y.%m.%d') AS date,
             round,
             white,
             black,
@@ -1615,122 +1439,35 @@ pub async fn export_to_pgn(
 #[tauri::command]
 #[specta::specta]
 pub async fn delete_db_game(
-    file: PathBuf,
-    game_id: i32,
-    state: tauri::State<'_, AppState>,
+    _file: PathBuf,
+    _game_id: i32,
+    _state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    // let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-
-    // diesel::delete(games::table.filter(games::id.eq(game_id))).execute(db)?;
-
+    // TODO: re-implement for DuckDB (no stable row ID)
     Ok(())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn write_db_game(
-    file: PathBuf,
-    game_id: i32,
-    pgn: String,
-    state: tauri::State<'_, AppState>,
+    _file: PathBuf,
+    _game_id: i32,
+    _pgn: String,
+    _state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    // let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-
-    // let mut importer = Importer::new(None);
-    // let mut parsed = BufferedReader::new(pgn.as_bytes())
-    //     .into_iter(&mut importer)
-    //     .flatten()
-    //     .flatten();
-    // let temp_game = parsed.next().ok_or(Error::NoMovesFound)?;
-
-    // let white_id = if let Some(name) = temp_game.white_name.as_deref() {
-    //     create_player(db, name)?.id
-    // } else {
-    //     0
-    // };
-    // let black_id = if let Some(name) = temp_game.black_name.as_deref() {
-    //     create_player(db, name)?.id
-    // } else {
-    //     0
-    // };
-    // let event_id = if let Some(name) = temp_game.event_name.as_deref() {
-    //     create_event(db, name)?.id
-    // } else {
-    //     0
-    // };
-    // let site_id = if let Some(name) = temp_game.site_name.as_deref() {
-    //     create_site(db, name)?.id
-    // } else {
-    //     0
-    // };
-
-    // let final_material = get_material_count(temp_game.position.board());
-    // let minimal_white_material = temp_game.material_count.white.min(final_material.white) as i32;
-    // let minimal_black_material = temp_game.material_count.black.min(final_material.black) as i32;
-    // let pawn_home = get_pawn_home(temp_game.position.board()) as i32;
-    // let ply_count = iter_mainline_move_bytes(&temp_game.moves).count() as i32;
-
-    // let updated_rows = diesel::update(games::table.filter(games::id.eq(game_id)))
-    //     .set((
-    //         games::event_id.eq(event_id),
-    //         games::site_id.eq(site_id),
-    //         games::date.eq(temp_game.date),
-    //         games::time.eq(temp_game.time),
-    //         games::round.eq(temp_game.round),
-    //         games::white_id.eq(white_id),
-    //         games::white_elo.eq(temp_game.white_elo),
-    //         games::black_id.eq(black_id),
-    //         games::black_elo.eq(temp_game.black_elo),
-    //         games::white_material.eq(minimal_white_material),
-    //         games::black_material.eq(minimal_black_material),
-    //         games::result.eq(temp_game.result),
-    //         games::time_control.eq(temp_game.time_control),
-    //         games::eco.eq(temp_game.eco),
-    //         games::ply_count.eq(ply_count),
-    //         games::fen.eq(temp_game.fen),
-    //         games::moves.eq(temp_game.moves),
-    //         games::pawn_home.eq(pawn_home),
-    //     ))
-    //     .execute(db)?;
-
-    // if updated_rows == 0 {
-    //     return Err(Error::GameNotFound(game_id.to_string()));
-    // }
-
+    // TODO: re-implement for DuckDB
     Ok(())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn merge_players(
-    file: PathBuf,
-    player1: i32,
-    player2: i32,
-    state: tauri::State<'_, AppState>,
+    _file: PathBuf,
+    _player1: i32,
+    _player2: i32,
+    _state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    // let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
-
-    // // Check if the players never played against each other
-    // let count: i64 = games::table
-    //     .filter(games::white_id.eq(player1).and(games::black_id.eq(player2)))
-    //     .or_filter(games::white_id.eq(player2).and(games::black_id.eq(player1)))
-    //     .limit(1)
-    //     .count()
-    //     .get_result(db)?;
-
-    // if count > 0 {
-    //     return Err(Error::NotDistinctPlayers);
-    // }
-
-    // diesel::update(games::table.filter(games::white_id.eq(player1)))
-    //     .set(games::white_id.eq(player2))
-    //     .execute(db)?;
-    // diesel::update(games::table.filter(games::black_id.eq(player1)))
-    //     .set(games::black_id.eq(player2))
-    //     .execute(db)?;
-
-    // diesel::delete(players::table.filter(players::id.eq(player1))).execute(db)?;
-
+    // TODO: re-implement for DuckDB (no separate player table)
     Ok(())
 }
 

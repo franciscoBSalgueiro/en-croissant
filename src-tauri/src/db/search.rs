@@ -129,11 +129,17 @@ fn build_position_where_clauses(
     }
 
     if let Some(start_date) = query.start_date.as_deref() {
-        clauses.push(format!("date >= {}", sql_literal(start_date)));
+        clauses.push(format!(
+            "utc_timestamp >= strptime({}, '%Y.%m.%d')",
+            sql_literal(start_date)
+        ));
     }
 
     if let Some(end_date) = query.end_date.as_deref() {
-        clauses.push(format!("date <= {}", sql_literal(end_date)));
+        clauses.push(format!(
+            "utc_timestamp < strptime({}, '%Y.%m.%d') + INTERVAL 1 DAY",
+            sql_literal(end_date)
+        ));
     }
 
     if position_type == "exact" && full_fen.split_whitespace().count() >= 2 {

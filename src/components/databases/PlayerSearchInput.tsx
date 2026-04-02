@@ -1,9 +1,8 @@
 import { Autocomplete } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";
-import { type ReactNode, useEffect, useState } from "react";
-import { commands, type Player } from "@/bindings";
+import { type ReactNode, useState } from "react";
+import type { Player } from "@/bindings";
 import { query_players } from "@/utils/db";
-import { unwrap } from "@/utils/unwrap";
 
 export function PlayerSearchInput({
   label,
@@ -13,35 +12,19 @@ export function PlayerSearchInput({
   setValue,
 }: {
   label: string;
-  value?: number;
+  value?: string;
   file: string;
   rightSection?: ReactNode;
-  setValue: (val: number | undefined) => void;
+  setValue: (val: string | undefined) => void;
 }) {
-  const [tempValue, setTempValue] = useState("");
   const [data, setData] = useState<Player[]>([]);
 
-  useEffect(() => {
-    if (value !== undefined) {
-      commands.getPlayer(file, value).then((res) => {
-        const player = unwrap(res);
-        if (player?.name) {
-          setTempValue(player.name);
-        }
-      });
-    }
-  }, [value]);
-
   async function handleChange(val: string) {
-    setTempValue(val);
+    setValue(val.trim().length === 0 ? undefined : val);
+
     if (val.trim().length === 0) {
-      setValue(undefined);
       setData([]);
       return;
-    }
-    const player = data.find((player) => player.name === val);
-    if (player) {
-      setValue(player.id);
     }
 
     const res = await query_players(file, {
@@ -51,14 +34,14 @@ export function PlayerSearchInput({
         pageSize: 5,
         skipCount: true,
         sort: "elo",
-        direction: "asc",
+        direction: "desc",
       },
     });
     setData(res.data);
   }
   return (
     <Autocomplete
-      value={tempValue}
+      value={value ?? ""}
       data={data.map((player) => player.name!)}
       onChange={handleChange}
       rightSection={rightSection}

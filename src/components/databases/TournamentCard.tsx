@@ -44,9 +44,9 @@ function TournamentCard({ tournament, file }: { tournament: Event; file: string 
   const [pageSize, setPageSize] = useState(25);
 
   const { data: games, isLoading } = useSWRImmutable(
-    ["tournament-games", file, tournament.id],
-    async ([key, file, id]) => {
-      const games = await getTournamentGames(file, id);
+    ["tournament-games", file, tournament.name],
+    async ([key, file, name]) => {
+      const games = await getTournamentGames(file, name!);
       return games.data;
     },
   );

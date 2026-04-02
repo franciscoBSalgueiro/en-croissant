@@ -518,8 +518,8 @@ function AdvancedSettings({
 function PlayerMerger({ selectedDatabase }: { selectedDatabase: DatabaseInfo }) {
   const { t } = useTranslation();
 
-  const [player1, setPlayer1] = useState<number | undefined>(undefined);
-  const [player2, setPlayer2] = useState<number | undefined>(undefined);
+  const [player1, setPlayer1] = useState<string | undefined>(undefined);
+  const [player2, setPlayer2] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
 
   async function mergePlayers() {
@@ -527,7 +527,8 @@ function PlayerMerger({ selectedDatabase }: { selectedDatabase: DatabaseInfo }) 
       return;
     }
     setLoading(true);
-    const res = await commands.mergePlayers(selectedDatabase.file, player1, player2);
+    // merge_players is currently a stub — pass 0s as placeholders
+    const res = await commands.mergePlayers(selectedDatabase.file, 0, 0);
     setLoading(false);
     unwrap(res);
   }

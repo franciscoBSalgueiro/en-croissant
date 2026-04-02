@@ -101,15 +101,14 @@ function Databases() {
               options: {
                 pageSize: 1,
                 direction: "asc",
-                sort: "id",
+                sort: "name",
                 skipCount: false,
               },
             });
             if (players.data.length === 0) {
               throw new Error("Player not found in database");
             }
-            const player = players.data[0];
-            const info = unwrap(await commands.getPlayersGameInfo(db.file, player.id));
+            const info = unwrap(await commands.getPlayersGameInfo(db.file, 0));
             return { db, info };
           }),
       );

@@ -59,7 +59,7 @@ export type LocalOptions = {
   path: string | null;
   fen: string;
   type: "exact" | "partial";
-  player: number | null;
+  player: string | null;
   color: "white" | "black";
   start_date?: string;
   end_date?: string;

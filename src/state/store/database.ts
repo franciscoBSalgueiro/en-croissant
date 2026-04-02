@@ -14,12 +14,12 @@ export interface DatabaseViewStore {
     };
     players: {
         query: PlayerQuery;
-        selectedPlayer?: number;
+        selectedPlayer?: string;
         activeTab: "overview" | "openings";
     };
     tournaments: {
         query: TournamentQuery;
-        selectedTournamet?: number;
+        selectedTournamet?: string;
         activeTab: "games" | "leaderboard";
     };
 
@@ -32,11 +32,11 @@ export interface DatabaseViewStore {
     toggleGamesOpenedSettings: () => void;
 
     setPlayersQuery: (filter: PlayerQuery) => void;
-    setPlayersSelectedPlayer: (player?: number) => void;
+    setPlayersSelectedPlayer: (player?: string) => void;
     setPlayersActiveTab: (value: DatabaseViewStore["players"]["activeTab"]) => void;
 
     setTournamentsQuery: (query: TournamentQuery) => void;
-    setTournamentsSelectedTournamet: (tournament?: number) => void;
+    setTournamentsSelectedTournamet: (tournament?: string) => void;
     setTournamentsActiveTab: (value: DatabaseViewStore["tournaments"]["activeTab"]) => void;
 }
 
@@ -162,7 +162,7 @@ export const activeDatabaseViewStore = createStore<DatabaseViewStore>()(
                     }),
                 );
             },
-            setPlayersSelectedPlayer: (player?: number) => {
+            setPlayersSelectedPlayer: (player?: string) => {
                 set(
                     produce((state: Draft<DatabaseViewStore>) => {
                         state.players.selectedPlayer = player;
@@ -177,7 +177,7 @@ export const activeDatabaseViewStore = createStore<DatabaseViewStore>()(
                     }),
                 );
             },
-            setTournamentsSelectedTournamet: (tournament?: number) => {
+            setTournamentsSelectedTournamet: (tournament?: string) => {
                 set(
                     produce((state: Draft<DatabaseViewStore>) => {
                         state.tournaments.selectedTournamet = tournament;
