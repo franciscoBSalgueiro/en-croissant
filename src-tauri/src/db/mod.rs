@@ -1,33 +1,31 @@
 mod encoding;
 mod models;
+mod pgn;
 mod schema;
 mod search;
 
 use crate::{db::models::*, error::Error, AppState};
-use aix_chess_compression::{
-    CompressionLevel as AixCompressionLevel, Encode as AixEncode, Encoder as AixEncoder,
-};
-use chrono::{NaiveDate, NaiveTime};
+use aix_chess_compression::CompressionLevel as AixCompressionLevel;
 use dashmap::mapref::entry::Entry;
 use duckdb::{params, AccessMode, Config, Connection, DuckdbConnectionManager};
-use pgn_reader::{RawTag, Reader, SanPlus, Skip, Visitor};
 use r2d2::Pool;
 
 use serde::{Deserialize, Serialize};
-use shakmaty::{
-    fen::Fen, Board, ByColor, CastlingMode, Chess, FromSetup, Piece, Position, PositionError,
-};
+use shakmaty::{san::San, Board, ByColor, Chess, EnPassantMode, Piece, Position};
 use specta::Type;
+use std::collections::HashMap;
 use std::io::{BufWriter, Write};
 use std::{
     fs::{remove_file, File, OpenOptions},
-    ops::ControlFlow,
     path::{Path, PathBuf},
     time::Instant,
 };
 use tauri::Emitter;
+use tauri_specta::Event as TauriSpectaEvent;
 
 use log::info;
+
+use crate::opening::get_opening_from_setup;
 
 pub use self::models::NormalizedGame;
 pub use self::models::Puzzle;
@@ -162,264 +160,6 @@ struct AixGameRow {
     ply_count: u16,
 }
 
-struct AixGameInProgress {
-    tags: AixTags,
-    encoder: AixEncoder<'static>,
-    position: Chess,
-    ply_count: u16,
-    position_stack: Vec<(Chess, u16)>,
-    position_before_last_move: Option<Chess>,
-    ply_before_last_move: u16,
-}
-
-struct AixImporter {
-    tags: AixTags,
-    game: Option<AixGameInProgress>,
-    timestamp: Option<i64>,
-    skip: bool,
-}
-
-impl AixImporter {
-    fn new(timestamp: Option<i64>) -> Self {
-        Self {
-            tags: AixTags::default(),
-            game: None,
-            timestamp,
-            skip: false,
-        }
-    }
-
-    fn parse_utc_naive_datetime(tags: &AixTags) -> Option<chrono::NaiveDateTime> {
-        let date = tags.date.as_deref()?;
-        let time = tags.utctime.as_deref()?;
-
-        let parsed_date = NaiveDate::parse_from_str(date, "%Y.%m.%d").ok()?;
-        let parsed_time = NaiveTime::parse_from_str(time, "%H:%M:%S").ok()?;
-
-        Some(parsed_date.and_time(parsed_time))
-    }
-
-    fn should_skip_by_timestamp(tags: &AixTags, timestamp: Option<i64>) -> bool {
-        let Some(timestamp) = timestamp else {
-            return false;
-        };
-
-        Self::parse_utc_naive_datetime(tags)
-            .map(|dt| dt.and_utc().timestamp() <= timestamp)
-            .unwrap_or(false)
-    }
-
-    fn position_from_tags(tags: &AixTags) -> Result<(Chess, Option<String>), ()> {
-        let initial_fen = if tags.setup { tags.fen.clone() } else { None };
-
-        let position = match initial_fen.as_deref() {
-            Some(fen) => {
-                let fen = Fen::from_ascii(fen.as_bytes()).map_err(|_| ())?;
-                let setup = fen.into_setup();
-                let castling_mode = CastlingMode::detect(&setup);
-                Chess::from_setup(setup, castling_mode)
-                    .or_else(PositionError::ignore_too_much_material)
-                    .map_err(|_| ())?
-            }
-            None => Chess::new(),
-        };
-
-        Ok((position, initial_fen))
-    }
-}
-
-impl Visitor for AixImporter {
-    type Tags = ();
-    type Movetext = ();
-    type Output = Option<AixGameRow>;
-
-    fn begin_tags(&mut self) -> ControlFlow<Self::Output, Self::Tags> {
-        self.tags = AixTags::default();
-        self.game = None;
-        self.skip = false;
-        ControlFlow::Continue(())
-    }
-
-    fn tag(
-        &mut self,
-        _tags: &mut Self::Tags,
-        key: &[u8],
-        value: RawTag<'_>,
-    ) -> ControlFlow<Self::Output> {
-        let value = value.decode_utf8_lossy().into_owned();
-        match key {
-            b"Event" => self.tags.event = Some(value),
-            b"Site" => self.tags.site = Some(value),
-            b"Date" | b"UTCDate" => self.tags.date = Some(value),
-            b"UTCTime" => self.tags.utctime = Some(value),
-            b"Round" => self.tags.round = Some(value),
-            b"White" => self.tags.white = Some(value),
-            b"Black" => self.tags.black = Some(value),
-            b"WhiteElo" => {
-                self.tags.whiteelo = if value == "-" {
-                    Some(0)
-                } else {
-                    value.parse().ok()
-                }
-            }
-            b"BlackElo" => {
-                self.tags.blackelo = if value == "-" {
-                    Some(0)
-                } else {
-                    value.parse().ok()
-                }
-            }
-            b"Result" => self.tags.result = Some(value),
-            b"TimeControl" => self.tags.timecontrol = Some(value),
-            b"ECO" => self.tags.eco = Some(value),
-            b"SetUp" => self.tags.setup = value == "1",
-            b"FEN" => self.tags.fen = Some(value),
-            _ => {}
-        }
-
-        ControlFlow::Continue(())
-    }
-
-    fn begin_movetext(&mut self, _tags: Self::Tags) -> ControlFlow<Self::Output, Self::Movetext> {
-        if Self::should_skip_by_timestamp(&self.tags, self.timestamp) {
-            self.skip = true;
-            return ControlFlow::Continue(());
-        }
-
-        let Ok((position, initial_fen)) = Self::position_from_tags(&self.tags) else {
-            self.skip = true;
-            return ControlFlow::Continue(());
-        };
-
-        let Ok(encoder) =
-            AixEncoder::new_with_initial_fen(AixCompressionLevel::Low, initial_fen.as_deref())
-        else {
-            self.skip = true;
-            return ControlFlow::Continue(());
-        };
-
-        self.game = Some(AixGameInProgress {
-            tags: self.tags.clone(),
-            encoder,
-            position,
-            ply_count: 0,
-            position_stack: Vec::new(),
-            position_before_last_move: None,
-            ply_before_last_move: 0,
-        });
-
-        ControlFlow::Continue(())
-    }
-
-    fn san(&mut self, _movetext: &mut Self::Movetext, san: SanPlus) -> ControlFlow<Self::Output> {
-        if self.skip {
-            return ControlFlow::Continue(());
-        }
-
-        let Some(game) = self.game.as_mut() else {
-            self.skip = true;
-            return ControlFlow::Continue(());
-        };
-
-        match san.san.to_move(&game.position) {
-            Ok(chess_move) => {
-                game.position_before_last_move = Some(game.position.clone());
-                game.ply_before_last_move = game.ply_count;
-                if game.encoder.encode_move(chess_move).is_err() {
-                    self.skip = true;
-                    return ControlFlow::Continue(());
-                }
-                game.position.play_unchecked(chess_move);
-                game.ply_count += 1;
-            }
-            Err(_) => {
-                self.skip = true;
-            }
-        }
-
-        ControlFlow::Continue(())
-    }
-
-    fn begin_variation(
-        &mut self,
-        _movetext: &mut Self::Movetext,
-    ) -> ControlFlow<Self::Output, Skip> {
-        if self.skip {
-            return ControlFlow::Continue(Skip(true));
-        }
-
-        let Some(game) = self.game.as_mut() else {
-            self.skip = true;
-            return ControlFlow::Continue(Skip(true));
-        };
-
-        game.encoder.encode_start_variation();
-        game.position_stack
-            .push((game.position.clone(), game.ply_count));
-
-        if let Some(previous_position) = game.position_before_last_move.as_ref() {
-            game.position = previous_position.clone();
-            game.ply_count = game.ply_before_last_move;
-        }
-
-        ControlFlow::Continue(Skip(false))
-    }
-
-    fn end_variation(&mut self, _movetext: &mut Self::Movetext) -> ControlFlow<Self::Output> {
-        if self.skip {
-            return ControlFlow::Continue(());
-        }
-
-        let Some(game) = self.game.as_mut() else {
-            self.skip = true;
-            return ControlFlow::Continue(());
-        };
-
-        game.encoder.encode_end_variation();
-        if let Some((position, ply_count)) = game.position_stack.pop() {
-            game.position = position;
-            game.ply_count = ply_count;
-        } else {
-            self.skip = true;
-        }
-
-        ControlFlow::Continue(())
-    }
-
-    fn end_game(&mut self, _movetext: Self::Movetext) -> Self::Output {
-        if self.skip {
-            self.tags = AixTags::default();
-            self.game = None;
-            return None;
-        }
-
-        let Some(game) = self.game.take() else {
-            return None;
-        };
-
-        let movedata = game.encoder.finish().into_bytes();
-        let tags = game.tags;
-        let utc_timestamp = Self::parse_utc_naive_datetime(&tags)
-            .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string());
-
-        Some(AixGameRow {
-            event: tags.event.unwrap_or_else(|| "Unknown".to_string()),
-            site: tags.site.unwrap_or_else(|| "Unknown".to_string()),
-            utc_timestamp,
-            round: tags.round,
-            white: tags.white.unwrap_or_else(|| "Unknown".to_string()),
-            black: tags.black.unwrap_or_else(|| "Unknown".to_string()),
-            whiteelo: tags.whiteelo,
-            blackelo: tags.blackelo,
-            result: tags.result,
-            timecontrol: tags.timecontrol,
-            eco: tags.eco,
-            movedata,
-            ply_count: game.ply_count,
-        })
-    }
-}
-
 #[tauri::command]
 #[specta::specta]
 pub async fn convert_pgn(
@@ -441,25 +181,7 @@ pub async fn convert_pgn(
     let db = db_pool.get()?;
 
     if !db_exists {
-        db.execute_batch(
-            "
-            CREATE TABLE IF NOT EXISTS games (
-                event VARCHAR,
-                site VARCHAR,
-                utc_timestamp TIMESTAMP,
-                round VARCHAR,
-                white VARCHAR,
-                black VARCHAR,
-                whiteelo INTEGER,
-                blackelo INTEGER,
-                result VARCHAR,
-                timecontrol VARCHAR,
-                eco VARCHAR,
-                movedata BLOB,
-                ply_count USMALLINT
-            );
-            ",
-        )?;
+        db.execute_batch(include_str!("init-database.sql"))?;
     }
 
     db.execute_batch(
@@ -482,67 +204,34 @@ pub async fn convert_pgn(
     )?;
 
     let start = Instant::now();
-    let mut imported_games = 0usize;
-    let ts = timestamp.map(i64::from);
-    let mut appender = db.appender("games")?;
+    let appender = db.appender("games")?;
+    let mut proc = pgn::PgnProcessor::new(appender, AixCompressionLevel::Low, true);
+    let mut total_games = 1;
 
     for file_path in files {
-        let current_file_name = file_path
-            .file_name()
-            .map(|name| name.to_string_lossy().into_owned());
-
-        let extension = file_path.extension().and_then(|ext| ext.to_str());
-        let file = File::open(&file_path)?;
-
-        let uncompressed: Box<dyn std::io::Read + Send> = if extension == Some("bz2") {
-            Box::new(bzip2::read::MultiBzDecoder::new(file))
-        } else if extension == Some("zst") {
-            Box::new(zstd::Decoder::new(file)?)
-        } else {
-            Box::new(file)
-        };
-
-        let mut importer = AixImporter::new(ts);
-        let mut reader = Reader::new(uncompressed);
-        while let Some(game) = reader.read_game(&mut importer)? {
-            let Some(game) = game else {
-                continue;
+        let file = File::open(&file_path).unwrap();
+        let uncompressed: Box<dyn std::io::Read> =
+            if file_path.extension().and_then(|s| s.to_str()) == Some("zst") {
+                Box::new(zstd::Decoder::new(file).unwrap())
+            } else {
+                Box::new(file)
             };
 
-            appender.append_row(params![
-                game.event,
-                game.site,
-                game.utc_timestamp,
-                game.round,
-                game.white,
-                game.black,
-                game.whiteelo,
-                game.blackelo,
-                game.result,
-                game.timecontrol,
-                game.eco,
-                game.movedata,
-                game.ply_count,
-            ])?;
-
-            imported_games += 1;
-            if imported_games.is_multiple_of(1000) {
-                let elapsed = start.elapsed().as_millis() as u32;
-                let _ = app.emit(
-                    "convert_progress",
-                    (imported_games, elapsed, current_file_name.clone()),
-                );
-            }
-        }
+        let mut reader = pgn_reader::Reader::new(uncompressed);
+        reader
+            .read_games(&mut proc)
+            .map(|e| e.unwrap())
+            .inspect(|_| total_games += 1)
+            .for_each(drop);
     }
 
-    appender.flush()?;
+    proc.flush();
     db.execute("CHECKPOINT", [])?;
 
     let elapsed = start.elapsed().as_millis() as u32;
     let _ = app.emit(
         "convert_progress",
-        (imported_games, elapsed, Option::<String>::None),
+        (total_games, elapsed, Option::<String>::None),
     );
 
     Ok(())
@@ -1207,16 +896,206 @@ pub struct DatabaseProgress {
     pub progress: f64,
 }
 
+fn normalize_site_name(site: &str) -> String {
+    if site.starts_with("https://lichess.org/") {
+        "Lichess".to_string()
+    } else {
+        site.to_string()
+    }
+}
+
+fn detect_opening_from_moves(moves: &str) -> String {
+    let mut chess = Chess::default();
+    let mut setups = Vec::new();
+    let mut variation_depth = 0usize;
+    let mut comment_depth = 0usize;
+
+    for token in moves.split_whitespace() {
+        let open_comment = token.chars().filter(|&c| c == '{').count();
+        let close_comment = token.chars().filter(|&c| c == '}').count();
+
+        if comment_depth > 0 || open_comment > 0 {
+            comment_depth = comment_depth.saturating_add(open_comment);
+            comment_depth = comment_depth.saturating_sub(close_comment);
+            continue;
+        }
+
+        let open_var = token.chars().filter(|&c| c == '(').count();
+        let close_var = token.chars().filter(|&c| c == ')').count();
+        let in_variation = variation_depth > 0 || open_var > 0;
+        variation_depth = variation_depth.saturating_add(open_var);
+        variation_depth = variation_depth.saturating_sub(close_var);
+        if in_variation {
+            continue;
+        }
+
+        if token == "1-0" || token == "0-1" || token == "1/2-1/2" || token == "*" {
+            break;
+        }
+
+        if token.starts_with('$')
+            || token.ends_with('.')
+            || token == "..."
+            || token.chars().all(|c| c.is_ascii_digit() || c == '.')
+        {
+            continue;
+        }
+
+        let sanitized = token.trim_end_matches(['!', '?']).trim();
+        if sanitized.is_empty() {
+            continue;
+        }
+
+        let Ok(san) = sanitized.parse::<San>() else {
+            continue;
+        };
+
+        let Ok(chess_move) = san.to_move(&chess) else {
+            break;
+        };
+
+        chess.play_unchecked(chess_move);
+        setups.push(chess.clone().to_setup(EnPassantMode::Legal));
+
+        if setups.len() > 54 {
+            break;
+        }
+    }
+
+    setups
+        .into_iter()
+        .rev()
+        .find_map(|setup| get_opening_from_setup(setup).ok())
+        .unwrap_or_default()
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn get_players_game_info(
-    _file: PathBuf,
-    _id: i32,
-    _state: tauri::State<'_, AppState>,
-    _app: tauri::AppHandle,
+    file: PathBuf,
+    id: i32,
+    state: tauri::State<'_, AppState>,
+    app: tauri::AppHandle,
 ) -> Result<PlayerGameInfo, Error> {
-    // TODO: re-implement for DuckDB flat table (no player IDs)
-    Ok(PlayerGameInfo::default())
+    let db_pool = get_duckdb_pool(&state, &file)?;
+    let db = db_pool.get()?;
+    load_aixchess_extension(&db)?;
+
+    type GameInfoRow = (
+        String,
+        String,
+        Option<String>,
+        Option<String>,
+        Option<i32>,
+        Option<i32>,
+        Option<String>,
+        String,
+        String,
+    );
+
+    let sql = "SELECT
+            white,
+            black,
+            result,
+            strftime(utc_timestamp, '%Y-%m-%d') AS date,
+            whiteelo,
+            blackelo,
+            timecontrol,
+            site,
+            to_pgn(movedata) AS moves
+        FROM games
+        WHERE movedata IS NOT NULL";
+
+    let info = db
+        .prepare(sql)?
+        .query_map([], |row| {
+            Ok::<GameInfoRow, duckdb::Error>((
+                row.get("white")?,
+                row.get("black")?,
+                row.get("result")?,
+                row.get("date")?,
+                row.get("whiteelo")?,
+                row.get("blackelo")?,
+                row.get("timecontrol")?,
+                row.get("site")?,
+                row.get("moves")?,
+            ))
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let total = info.len();
+    if total == 0 {
+        let _ = DatabaseProgress {
+            id: id.to_string(),
+            progress: 100.0,
+        }
+        .emit(&app);
+        return Ok(PlayerGameInfo::default());
+    }
+
+    let mut grouped: HashMap<(String, String), Vec<StatsData>> = HashMap::new();
+
+    for (index, (white, black, outcome, date, white_elo, black_elo, time_control, site, moves)) in
+        info.into_iter().enumerate()
+    {
+        let Some(outcome) = outcome else {
+            continue;
+        };
+        let Some(date) = date else {
+            continue;
+        };
+
+        let site = normalize_site_name(site.as_str());
+        let opening = detect_opening_from_moves(moves.as_str());
+        let time_control = time_control.unwrap_or_default();
+
+        if let (Some(elo), Some(result)) =
+            (white_elo, GameOutcome::from_str(outcome.as_str(), true))
+        {
+            grouped
+                .entry((site.clone(), white.clone()))
+                .or_default()
+                .push(StatsData {
+                    date: date.clone(),
+                    is_player_white: true,
+                    player_elo: elo,
+                    result,
+                    time_control: time_control.clone(),
+                    opening: opening.clone(),
+                });
+        }
+
+        if let (Some(elo), Some(result)) =
+            (black_elo, GameOutcome::from_str(outcome.as_str(), false))
+        {
+            grouped
+                .entry((site.clone(), black.clone()))
+                .or_default()
+                .push(StatsData {
+                    date: date.clone(),
+                    is_player_white: false,
+                    player_elo: elo,
+                    result,
+                    time_control: time_control.clone(),
+                    opening: opening.clone(),
+                });
+        }
+
+        if index.is_multiple_of(1000) || index + 1 == total {
+            let _ = DatabaseProgress {
+                id: id.to_string(),
+                progress: ((index + 1) as f64 / total as f64) * 100.0,
+            }
+            .emit(&app);
+        }
+    }
+
+    let site_stats_data = grouped
+        .into_iter()
+        .map(|((site, player), data)| SiteStatsData { site, player, data })
+        .collect();
+
+    Ok(PlayerGameInfo { site_stats_data })
 }
 
 #[tauri::command]
@@ -1463,14 +1342,13 @@ pub async fn write_db_game(
     let db = db_pool.get()?;
     load_aixchess_extension(&db)?;
 
-    let mut importer = AixImporter::new(None);
-    let mut reader = Reader::new(pgn.as_bytes());
-    let game_result = reader.read_game(&mut importer)?;
+    let movedata = pgn::encode_single_game_moves(pgn.as_str(), AixCompressionLevel::Low, false)
+        .map_err(|msg| std::io::Error::new(std::io::ErrorKind::InvalidData, msg))?;
 
-    if let Some(Some(game_row)) = game_result {
+    if !movedata.is_empty() {
         db.execute(
             "UPDATE games SET movedata = ? WHERE rowid = ?;",
-            params![game_row.movedata, game_id],
+            params![movedata, game_id],
         )?;
     } else {
         return Err(Error::Io(Box::new(std::io::Error::new(

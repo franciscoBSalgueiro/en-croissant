@@ -66,6 +66,7 @@ tauri-plugin-opener = "2"
 polyglot-book-rs = "0.1.0"
 duckdb = { version = "1.10501.0", features = ["bundled", "r2d2"] }
 r2d2 = "0.8.10"
+lazy-regex = "3.5"
 
 [features]
 # by default Tauri runs in production mode

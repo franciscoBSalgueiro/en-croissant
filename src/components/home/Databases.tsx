@@ -67,6 +67,7 @@ function Databases() {
         s.chessCom ? `${s.chessCom.username} Chess.com` : `${s.lichess?.username} Lichess`,
       ),
   }));
+  console.log(playerDbNames);
 
   const [name, setName] = useState("");
   useEffect(() => {
@@ -82,6 +83,7 @@ function Databases() {
       return dbs.filter((db) => isDatabaseFromSession(db, sessions));
     },
   );
+  console.log(databases);
 
   const {
     data: personalInfo,
