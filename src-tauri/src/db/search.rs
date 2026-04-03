@@ -3,26 +3,18 @@ use shakmaty::{fen::Fen, san::SanPlus, uci::UciMove, CastlingMode, Chess, Positi
 use specta::Type;
 use std::path::PathBuf;
 
-use crate::{
-    db::{get_material_count, get_pawn_home, models::*, MaterialCount},
-    error::Error,
-    AppState,
-};
+use crate::{db::models::*, error::Error, AppState};
 
-use super::{get_duckdb_pool, load_aixchess_extension, GameQuery};
+use super::{get_duckdb_pool, GameQuery};
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct ExactData {
-    pawn_home: u16,
-    material: MaterialCount,
     position: Chess,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct PartialData {
-    // piece_counts: Vec<(Piece, u8)>,
     piece_positions: Setup,
-    material: MaterialCount,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -37,22 +29,14 @@ impl PositionQuery {
         let setup = fen.into_setup();
         let castling_mode = CastlingMode::detect(&setup);
         let position: Chess = setup.position(castling_mode)?;
-        let pawn_home = get_pawn_home(position.board());
-        let material = get_material_count(position.board());
-        Ok(PositionQuery::Exact(ExactData {
-            pawn_home,
-            material,
-            position,
-        }))
+        Ok(PositionQuery::Exact(ExactData { position }))
     }
 
     pub fn partial_from_fen(fen: &str) -> Result<PositionQuery, Error> {
         let fen = Fen::from_ascii(fen.as_bytes())?;
         let setup = fen.into_setup();
-        let material = get_material_count(&setup.board);
         Ok(PositionQuery::Partial(PartialData {
             piece_positions: setup,
-            material,
         }))
     }
 }
@@ -182,7 +166,6 @@ pub async fn search_position(
 
     let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
-    load_aixchess_extension(&db)?;
 
     let where_clauses = build_position_where_clauses(&query, position_type, &position_query.fen);
 
@@ -294,7 +277,6 @@ pub async fn is_position_in_db(
 
     let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
-    load_aixchess_extension(&db)?;
 
     let where_clauses = build_position_where_clauses(&query, position_type, &position_query.fen);
 

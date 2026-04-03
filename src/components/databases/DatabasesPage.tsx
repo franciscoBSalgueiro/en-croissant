@@ -527,8 +527,7 @@ function PlayerMerger({ selectedDatabase }: { selectedDatabase: DatabaseInfo }) 
       return;
     }
     setLoading(true);
-    // merge_players is currently a stub — pass 0s as placeholders
-    const res = await commands.mergePlayers(selectedDatabase.file, 0, 0);
+    const res = await commands.mergePlayers(selectedDatabase.file, player1, player2);
     setLoading(false);
     unwrap(res);
   }

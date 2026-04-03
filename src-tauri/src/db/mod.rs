@@ -8,6 +8,7 @@ use crate::{db::models::*, error::Error, AppState};
 use aix_chess_compression::CompressionLevel as AixCompressionLevel;
 use dashmap::mapref::entry::Entry;
 use duckdb::{params, AccessMode, Config, Connection, DuckdbConnectionManager};
+use r2d2::CustomizeConnection;
 use r2d2::Pool;
 
 use serde::{Deserialize, Serialize};
@@ -34,19 +35,35 @@ pub use self::schema::puzzles;
 pub use self::schema::themes;
 pub use self::search::{is_position_in_db, search_position, PositionQueryJs, PositionStats};
 
-const DEFAULT_AIXCHESS_EXTENSION_PATH: &str =
-    "/home/fbsal/dev/aix/build/release/extension/aixchess/aixchess.duckdb_extension";
+#[derive(Debug)]
+struct DuckdbConnectionCustomizer {
+    extension_path: PathBuf,
+}
+
+impl CustomizeConnection<Connection, duckdb::Error> for DuckdbConnectionCustomizer {
+    fn on_acquire(&self, connection: &mut Connection) -> Result<(), duckdb::Error> {
+        load_aixchess_extension(connection, &self.extension_path)
+            .map_err(|err| duckdb::Error::InvalidParameterName(err.to_string()))
+    }
+}
 
 fn sql_literal(value: &str) -> String {
     format!("'{}'", value.replace('\'', "''"))
 }
 
-pub fn create_duckdb_pool(path: &Path) -> Result<Pool<DuckdbConnectionManager>, Error> {
+pub fn create_duckdb_pool(
+    path: &Path,
+    extension_path: &Path,
+) -> Result<Pool<DuckdbConnectionManager>, Error> {
     let config = Config::default()
         .allow_unsigned_extensions()?
         .access_mode(AccessMode::ReadWrite)?;
     let manager = DuckdbConnectionManager::file_with_flags(path, config)?;
-    let pool = Pool::builder().build(manager)?;
+    let pool = Pool::builder()
+        .connection_customizer(Box::new(DuckdbConnectionCustomizer {
+            extension_path: extension_path.to_path_buf(),
+        }))
+        .build(manager)?;
     Ok(pool)
 }
 
@@ -61,7 +78,19 @@ fn get_duckdb_pool(state: &AppState, path: &Path) -> Result<Pool<DuckdbConnectio
         return Ok(pool.clone());
     }
 
-    let pool = create_duckdb_pool(path)?;
+    let extension_path = state
+        .aixchess_extension_path
+        .lock()
+        .map_err(|_| std::io::Error::other("aixchess extension path mutex poisoned"))?
+        .clone()
+        .ok_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "aixchess extension resource path is not initialized",
+            )
+        })?;
+
+    let pool = create_duckdb_pool(path, &extension_path)?;
     match state.duckdb_connection_pool.entry(key) {
         Entry::Occupied(entry) => Ok(entry.get().clone()),
         Entry::Vacant(entry) => {
@@ -76,88 +105,28 @@ pub fn remove_duckdb_pool(state: &AppState, path: &Path) {
     state.duckdb_connection_pool.remove(&key);
 }
 
-pub fn load_aixchess_extension(connection: &Connection) -> Result<(), Error> {
-    let extension_path = std::env::var("AIXCHESS_EXTENSION_PATH")
-        .unwrap_or_else(|_| DEFAULT_AIXCHESS_EXTENSION_PATH.to_string());
-
-    if !Path::new(&extension_path).exists() {
+pub fn load_aixchess_extension(
+    connection: &Connection,
+    extension_path: &Path,
+) -> Result<(), Error> {
+    if !extension_path.exists() {
         return Err(Error::Io(Box::new(std::io::Error::new(
             std::io::ErrorKind::NotFound,
-            format!("aixchess extension not found at: {extension_path}"),
+            format!(
+                "aixchess extension not found at: {}",
+                extension_path.display()
+            ),
         ))));
     }
 
-    let load_local_sql = format!("LOAD {};", sql_literal(&extension_path));
+    let extension_path_str = extension_path.to_string_lossy();
+    let load_local_sql = format!("LOAD {};", sql_literal(extension_path_str.as_ref()));
     connection.execute_batch(&load_local_sql)?;
-    info!("Loaded local unsigned aixchess extension from: {extension_path}");
+    info!(
+        "Loaded local unsigned aixchess extension from: {}",
+        extension_path.display()
+    );
     Ok(())
-}
-
-const WHITE_PAWN: Piece = Piece {
-    color: shakmaty::Color::White,
-    role: shakmaty::Role::Pawn,
-};
-
-const BLACK_PAWN: Piece = Piece {
-    color: shakmaty::Color::Black,
-    role: shakmaty::Role::Pawn,
-};
-
-type MaterialCount = ByColor<u8>;
-
-fn get_material_count(board: &Board) -> MaterialCount {
-    board.material().map(|material| {
-        material.pawn
-            + material.knight * 3
-            + material.bishop * 3
-            + material.rook * 5
-            + material.queen * 9
-    })
-}
-
-/// Returns the bit representation of the pawns on the second and seventh rank
-/// of the given board.
-fn get_pawn_home(board: &Board) -> u16 {
-    let white_pawns = board.by_piece(WHITE_PAWN);
-    let black_pawns = board.by_piece(BLACK_PAWN);
-    let second_rank_pawns = (white_pawns.0 >> 8) as u8;
-    let seventh_rank_pawns = (black_pawns.0 >> 48) as u8;
-    (second_rank_pawns as u16) | ((seventh_rank_pawns as u16) << 8)
-}
-
-#[derive(Default, Debug, Clone)]
-struct AixTags {
-    event: Option<String>,
-    site: Option<String>,
-    date: Option<String>,
-    utctime: Option<String>,
-    round: Option<String>,
-    white: Option<String>,
-    black: Option<String>,
-    whiteelo: Option<i32>,
-    blackelo: Option<i32>,
-    result: Option<String>,
-    timecontrol: Option<String>,
-    eco: Option<String>,
-    setup: bool,
-    fen: Option<String>,
-}
-
-#[derive(Debug)]
-struct AixGameRow {
-    event: String,
-    site: String,
-    utc_timestamp: Option<String>,
-    round: Option<String>,
-    white: String,
-    black: String,
-    whiteelo: Option<i32>,
-    blackelo: Option<i32>,
-    result: Option<String>,
-    timecontrol: Option<String>,
-    eco: Option<String>,
-    movedata: Vec<u8>,
-    ply_count: u16,
 }
 
 #[tauri::command]
@@ -218,14 +187,10 @@ pub async fn convert_pgn(
             };
 
         let mut reader = pgn_reader::Reader::new(uncompressed);
-        reader
-            .read_games(&mut proc)
-            .map(|e| e.unwrap())
-            .inspect(|_| total_games += 1)
-            .for_each(drop);
+        total_games += reader.read_games(&mut proc).flatten().count();
     }
 
-    proc.flush();
+    proc.flush()?;
     db.execute("CHECKPOINT", [])?;
 
     let elapsed = start.elapsed().as_millis() as u32;
@@ -473,10 +438,16 @@ fn build_game_where_clauses(query: &GameQuery) -> Vec<String> {
                 clauses.push(format!("black = {}", sql_literal(player2)));
             }
             if let Some(range1) = query.range1 {
-                clauses.push(format!("whiteelo BETWEEN {} AND {}", range1.0, range1.1));
+                clauses.push(format!(
+                    "white_rating BETWEEN {} AND {}",
+                    range1.0, range1.1
+                ));
             }
             if let Some(range2) = query.range2 {
-                clauses.push(format!("blackelo BETWEEN {} AND {}", range2.0, range2.1));
+                clauses.push(format!(
+                    "black_rating BETWEEN {} AND {}",
+                    range2.0, range2.1
+                ));
             }
         }
         Some(Sides::BlackWhite) => {
@@ -487,10 +458,16 @@ fn build_game_where_clauses(query: &GameQuery) -> Vec<String> {
                 clauses.push(format!("white = {}", sql_literal(player2)));
             }
             if let Some(range1) = query.range1 {
-                clauses.push(format!("blackelo BETWEEN {} AND {}", range1.0, range1.1));
+                clauses.push(format!(
+                    "black_rating BETWEEN {} AND {}",
+                    range1.0, range1.1
+                ));
             }
             if let Some(range2) = query.range2 {
-                clauses.push(format!("whiteelo BETWEEN {} AND {}", range2.0, range2.1));
+                clauses.push(format!(
+                    "white_rating BETWEEN {} AND {}",
+                    range2.0, range2.1
+                ));
             }
         }
         Some(Sides::Any) => {
@@ -504,20 +481,20 @@ fn build_game_where_clauses(query: &GameQuery) -> Vec<String> {
             }
             if let (Some(range1), Some(range2)) = (query.range1, query.range2) {
                 clauses.push(format!(
-                    "((whiteelo BETWEEN {} AND {}) OR (blackelo BETWEEN {} AND {}) OR (whiteelo BETWEEN {} AND {}) OR (blackelo BETWEEN {} AND {}))",
+                    "((white_rating BETWEEN {} AND {}) OR (black_rating BETWEEN {} AND {}) OR (white_rating BETWEEN {} AND {}) OR (black_rating BETWEEN {} AND {}))",
                     range1.0, range1.1, range1.0, range1.1,
                     range2.0, range2.1, range2.0, range2.1,
                 ));
             } else {
                 if let Some(range1) = query.range1 {
                     clauses.push(format!(
-                        "((whiteelo BETWEEN {} AND {}) OR (blackelo BETWEEN {} AND {}))",
+                        "((white_rating BETWEEN {} AND {}) OR (black_rating BETWEEN {} AND {}))",
                         range1.0, range1.1, range1.0, range1.1,
                     ));
                 }
                 if let Some(range2) = query.range2 {
                     clauses.push(format!(
-                        "((whiteelo BETWEEN {} AND {}) OR (blackelo BETWEEN {} AND {}))",
+                        "((white_rating BETWEEN {} AND {}) OR (black_rating BETWEEN {} AND {}))",
                         range2.0, range2.1, range2.0, range2.1,
                     ));
                 }
@@ -538,8 +515,8 @@ fn build_game_order_clause(query_options: &QueryOptions<GameSort>) -> String {
     let col = match query_options.sort {
         GameSort::Id => "rowid",
         GameSort::Date => "utc_timestamp",
-        GameSort::WhiteElo => "whiteelo",
-        GameSort::BlackElo => "blackelo",
+        GameSort::WhiteElo => "white_rating",
+        GameSort::BlackElo => "black_rating",
         GameSort::PlyCount => "ply_count",
     };
 
@@ -559,8 +536,8 @@ fn parse_normalized_game(row: &duckdb::Row) -> duckdb::Result<NormalizedGame> {
         event: row.get("event")?,
         white: row.get("white")?,
         black: row.get("black")?,
-        white_elo: row.get("whiteelo")?,
-        black_elo: row.get("blackelo")?,
+        white_elo: row.get("white_rating")?,
+        black_elo: row.get("black_rating")?,
         date: row.get("date")?,
         time: row.get("time")?,
         time_control: row.get("timecontrol")?,
@@ -583,7 +560,6 @@ pub async fn get_games(
 ) -> Result<QueryResponse<Vec<NormalizedGame>>, Error> {
     let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
-    load_aixchess_extension(&db)?;
 
     let query_options = query.options.clone().unwrap_or_default();
     let where_clauses = build_game_where_clauses(&query);
@@ -612,8 +588,8 @@ pub async fn get_games(
             round,
             white,
             black,
-            whiteelo,
-            blackelo,
+            white_rating,
+            black_rating,
             result,
             timecontrol,
             eco,
@@ -709,9 +685,9 @@ pub async fn get_players(
 
     let data_sql = format!(
         "WITH all_players AS (
-            SELECT white AS name, MAX(whiteelo) AS elo FROM games GROUP BY white
+            SELECT white AS name, MAX(white_rating) AS elo FROM games GROUP BY white
             UNION ALL
-            SELECT black AS name, MAX(blackelo) AS elo FROM games GROUP BY black
+            SELECT black AS name, MAX(black_rating) AS elo FROM games GROUP BY black
         ), players AS (
             SELECT name, MAX(elo) AS elo FROM all_players GROUP BY name
         )
@@ -737,9 +713,9 @@ pub async fn get_players(
     } else {
         let count_sql = format!(
             "WITH all_players AS (
-                SELECT white AS name, MAX(whiteelo) AS elo FROM games GROUP BY white
+                SELECT white AS name, MAX(white_rating) AS elo FROM games GROUP BY white
                 UNION ALL
-                SELECT black AS name, MAX(blackelo) AS elo FROM games GROUP BY black
+                SELECT black AS name, MAX(black_rating) AS elo FROM games GROUP BY black
             ), players AS (
                 SELECT name, MAX(elo) AS elo FROM all_players GROUP BY name
             )
@@ -973,13 +949,12 @@ fn detect_opening_from_moves(moves: &str) -> String {
 #[specta::specta]
 pub async fn get_players_game_info(
     file: PathBuf,
-    id: i32,
+    player: String,
     state: tauri::State<'_, AppState>,
     app: tauri::AppHandle,
 ) -> Result<PlayerGameInfo, Error> {
     let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
-    load_aixchess_extension(&db)?;
 
     type GameInfoRow = (
         String,
@@ -998,8 +973,8 @@ pub async fn get_players_game_info(
             black,
             result,
             strftime(utc_timestamp, '%Y-%m-%d') AS date,
-            whiteelo,
-            blackelo,
+            white_rating,
+            black_rating,
             timecontrol,
             site,
             to_pgn(movedata) AS moves
@@ -1014,8 +989,8 @@ pub async fn get_players_game_info(
                 row.get("black")?,
                 row.get("result")?,
                 row.get("date")?,
-                row.get("whiteelo")?,
-                row.get("blackelo")?,
+                row.get("white_rating")?,
+                row.get("black_rating")?,
                 row.get("timecontrol")?,
                 row.get("site")?,
                 row.get("moves")?,
@@ -1026,7 +1001,7 @@ pub async fn get_players_game_info(
     let total = info.len();
     if total == 0 {
         let _ = DatabaseProgress {
-            id: id.to_string(),
+            id: player.clone(),
             progress: 100.0,
         }
         .emit(&app);
@@ -1083,7 +1058,7 @@ pub async fn get_players_game_info(
 
         if index.is_multiple_of(1000) || index + 1 == total {
             let _ = DatabaseProgress {
-                id: id.to_string(),
+                id: player.clone(),
                 progress: ((index + 1) as f64 / total as f64) * 100.0,
             }
             .emit(&app);
@@ -1255,7 +1230,6 @@ pub async fn export_to_pgn(
 ) -> Result<(), Error> {
     let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
-    load_aixchess_extension(&db)?;
 
     let output_file = OpenOptions::new()
         .create(true)
@@ -1275,8 +1249,8 @@ pub async fn export_to_pgn(
             result,
             timecontrol,
             eco,
-            whiteelo,
-            blackelo,
+            white_rating,
+            black_rating,
             ply_count,
             fen,
             to_pgn(movedata) AS moves
@@ -1295,10 +1269,10 @@ pub async fn export_to_pgn(
             time_control: row.get("timecontrol")?,
             eco: row.get("eco")?,
             white_elo: row
-                .get::<_, Option<i32>>("whiteelo")?
+                .get::<_, Option<i32>>("white_rating")?
                 .map(|v| v.to_string()),
             black_elo: row
-                .get::<_, Option<i32>>("blackelo")?
+                .get::<_, Option<i32>>("black_rating")?
                 .map(|v| v.to_string()),
             ply_count: row
                 .get::<_, Option<i32>>("ply_count")?
@@ -1340,7 +1314,6 @@ pub async fn write_db_game(
 ) -> Result<(), Error> {
     let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
-    load_aixchess_extension(&db)?;
 
     let movedata = pgn::encode_single_game_moves(pgn.as_str(), AixCompressionLevel::Low, false)
         .map_err(|msg| std::io::Error::new(std::io::ErrorKind::InvalidData, msg))?;
@@ -1382,25 +1355,4 @@ pub async fn merge_players(
     )?;
 
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn home_row() {
-        use shakmaty::Board;
-
-        let pawn_home = get_pawn_home(&Board::default());
-        assert_eq!(pawn_home, 0b1111111111111111);
-
-        let pawn_home = get_pawn_home(
-            &Board::from_ascii_board_fen(b"8/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/8").unwrap(),
-        );
-        assert_eq!(pawn_home, 0b1110111111101111);
-
-        let pawn_home = get_pawn_home(&Board::from_ascii_board_fen(b"8/8/8/8/8/8/8/8").unwrap());
-        assert_eq!(pawn_home, 0b0000000000000000);
-    }
 }

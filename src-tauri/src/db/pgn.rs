@@ -52,8 +52,8 @@ impl<'a> PgnProcessor<'a> {
         }
     }
 
-    pub fn flush(&mut self) {
-        self.appender.flush();
+    pub fn flush(&mut self) -> Result<(), duckdb::Error> {
+        self.appender.flush()
     }
 }
 

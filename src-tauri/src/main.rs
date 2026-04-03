@@ -76,6 +76,7 @@ use tokio::sync::Semaphore;
 #[derivative(Default)]
 pub struct AppState {
     duckdb_connection_pool: DashMap<String, diesel::r2d2::Pool<duckdb::DuckdbConnectionManager>>,
+    aixchess_extension_path: Mutex<Option<PathBuf>>,
     line_cache: DashMap<(GameQuery, PathBuf), (Vec<PositionStats>, Vec<NormalizedGame>)>,
     pgn_offsets: DashMap<String, Vec<u64>>,
 
@@ -200,8 +201,22 @@ fn main() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_os::init())
+        .manage(AppState::default())
         .setup(move |app| {
             log::info!("Setting up application");
+
+            let aixchess_extension_path = app
+                .path()
+                .resolve(
+                    "aixchess.duckdb_extension",
+                    tauri::path::BaseDirectory::Resource,
+                )
+                .expect("failed to resolve aixchess extension resource path");
+            let state = app.state::<AppState>();
+            *state
+                .aixchess_extension_path
+                .lock()
+                .expect("aixchess extension path mutex poisoned") = Some(aixchess_extension_path);
 
             // #[cfg(any(windows, target_os = "macos"))]
             // set_shadow(&app.get_webview_window("main").unwrap(), true).unwrap();
@@ -231,7 +246,6 @@ fn main() {
 
             Ok(())
         })
-        .manage(AppState::default())
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app, event| {

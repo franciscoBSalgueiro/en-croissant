@@ -34,7 +34,8 @@
       "signingIdentity": "-"
     },
     "resources": {
-      "../sound/": "sound/"
+      "../sound/": "sound/",
+      "../aixchess.duckdb_extension": "aixchess.duckdb_extension"
     },
     "targets": "all",
     "createUpdaterArtifacts": "v1Compatible"

@@ -67,7 +67,6 @@ function Databases() {
         s.chessCom ? `${s.chessCom.username} Chess.com` : `${s.lichess?.username} Lichess`,
       ),
   }));
-  console.log(playerDbNames);
 
   const [name, setName] = useState("");
   useEffect(() => {
@@ -83,7 +82,6 @@ function Databases() {
       return dbs.filter((db) => isDatabaseFromSession(db, sessions));
     },
   );
-  console.log(databases);
 
   const {
     data: personalInfo,
@@ -98,19 +96,7 @@ function Databases() {
         databases
           .filter((db) => playerDbs.includes((db.type === "success" && db.title) || ""))
           .map(async (db, i) => {
-            const players = await query_players(db.file, {
-              name: db.username,
-              options: {
-                pageSize: 1,
-                direction: "asc",
-                sort: "name",
-                skipCount: false,
-              },
-            });
-            if (players.data.length === 0) {
-              throw new Error("Player not found in database");
-            }
-            const info = unwrap(await commands.getPlayersGameInfo(db.file, 0));
+            const info = unwrap(await commands.getPlayersGameInfo(db.file, db.username));
             return { db, info };
           }),
       );

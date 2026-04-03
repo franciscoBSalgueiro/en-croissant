@@ -112,9 +112,9 @@ async getOpeningFromName(name: string) : Promise<Result<string, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async getPlayersGameInfo(file: string, id: number) : Promise<Result<PlayerGameInfo, string>> {
+async getPlayersGameInfo(file: string, player: string) : Promise<Result<PlayerGameInfo, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_players_game_info", { file, id }) };
+    return { status: "ok", data: await TAURI_INVOKE("get_players_game_info", { file, player }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
