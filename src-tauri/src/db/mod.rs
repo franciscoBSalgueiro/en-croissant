@@ -537,13 +537,13 @@ fn parse_normalized_game(row: &duckdb::Row) -> duckdb::Result<NormalizedGame> {
 
     Ok(NormalizedGame {
         id: row.get("id")?,
-        event: row.get("event")?,
-        site: row.get("site")?,
+        event: row.get::<_, Option<String>>("event")?.unwrap_or_default(),
+        site: row.get::<_, Option<String>>("site")?.unwrap_or_default(),
         round: row.get("round")?,
         fen,
 
-        white: row.get("white")?,
-        black: row.get("black")?,
+        white: row.get::<_, Option<String>>("white")?.unwrap_or_default(),
+        black: row.get::<_, Option<String>>("black")?.unwrap_or_default(),
         white_elo: row.get("white_rating")?,
         black_elo: row.get("black_rating")?,
 
