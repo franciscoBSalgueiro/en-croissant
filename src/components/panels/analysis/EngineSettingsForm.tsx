@@ -49,8 +49,9 @@ function EngineSettingsForm({
 }: EngineSettingsProps) {
   const { t } = useTranslation();
 
-  const [limitStrength, setLimtStrength] = useState<any> (settings.settings.find((o) => o.name === "UCI_LimitStrength"))
-  const maxElo = engine.elo;
+  const limitStrength = settings.settings.find((o) => o.name === "UCI_LimitStrength");
+  const maxElo = settings.settings.find((o) => o.name === "UCI_Elo")?.max
+  const minElo = settings.settings.find((o) => o.name === "UCI_Elo")?.min
   const multipv = settings.settings.find((o) => o.name === "MultiPV");
   const threads = settings.settings.find((o) => o.name === "Threads");
   const hash = settings.settings.find((o) => o.name === "Hash");
@@ -135,22 +136,18 @@ function EngineSettingsForm({
           )}
           <Checkbox
           label={"Adjust Engine rating"}
-          checked={limitStrength}
+          checked={Boolean(limitStrength?.value)}
           onChange={(e) => {
-            const checked = e.target.checked;
-            setLimtStrength(checked)
-            if (checked) {
               setSettings((prev) => ({
             ...prev,
             settings: prev.settings.map((o) =>
               o.name === "UCI_LimitStrength" ? { ...o, value: e.target.checked } : o,
             ),
           }))
-            }
           }}
                                     />
-          {limitStrength && maxElo &&(
-            <EloSlider value={maxElo}
+          {limitStrength?.value && maxElo &&(
+            <EloSlider value={maxElo} minElo={Number(minElo)}
                 setValue={(v) =>
                   setSettings((prev) => ({
                     ...prev,

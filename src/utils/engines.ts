@@ -5,7 +5,7 @@ import { z } from "zod";
 import { type BestMoves, commands, type EngineOptions, type GoMode } from "@/bindings";
 import { unwrap } from "./unwrap";
 
-export const requiredEngineSettings = ["MultiPV", "Threads", "Hash"];
+export const requiredEngineSettings = ["MultiPV", "Threads", "Hash","UCI_LimitStrength","UCI_Elo"];
 
 const goModeSchema: z.ZodSchema<GoMode> = z.union([
     z.object({
@@ -29,6 +29,8 @@ const engineSettingsSchema = z.array(
     z.object({
         name: z.string(),
         value: z.string().or(z.number()).or(z.boolean()).nullable(),
+        min: z.number().nullable(),
+        max: z.number().nullable()
     }),
 );
 
@@ -61,7 +63,6 @@ const remoteEngineSchema = z.object({
     loaded: z.boolean().nullish(),
     enabled: z.boolean().nullish(),
     go: goModeSchema.nullish(),
-    elo: z.number().nullish(),
     settings: engineSettingsSchema.nullish(),
 });
 

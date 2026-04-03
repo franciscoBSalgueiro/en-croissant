@@ -99,7 +99,6 @@ impl BaseEngine {
     pub async fn send(&mut self, cmd: &str) -> Result<(), Error> {
         self.log_gui(cmd);
         let msg = format!("{}\n", cmd);
-        println!("{}",msg);
         self.stdin.write_all(msg.as_bytes()).await?;
         Ok(())
     }
@@ -114,7 +113,6 @@ impl BaseEngine {
                 return Err(Error::EngineDisconnected);
             };
             self.logs.push(EngineLog::Engine(line.clone()));
-            print!("{}",line);
             if line.starts_with(expected) {
                 return Ok(());
             }
