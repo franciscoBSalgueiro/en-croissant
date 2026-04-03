@@ -13,6 +13,7 @@ pub struct PgnProcessor<'a> {
     count: u32,
     level: CompressionLevel,
     continue_on_invalid_move: bool,
+    timestamp: Option<i32>,
 }
 
 #[derive(Default, Debug)]
@@ -43,12 +44,14 @@ impl<'a> PgnProcessor<'a> {
         appender: Appender<'a>,
         level: CompressionLevel,
         continue_on_invalid_move: bool,
+        timestamp: Option<i32>,
     ) -> PgnProcessor<'a> {
         PgnProcessor {
             appender,
             count: 0,
             level,
             continue_on_invalid_move,
+            timestamp,
         }
     }
 
@@ -444,6 +447,20 @@ impl<'a> PgnProcessor<'a> {
         let bytes = moves.into_bytes();
         let headers = movetext.headers;
 
+        let game_ts = build_utc_timestamp(
+            headers.utc_date.as_deref().or(headers.date.as_deref()),
+            headers.utc_time.as_deref().or(headers.time.as_deref()),
+        );
+        if let Some(ts) = self.timestamp {
+            if let Some(game_ts) = game_ts {
+                if game_ts < ts as i64 {
+                    return;
+                }
+            }
+        }
+
+        let db_ts = game_ts.map(|ts| Value::Timestamp(TimeUnit::Microsecond, ts));
+
         self.appender
             .append_row(params![
                 headers.event,
@@ -458,10 +475,7 @@ impl<'a> PgnProcessor<'a> {
                 headers.black_title,
                 headers.result,
                 movetext.ply,
-                build_utc_timestamp(
-                    headers.utc_date.as_deref().or(headers.date.as_deref()),
-                    headers.utc_time.as_deref().or(headers.time.as_deref()),
-                ),
+                db_ts,
                 bytes
             ])
             .unwrap();
@@ -521,11 +535,11 @@ fn extract_tournament_from_event(s: &str) -> Option<String> {
         .map(|(_whole, tournament)| tournament.to_owned())
 }
 
-fn build_utc_timestamp(date: Option<&str>, time: Option<&str>) -> Option<Value> {
+fn build_utc_timestamp(date: Option<&str>, time: Option<&str>) -> Option<i64> {
     let dt = parse_pgn_datetime(date?, time)?;
     let micros = dt.and_utc().timestamp_micros();
 
-    Some(Value::Timestamp(TimeUnit::Microsecond, micros))
+    Some(micros)
 }
 
 fn parse_pgn_datetime(date: &str, time: Option<&str>) -> Option<chrono::NaiveDateTime> {

@@ -1,4 +1,3 @@
-mod encoding;
 mod models;
 mod pgn;
 mod schema;
@@ -174,7 +173,7 @@ pub async fn convert_pgn(
 
     let start = Instant::now();
     let appender = db.appender("games")?;
-    let mut proc = pgn::PgnProcessor::new(appender, AixCompressionLevel::Low, true);
+    let mut proc = pgn::PgnProcessor::new(appender, AixCompressionLevel::Low, true, timestamp);
     let mut total_games = 1;
 
     for file_path in files {

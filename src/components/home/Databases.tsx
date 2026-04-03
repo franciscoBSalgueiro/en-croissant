@@ -95,8 +95,8 @@ function Databases() {
       const results = await Promise.allSettled(
         databases
           .filter((db) => playerDbs.includes((db.type === "success" && db.title) || ""))
-          .map(async (db, i) => {
-            const info = unwrap(await commands.getPlayersGameInfo(db.file, db.username));
+          .map(async (db) => {
+            const info = unwrap(await commands.getPlayersGameInfo(db.file, db.username!));
             return { db, info };
           }),
       );
