@@ -408,7 +408,7 @@ fn apply_tag(tags: &mut Headers, key: &[u8], value: RawTag<'_>) {
         }
         b"WhiteTitle" => tags.white_title = Some(value.decode_utf8_lossy().into_owned()),
         b"BlackTitle" => tags.black_title = Some(value.decode_utf8_lossy().into_owned()),
-        b"Event" => tags.event = extract_tournament_from_event(&value.decode_utf8_lossy()),
+        b"Event" => tags.event = Some(value.decode_utf8_lossy().into_owned()),
         b"Date" => tags.utc_date = Some(value.decode_utf8_lossy().into_owned()),
         b"Time" => tags.utc_time = Some(value.decode_utf8_lossy().into_owned()),
         b"UTCDate" => tags.utc_date = Some(value.decode_utf8_lossy().into_owned()),
@@ -528,11 +528,6 @@ fn parse_time_control(s: &str) -> Option<(u16, u8)> {
 
     let parts: Vec<&str> = s.split("+").collect();
     Some((parts[0].parse().unwrap(), parts[1].parse().unwrap()))
-}
-
-fn extract_tournament_from_event(s: &str) -> Option<String> {
-    regex_captures!(r"lichess\.org/tournament/(\w+)", s)
-        .map(|(_whole, tournament)| tournament.to_owned())
 }
 
 fn build_utc_timestamp(date: Option<&str>, time: Option<&str>) -> Option<i64> {

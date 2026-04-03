@@ -77,10 +77,6 @@ pub struct NormalizedGame {
     pub black_elo: Option<i32>,
     pub result: Outcome,
     #[specta(optional)]
-    pub time_control: Option<String>,
-    #[specta(optional)]
-    pub eco: Option<String>,
-    #[specta(optional)]
     pub ply_count: Option<i32>,
     pub moves: String,
 }

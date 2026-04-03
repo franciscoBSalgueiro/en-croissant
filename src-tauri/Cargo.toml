@@ -64,7 +64,7 @@ tauri-plugin-log = "2.8.0"
 tauri-plugin-window-state = "2.4.1"
 tauri-plugin-opener = "2"
 polyglot-book-rs = "0.1.0"
-duckdb = { version = "1.10501.0", features = ["bundled", "r2d2"] }
+duckdb = { version = "1.10501.0", features = ["bundled", "r2d2", "chrono"] }
 r2d2 = "0.8.10"
 lazy-regex = "3.5"
 

@@ -11,6 +11,7 @@ use r2d2::CustomizeConnection;
 use r2d2::Pool;
 
 use serde::{Deserialize, Serialize};
+use shakmaty::fen::Fen;
 use shakmaty::{san::San, Board, ByColor, Chess, EnPassantMode, Piece, Position};
 use specta::Type;
 use std::collections::HashMap;
@@ -530,23 +531,28 @@ fn parse_normalized_game(row: &duckdb::Row) -> duckdb::Result<NormalizedGame> {
         _ => Outcome::Unknown,
     };
 
+    let fen = row
+        .get::<_, Option<String>>("fen")?
+        .unwrap_or(Fen::default().to_string());
+
     Ok(NormalizedGame {
         id: row.get("id")?,
         event: row.get("event")?,
+        site: row.get("site")?,
+        round: row.get("round")?,
+        fen,
+
         white: row.get("white")?,
         black: row.get("black")?,
         white_elo: row.get("white_rating")?,
         black_elo: row.get("black_rating")?,
+
+        result,
+
+        ply_count: row.get("ply_count")?,
         date: row.get("date")?,
         time: row.get("time")?,
-        time_control: row.get("timecontrol")?,
-        eco: row.get("eco")?,
-        fen: "".to_string(),
         moves: row.get("moves")?,
-        result,
-        ply_count: row.get("ply_count")?,
-        round: row.get("round")?,
-        site: row.get("site")?,
     })
 }
 
@@ -585,13 +591,12 @@ pub async fn get_games(
             strftime(utc_timestamp, '%Y.%m.%d') AS date,
             strftime(utc_timestamp, '%H:%M:%S') AS time,
             round,
+            fen,
             white,
             black,
             white_rating,
             black_rating,
             result,
-            timecontrol,
-            eco,
             to_pgn(movedata) AS moves,
             ply_count
         FROM games
@@ -1246,8 +1251,6 @@ pub async fn export_to_pgn(
             white,
             black,
             result,
-            timecontrol,
-            eco,
             white_rating,
             black_rating,
             ply_count,

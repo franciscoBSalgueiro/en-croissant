@@ -231,6 +231,7 @@ function GameTable() {
           columns={[
             {
               accessor: "white",
+              noWrap: true,
               render: ({ white, white_elo }) => (
                 <div>
                   <Text size="sm" fw={500}>
@@ -244,6 +245,7 @@ function GameTable() {
             },
             {
               accessor: "black",
+              noWrap: true,
               render: ({ black, black_elo }) => (
                 <div>
                   <Text size="sm" fw={500}>
@@ -260,9 +262,9 @@ function GameTable() {
               accessor: "result",
               render: ({ result }) => result?.replaceAll("1/2", "½"),
             },
+            { accessor: "event", noWrap: true },
             { accessor: "ply_count", title: "Plies", sortable: true },
-            { accessor: "event" },
-            { accessor: "site" },
+            { accessor: "site", noWrap: true },
           ]}
           rowClassName={(_, i) => (i === selectedGame ? classes.selected : "")}
           noRecordsText={
