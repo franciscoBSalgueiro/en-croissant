@@ -1,6 +1,6 @@
 import { rem, Slider } from "@mantine/core";
 import { IconGripVertical } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export default function EloSlider(props: {
   minElo: number;
