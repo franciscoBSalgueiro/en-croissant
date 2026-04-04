@@ -3,12 +3,12 @@ import { ActionIcon, ScrollArea, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
-import { type ReactNode, startTransition, useCallback, useEffect } from "react";
+import { type ReactNode, startTransition, useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Mosaic, type MosaicNode } from "react-mosaic-component";
 import { match } from "ts-pattern";
 import { commands } from "@/bindings";
-import { activeTabAtom, tabsAtom } from "@/state/atoms";
+import { activeTabAtom, tabsAtom, zenModeAtom } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { createTab, genID, isPersistentGameOrigin, type Tab } from "@/utils/tabs";
 import { unwrap } from "@/utils/unwrap";
@@ -33,6 +33,7 @@ export default function BoardsPage() {
   const [tabs, setTabs] = useAtom(tabsAtom);
   const [activeTab, setActiveTab] = useAtom(activeTabAtom);
   const [saveModalOpened, toggleSaveModal] = useToggle();
+  const zenMode = useAtomValue(zenModeAtom);
 
   useEffect(() => {
     if (tabs.length === 0) {
@@ -187,7 +188,7 @@ export default function BoardsPage() {
       keepMounted={false}
       className={classes.tabsContainer}
     >
-      <ScrollArea scrollbarSize={6} className={classes.tabsHeader}>
+      <ScrollArea scrollbarSize={6} className={classes.tabsHeader} style={{ display: zenMode ? "none" : undefined }}>
         <DragDropContext
           onDragEnd={({ destination, source }) =>
             destination?.index !== undefined &&
@@ -302,28 +303,33 @@ function TabSwitch({
   activeTab: string | null;
 }) {
   const [windowsState, setWindowsState] = useAtom(windowsStateAtom);
+  const zenMode = useAtomValue(zenModeAtom);
+
+  const effectiveMosaicNode = useMemo(() => {
+    if (!zenMode || !windowsState.currentNode) return windowsState.currentNode;
+    if (typeof windowsState.currentNode === "string") return windowsState.currentNode;
+    return { ...windowsState.currentNode, splitPercentage: 100 };
+  }, [zenMode, windowsState.currentNode]);
+
+  const mosaicProps = {
+    renderTile: (id: string) => fullLayout[id],
+    value: effectiveMosaicNode,
+    onChange: (currentNode: MosaicNode<ViewId> | null) => setWindowsState({ currentNode }),
+    resize: { minimumPaneSizePercentage: 0 },
+    className: zenMode ? "zen-mode" : undefined,
+  };
 
   return match(tab.type)
     .with("new", () => <NewTabHome id={tab.value} />)
     .with("play", () => (
       <TreeStateProvider id={tab.value}>
-        <Mosaic<ViewId>
-          renderTile={(id) => fullLayout[id]}
-          value={windowsState.currentNode}
-          onChange={(currentNode) => setWindowsState({ currentNode })}
-          resize={{ minimumPaneSizePercentage: 0 }}
-        />
+        <Mosaic<ViewId> {...mosaicProps} />
         <BoardGame />
       </TreeStateProvider>
     ))
     .with("analysis", () => (
       <TreeStateProvider id={tab.value}>
-        <Mosaic<ViewId>
-          renderTile={(id) => fullLayout[id]}
-          value={windowsState.currentNode}
-          onChange={(currentNode) => setWindowsState({ currentNode })}
-          resize={{ minimumPaneSizePercentage: 0 }}
-        />
+        <Mosaic<ViewId> {...mosaicProps} />
         <BoardAnalysis />
         <ConfirmChangesModal
           opened={saveModalOpened}
@@ -334,12 +340,7 @@ function TabSwitch({
     ))
     .with("puzzles", () => (
       <TreeStateProvider id={tab.value}>
-        <Mosaic<ViewId>
-          renderTile={(id) => fullLayout[id]}
-          value={windowsState.currentNode}
-          onChange={(currentNode) => setWindowsState({ currentNode })}
-          resize={{ minimumPaneSizePercentage: 0 }}
-        />
+        <Mosaic<ViewId> {...mosaicProps} />
         <Puzzles id={tab.value} />
       </TreeStateProvider>
     ))

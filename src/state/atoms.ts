@@ -187,6 +187,7 @@ export const previewBoardOnHoverAtom = atomWithStorage<boolean>("preview-board-o
 export const enableBoardScrollAtom = atomWithStorage<boolean>("board-scroll", true);
 export const materialDisplayAtom = atomWithStorage<"diff" | "all">("material-display", "diff");
 export const forcedEnPassantAtom = atomWithStorage<boolean>("forced-ep", false);
+export const zenModeAtom = atomWithStorage<boolean>("zen-mode", false);
 export const showCoordinatesAtom = atomWithStorage<"no" | "edge" | "all">(
     "show-coordinates-v2",
     "no",
