@@ -177,8 +177,6 @@ function CloudCard({ engine }: { engine: RemoteEngine }) {
                     {
                       name: "MultiPV",
                       value: "1",
-                      min: null,
-                      max: null,
                     },
                   ],
                 },

@@ -35,8 +35,8 @@ const engineSettingsSchema = z.array(
     z.object({
         name: z.string(),
         value: z.string().or(z.number()).or(z.boolean()).nullable(),
-        min: z.number().nullable(),
-        max: z.number().nullable(),
+        min: z.number().nullable().optional(),
+        max: z.number().nullable().optional(),
     }),
 );
 
