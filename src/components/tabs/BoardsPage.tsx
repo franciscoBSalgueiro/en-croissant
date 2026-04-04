@@ -188,7 +188,11 @@ export default function BoardsPage() {
       keepMounted={false}
       className={classes.tabsContainer}
     >
-      <ScrollArea scrollbarSize={6} className={classes.tabsHeader} style={{ display: zenMode ? "none" : undefined }}>
+      <ScrollArea
+        scrollbarSize={6}
+        className={classes.tabsHeader}
+        style={{ display: zenMode ? "none" : undefined }}
+      >
         <DragDropContext
           onDragEnd={({ destination, source }) =>
             destination?.index !== undefined &&

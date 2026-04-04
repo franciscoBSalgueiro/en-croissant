@@ -381,7 +381,11 @@ function Board({
 
   return (
     <>
-      <Box w="100%" h="100%" style={zenMode ? { display: "flex", justifyContent: "center" } : undefined}>
+      <Box
+        w="100%"
+        h="100%"
+        style={zenMode ? { display: "flex", justifyContent: "center" } : undefined}
+      >
         <Box
           style={{
             display: "flex",
