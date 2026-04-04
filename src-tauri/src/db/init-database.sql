@@ -14,11 +14,9 @@ CREATE TABLE games (
   -- clocks_white USMALLINT[],
   -- clocks_black USMALLINT[],
   -- evals SMALLINT[],
-  -- time_initial USMALLINT,
-  -- time_increment UTINYINT,
 
   result VARCHAR,
-  -- termination VARCHAR,
+  time_control VARCHAR,
 
   ply_count USMALLINT,
   utc_timestamp TIMESTAMP,

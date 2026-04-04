@@ -175,7 +175,7 @@ pub async fn convert_pgn(
     let start = Instant::now();
     let appender = db.appender("games")?;
     let mut proc = pgn::PgnProcessor::new(appender, AixCompressionLevel::Low, true, timestamp);
-    let mut total_games = 1;
+    let mut next_progress_emit = 10_000u32;
 
     for file_path in files {
         let file = File::open(&file_path).unwrap();
@@ -186,13 +186,35 @@ pub async fn convert_pgn(
                 Box::new(file)
             };
 
+        let current_file_name = file_path
+            .file_name()
+            .map(|name| name.to_string_lossy().into_owned())
+            .unwrap_or_else(|| file_path.to_string_lossy().into_owned());
+
         let mut reader = pgn_reader::Reader::new(uncompressed);
-        total_games += reader.read_games(&mut proc).flatten().count();
+        loop {
+            let games_read = reader.read_games(&mut proc).take(10_000).count();
+            if games_read == 0 {
+                break;
+            }
+
+            let imported_games = proc.count();
+            while imported_games >= next_progress_emit {
+                let elapsed = start.elapsed().as_millis() as u32;
+                app.emit(
+                    "convert_progress",
+                    (imported_games, elapsed, Some(current_file_name.clone())),
+                )
+                .unwrap();
+                next_progress_emit += 10_000;
+            }
+        }
     }
 
     proc.flush()?;
     db.execute("CHECKPOINT", [])?;
 
+    let total_games = proc.count();
     let elapsed = start.elapsed().as_millis() as u32;
     let _ = app.emit(
         "convert_progress",
@@ -979,7 +1001,7 @@ pub async fn get_players_game_info(
             strftime(utc_timestamp, '%Y-%m-%d') AS date,
             white_rating,
             black_rating,
-            timecontrol,
+            time_control,
             site,
             to_pgn(movedata) AS moves
         FROM games
@@ -995,7 +1017,7 @@ pub async fn get_players_game_info(
                 row.get("date")?,
                 row.get("white_rating")?,
                 row.get("black_rating")?,
-                row.get("timecontrol")?,
+                row.get("time_control")?,
                 row.get("site")?,
                 row.get("moves")?,
             ))

@@ -32,7 +32,7 @@ pub struct Headers {
     black_title: Option<String>,
 
     result: Option<String>,
-    // time_control: Option<(u16, u8)>,
+    time_control: Option<String>,
     date: Option<String>,
     utc_date: Option<String>,
     time: Option<String>,
@@ -57,6 +57,10 @@ impl<'a> PgnProcessor<'a> {
 
     pub fn flush(&mut self) -> Result<(), duckdb::Error> {
         self.appender.flush()
+    }
+
+    pub fn count(&self) -> u32 {
+        self.count
     }
 }
 
@@ -398,14 +402,8 @@ fn apply_tag(tags: &mut Headers, key: &[u8], value: RawTag<'_>) {
         b"WhiteElo" => tags.white_rating = value.decode_utf8_lossy().parse().ok(),
         b"BlackElo" => tags.black_rating = value.decode_utf8_lossy().parse().ok(),
         b"Result" => tags.result = Some(value.decode_utf8_lossy().into_owned()),
-        // b"TimeControl" => tags.time_control = parse_time_control(&value.decode_utf8_lossy()),
-        b"Site" => {
-            tags.site = value
-                .decode_utf8_lossy()
-                .split("/")
-                .last()
-                .map(|s| s.to_owned())
-        }
+        b"TimeControl" => tags.time_control = Some(value.decode_utf8_lossy().into_owned()),
+        b"Site" => tags.site = Some(value.decode_utf8_lossy().into_owned()),
         b"WhiteTitle" => tags.white_title = Some(value.decode_utf8_lossy().into_owned()),
         b"BlackTitle" => tags.black_title = Some(value.decode_utf8_lossy().into_owned()),
         b"Event" => tags.event = Some(value.decode_utf8_lossy().into_owned()),
@@ -474,6 +472,7 @@ impl<'a> PgnProcessor<'a> {
                 headers.white_title,
                 headers.black_title,
                 headers.result,
+                headers.time_control,
                 movetext.ply,
                 db_ts,
                 bytes
@@ -519,15 +518,6 @@ fn extract_clock_seconds_from_comment(comment: &str) -> Option<u16> {
             + m.parse::<u16>().unwrap() * 60
             + s.parse::<u16>().unwrap()
     })
-}
-
-fn parse_time_control(s: &str) -> Option<(u16, u8)> {
-    if s == "-" {
-        return None;
-    }
-
-    let parts: Vec<&str> = s.split("+").collect();
-    Some((parts[0].parse().unwrap(), parts[1].parse().unwrap()))
 }
 
 fn build_utc_timestamp(date: Option<&str>, time: Option<&str>) -> Option<i64> {
