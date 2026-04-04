@@ -236,8 +236,8 @@ function EngineCard({
               name: o.value.name,
               // @ts-expect-error
               value: o.value.default,
-              min: o.type == "spin" ? Number(o.value.min): null,
-              max: o.type == "spin" ? Number(o.value.max): null,
+              min: o.type == "spin" ? Number(o.value.min) : null,
+              max: o.type == "spin" ? Number(o.value.max) : null,
             })),
         },
       ]);

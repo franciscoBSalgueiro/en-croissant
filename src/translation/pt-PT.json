@@ -301,6 +301,7 @@
     "Engines.Remove.Message": "Tens a certeza que queres remover este engine do En Croissant?",
     "Engines.Remove.Title": "Remover Engine",
     "Engines.Selection.None": "",
+    "Engines.Settings.AdjustRating": "",
     "Engines.Settings.AdvancedSettings": "Configurações avançadas",
     "Engines.Settings.EditJSON": "Editar JSON",
     "Engines.Settings.NoEngine": "Nenhum engine selecionado",

@@ -3,7 +3,7 @@ import { IconGripVertical } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 
 export default function EloSlider(props: {
-  minElo : number
+  minElo: number;
   value: number;
   setValue: (v: number) => void;
   color?: string;

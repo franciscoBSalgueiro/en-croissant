@@ -299,6 +299,7 @@
     "Engines.Remove.Message": "Er du sikker på at du vil fjerne denne computeren fra En Croissant?",
     "Engines.Remove.Title": "Fjern computer",
     "Engines.Selection.None": "",
+    "Engines.Settings.AdjustRating": "",
     "Engines.Settings.AdvancedSettings": "Avanserte innstillinger",
     "Engines.Settings.EditJSON": "Rediger JSON",
     "Engines.Settings.NoEngine": "Ingen computer valgt",

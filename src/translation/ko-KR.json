@@ -297,6 +297,7 @@
     "Engines.Remove.Message": "정말로 En Croissant에서 이 엔진을 제거하시겠습니까?",
     "Engines.Remove.Title": "엔진 제거",
     "Engines.Selection.None": "설치된 엔진이 없습니다. 먼저 <addEngineLink>엔진 추가</addEngineLink>를 눌러주세요.",
+    "Engines.Settings.AdjustRating": "",
     "Engines.Settings.AdvancedSettings": "고급 설정",
     "Engines.Settings.EditJSON": "JSON 편집",
     "Engines.Settings.NoEngine": "선택된 엔진 없음",

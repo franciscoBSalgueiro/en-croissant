@@ -299,6 +299,7 @@
     "Engines.Remove.Message": "Bu motoru En Croissant'tan kaldırmak istediğinize emin misiniz?",
     "Engines.Remove.Title": "Motor Kaldır",
     "Engines.Selection.None": "",
+    "Engines.Settings.AdjustRating": "",
     "Engines.Settings.AdvancedSettings": "Gelişmiş ayarlar",
     "Engines.Settings.EditJSON": "JSON olarak düzenle",
     "Engines.Settings.NoEngine": "Hiçbir motor seçili değil",

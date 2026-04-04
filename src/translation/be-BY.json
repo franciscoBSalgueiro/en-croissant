@@ -303,6 +303,7 @@
     "Engines.Remove.Message": "Вы ўпэўнены, што хочаце выдаліць гэты рухавік з En Croissant?",
     "Engines.Remove.Title": "Выдаліць рухавік",
     "Engines.Selection.None": "",
+    "Engines.Settings.AdjustRating": "",
     "Engines.Settings.AdvancedSettings": "Пашыраныя налады",
     "Engines.Settings.EditJSON": "Рэдагаваць JSON",
     "Engines.Settings.NoEngine": "Рухавік не абраны",

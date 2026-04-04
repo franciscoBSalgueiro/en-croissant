@@ -299,6 +299,7 @@
     "Engines.Remove.Message": "Are you sure you want to remove this engine from En Croissant?",
     "Engines.Remove.Title": "Remove Engine",
     "Engines.Selection.None": "No engines installed. Please <addEngineLink>Add an engine</addEngineLink> first.",
+    "Engines.Settings.AdjustRating": "Adjust Engine Rating",
     "Engines.Settings.AdvancedSettings": "Advanced settings",
     "Engines.Settings.EditJSON": "Edit JSON",
     "Engines.Settings.NoEngine": "No engine selected",

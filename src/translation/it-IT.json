@@ -301,6 +301,7 @@
     "Engines.Remove.Message": "Sei sicuro di voler rimuovere questo motore da En Croissant?",
     "Engines.Remove.Title": "Rimuovi motore",
     "Engines.Selection.None": "Nessun motore installato. <addEngineLink>Aggiungi</addEngineLink> un motore.",
+    "Engines.Settings.AdjustRating": "",
     "Engines.Settings.AdvancedSettings": "Impostazioni avanzate",
     "Engines.Settings.EditJSON": "Modifica JSON",
     "Engines.Settings.NoEngine": "Nessun motore selezionato",

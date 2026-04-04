@@ -303,6 +303,7 @@
     "Engines.Remove.Message": "Czy na pewno chcesz usunąć ten silnik z En Croissant?",
     "Engines.Remove.Title": "Usuń silnik",
     "Engines.Selection.None": "",
+    "Engines.Settings.AdjustRating": "",
     "Engines.Settings.AdvancedSettings": "Zaawansowane ustawienia",
     "Engines.Settings.EditJSON": "Edytuj JSON",
     "Engines.Settings.NoEngine": "Nie wybrano silnika",

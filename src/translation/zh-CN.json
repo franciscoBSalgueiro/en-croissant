@@ -299,6 +299,7 @@
     "Engines.Remove.Message": "您确定要从 En Croissant 中移除此引擎吗？",
     "Engines.Remove.Title": "移除引擎",
     "Engines.Selection.None": "未安装任何引擎，请先<addEngineLink>添加一个引擎</addEngineLink>！",
+    "Engines.Settings.AdjustRating": "",
     "Engines.Settings.AdvancedSettings": "高级设置",
     "Engines.Settings.EditJSON": "编辑 JSON",
     "Engines.Settings.NoEngine": "未选择引擎",
