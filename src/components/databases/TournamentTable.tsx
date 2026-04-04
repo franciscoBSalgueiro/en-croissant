@@ -73,7 +73,10 @@ function TournamentTable() {
           highlightOnHover
           records={tournaments}
           fetching={isLoading}
-          columns={[{ accessor: "name", sortable: true }]}
+          columns={[
+            { accessor: "name", sortable: true },
+            { accessor: "games_count", title: t("Common.Games"), sortable: true },
+          ]}
           rowClassName={(t) => (t.name === selected ? classes.selected : "")}
           noRecordsText={
             error

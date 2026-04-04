@@ -599,11 +599,14 @@ pub async fn get_games(
 
     let order_sql = build_game_order_clause(&query_options);
 
-    let page_size = query_options.page_size.unwrap_or(25) as i64;
-    let offset = query_options
-        .page
-        .map(|p| ((p - 1) as i64) * page_size)
-        .unwrap_or(0);
+    let pagination_sql = match (query_options.page, query_options.page_size) {
+        (None, None) => String::new(),
+        (page, page_size) => {
+            let page_size = page_size.unwrap_or(25) as i64;
+            let offset = page.map(|p| ((p - 1) as i64) * page_size).unwrap_or(0);
+            format!("LIMIT {page_size} OFFSET {offset}")
+        }
+    };
 
     let data_sql = format!(
         "SELECT
@@ -624,7 +627,7 @@ pub async fn get_games(
         FROM games
         {where_sql}
         {order_sql}
-        LIMIT {page_size} OFFSET {offset};"
+        {pagination_sql};"
     );
     println!("Data SQL: {data_sql}");
 
@@ -760,6 +763,8 @@ pub async fn get_players(
 pub enum TournamentSort {
     #[serde(rename = "name")]
     Name,
+    #[serde(rename = "games_count")]
+    GamesCount,
 }
 
 #[derive(Debug, Clone, Deserialize, Type)]
@@ -794,6 +799,7 @@ pub async fn get_tournaments(
     };
     let order_col = match query.options.sort {
         TournamentSort::Name => "name",
+        TournamentSort::GamesCount => "games_count",
     };
     let order_sql = format!("ORDER BY {order_col} {dir}");
 
@@ -806,9 +812,11 @@ pub async fn get_tournaments(
 
     let data_sql = format!(
         "WITH events AS (
-            SELECT DISTINCT event AS name FROM games
+            SELECT event AS name, COUNT(*) AS games_count
+            FROM games
+            GROUP BY event
         )
-        SELECT name
+        SELECT name, games_count
         FROM events
         {where_sql}
         {order_sql}
@@ -820,6 +828,7 @@ pub async fn get_tournaments(
         .query_map([], |row| {
             Ok(Event {
                 name: row.get("name")?,
+                games_count: row.get("games_count")?,
             })
         })?
         .collect::<Result<Vec<_>, _>>()?;

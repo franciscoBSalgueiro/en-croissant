@@ -28,6 +28,7 @@ pub struct Player {
 #[derive(Default, Debug, Serialize, Deserialize, Clone, Type)]
 pub struct Event {
     pub name: Option<String>,
+    pub games_count: i32,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default, Type, Eq, PartialEq, Hash)]
