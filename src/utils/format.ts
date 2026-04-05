@@ -67,8 +67,16 @@ export function formatThemeLabel(theme: string) {
 }
 
 export function formatNodes(nodes: number) {
-    if (nodes < 1000) return nodes.toFixed(0);
-    return `${(nodes / 1000).toFixed(0)}k`;
+    const units = ["", "k", "M", "B"];
+    let i = 0;
+    let value = nodes;
+
+    while (value >= 1000 && i < units.length - 1) {
+        value /= 1000;
+        i++;
+    }
+
+    return `${value.toFixed(0)}${units[i]}`;
 }
 
 export function formatTime(ms: number) {
