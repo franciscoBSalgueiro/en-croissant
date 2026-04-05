@@ -552,6 +552,8 @@
     "Settings.PieceDest.Desc": "顯示棋子可走位置",
     "Settings.PreviewBoard": "預覽棋盤",
     "Settings.PreviewBoard.Desc": "滑鼠懸停在引擎分析的著手上時顯示預覽棋盤",
+    "Settings.FlipBoardAfterMove": "自動翻轉棋盤",
+    "Settings.FlipBoardAfterMove.Desc": "在與人類對手對局時，走棋後自動翻轉棋盤",
     "Settings.Privacy": "",
     "Settings.Privacy.Desc": "",
     "Settings.Privacy.Telemetry": "",

@@ -560,6 +560,8 @@
     "Settings.PieceDest.Desc": "Pokaż możliwe ruchy dla każdej figury",
     "Settings.PreviewBoard": "Podgląd szachownicy",
     "Settings.PreviewBoard.Desc": "Pokaż podgląd szachownicy po najechaniu kursorem na ruch w analizie silnika",
+    "Settings.FlipBoardAfterMove": "Automatyczne odwracanie szachownicy",
+    "Settings.FlipBoardAfterMove.Desc": "Odwraca szachownicę automatycznie po wykonaniu ruchu w grach z człowiekiem",
     "Settings.Privacy": "",
     "Settings.Privacy.Desc": "",
     "Settings.Privacy.Telemetry": "",

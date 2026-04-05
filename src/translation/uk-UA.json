@@ -560,6 +560,8 @@
     "Settings.PieceDest.Desc": "Показати можливі ходи для кожної фігури",
     "Settings.PreviewBoard": "Попередній перегляд дошки",
     "Settings.PreviewBoard.Desc": "Показувати дошку при наведенні курсора на хід в аналізі",
+    "Settings.FlipBoardAfterMove": "Переворачувати дошку автоматично",
+    "Settings.FlipBoardAfterMove.Desc": "Автоматично переворачує дошку після кожного ходу в іграх з людиною",
     "Settings.Privacy": "",
     "Settings.Privacy.Desc": "",
     "Settings.Privacy.Telemetry": "",

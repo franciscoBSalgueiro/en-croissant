@@ -554,6 +554,8 @@
     "Settings.PieceDest.Desc": "Her taş için mümkün hamleleri göster",
     "Settings.PreviewBoard": "Tahtayı Önizle",
     "Settings.PreviewBoard.Desc": "Motor analizinde bir hareketin üzerine gelindiğinde tahtanın önizlemesini göster",
+    "Settings.FlipBoardAfterMove": "Tahta Otomatik Ters Çevrilsin",
+    "Settings.FlipBoardAfterMove.Desc": "İnsan karşı oyunlarda hamle yaptıktan sonra tahtayı otomatik olarak ters çevir",
     "Settings.Privacy": "",
     "Settings.Privacy.Desc": "",
     "Settings.Privacy.Telemetry": "",

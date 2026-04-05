@@ -568,6 +568,8 @@
     "Settings.PieceDest.Desc": "Show possible moves for each piece",
     "Settings.PreviewBoard": "Preview Board",
     "Settings.PreviewBoard.Desc": "Show a preview of the board when hovering over a move in the engine analysis",
+    "Settings.FlipBoardAfterMove": "Automatically flip board",
+    "Settings.FlipBoardAfterMove.Desc": "Automatically flip the board after making a move on Human games",
     "Settings.Privacy": "",
     "Settings.Privacy.Desc": "",
     "Settings.Privacy.Telemetry": "",

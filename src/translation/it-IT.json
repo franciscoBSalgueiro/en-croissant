@@ -557,6 +557,8 @@
     "Settings.PieceDest.Desc": "Mostra le mosse possibili per ogni pezzo",
     "Settings.PreviewBoard": "Anteprima scacchiera",
     "Settings.PreviewBoard.Desc": "Mostra un'anteprima della scacchiera quando si passa con il mouse su una mossa nell'analisi del motore",
+    "Settings.FlipBoardAfterMove": "Capovolgi la scacchiera automaticamente",
+    "Settings.FlipBoardAfterMove.Desc": "Capovolgi automaticamente la scacchiera dopo aver fatto una mossa mentre giochi contro un umano",
     "Settings.Privacy": "Privacy",
     "Settings.Privacy.Desc": "Impostazioni privacy e collezione dati",
     "Settings.Privacy.Telemetry": "Telemetria anonima",

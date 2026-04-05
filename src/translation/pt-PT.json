@@ -557,6 +557,8 @@
     "Settings.PieceDest.Desc": "Mostra destinos possíveis para cada peça",
     "Settings.PreviewBoard": "Tabuleiro de visualização",
     "Settings.PreviewBoard.Desc": "Mostra tabuleiro ao passar rato por cima de uma jogada na análise",
+    "Settings.FlipBoardAfterMove": "Inverter tabuleiro automaticamente",
+    "Settings.FlipBoardAfterMove.Desc": "Inverte automaticamente o tabuleiro após fazer uma jogada contra humanos",
     "Settings.Privacy": "",
     "Settings.Privacy.Desc": "",
     "Settings.Privacy.Telemetry": "",

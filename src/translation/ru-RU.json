@@ -574,6 +574,8 @@
     "Settings.PieceDest.Desc": "Показать возможные ходы для каждой фигуры",
     "Settings.PreviewBoard": "Предварительный просмотр доски",
     "Settings.PreviewBoard.Desc": "Показывать доску при наведении курсора на ход в анализе",
+    "Settings.FlipBoardAfterMove": "Переворачивать доску автоматически",
+    "Settings.FlipBoardAfterMove.Desc": "Автоматически переворачивает доску после каждого хода в партиях против человека",
     "Settings.Privacy": "",
     "Settings.Privacy.Desc": "",
     "Settings.Privacy.Telemetry": "",

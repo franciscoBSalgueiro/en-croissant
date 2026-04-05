@@ -571,6 +571,8 @@
     "Settings.PieceDest.Desc": "Affiche les mouvements possibles de chaque pièce",
     "Settings.PreviewBoard": "Aperçu de l'échiquier",
     "Settings.PreviewBoard.Desc": "Affiche un aperçu de l'échiquier lors du survol d'une variante analysée par le moteur",
+    "Settings.FlipBoardAfterMove": "Retourner l'échiquier automatiquement",
+    "Settings.FlipBoardAfterMove.Desc": "Retour automatique de l'échiquier après un coup en partie contre un humain",
     "Settings.Privacy": "Confidentialité",
     "Settings.Privacy.Desc": "Paramètres de confidentialité et de collecte des données",
     "Settings.Privacy.Telemetry": "Télémétrie anonyme",

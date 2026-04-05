@@ -554,6 +554,8 @@
     "Settings.PieceDest.Desc": "Vis mulige trekk",
     "Settings.PreviewBoard": "Forhåndshvis brett",
     "Settings.PreviewBoard.Desc": "Vis sjakkbrett når musen er over trekk i komputeranalysen.",
+    "Settings.FlipBoardAfterMove": "Vend brett automatisk",
+    "Settings.FlipBoardAfterMove.Desc": "Vend brettet automatisk etter at du gjør et trekk i kamper mot mennesker",
     "Settings.Privacy": "",
     "Settings.Privacy.Desc": "",
     "Settings.Privacy.Telemetry": "",
