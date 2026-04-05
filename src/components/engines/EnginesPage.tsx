@@ -292,10 +292,19 @@ function EngineSettings({
         if (!settings.find((setting) => setting.name === field)) {
           const option = options.options.find((option) => option.value.name === field);
           if (option && option.type !== "button") {
+            if(option.type == "spin"){
+              settings.push({
+              name: field,
+              value: option.value.default as string | number | boolean | null,
+              min: option.value.min as number | null,
+              max: option.value.max as number | null,
+            });
+            } else{
             settings.push({
               name: field,
               value: option.value.default as string | number | boolean | null,
             });
+          }
           }
         }
       }
