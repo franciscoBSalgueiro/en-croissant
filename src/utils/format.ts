@@ -67,7 +67,7 @@ export function formatThemeLabel(theme: string) {
 }
 
 export function formatNodes(nodes: number) {
-    const units = ["", "k", "M", "B"];
+    const units = ["", "k", "M", "B", "T"];
     let i = 0;
     let value = nodes;
 
