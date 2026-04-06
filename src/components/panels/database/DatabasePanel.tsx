@@ -16,7 +16,6 @@ import { useTranslation } from "react-i18next";
 import useSWR from "swr/immutable";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
-import { commands } from "@/bindings";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
   currentDbTabAtom,
@@ -168,7 +167,11 @@ function DatabasePanel() {
     isLoading,
     error,
   } = useSWR(
-    tabType !== "options" && !missingExplorerToken ? dbType : null,
+    tabType !== "options" &&
+      !missingExplorerToken &&
+      (dbType.type !== "local" || Boolean(dbType.options.fen))
+      ? dbType
+      : null,
     async (dbType: DBType) => {
       return fetchOpening(dbType, tab?.value || "");
     },

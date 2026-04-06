@@ -195,6 +195,10 @@ function Databases() {
               info={{
                 site_stats_data: personalInfo.flatMap((i) => i.info.site_stats_data),
               }}
+              openingSources={personalInfo.map((i) => ({
+                file: i.db.file,
+                player: i.db.username || name,
+              }))}
             />
           </DatabaseViewStateContext.Provider>
         ))}

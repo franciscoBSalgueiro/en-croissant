@@ -12,7 +12,6 @@ use r2d2::Pool;
 
 use serde::{Deserialize, Serialize};
 use shakmaty::fen::Fen;
-use shakmaty::{san::San, Board, ByColor, Chess, EnPassantMode, Piece, Position};
 use specta::Type;
 use std::collections::HashMap;
 use std::io::{BufWriter, Write};
@@ -25,8 +24,6 @@ use tauri::Emitter;
 use tauri_specta::Event as TauriSpectaEvent;
 
 use log::info;
-
-use crate::opening::get_opening_from_setup;
 
 pub use self::models::NormalizedGame;
 pub use self::models::Puzzle;
@@ -622,7 +619,7 @@ pub async fn get_games(
             white_rating,
             black_rating,
             result,
-            to_pgn(movedata) AS moves,
+            to_pgn(movedata, fen) AS moves,
             ply_count
         FROM games
         {where_sql}
@@ -898,7 +895,6 @@ pub struct StatsData {
     pub player_elo: i32,
     pub result: GameOutcome,
     pub time_control: String,
-    pub opening: String,
 }
 
 #[derive(Serialize, Debug, Clone, Type, tauri_specta::Event)]
@@ -915,71 +911,6 @@ fn normalize_site_name(site: &str) -> String {
     }
 }
 
-fn detect_opening_from_moves(moves: &str) -> String {
-    let mut chess = Chess::default();
-    let mut setups = Vec::new();
-    let mut variation_depth = 0usize;
-    let mut comment_depth = 0usize;
-
-    for token in moves.split_whitespace() {
-        let open_comment = token.chars().filter(|&c| c == '{').count();
-        let close_comment = token.chars().filter(|&c| c == '}').count();
-
-        if comment_depth > 0 || open_comment > 0 {
-            comment_depth = comment_depth.saturating_add(open_comment);
-            comment_depth = comment_depth.saturating_sub(close_comment);
-            continue;
-        }
-
-        let open_var = token.chars().filter(|&c| c == '(').count();
-        let close_var = token.chars().filter(|&c| c == ')').count();
-        let in_variation = variation_depth > 0 || open_var > 0;
-        variation_depth = variation_depth.saturating_add(open_var);
-        variation_depth = variation_depth.saturating_sub(close_var);
-        if in_variation {
-            continue;
-        }
-
-        if token == "1-0" || token == "0-1" || token == "1/2-1/2" || token == "*" {
-            break;
-        }
-
-        if token.starts_with('$')
-            || token.ends_with('.')
-            || token == "..."
-            || token.chars().all(|c| c.is_ascii_digit() || c == '.')
-        {
-            continue;
-        }
-
-        let sanitized = token.trim_end_matches(['!', '?']).trim();
-        if sanitized.is_empty() {
-            continue;
-        }
-
-        let Ok(san) = sanitized.parse::<San>() else {
-            continue;
-        };
-
-        let Ok(chess_move) = san.to_move(&chess) else {
-            break;
-        };
-
-        chess.play_unchecked(chess_move);
-        setups.push(chess.clone().to_setup(EnPassantMode::Legal));
-
-        if setups.len() > 54 {
-            break;
-        }
-    }
-
-    setups
-        .into_iter()
-        .rev()
-        .find_map(|setup| get_opening_from_setup(setup).ok())
-        .unwrap_or_default()
-}
-
 #[tauri::command]
 #[specta::specta]
 pub async fn get_players_game_info(
@@ -991,49 +922,26 @@ pub async fn get_players_game_info(
     let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
 
-    type GameInfoRow = (
-        String,
-        String,
-        Option<String>,
-        Option<String>,
-        Option<i32>,
-        Option<i32>,
-        Option<String>,
-        String,
-        String,
-    );
+    let count_sql = "
+        WITH filtered_games AS (
+            SELECT
+                *,
+                white = ? AS is_player_white
+            FROM games
+            WHERE movedata IS NOT NULL
+              AND result IN ('1-0', '0-1', '1/2-1/2')
+              AND (white = ? OR black = ?)
+        )
+        SELECT COUNT(*)
+        FROM filtered_games
+        WHERE utc_timestamp IS NOT NULL
+          AND (CASE WHEN is_player_white THEN white_rating ELSE black_rating END) IS NOT NULL;
+    ";
 
-    let sql = "SELECT
-            white,
-            black,
-            result,
-            strftime(utc_timestamp, '%Y-%m-%d') AS date,
-            white_rating,
-            black_rating,
-            time_control,
-            site,
-            to_pgn(movedata) AS moves
-        FROM games
-        WHERE movedata IS NOT NULL";
+    let total = db.query_row(count_sql, params![player, player, player], |row| {
+        row.get::<_, i64>(0)
+    })? as usize;
 
-    let info = db
-        .prepare(sql)?
-        .query_map([], |row| {
-            Ok::<GameInfoRow, duckdb::Error>((
-                row.get("white")?,
-                row.get("black")?,
-                row.get("result")?,
-                row.get("date")?,
-                row.get("white_rating")?,
-                row.get("black_rating")?,
-                row.get("time_control")?,
-                row.get("site")?,
-                row.get("moves")?,
-            ))
-        })?
-        .collect::<Result<Vec<_>, _>>()?;
-
-    let total = info.len();
     if total == 0 {
         let _ = DatabaseProgress {
             id: player.clone(),
@@ -1043,58 +951,67 @@ pub async fn get_players_game_info(
         return Ok(PlayerGameInfo::default());
     }
 
-    let mut grouped: HashMap<(String, String), Vec<StatsData>> = HashMap::new();
+    let sql = "
+        WITH filtered_games AS (
+            SELECT
+                *,
+                white = ? AS is_player_white
+            FROM games
+            WHERE movedata IS NOT NULL
+              AND result IN ('1-0', '0-1', '1/2-1/2')
+              AND (white = ? OR black = ?)
+        )
+        SELECT
+            site,
+            COALESCE(CASE WHEN is_player_white THEN white ELSE black END, '') AS player,
+            strftime(utc_timestamp, '%Y-%m-%d') AS date,
+            is_player_white,
+            CAST(CASE WHEN is_player_white THEN white_rating ELSE black_rating END AS INTEGER) AS player_elo,
+            result AS game_result,
+                        COALESCE(time_control, '') AS time_control
+        FROM filtered_games
+        WHERE utc_timestamp IS NOT NULL
+          AND (CASE WHEN is_player_white THEN white_rating ELSE black_rating END) IS NOT NULL
+        ORDER BY utc_timestamp;
+    ";
 
-    for (index, (white, black, outcome, date, white_elo, black_elo, time_control, site, moves)) in
-        info.into_iter().enumerate()
-    {
-        let Some(outcome) = outcome else {
-            continue;
-        };
-        let Some(date) = date else {
+    let mut statement = db.prepare(sql)?;
+    let mut rows = statement.query(params![player, player, player])?;
+
+    let mut grouped: HashMap<(String, String), Vec<StatsData>> = HashMap::new();
+    let mut processed = 0usize;
+
+    while let Some(row) = rows.next()? {
+        let site: String = row.get("site")?;
+        let player_name: String = row.get("player")?;
+        let date: String = row.get("date")?;
+        let is_player_white: bool = row.get("is_player_white")?;
+        let player_elo: i32 = row.get("player_elo")?;
+        let game_result: String = row.get("game_result")?;
+        let time_control: String = row.get("time_control")?;
+
+        let Some(result) = GameOutcome::from_str(game_result.as_str(), is_player_white) else {
             continue;
         };
 
         let site = normalize_site_name(site.as_str());
-        let opening = detect_opening_from_moves(moves.as_str());
-        let time_control = time_control.unwrap_or_default();
 
-        if let (Some(elo), Some(result)) =
-            (white_elo, GameOutcome::from_str(outcome.as_str(), true))
-        {
-            grouped
-                .entry((site.clone(), white.clone()))
-                .or_default()
-                .push(StatsData {
-                    date: date.clone(),
-                    is_player_white: true,
-                    player_elo: elo,
-                    result,
-                    time_control: time_control.clone(),
-                    opening: opening.clone(),
-                });
-        }
+        grouped
+            .entry((site, player_name))
+            .or_default()
+            .push(StatsData {
+                date,
+                is_player_white,
+                player_elo,
+                result,
+                time_control,
+            });
 
-        if let (Some(elo), Some(result)) =
-            (black_elo, GameOutcome::from_str(outcome.as_str(), false))
-        {
-            grouped
-                .entry((site.clone(), black.clone()))
-                .or_default()
-                .push(StatsData {
-                    date: date.clone(),
-                    is_player_white: false,
-                    player_elo: elo,
-                    result,
-                    time_control: time_control.clone(),
-                    opening: opening.clone(),
-                });
-        }
-
-        if index.is_multiple_of(1000) || index + 1 == total {
+        processed += 1;
+        if processed.is_multiple_of(1000) || processed == total {
             let _ = DatabaseProgress {
                 id: player.clone(),
-                progress: ((index + 1) as f64 / total as f64) * 100.0,
+                progress: (processed as f64 / total as f64) * 100.0,
             }
             .emit(&app);
         }
@@ -1286,7 +1203,7 @@ pub async fn export_to_pgn(
             black_rating,
             ply_count,
             fen,
-            to_pgn(movedata) AS moves
+            to_pgn(movedata, fen) AS moves
         FROM games;",
     )?;
 

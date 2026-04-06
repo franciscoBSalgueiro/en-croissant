@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use crate::{db::models::*, error::Error, AppState};
 
-use super::{get_duckdb_pool, GameQuery};
+use super::{get_duckdb_pool, GameQuery, Sides};
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct ExactData {
@@ -126,8 +126,61 @@ fn build_position_where_clauses(
         ));
     }
 
+    match query.sides.as_ref() {
+        Some(Sides::WhiteBlack) => {
+            if let Some(player1) = query.player1.as_deref() {
+                clauses.push(format!("white = {}", sql_literal(player1)));
+            }
+            if let Some(player2) = query.player2.as_deref() {
+                clauses.push(format!("black = {}", sql_literal(player2)));
+            }
+        }
+        Some(Sides::BlackWhite) => {
+            if let Some(player1) = query.player1.as_deref() {
+                clauses.push(format!("black = {}", sql_literal(player1)));
+            }
+            if let Some(player2) = query.player2.as_deref() {
+                clauses.push(format!("white = {}", sql_literal(player2)));
+            }
+        }
+        Some(Sides::Any) => {
+            let player1 = query.player1.as_deref();
+            let player2 = query.player2.as_deref();
+
+            match (player1, player2) {
+                (Some(player1), Some(player2)) => {
+                    let p1 = sql_literal(player1);
+                    let p2 = sql_literal(player2);
+                    clauses.push(format!(
+                        "((white = {p1} AND black = {p2}) OR (white = {p2} AND black = {p1}))"
+                    ));
+                }
+                (Some(player1), None) => {
+                    let p1 = sql_literal(player1);
+                    clauses.push(format!("(white = {p1} OR black = {p1})"));
+                }
+                (None, Some(player2)) => {
+                    let p2 = sql_literal(player2);
+                    clauses.push(format!("(white = {p2} OR black = {p2})"));
+                }
+                (None, None) => {}
+            }
+        }
+        None => {
+            if let Some(player1) = query.player1.as_deref() {
+                clauses.push(format!("white = {}", sql_literal(player1)));
+            }
+            if let Some(player2) = query.player2.as_deref() {
+                clauses.push(format!("black = {}", sql_literal(player2)));
+            }
+        }
+    }
+
     if position_type == "exact" && full_fen.split_whitespace().count() >= 2 {
-        clauses.push(format!("matches_fen(movedata, {})", sql_literal(full_fen)));
+        clauses.push(format!(
+            "matches_fen(movedata, {}, fen)",
+            sql_literal(full_fen)
+        ));
     }
 
     clauses
@@ -178,19 +231,19 @@ pub async fn search_position(
     let sql = if position_type == "exact" {
         format!(
             "WITH matching_positions AS (
-                SELECT movedata, result, matches_fen_ply(movedata, {full_fen}) AS ply
+                SELECT movedata, result, fen, matches_fen_ply(movedata, {full_fen}, fen) AS ply
                 FROM games
                 {where_clause}
             )
             SELECT
                 CASE
-                    WHEN move_details_at(movedata, ply::SMALLINT).\"from\" IS NULL
-                        OR move_details_at(movedata, ply::SMALLINT).\"to\" IS NULL
+                    WHEN move_details_at(movedata, ply::SMALLINT, fen).\"from\" IS NULL
+                        OR move_details_at(movedata, ply::SMALLINT, fen).\"to\" IS NULL
                     THEN '*'
                     ELSE
-                        move_details_at(movedata, ply::SMALLINT).\"from\" ||
-                        move_details_at(movedata, ply::SMALLINT).\"to\" ||
-                        COALESCE(move_details_at(movedata, ply::SMALLINT).promotion, '')
+                        move_details_at(movedata, ply::SMALLINT, fen).\"from\" ||
+                        move_details_at(movedata, ply::SMALLINT, fen).\"to\" ||
+                        COALESCE(move_details_at(movedata, ply::SMALLINT, fen).promotion, '')
                 END AS next_move,
                 COUNT(*) AS total_games,
                 SUM(CASE WHEN result = '1-0' THEN 1 ELSE 0 END) AS white_wins,
@@ -207,22 +260,22 @@ pub async fn search_position(
         let sub_fen_query = format!(r#"{{"sub-fen": "{}"}}"#, sub_fen);
         format!(
             "WITH candidate_games AS (
-                SELECT movedata, result, scoutfish_query_plies(movedata, {sub_fen_json}) AS plies
+                SELECT movedata, result, fen, scoutfish_query_plies(movedata, {sub_fen_json}) AS plies
                 FROM games
                 {where_clause}
             ), matching_positions AS (
-                SELECT UNNEST(plies) AS ply, movedata, result
+                SELECT UNNEST(plies) AS ply, movedata, result, fen
                 FROM candidate_games
             )
             SELECT
                 CASE
-                    WHEN move_details_at(movedata, ply::SMALLINT).\"from\" IS NULL
-                        OR move_details_at(movedata, ply::SMALLINT).\"to\" IS NULL
+                    WHEN move_details_at(movedata, ply::SMALLINT, fen).\"from\" IS NULL
+                        OR move_details_at(movedata, ply::SMALLINT, fen).\"to\" IS NULL
                     THEN '*'
                     ELSE
-                        move_details_at(movedata, ply::SMALLINT).\"from\" ||
-                        move_details_at(movedata, ply::SMALLINT).\"to\" ||
-                        COALESCE(move_details_at(movedata, ply::SMALLINT).promotion, '')
+                        move_details_at(movedata, ply::SMALLINT, fen).\"from\" ||
+                        move_details_at(movedata, ply::SMALLINT, fen).\"to\" ||
+                        COALESCE(move_details_at(movedata, ply::SMALLINT, fen).promotion, '')
                 END AS next_move,
                 COUNT(*) AS total_games,
                 SUM(CASE WHEN result = '1-0' THEN 1 ELSE 0 END) AS white_wins,
