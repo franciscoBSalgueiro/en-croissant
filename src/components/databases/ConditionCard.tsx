@@ -11,17 +11,8 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import {
-  IconChevronDown,
-  IconChevronUp,
-  IconPlus,
-  IconTrash,
-} from "@tabler/icons-react";
-import type {
-  ConditionRule,
-  ConditionRuleType,
-  ScoutfishCondition,
-} from "./scoutfishQuery";
+import { IconChevronDown, IconChevronUp, IconPlus, IconTrash } from "@tabler/icons-react";
+import type { ConditionRule, ConditionRuleType, ScoutfishCondition } from "./scoutfishQuery";
 import {
   ALL_RULE_TYPES,
   createEmptyRule,
@@ -174,9 +165,7 @@ function RuleEditor({
           placeholder="Select..."
           data={options}
           value={rule.values[0] ?? null}
-          onChange={(value) =>
-            onChange({ ...rule, values: value ? [value] : [] })
-          }
+          onChange={(value) => onChange({ ...rule, values: value ? [value] : [] })}
           size="sm"
           clearable
         />
@@ -218,13 +207,7 @@ function RuleEditor({
         </Box>
         {canRemove && (
           <Tooltip label="Remove rule">
-            <ActionIcon
-              variant="subtle"
-              color="red"
-              size="sm"
-              onClick={onRemove}
-              mt={4}
-            >
+            <ActionIcon variant="subtle" color="red" size="sm" onClick={onRemove} mt={4}>
               <IconTrash size="0.875rem" />
             </ActionIcon>
           </Tooltip>
@@ -262,9 +245,7 @@ export function ConditionCard({
     });
   };
 
-  const rulesSummary = condition.rules
-    .map((r) => RULE_LABELS[r.type])
-    .join(" + ");
+  const rulesSummary = condition.rules.map((r) => RULE_LABELS[r.type]).join(" + ");
 
   return (
     <Paper
@@ -301,21 +282,12 @@ export function ConditionCard({
         <Group gap={4}>
           <Tooltip label={collapsed ? "Expand" : "Collapse"}>
             <ActionIcon variant="subtle" size="sm" onClick={toggle}>
-              {collapsed ? (
-                <IconChevronDown size="0.875rem" />
-              ) : (
-                <IconChevronUp size="0.875rem" />
-              )}
+              {collapsed ? <IconChevronDown size="0.875rem" /> : <IconChevronUp size="0.875rem" />}
             </ActionIcon>
           </Tooltip>
           {canRemove && (
             <Tooltip label="Remove condition">
-              <ActionIcon
-                variant="subtle"
-                color="red"
-                size="sm"
-                onClick={onRemove}
-              >
+              <ActionIcon variant="subtle" color="red" size="sm" onClick={onRemove}>
                 <IconTrash size="0.875rem" />
               </ActionIcon>
             </Tooltip>

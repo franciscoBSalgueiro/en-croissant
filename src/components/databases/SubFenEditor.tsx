@@ -28,9 +28,7 @@ interface SubFenEditorProps {
 }
 
 export function SubFenEditor({ value, onChange }: SubFenEditorProps) {
-  const [selectedPiece, setSelectedPiece] = useState<Piece | null>(
-    PIECE_PALETTE[0].piece,
-  );
+  const [selectedPiece, setSelectedPiece] = useState<Piece | null>(PIECE_PALETTE[0].piece);
   const [eraseMode, setEraseMode] = useState(false);
 
   // If value is a sub-fen (board part only), expand it to a full FEN for Chessground

@@ -1,12 +1,4 @@
-import {
-  ActionIcon,
-  Badge,
-  Box,
-  Group,
-  Stack,
-  Text,
-  Tooltip,
-} from "@mantine/core";
+import { ActionIcon, Badge, Box, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { IconMinus, IconPlus, IconRefresh } from "@tabler/icons-react";
 
 type PieceRole = "K" | "Q" | "R" | "B" | "N" | "P";
@@ -107,20 +99,10 @@ function PieceCountControl({
           )}
         </ActionIcon>
         <Group gap={2}>
-          <ActionIcon
-            size="xs"
-            variant="subtle"
-            disabled={count <= 0}
-            onClick={onDecrement}
-          >
+          <ActionIcon size="xs" variant="subtle" disabled={count <= 0} onClick={onDecrement}>
             <IconMinus size="0.6rem" />
           </ActionIcon>
-          <ActionIcon
-            size="xs"
-            variant="subtle"
-            disabled={count >= maxCount}
-            onClick={onIncrement}
-          >
+          <ActionIcon size="xs" variant="subtle" disabled={count >= maxCount} onClick={onIncrement}>
             <IconPlus size="0.6rem" />
           </ActionIcon>
         </Group>
@@ -186,13 +168,7 @@ export function PieceToggleBar({
         ))}
         {hasAny && (
           <Tooltip label="Clear selection" withArrow>
-            <ActionIcon
-              variant="subtle"
-              color="red"
-              size="sm"
-              mt={6}
-              onClick={reset}
-            >
+            <ActionIcon variant="subtle" color="red" size="sm" mt={6} onClick={reset}>
               <IconRefresh size="0.75rem" />
             </ActionIcon>
           </Tooltip>
@@ -208,12 +184,7 @@ export function PieceToggleBar({
           <Text size="xs" c="dimmed">
             Pattern:
           </Text>
-          <Text
-            size="xs"
-            style={{ fontFamily: "monospace" }}
-            c="blue"
-            fw={600}
-          >
+          <Text size="xs" style={{ fontFamily: "monospace" }} c="blue" fw={600}>
             {value}
           </Text>
           {!allowMultiple && value.length > 1 && (
@@ -255,7 +226,7 @@ export function MaterialInput({
             </Text>
           </Group>
           <Group gap="xs" align="flex-start">
-            {WHITE_PIECES.filter(p => p.role !== "K").map((p) => (
+            {WHITE_PIECES.filter((p) => p.role !== "K").map((p) => (
               <PieceCountControl
                 key={p.role}
                 symbol={p.symbol}
@@ -265,7 +236,10 @@ export function MaterialInput({
                   setWhite({ ...whiteCounts, [p.role]: (whiteCounts[p.role] ?? 0) + 1 })
                 }
                 onDecrement={() =>
-                  setWhite({ ...whiteCounts, [p.role]: Math.max(0, (whiteCounts[p.role] ?? 0) - 1) })
+                  setWhite({
+                    ...whiteCounts,
+                    [p.role]: Math.max(0, (whiteCounts[p.role] ?? 0) - 1),
+                  })
                 }
               />
             ))}
@@ -286,7 +260,7 @@ export function MaterialInput({
             Black
           </Text>
           <Group gap="xs" align="flex-start">
-            {BLACK_PIECES.filter(p => p.role !== "K").map((p) => (
+            {BLACK_PIECES.filter((p) => p.role !== "K").map((p) => (
               <PieceCountControl
                 key={p.role}
                 symbol={p.symbol}
@@ -296,7 +270,10 @@ export function MaterialInput({
                   setBlack({ ...blackCounts, [p.role]: (blackCounts[p.role] ?? 0) + 1 })
                 }
                 onDecrement={() =>
-                  setBlack({ ...blackCounts, [p.role]: Math.max(0, (blackCounts[p.role] ?? 0) - 1) })
+                  setBlack({
+                    ...blackCounts,
+                    [p.role]: Math.max(0, (blackCounts[p.role] ?? 0) - 1),
+                  })
                 }
                 color="dark"
               />
@@ -312,12 +289,7 @@ export function MaterialInput({
           <Text size="xs" style={{ fontFamily: "monospace" }} c="blue" fw={600}>
             {value || "—"}
           </Text>
-          <ActionIcon
-            size="xs"
-            variant="subtle"
-            color="red"
-            onClick={() => onChange("")}
-          >
+          <ActionIcon size="xs" variant="subtle" color="red" onClick={() => onChange("")}>
             <IconRefresh size="0.65rem" />
           </ActionIcon>
         </Group>
@@ -343,8 +315,7 @@ export function ImbalanceInput({
   };
 
   const hasAny =
-    Object.values(whiteCounts).some((n) => n > 0) ||
-    Object.values(blackCounts).some((n) => n > 0);
+    Object.values(whiteCounts).some((n) => n > 0) || Object.values(blackCounts).some((n) => n > 0);
 
   return (
     <Stack gap="xs">
@@ -367,7 +338,10 @@ export function ImbalanceInput({
                   setWhite({ ...whiteCounts, [p.role]: (whiteCounts[p.role] ?? 0) + 1 })
                 }
                 onDecrement={() =>
-                  setWhite({ ...whiteCounts, [p.role]: Math.max(0, (whiteCounts[p.role] ?? 0) - 1) })
+                  setWhite({
+                    ...whiteCounts,
+                    [p.role]: Math.max(0, (whiteCounts[p.role] ?? 0) - 1),
+                  })
                 }
               />
             ))}
@@ -398,7 +372,10 @@ export function ImbalanceInput({
                   setBlack({ ...blackCounts, [p.role]: (blackCounts[p.role] ?? 0) + 1 })
                 }
                 onDecrement={() =>
-                  setBlack({ ...blackCounts, [p.role]: Math.max(0, (blackCounts[p.role] ?? 0) - 1) })
+                  setBlack({
+                    ...blackCounts,
+                    [p.role]: Math.max(0, (blackCounts[p.role] ?? 0) - 1),
+                  })
                 }
                 color="dark"
               />
@@ -414,12 +391,7 @@ export function ImbalanceInput({
           <Text size="xs" style={{ fontFamily: "monospace" }} c="blue" fw={600}>
             {value || "—"}
           </Text>
-          <ActionIcon
-            size="xs"
-            variant="subtle"
-            color="red"
-            onClick={() => onChange("")}
-          >
+          <ActionIcon size="xs" variant="subtle" color="red" onClick={() => onChange("")}>
             <IconRefresh size="0.65rem" />
           </ActionIcon>
         </Group>
@@ -441,10 +413,7 @@ function parseMaterial(s: string): {
   };
 }
 
-function buildMaterial(
-  white: Record<string, number>,
-  black: Record<string, number>,
-): string {
+function buildMaterial(white: Record<string, number>, black: Record<string, number>): string {
   const wStr = serializeCounts(white);
   const bStr = serializeCounts(black);
   return `K${wStr}K${bStr}`;
@@ -467,10 +436,7 @@ function parseImbalance(s: string): {
   };
 }
 
-function buildImbalance(
-  white: Record<string, number>,
-  black: Record<string, number>,
-): string {
+function buildImbalance(white: Record<string, number>, black: Record<string, number>): string {
   const wStr = serializeCounts(white);
   const bStr = serializeCounts(black);
   if (!wStr && !bStr) return "";
