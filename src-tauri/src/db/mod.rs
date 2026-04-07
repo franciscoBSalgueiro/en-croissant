@@ -522,6 +522,18 @@ fn build_game_where_clauses(query: &GameQuery) -> Vec<String> {
         None => {}
     }
 
+    if let Some(position) = query.position.as_ref() {
+        if position.type_ == "exact"
+            && position.fen.split_whitespace().count() >= 2
+            && Fen::from_ascii(position.fen.as_bytes()).is_ok()
+        {
+            clauses.push(format!(
+                "matches_fen(movedata, {}, fen)",
+                sql_literal(&position.fen)
+            ));
+        }
+    }
+
     clauses
 }
 
@@ -630,7 +642,7 @@ pub async fn get_games(
 
     let games = db
         .prepare(&data_sql)?
-        .query_map([], |row| parse_normalized_game(row))?
+        .query_map([], parse_normalized_game)?
         .collect::<Result<Vec<_>, _>>()?;
 
     let count = if query_options.skip_count {

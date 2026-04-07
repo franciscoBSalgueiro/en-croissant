@@ -130,7 +130,6 @@ function OpeningsPanel({
     store.set(currentLocalOptionsAtom, (prev) => ({
       ...prev,
       path: preferredDb ?? prev.path,
-      type: "exact",
       fen: prev.fen || INITIAL_FEN,
       player: playerName,
       color,

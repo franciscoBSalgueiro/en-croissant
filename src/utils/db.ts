@@ -45,6 +45,8 @@ export async function query_games(
     db: string,
     query: GameQuery,
 ): Promise<QueryResponse<NormalizedGame[]>> {
+    const exactPosition = query.position?.type_ === "exact" ? query.position : null;
+
     return unwrap(
         await commands.getGames(db, {
             player1: query.player1,
@@ -56,7 +58,7 @@ export async function query_games(
             outcome: query.outcome,
             start_date: query.start_date,
             end_date: query.end_date,
-            position: null,
+            position: exactPosition,
             options: {
                 skipCount: query.options?.skipCount ?? false,
                 page: query.options?.page,
@@ -173,7 +175,7 @@ export async function searchPosition(options: LocalOptions, tab: string) {
             player2: options.color === "black" ? options.player : undefined,
             position: {
                 fen: options.fen,
-                type_: options.type,
+                type_: "exact",
             },
             start_date: options.start_date,
             end_date: options.end_date,

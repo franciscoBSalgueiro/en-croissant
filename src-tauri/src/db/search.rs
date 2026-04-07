@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use shakmaty::{fen::Fen, san::SanPlus, uci::UciMove, CastlingMode, Chess, Position, Setup};
+use shakmaty::{fen::Fen, san::SanPlus, uci::UciMove, CastlingMode, Chess};
 use specta::Type;
 use std::path::PathBuf;
 
@@ -7,52 +7,10 @@ use crate::{db::models::*, error::Error, AppState};
 
 use super::{get_duckdb_pool, GameQuery, Sides};
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub struct ExactData {
-    position: Chess,
-}
-
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub struct PartialData {
-    piece_positions: Setup,
-}
-
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub enum PositionQuery {
-    Exact(ExactData),
-    Partial(PartialData),
-}
-
-impl PositionQuery {
-    pub fn exact_from_fen(fen: &str) -> Result<PositionQuery, Error> {
-        let fen = Fen::from_ascii(fen.as_bytes())?;
-        let setup = fen.into_setup();
-        let castling_mode = CastlingMode::detect(&setup);
-        let position: Chess = setup.position(castling_mode)?;
-        Ok(PositionQuery::Exact(ExactData { position }))
-    }
-
-    pub fn partial_from_fen(fen: &str) -> Result<PositionQuery, Error> {
-        let fen = Fen::from_ascii(fen.as_bytes())?;
-        let setup = fen.into_setup();
-        Ok(PositionQuery::Partial(PartialData {
-            piece_positions: setup,
-        }))
-    }
-}
-
 #[derive(Debug, Clone, Deserialize, Type, PartialEq, Eq, Hash)]
 pub struct PositionQueryJs {
     pub fen: String,
     pub type_: String,
-}
-
-fn convert_position_query(query: PositionQueryJs) -> Result<PositionQuery, Error> {
-    match query.type_.as_str() {
-        "exact" => PositionQuery::exact_from_fen(&query.fen),
-        "partial" => PositionQuery::partial_from_fen(&query.fen),
-        _ => unreachable!(),
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Type)]
@@ -93,11 +51,7 @@ fn uci_to_san(uci_move: &str, position: &Chess) -> String {
     SanPlus::from_move(position.clone(), chess_move).to_string()
 }
 
-fn build_position_where_clauses(
-    query: &GameQuery,
-    position_type: &str,
-    full_fen: &str,
-) -> Vec<String> {
+fn build_position_where_clauses(query: &GameQuery, full_fen: &str) -> Vec<String> {
     let mut clauses = Vec::new();
 
     if let Some(outcome) = query.outcome.as_deref() {
@@ -176,7 +130,7 @@ fn build_position_where_clauses(
         }
     }
 
-    if position_type == "exact" && full_fen.split_whitespace().count() >= 2 {
+    if full_fen.split_whitespace().count() >= 2 && Fen::from_ascii(full_fen.as_bytes()).is_ok() {
         clauses.push(format!(
             "matches_fen(movedata, {}, fen)",
             sql_literal(full_fen)
@@ -186,6 +140,7 @@ fn build_position_where_clauses(
     clauses
 }
 
+#[allow(dead_code)]
 #[derive(Clone, serde::Serialize)]
 pub struct ProgressPayload {
     pub progress: f64,
@@ -206,21 +161,19 @@ pub async fn search_position(
         return Ok((vec![], vec![]));
     };
 
-    let parsed_query = convert_position_query(position_query.clone())?;
+    if position_query.type_ != "exact" {
+        return Ok((vec![], vec![]));
+    }
+
     let fen = Fen::from_ascii(position_query.fen.as_bytes())?;
     let setup = fen.into_setup();
     let castling_mode = CastlingMode::detect(&setup);
     let reference_position = setup.position(castling_mode)?;
 
-    let (position_type, sub_fen) = match parsed_query {
-        PositionQuery::Exact(data) => ("exact", data.position.board().to_string()),
-        PositionQuery::Partial(data) => ("partial", data.piece_positions.board.to_string()),
-    };
-
     let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
 
-    let where_clauses = build_position_where_clauses(&query, position_type, &position_query.fen);
+    let where_clauses = build_position_where_clauses(&query, &position_query.fen);
 
     let where_sql = if where_clauses.is_empty() {
         String::new()
@@ -228,66 +181,33 @@ pub async fn search_position(
         format!("WHERE {}", where_clauses.join(" AND "))
     };
 
-    let sql = if position_type == "exact" {
-        format!(
-            "WITH matching_positions AS (
-                SELECT movedata, result, fen, matches_fen_ply(movedata, {full_fen}, fen) AS ply
-                FROM games
-                {where_clause}
-            )
-            SELECT
-                CASE
-                    WHEN move_details_at(movedata, ply::SMALLINT, fen).\"from\" IS NULL
-                        OR move_details_at(movedata, ply::SMALLINT, fen).\"to\" IS NULL
-                    THEN '*'
-                    ELSE
-                        move_details_at(movedata, ply::SMALLINT, fen).\"from\" ||
-                        move_details_at(movedata, ply::SMALLINT, fen).\"to\" ||
-                        COALESCE(move_details_at(movedata, ply::SMALLINT, fen).promotion, '')
-                END AS next_move,
-                COUNT(*) AS total_games,
-                SUM(CASE WHEN result = '1-0' THEN 1 ELSE 0 END) AS white_wins,
-                SUM(CASE WHEN result = '0-1' THEN 1 ELSE 0 END) AS black_wins,
-                SUM(CASE WHEN result = '1/2-1/2' THEN 1 ELSE 0 END) AS draws
-            FROM matching_positions
-            WHERE ply IS NOT NULL
-            GROUP BY next_move
-            ORDER BY total_games DESC;",
-            full_fen = sql_literal(&position_query.fen),
-            where_clause = where_sql,
+    let sql = format!(
+        "WITH matching_positions AS (
+            SELECT movedata, result, fen, matches_fen_ply(movedata, {full_fen}, fen) AS ply
+            FROM games
+            {where_clause}
         )
-    } else {
-        let sub_fen_query = format!(r#"{{"sub-fen": "{}"}}"#, sub_fen);
-        format!(
-            "WITH candidate_games AS (
-                SELECT movedata, result, fen, scoutfish_query_plies(movedata, {sub_fen_json}) AS plies
-                FROM games
-                {where_clause}
-            ), matching_positions AS (
-                SELECT UNNEST(plies) AS ply, movedata, result, fen
-                FROM candidate_games
-            )
-            SELECT
-                CASE
-                    WHEN move_details_at(movedata, ply::SMALLINT, fen).\"from\" IS NULL
-                        OR move_details_at(movedata, ply::SMALLINT, fen).\"to\" IS NULL
-                    THEN '*'
-                    ELSE
-                        move_details_at(movedata, ply::SMALLINT, fen).\"from\" ||
-                        move_details_at(movedata, ply::SMALLINT, fen).\"to\" ||
-                        COALESCE(move_details_at(movedata, ply::SMALLINT, fen).promotion, '')
-                END AS next_move,
-                COUNT(*) AS total_games,
-                SUM(CASE WHEN result = '1-0' THEN 1 ELSE 0 END) AS white_wins,
-                SUM(CASE WHEN result = '0-1' THEN 1 ELSE 0 END) AS black_wins,
-                SUM(CASE WHEN result = '1/2-1/2' THEN 1 ELSE 0 END) AS draws
-            FROM matching_positions
-            GROUP BY next_move
-            ORDER BY total_games DESC;",
-            sub_fen_json = sql_literal(&sub_fen_query),
-            where_clause = where_sql,
-        )
-    };
+        SELECT
+            CASE
+                WHEN move_details_at(movedata, ply::SMALLINT, fen).\"from\" IS NULL
+                    OR move_details_at(movedata, ply::SMALLINT, fen).\"to\" IS NULL
+                THEN '*'
+                ELSE
+                    move_details_at(movedata, ply::SMALLINT, fen).\"from\" ||
+                    move_details_at(movedata, ply::SMALLINT, fen).\"to\" ||
+                    COALESCE(move_details_at(movedata, ply::SMALLINT, fen).promotion, '')
+            END AS next_move,
+            COUNT(*) AS total_games,
+            SUM(CASE WHEN result = '1-0' THEN 1 ELSE 0 END) AS white_wins,
+            SUM(CASE WHEN result = '0-1' THEN 1 ELSE 0 END) AS black_wins,
+            SUM(CASE WHEN result = '1/2-1/2' THEN 1 ELSE 0 END) AS draws
+        FROM matching_positions
+        WHERE ply IS NOT NULL
+        GROUP BY next_move
+        ORDER BY total_games DESC;",
+        full_fen = sql_literal(&position_query.fen),
+        where_clause = where_sql,
+    );
 
     // println!("Executing SQL:\n{sql}");
 
@@ -321,17 +241,14 @@ pub async fn is_position_in_db(
         return Ok(false);
     };
 
-    let parsed_query = convert_position_query(position_query.clone())?;
-    let position_type = match parsed_query {
-        PositionQuery::Exact(data) => ("exact", data.position.board().to_string()),
-        PositionQuery::Partial(data) => ("partial", data.piece_positions.board.to_string()),
+    if position_query.type_ != "exact" {
+        return Ok(false);
     }
-    .0;
 
     let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
 
-    let where_clauses = build_position_where_clauses(&query, position_type, &position_query.fen);
+    let where_clauses = build_position_where_clauses(&query, &position_query.fen);
 
     let where_sql = if where_clauses.is_empty() {
         String::new()

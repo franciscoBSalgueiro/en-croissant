@@ -89,7 +89,6 @@ function RepertoireInfo() {
     searchPosition(
       {
         path: referenceDb,
-        type: "exact",
         fen: queryFen,
         color: "white",
         player: null,

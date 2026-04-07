@@ -1,6 +1,7 @@
 import {
   ActionIcon,
   Box,
+  Button,
   Center,
   Collapse,
   Flex,
@@ -10,11 +11,13 @@ import {
   Select,
   Stack,
   Text,
+  TextInput,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import { useHotkeys } from "@mantine/hooks";
 import { IconDotsVertical } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
+import { INITIAL_FEN } from "chessops/fen";
 import dayjs from "dayjs";
 import { useAtom, useSetAtom } from "jotai";
 import { DataTable } from "mantine-datatable";
@@ -22,7 +25,7 @@ import { useContext } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 import { useStore } from "zustand";
-import type { GameSort, NormalizedGame, Outcome } from "@/bindings";
+import type { GameSort, NormalizedGame, Outcome, PositionQueryJs } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
 import { query_games } from "@/utils/db";
 import { createTab } from "@/utils/tabs";
@@ -32,6 +35,17 @@ import GridLayout from "./GridLayout";
 import { PlayerSearchInput } from "./PlayerSearchInput";
 import { SideInput } from "./SideInput";
 import classes from "./styles.module.css";
+
+function exactPositionFromFen(fen: string): PositionQueryJs | undefined {
+  const value = fen.trim();
+  if (!value) {
+    return undefined;
+  }
+  return {
+    fen: value,
+    type_: "exact",
+  };
+}
 
 function GameTable() {
   const { t } = useTranslation();
@@ -196,6 +210,42 @@ function GameTable() {
                     }
                   />
                 </Group>
+                <TextInput
+                  label="Position (FEN)"
+                  placeholder="Paste an exact FEN"
+                  value={query.position?.type_ === "exact" ? query.position.fen : ""}
+                  onChange={(event) => {
+                    const position = exactPositionFromFen(event.currentTarget.value);
+                    setQuery({
+                      ...query,
+                      position,
+                    });
+                  }}
+                />
+                <Group>
+                  <Button
+                    variant="default"
+                    onClick={() => {
+                      setQuery({
+                        ...query,
+                        position: exactPositionFromFen(INITIAL_FEN),
+                      });
+                    }}
+                  >
+                    Start Position
+                  </Button>
+                  <Button
+                    variant="default"
+                    onClick={() => {
+                      setQuery({
+                        ...query,
+                        position: undefined,
+                      });
+                    }}
+                  >
+                    Clear Position
+                  </Button>
+                </Group>
               </Stack>
             </Collapse>
           </Box>
@@ -211,7 +261,7 @@ function GameTable() {
           records={games}
           fetching={isLoading}
           onRowDoubleClick={({ record }) => {
-            createTab({
+            void createTab({
               tab: {
                 name: `${record.white} - ${record.black}`,
                 type: "analysis",
@@ -226,7 +276,7 @@ function GameTable() {
                 gameId: record.id,
               },
             });
-            navigate({ to: "/" });
+            void navigate({ to: "/" });
           }}
           columns={[
             {

@@ -57,7 +57,6 @@ type DBType =
 export type LocalOptions = {
   path: string | null;
   fen: string;
-  type: "exact" | "partial";
   player: string | null;
   color: "white" | "black";
   start_date?: string;
@@ -237,12 +236,7 @@ function DatabasePanel() {
         style={{ overflow: "hidden" }}
       >
         <Tabs.List>
-          <Tabs.Tab
-            value="stats"
-            disabled={dbType.type === "local" && dbType.options.type === "partial"}
-          >
-            {t("Board.Database.Stats")}
-          </Tabs.Tab>
+          <Tabs.Tab value="stats">{t("Board.Database.Stats")}</Tabs.Tab>
           <Tabs.Tab value="games">{t("Board.Database.Games")}</Tabs.Tab>
           <Tabs.Tab value="options">{t("Board.Database.Options")}</Tabs.Tab>
         </Tabs.List>
@@ -278,7 +272,7 @@ function DatabasePanel() {
         >
           <ScrollArea flex={1} offsetScrollbars pt="sm">
             {match(db)
-              .with("local", () => <LocalOptionsPanel boardFen={debouncedFen} />)
+              .with("local", () => <LocalOptionsPanel />)
               .with("lch_all", () => <LichessOptionsPanel />)
               .with("lch_master", () => <MasterOptionsPanel />)
               .exhaustive()}

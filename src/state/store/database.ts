@@ -50,6 +50,7 @@ const defaultGamesState: DatabaseViewStore["games"] = {
         range2: [0, 3000],
         sides: "WhiteBlack",
         outcome: undefined,
+        position: undefined,
         options: {
             sort: "date",
             direction: "desc",
