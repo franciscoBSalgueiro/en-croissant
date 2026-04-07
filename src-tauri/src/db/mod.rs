@@ -531,6 +531,12 @@ fn build_game_where_clauses(query: &GameQuery) -> Vec<String> {
                 "matches_fen(movedata, {}, fen)",
                 sql_literal(&position.fen)
             ));
+        } else if position.type_ == "scoutfish" {
+            // position.fen contains the scoutfish JSON query string
+            clauses.push(format!(
+                "scoutfish_query(movedata, {}, fen)",
+                sql_literal(&position.fen)
+            ));
         }
     }
 

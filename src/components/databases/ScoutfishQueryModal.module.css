@@ -1,0 +1,6 @@
+.jsonPreview {
+  max-height: 200px;
+  overflow: auto;
+  font-size: 0.8rem;
+  white-space: pre;
+}

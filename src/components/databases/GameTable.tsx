@@ -1,5 +1,6 @@
 import {
   ActionIcon,
+  Badge,
   Box,
   Button,
   Center,
@@ -14,8 +15,8 @@ import {
   TextInput,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
-import { useHotkeys } from "@mantine/hooks";
-import { IconDotsVertical } from "@tabler/icons-react";
+import { useDisclosure, useHotkeys } from "@mantine/hooks";
+import { IconDotsVertical, IconSearch } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { INITIAL_FEN } from "chessops/fen";
 import dayjs from "dayjs";
@@ -33,6 +34,7 @@ import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
 import GameCard from "./GameCard";
 import GridLayout from "./GridLayout";
 import { PlayerSearchInput } from "./PlayerSearchInput";
+import { ScoutfishQueryModal } from "./ScoutfishQueryModal";
 import { SideInput } from "./SideInput";
 import classes from "./styles.module.css";
 
@@ -61,6 +63,10 @@ function GameTable() {
   const setSelectedGame = useStore(store, (s) => s.setGamesSelectedGame);
 
   const navigate = useNavigate();
+  const [advancedSearchOpened, { open: openAdvancedSearch, close: closeAdvancedSearch }] =
+    useDisclosure(false);
+
+  const hasScoutfishQuery = query.position?.type_ === "scoutfish";
 
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
@@ -221,6 +227,7 @@ function GameTable() {
                       position,
                     });
                   }}
+                  disabled={hasScoutfishQuery}
                 />
                 <Group>
                   <Button
@@ -231,6 +238,7 @@ function GameTable() {
                         position: exactPositionFromFen(INITIAL_FEN),
                       });
                     }}
+                    disabled={hasScoutfishQuery}
                   >
                     Start Position
                   </Button>
@@ -245,7 +253,38 @@ function GameTable() {
                   >
                     Clear Position
                   </Button>
+                  <Button
+                    variant="light"
+                    leftSection={<IconSearch size="1rem" />}
+                    onClick={openAdvancedSearch}
+                  >
+                    Advanced Search
+                  </Button>
                 </Group>
+                {hasScoutfishQuery && (
+                  <Badge
+                    color="blue"
+                    variant="light"
+                    size="lg"
+                    style={{ cursor: "pointer" }}
+                    onClick={openAdvancedSearch}
+                  >
+                    Scoutfish query active
+                  </Badge>
+                )}
+                <ScoutfishQueryModal
+                  opened={advancedSearchOpened}
+                  onClose={closeAdvancedSearch}
+                  onApply={(queryJson) => {
+                    setQuery({
+                      ...query,
+                      position: {
+                        fen: queryJson,
+                        type_: "scoutfish",
+                      },
+                    });
+                  }}
+                />
               </Stack>
             </Collapse>
           </Box>
