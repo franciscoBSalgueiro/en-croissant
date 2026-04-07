@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "prepare:aix-extension": "node ./scripts/prepare-aix-extension.mjs",
     "start-vite": "vite",
     "build-vite": "tsgo --noEmit && vite build",
     "build": "tauri build --no-bundle",
