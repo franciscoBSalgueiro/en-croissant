@@ -119,9 +119,7 @@ async function main() {
   }
 
   await downloadAsset(asset.browser_download_url, outputPath);
-  console.log(
-    `Downloaded ${asset.name} from release ${release.tag_name} to ${outputPath}`,
-  );
+  console.log(`Downloaded ${asset.name} from release ${release.tag_name} to ${outputPath}`);
 }
 
 main().catch((error) => {

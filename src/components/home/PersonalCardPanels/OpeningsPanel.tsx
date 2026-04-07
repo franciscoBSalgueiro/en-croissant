@@ -74,7 +74,7 @@ function ColorCard({
         <Text size="sm">Draw rate: {ratio(stats.draws, stats.games)}%</Text>
         <Text size="sm">Loss rate: {ratio(stats.losses, stats.games)}%</Text>
         <Button mt="sm" variant="light" onClick={() => onOpen()}>
-          Open in Tabs
+          Explore Openings
         </Button>
       </Stack>
     </Paper>
