@@ -4,3 +4,18 @@
   font-size: 0.8rem;
   white-space: pre;
 }
+
+.content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.queryScrollArea {
+  flex: 1;
+  min-height: 0;
+}
+
+.footer {
+  flex-shrink: 0;
+}

@@ -33,6 +33,7 @@ interface ScoutfishQueryModalProps {
 
 export function ScoutfishQueryModal({ opened, onClose, onApply }: ScoutfishQueryModalProps) {
   const [state, setState] = useState<ScoutfishQueryState>(() => getDefaultQueryState());
+  const [showJsonPreview, setShowJsonPreview] = useState(false);
 
   const jsonPreview = formatScoutfishJson(state);
   const queryJson = buildScoutfishJson(state);
@@ -84,10 +85,21 @@ export function ScoutfishQueryModal({ opened, onClose, onApply }: ScoutfishQuery
       }
       size="80%"
       centered
-      scrollAreaComponent={ScrollArea.Autosize}
+      styles={{
+        content: {
+          display: "flex",
+          flexDirection: "column",
+          maxHeight: "90vh",
+        },
+        body: {
+          display: "flex",
+          flex: 1,
+          minHeight: 0,
+          overflow: "hidden",
+        },
+      }}
     >
-      <Stack gap="md">
-        {/* Query Mode Selector */}
+      <Stack gap="md" className={classes.content}>
         <Box>
           <Text size="sm" fw={500} mb={4}>
             Query Mode
@@ -138,22 +150,28 @@ export function ScoutfishQueryModal({ opened, onClose, onApply }: ScoutfishQuery
 
         <Divider />
 
-        {/* Conditions List */}
-        <Stack gap="sm">
-          {state.conditions.map((condition, idx) => (
-            <ConditionCard
-              key={condition.id}
-              condition={condition}
-              index={idx}
-              isSequenceMode={isSequenceMode}
-              canRemove={state.conditions.length > 1}
-              onChange={(updated) => updateCondition(idx, updated)}
-              onRemove={() => removeCondition(idx)}
-            />
-          ))}
-        </Stack>
-
-        {/* Add Condition Button */}
+        <ScrollArea
+          className={classes.queryScrollArea}
+          scrollbarSize={8}
+          offsetScrollbars
+          scrollbars="y"
+        >
+          <Stack gap="md">
+            <Stack gap="sm">
+              {state.conditions.map((condition, idx) => (
+                <ConditionCard
+                  key={condition.id}
+                  condition={condition}
+                  index={idx}
+                  isSequenceMode={isSequenceMode}
+                  canRemove={state.conditions.length > 1}
+                  onChange={(updated) => updateCondition(idx, updated)}
+                  onRemove={() => removeCondition(idx)}
+                />
+              ))}
+            </Stack>
+          </Stack>
+        </ScrollArea>
         <Button
           variant="light"
           leftSection={<IconPlus size="1rem" />}
@@ -165,40 +183,44 @@ export function ScoutfishQueryModal({ opened, onClose, onApply }: ScoutfishQuery
 
         <Divider />
 
-        {/* JSON Preview */}
-        <Box>
-          <Group gap="xs" mb={4}>
-            <Text size="sm" fw={500}>
-              Query Preview
-            </Text>
-            {isValid ? (
-              <Badge color="green" size="xs" variant="light">
-                Valid
-              </Badge>
-            ) : (
-              <Badge color="gray" size="xs" variant="light">
-                Empty
-              </Badge>
-            )}
-          </Group>
-          <Code block className={classes.jsonPreview}>
-            {jsonPreview}
-          </Code>
-        </Box>
-
-        <Divider />
+        {showJsonPreview && (
+          <Box>
+            <Group gap="xs" mb={4}>
+              <Text size="sm" fw={500}>
+                Query Preview
+              </Text>
+              {isValid ? (
+                <Badge color="green" size="xs" variant="light">
+                  Valid
+                </Badge>
+              ) : (
+                <Badge color="gray" size="xs" variant="light">
+                  Empty
+                </Badge>
+              )}
+            </Group>
+            <Code block className={classes.jsonPreview}>
+              {jsonPreview}
+            </Code>
+          </Box>
+        )}
 
         {/* Action Buttons */}
-        <Group justify="space-between">
-          <Button
-            variant="subtle"
-            color="gray"
-            leftSection={<IconTrash size="1rem" />}
-            onClick={clearAll}
-            size="sm"
-          >
-            Clear All
-          </Button>
+        <Group justify="space-between" className={classes.footer}>
+          <Group>
+            <Button
+              variant="default"
+              color="gray"
+              leftSection={<IconTrash size="1rem" />}
+              onClick={clearAll}
+              size="sm"
+            >
+              Clear All
+            </Button>
+            <Button variant="default" onClick={() => setShowJsonPreview((prev) => !prev)} size="sm">
+              {showJsonPreview ? "Hide Query" : "Show Query"}
+            </Button>
+          </Group>
           <Group>
             <Button variant="default" onClick={onClose} size="sm">
               Cancel
