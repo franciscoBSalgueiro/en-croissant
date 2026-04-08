@@ -22,6 +22,7 @@ use tauri::Emitter;
 use crate::{
     db::{
         encoding::{decode_move, iter_mainline_move_bytes},
+        game_matches_player_filters,
         get_db_or_create, get_material_count, get_pawn_home,
         models::*,
         normalize_games,
@@ -343,16 +344,8 @@ pub async fn search_position(
             );
         }
 
-        if let Some(white) = query.player1 {
-            if white != entry.white_id {
-                return;
-            }
-        }
-
-        if let Some(black) = query.player2 {
-            if black != entry.black_id {
-                return;
-            }
+        if !game_matches_player_filters(entry.white_id, entry.black_id, &query) {
+            return;
         }
 
         if let Some(wanted) = wanted_result {
@@ -535,16 +528,8 @@ pub(crate) async fn load_all_games_matching_position_export(
     let matched_ids: Mutex<Vec<i32>> = Mutex::new(Vec::new());
 
     let process_entry = |entry: SearchGameEntryRef<'_>| {
-        if let Some(white) = query.player1 {
-            if white != entry.white_id {
-                return;
-            }
-        }
-
-        if let Some(black) = query.player2 {
-            if black != entry.black_id {
-                return;
-            }
+        if !game_matches_player_filters(entry.white_id, entry.black_id, &query) {
+            return;
         }
 
         if let Some(wanted) = wanted_result {

@@ -820,11 +820,63 @@ pub async fn edit_db_info(
     Ok(())
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Type)]
-pub enum Sides {
-    BlackWhite,
-    WhiteBlack,
+/// Which color the player must have in a game (`Any` = white or black).
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, Type, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum PlayerSide {
+    #[default]
     Any,
+    White,
+    Black,
+}
+
+/// Returns whether a row with the given white/black player ids satisfies player filters.
+pub(super) fn game_matches_player_filters(
+    white_id: i32,
+    black_id: i32,
+    query: &GameQuery,
+) -> bool {
+    let s1 = query.player1_side.unwrap_or(PlayerSide::Any);
+    let s2 = query.player2_side.unwrap_or(PlayerSide::Any);
+
+    match (query.player1, query.player2) {
+        (Some(p1), Some(p2)) => {
+            if matches!(
+                (s1, s2),
+                (PlayerSide::White, PlayerSide::White) | (PlayerSide::Black, PlayerSide::Black)
+            ) {
+                return false;
+            }
+            match (s1, s2) {
+                (PlayerSide::White, PlayerSide::Black)
+                | (PlayerSide::White, PlayerSide::Any)
+                | (PlayerSide::Any, PlayerSide::Black) => {
+                    white_id == p1 && black_id == p2
+                }
+                (PlayerSide::Black, PlayerSide::White)
+                | (PlayerSide::Black, PlayerSide::Any)
+                | (PlayerSide::Any, PlayerSide::White) => {
+                    white_id == p2 && black_id == p1
+                }
+                (PlayerSide::Any, PlayerSide::Any) => {
+                    (white_id == p1 && black_id == p2)
+                        || (white_id == p2 && black_id == p1)
+                }
+                _ => false,
+            }
+        }
+        (Some(p1), None) => match s1 {
+            PlayerSide::White => white_id == p1,
+            PlayerSide::Black => black_id == p1,
+            PlayerSide::Any => white_id == p1 || black_id == p1,
+        },
+        (None, Some(p2)) => match s2 {
+            PlayerSide::White => white_id == p2,
+            PlayerSide::Black => black_id == p2,
+            PlayerSide::Any => white_id == p2 || black_id == p2,
+        },
+        (None, None) => true,
+    }
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Type)]
@@ -882,7 +934,11 @@ pub struct GameQuery {
     #[specta(optional)]
     pub range2: Option<(i32, i32)>,
     #[specta(optional)]
-    pub sides: Option<Sides>,
+    #[serde(rename = "player1Side")]
+    pub player1_side: Option<PlayerSide>,
+    #[specta(optional)]
+    #[serde(rename = "player2Side")]
+    pub player2_side: Option<PlayerSide>,
     #[specta(optional)]
     pub outcome: Option<String>,
     #[specta(optional)]
@@ -952,107 +1008,242 @@ fn query_games_filtered(
         sql_query = sql_query.offset(((page - 1) * query_options.page_size.unwrap_or(10)) as i64);
     }
 
-    match query.sides {
-        Some(Sides::BlackWhite) => {
-            if let Some(player1) = query.player1 {
-                sql_query = sql_query.filter(games::black_id.eq(player1));
-                count_query = count_query.filter(games::black_id.eq(player1));
-            }
-            if let Some(player2) = query.player2 {
-                sql_query = sql_query.filter(games::white_id.eq(player2));
-                count_query = count_query.filter(games::white_id.eq(player2));
-            }
+    let s1 = query.player1_side.unwrap_or(PlayerSide::Any);
+    let s2 = query.player2_side.unwrap_or(PlayerSide::Any);
+    let r1 = query.range1;
+    let r2 = query.range2;
 
-            if let Some(range1) = query.range1 {
-                sql_query = sql_query.filter(games::black_elo.between(range1.0, range1.1));
-                count_query = count_query.filter(games::black_elo.between(range1.0, range1.1));
-            }
-
-            if let Some(range2) = query.range2 {
-                sql_query = sql_query.filter(games::white_elo.between(range2.0, range2.1));
-                count_query = count_query.filter(games::white_elo.between(range2.0, range2.1));
-            }
-        }
-        Some(Sides::WhiteBlack) => {
-            if let Some(player1) = query.player1 {
-                sql_query = sql_query.filter(games::white_id.eq(player1));
-                count_query = count_query.filter(games::white_id.eq(player1));
-            }
-            if let Some(player2) = query.player2 {
-                sql_query = sql_query.filter(games::black_id.eq(player2));
-                count_query = count_query.filter(games::black_id.eq(player2));
-            }
-
-            if let Some(range1) = query.range1 {
-                sql_query = sql_query.filter(games::white_elo.between(range1.0, range1.1));
-                count_query = count_query.filter(games::white_elo.between(range1.0, range1.1));
-            }
-
-            if let Some(range2) = query.range2 {
-                sql_query = sql_query.filter(games::black_elo.between(range2.0, range2.1));
-                count_query = count_query.filter(games::black_elo.between(range2.0, range2.1));
-            }
-        }
-        Some(Sides::Any) => {
-            if let Some(player1) = query.player1 {
-                sql_query =
-                    sql_query.filter(games::white_id.eq(player1).or(games::black_id.eq(player1)));
-                count_query =
-                    count_query.filter(games::white_id.eq(player1).or(games::black_id.eq(player1)));
-            }
-            if let Some(player2) = query.player2 {
-                sql_query =
-                    sql_query.filter(games::white_id.eq(player2).or(games::black_id.eq(player2)));
-                count_query =
-                    count_query.filter(games::white_id.eq(player2).or(games::black_id.eq(player2)));
-            }
-
-            if let (Some(range1), Some(range2)) = (query.range1, query.range2) {
-                sql_query = sql_query.filter(
-                    games::white_elo
-                        .between(range1.0, range1.1)
-                        .or(games::black_elo.between(range1.0, range1.1))
-                        .or(games::white_elo
-                            .between(range2.0, range2.1)
-                            .or(games::black_elo.between(range2.0, range2.1))),
-                );
-                count_query = count_query.filter(
-                    games::white_elo
-                        .between(range1.0, range1.1)
-                        .or(games::black_elo.between(range1.0, range1.1))
-                        .or(games::white_elo
-                            .between(range2.0, range2.1)
-                            .or(games::black_elo.between(range2.0, range2.1))),
-                );
+    match (query.player1, query.player2) {
+        (Some(p1), Some(p2)) => {
+            if matches!(
+                (s1, s2),
+                (PlayerSide::White, PlayerSide::White) | (PlayerSide::Black, PlayerSide::Black)
+            ) {
+                sql_query = sql_query.filter(games::id.eq(-1));
+                count_query = count_query.filter(games::id.eq(-1));
             } else {
-                if let Some(range1) = query.range1 {
-                    sql_query = sql_query.filter(
-                        games::white_elo
-                            .between(range1.0, range1.1)
-                            .or(games::black_elo.between(range1.0, range1.1)),
-                    );
-                    count_query = count_query.filter(
-                        games::white_elo
-                            .between(range1.0, range1.1)
-                            .or(games::black_elo.between(range1.0, range1.1)),
-                    );
-                }
-
-                if let Some(range2) = query.range2 {
-                    sql_query = sql_query.filter(
-                        games::white_elo
-                            .between(range2.0, range2.1)
-                            .or(games::black_elo.between(range2.0, range2.1)),
-                    );
-                    count_query = count_query.filter(
-                        games::white_elo
-                            .between(range2.0, range2.1)
-                            .or(games::black_elo.between(range2.0, range2.1)),
-                    );
+                match (s1, s2) {
+                    (PlayerSide::White, PlayerSide::Black)
+                    | (PlayerSide::White, PlayerSide::Any)
+                    | (PlayerSide::Any, PlayerSide::Black) => {
+                        sql_query = sql_query
+                            .filter(games::white_id.eq(p1))
+                            .filter(games::black_id.eq(p2));
+                        count_query = count_query
+                            .filter(games::white_id.eq(p1))
+                            .filter(games::black_id.eq(p2));
+                        if let Some(r) = r1 {
+                            sql_query = sql_query.filter(games::white_elo.between(r.0, r.1));
+                            count_query = count_query.filter(games::white_elo.between(r.0, r.1));
+                        }
+                        if let Some(r) = r2 {
+                            sql_query = sql_query.filter(games::black_elo.between(r.0, r.1));
+                            count_query = count_query.filter(games::black_elo.between(r.0, r.1));
+                        }
+                    }
+                    (PlayerSide::Black, PlayerSide::White)
+                    | (PlayerSide::Black, PlayerSide::Any)
+                    | (PlayerSide::Any, PlayerSide::White) => {
+                        sql_query = sql_query
+                            .filter(games::white_id.eq(p2))
+                            .filter(games::black_id.eq(p1));
+                        count_query = count_query
+                            .filter(games::white_id.eq(p2))
+                            .filter(games::black_id.eq(p1));
+                        if let Some(r) = r1 {
+                            sql_query = sql_query.filter(games::black_elo.between(r.0, r.1));
+                            count_query = count_query.filter(games::black_elo.between(r.0, r.1));
+                        }
+                        if let Some(r) = r2 {
+                            sql_query = sql_query.filter(games::white_elo.between(r.0, r.1));
+                            count_query = count_query.filter(games::white_elo.between(r.0, r.1));
+                        }
+                    }
+                    (PlayerSide::Any, PlayerSide::Any) => {
+                        let orient = games::white_id
+                            .eq(p1)
+                            .and(games::black_id.eq(p2))
+                            .or(games::white_id.eq(p2).and(games::black_id.eq(p1)));
+                        sql_query = sql_query.filter(orient.clone());
+                        count_query = count_query.filter(orient);
+                        match (r1, r2) {
+                            (Some(r1), Some(r2)) => {
+                                let elo_ok = games::white_id
+                                    .eq(p1)
+                                    .and(games::black_id.eq(p2))
+                                    .and(games::white_elo.between(r1.0, r1.1))
+                                    .and(games::black_elo.between(r2.0, r2.1))
+                                    .or(games::white_id.eq(p2).and(games::black_id.eq(p1)).and(
+                                        games::black_elo
+                                            .between(r1.0, r1.1)
+                                            .and(games::white_elo.between(r2.0, r2.1)),
+                                    ));
+                                sql_query = sql_query.filter(elo_ok.clone());
+                                count_query = count_query.filter(elo_ok);
+                            }
+                            (Some(r), None) => {
+                                let elo_ok = games::white_id
+                                    .eq(p1)
+                                    .and(games::black_id.eq(p2))
+                                    .and(games::white_elo.between(r.0, r.1))
+                                    .or(games::white_id.eq(p2).and(games::black_id.eq(p1)).and(
+                                        games::black_elo.between(r.0, r.1),
+                                    ));
+                                sql_query = sql_query.filter(elo_ok.clone());
+                                count_query = count_query.filter(elo_ok);
+                            }
+                            (None, Some(r)) => {
+                                let elo_ok = games::white_id
+                                    .eq(p1)
+                                    .and(games::black_id.eq(p2))
+                                    .and(games::black_elo.between(r.0, r.1))
+                                    .or(games::white_id.eq(p2).and(games::black_id.eq(p1)).and(
+                                        games::white_elo.between(r.0, r.1),
+                                    ));
+                                sql_query = sql_query.filter(elo_ok.clone());
+                                count_query = count_query.filter(elo_ok);
+                            }
+                            (None, None) => {}
+                        }
+                    }
+                    _ => {}
                 }
             }
         }
-        None => {}
+        (Some(p1), None) => match s1 {
+            PlayerSide::White => {
+                sql_query = sql_query.filter(games::white_id.eq(p1));
+                count_query = count_query.filter(games::white_id.eq(p1));
+                if let Some(r) = r1 {
+                    sql_query = sql_query.filter(games::white_elo.between(r.0, r.1));
+                    count_query = count_query.filter(games::white_elo.between(r.0, r.1));
+                }
+                if let Some(r) = r2 {
+                    sql_query = sql_query.filter(games::black_elo.between(r.0, r.1));
+                    count_query = count_query.filter(games::black_elo.between(r.0, r.1));
+                }
+            }
+            PlayerSide::Black => {
+                sql_query = sql_query.filter(games::black_id.eq(p1));
+                count_query = count_query.filter(games::black_id.eq(p1));
+                if let Some(r) = r1 {
+                    sql_query = sql_query.filter(games::black_elo.between(r.0, r.1));
+                    count_query = count_query.filter(games::black_elo.between(r.0, r.1));
+                }
+                if let Some(r) = r2 {
+                    sql_query = sql_query.filter(games::white_elo.between(r.0, r.1));
+                    count_query = count_query.filter(games::white_elo.between(r.0, r.1));
+                }
+            }
+            PlayerSide::Any => {
+                let on_board = games::white_id.eq(p1).or(games::black_id.eq(p1));
+                sql_query = sql_query.filter(on_board.clone());
+                count_query = count_query.filter(on_board);
+                match (r1, r2) {
+                    (Some(r1), Some(r2)) => {
+                        let elo_ok = games::white_id
+                            .eq(p1)
+                            .and(games::white_elo.between(r1.0, r1.1))
+                            .and(games::black_elo.between(r2.0, r2.1))
+                            .or(games::black_id
+                                .eq(p1)
+                                .and(games::black_elo.between(r1.0, r1.1))
+                                .and(games::white_elo.between(r2.0, r2.1)));
+                        sql_query = sql_query.filter(elo_ok.clone());
+                        count_query = count_query.filter(elo_ok);
+                    }
+                    (Some(r), None) => {
+                        let elo_ok = games::white_id
+                            .eq(p1)
+                            .and(games::white_elo.between(r.0, r.1))
+                            .or(games::black_id.eq(p1).and(games::black_elo.between(r.0, r.1)));
+                        sql_query = sql_query.filter(elo_ok.clone());
+                        count_query = count_query.filter(elo_ok);
+                    }
+                    (None, Some(r)) => {
+                        let elo_ok = games::white_id
+                            .eq(p1)
+                            .and(games::black_elo.between(r.0, r.1))
+                            .or(games::black_id.eq(p1).and(games::white_elo.between(r.0, r.1)));
+                        sql_query = sql_query.filter(elo_ok.clone());
+                        count_query = count_query.filter(elo_ok);
+                    }
+                    (None, None) => {}
+                }
+            }
+        },
+        (None, Some(p2)) => match s2 {
+            PlayerSide::White => {
+                sql_query = sql_query.filter(games::white_id.eq(p2));
+                count_query = count_query.filter(games::white_id.eq(p2));
+                if let Some(r) = r2 {
+                    sql_query = sql_query.filter(games::white_elo.between(r.0, r.1));
+                    count_query = count_query.filter(games::white_elo.between(r.0, r.1));
+                }
+                if let Some(r) = r1 {
+                    sql_query = sql_query.filter(games::black_elo.between(r.0, r.1));
+                    count_query = count_query.filter(games::black_elo.between(r.0, r.1));
+                }
+            }
+            PlayerSide::Black => {
+                sql_query = sql_query.filter(games::black_id.eq(p2));
+                count_query = count_query.filter(games::black_id.eq(p2));
+                if let Some(r) = r2 {
+                    sql_query = sql_query.filter(games::black_elo.between(r.0, r.1));
+                    count_query = count_query.filter(games::black_elo.between(r.0, r.1));
+                }
+                if let Some(r) = r1 {
+                    sql_query = sql_query.filter(games::white_elo.between(r.0, r.1));
+                    count_query = count_query.filter(games::white_elo.between(r.0, r.1));
+                }
+            }
+            PlayerSide::Any => {
+                let on_board = games::white_id.eq(p2).or(games::black_id.eq(p2));
+                sql_query = sql_query.filter(on_board.clone());
+                count_query = count_query.filter(on_board);
+                match (r1, r2) {
+                    (Some(r1), Some(r2)) => {
+                        let elo_ok = games::white_id
+                            .eq(p2)
+                            .and(games::white_elo.between(r2.0, r2.1))
+                            .and(games::black_elo.between(r1.0, r1.1))
+                            .or(games::black_id
+                                .eq(p2)
+                                .and(games::black_elo.between(r2.0, r2.1))
+                                .and(games::white_elo.between(r1.0, r1.1)));
+                        sql_query = sql_query.filter(elo_ok.clone());
+                        count_query = count_query.filter(elo_ok);
+                    }
+                    (Some(r), None) => {
+                        let elo_ok = games::white_id
+                            .eq(p2)
+                            .and(games::black_elo.between(r.0, r.1))
+                            .or(games::black_id.eq(p2).and(games::white_elo.between(r.0, r.1)));
+                        sql_query = sql_query.filter(elo_ok.clone());
+                        count_query = count_query.filter(elo_ok);
+                    }
+                    (None, Some(r)) => {
+                        let elo_ok = games::white_id
+                            .eq(p2)
+                            .and(games::white_elo.between(r.0, r.1))
+                            .or(games::black_id.eq(p2).and(games::black_elo.between(r.0, r.1)));
+                        sql_query = sql_query.filter(elo_ok.clone());
+                        count_query = count_query.filter(elo_ok);
+                    }
+                    (None, None) => {}
+                }
+            }
+        },
+        (None, None) => {
+            if let Some(r) = r1 {
+                sql_query = sql_query.filter(games::white_elo.between(r.0, r.1));
+                count_query = count_query.filter(games::white_elo.between(r.0, r.1));
+            }
+            if let Some(r) = r2 {
+                sql_query = sql_query.filter(games::black_elo.between(r.0, r.1));
+                count_query = count_query.filter(games::black_elo.between(r.0, r.1));
+            }
+        }
     }
 
     sql_query = match query_options.sort {

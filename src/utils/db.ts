@@ -18,8 +18,6 @@ import { unwrap } from "./unwrap";
 
 export type SuccessDatabaseInfo = Extract<DatabaseInfo, { type: "success" }>;
 
-export type Sides = "WhiteBlack" | "BlackWhite" | "Any";
-
 export interface CompleteGame {
     game: NormalizedGame;
     currentMove: number[];
@@ -48,7 +46,8 @@ function build_game_query_for_commands(query: GameQuery): GameQuery {
         player2: query.player2,
         range2: normalizeRange(query.range2),
         tournament_id: query.tournament_id,
-        sides: query.sides,
+        player1Side: query.player1Side,
+        player2Side: query.player2Side,
         outcome: query.outcome,
         start_date: query.start_date,
         end_date: query.end_date,
@@ -200,15 +199,17 @@ export async function searchPosition(options: LocalOptions, tab: string) {
     const res = await commands.searchPosition(
         options.path!,
         {
-            player1: options.color === "white" ? options.player : undefined,
-            player2: options.color === "black" ? options.player : undefined,
+            player1: options.player ?? undefined,
+            player2: options.player2 ?? undefined,
+            player1Side: options.player1Side,
+            player2Side: options.player2Side,
             position: {
                 fen: options.fen,
                 type_: options.type,
             },
             start_date: options.start_date,
             end_date: options.end_date,
-            wanted_result: options.result,
+            wanted_result: options.result === "any" ? undefined : options.result,
         },
         tab,
     );

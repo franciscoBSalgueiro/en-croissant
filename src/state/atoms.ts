@@ -382,7 +382,9 @@ const localOptionsFamily = atomFamily((_tab: string) =>
         type: "exact",
         fen: "",
         player: null,
-        color: "white",
+        player2: null,
+        player1Side: "white",
+        player2Side: "black",
         result: "any",
     }),
 );

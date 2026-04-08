@@ -37,7 +37,7 @@ import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
 import GameCard from "./GameCard";
 import GridLayout from "./GridLayout";
 import { PlayerSearchInput } from "./PlayerSearchInput";
-import { SideInput } from "./SideInput";
+import { PlayerSideMenu, resolveMutualPlayerSides } from "./PlayerSideMenu";
 import classes from "./styles.module.css";
 
 function sanitizeDatabaseFilename(name: string): string {
@@ -185,10 +185,19 @@ function GameTable() {
                   value={query?.player1 ?? undefined}
                   setValue={(value) => setQuery({ ...query, player1: value })}
                   rightSection={
-                    <SideInput
-                      sides={query.sides!}
-                      setSides={(value) => setQuery({ ...query, sides: value })}
-                      label="Player"
+                    <PlayerSideMenu
+                      value={query.player1Side ?? "white"}
+                      onChange={(side) =>
+                        setQuery({
+                          ...query,
+                          ...resolveMutualPlayerSides(
+                            1,
+                            side,
+                            query.player1Side ?? "white",
+                            query.player2Side ?? "black",
+                          ),
+                        })
+                      }
                     />
                   }
                   label={t("Common.Search")}
@@ -198,10 +207,19 @@ function GameTable() {
                   value={query?.player2 ?? undefined}
                   setValue={(value) => setQuery({ ...query, player2: value })}
                   rightSection={
-                    <SideInput
-                      sides={query.sides!}
-                      setSides={(value) => setQuery({ ...query, sides: value })}
-                      label="Opponent"
+                    <PlayerSideMenu
+                      value={query.player2Side ?? "black"}
+                      onChange={(side) =>
+                        setQuery({
+                          ...query,
+                          ...resolveMutualPlayerSides(
+                            2,
+                            side,
+                            query.player1Side ?? "white",
+                            query.player2Side ?? "black",
+                          ),
+                        })
+                      }
                     />
                   }
                   label={t("Common.Search")}

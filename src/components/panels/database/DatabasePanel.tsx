@@ -23,7 +23,7 @@ import { exists } from "@tauri-apps/plugin-fs";
 import useSWR from "swr/immutable";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
-import { commands, type GameQuery } from "@/bindings";
+import { commands, type GameQuery, type PlayerSide } from "@/bindings";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
   currentDbTabAtom,
@@ -73,7 +73,9 @@ export type LocalOptions = {
   fen: string;
   type: "exact" | "partial";
   player: number | null;
-  color: "white" | "black";
+  player2: number | null;
+  player1Side: PlayerSide;
+  player2Side: PlayerSide;
   start_date?: string;
   end_date?: string;
   result: "any" | "whitewon" | "draw" | "blackwon";
@@ -93,8 +95,10 @@ function sanitizeDatabaseFilename(name: string): string {
 /** Same `GameQuery` shape as `searchPosition` for local databases (board filters). */
 function buildBoardLocalExportQuery(options: LocalOptions): GameQuery {
   return {
-    player1: options.color === "white" ? (options.player ?? undefined) : undefined,
-    player2: options.color === "black" ? (options.player ?? undefined) : undefined,
+    player1: options.player ?? undefined,
+    player2: options.player2 ?? undefined,
+    player1Side: options.player1Side,
+    player2Side: options.player2Side,
     position: {
       fen: options.fen,
       type_: options.type,

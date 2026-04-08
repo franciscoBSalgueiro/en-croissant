@@ -6,9 +6,9 @@
   "scripts": {
     "start-vite": "vite",
     "build-vite": "tsgo --noEmit && vite build",
-    "build": "tauri build --no-bundle",
-    "dev": "tauri dev",
-    "tauri": "tauri",
+    "build": "node scripts/with-cargo-path.mjs tauri build --no-bundle",
+    "dev": "node scripts/with-cargo-path.mjs tauri dev",
+    "tauri": "node scripts/with-cargo-path.mjs tauri",
     "format": "oxfmt",
     "test": "vitest run",
     "lint": "tsgo --noEmit && oxlint",
