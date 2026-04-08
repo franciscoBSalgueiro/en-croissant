@@ -128,9 +128,28 @@ async recordEncroissantEngineGame(args: RecordEncroissantEngineGameArgs) : Promi
     else return { status: "error", error: e  as any };
 }
 },
-async getEncroissantEngineDisplayRating(username: string, timeControl: string) : Promise<Result<number, string>> {
+async recordEncroissantHumanVsHumanGame(args: RecordEncroissantHumanGameArgs) : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_encroissant_engine_display_rating", { args: { username, timeControl } }) };
+    return { status: "ok", data: await TAURI_INVOKE("record_encroissant_human_vs_human_game", { args }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * SQLite path for local En Croissant played games (engine and human vs human).
+ */
+async getEncroissantLocalGamesDbPath() : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_encroissant_local_games_db_path") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getEncroissantEngineDisplayRating(args: GetEncDisplayRatingArgs) : Promise<Result<number, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_encroissant_engine_display_rating", { args }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -144,6 +163,17 @@ async getEncroissantEngineSiteStats(username: string) : Promise<Result<SiteStats
     else return { status: "error", error: e  as any };
 }
 },
+async getEncroissantEngineAccountSummary(username: string) : Promise<Result<EncEngineAccountSummary, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_encroissant_engine_account_summary", { username }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Ensures a row exists in the En Croissant engine player directory (0 games until recorded).
+ */
 async registerEncroissantEnginePlayer(username: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("register_encroissant_engine_player", { username }) };
@@ -154,15 +184,7 @@ async registerEncroissantEnginePlayer(username: string) : Promise<Result<null, s
 },
 async listEncroissantEngineUsernames() : Promise<Result<string[], string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("list_encroissant_engine_usernames", {}) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getEncroissantEngineAccountSummary(username: string) : Promise<Result<EncEngineAccountSummary, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_encroissant_engine_account_summary", { username }) };
+    return { status: "ok", data: await TAURI_INVOKE("list_encroissant_engine_usernames") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -200,14 +222,6 @@ async mergePlayers(file: string, player1: number, player2: number) : Promise<Res
     else return { status: "error", error: e  as any };
 }
 },
-async repairGameDates(file: string) : Promise<Result<number, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("repair_game_dates", { file }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
 async convertPgn(files: string[], dbPath: string, timestamp: number | null, title: string, description: string | null) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("convert_pgn", { files, dbPath, timestamp, title, description }) };
@@ -216,6 +230,22 @@ async convertPgn(files: string[], dbPath: string, timestamp: number | null, titl
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * One-off: rewrite `Games.Date` to canonical `YYYY.MM.DD`, fix DD.MM.YY and future-dated entries.
+ * When the database is a TWIC install (`TwicLastIssue` in Info), refreshes `TwicMaxGameDate`.
+ */
+async repairGameDates(file: string) : Promise<Result<number, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("repair_game_dates", { file }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * `mode`: `"initial"` starts at issue 920 until data is within the last week or a zip is missing.
+ * `"update"` continues from the last stored issue + 1 until a zip is missing.
+ */
 async syncTwicDatabase(dbPath: string, mode: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("sync_twic_database", { dbPath, mode }) };
@@ -569,6 +599,8 @@ export type ClockUpdateEvent = { gameId: string; whiteTime: bigint | null; black
 export type DatabaseInfo = { title: string; description: string; player_count: number; event_count: number; game_count: number; storage_size: bigint; filename: string; indexed: boolean; twic_last_issue?: number | null; twic_max_game_date?: string | null }
 export type DatabaseProgress = { id: string; progress: number }
 export type DrawReason = "stalemate" | "insufficientMaterial" | "threefoldRepetition" | "fiftyMoveRule" | "agreement"
+export type EncEngineAccountSummary = { registered: boolean; username: string; totalGames: number; lastPlayedAtMs: bigint | null; perfs: EncEnginePerfStat[] }
+export type EncEnginePerfStat = { key: string; rating: number; games: number }
 export type EngineConfig = { name: string; options: UciOptionConfig[] }
 export type EngineLog = { type: "gui"; value: string } | { type: "engine"; value: string }
 export type EngineOption = { name: string; value: string }
@@ -586,6 +618,7 @@ export type GameResult = { type: "whiteWins"; reason: GameEndReason } | { type: 
 export type GameSort = "id" | "date" | "whiteElo" | "blackElo" | "ply_count"
 export type GameState = { gameId: string; status: GameStatus; initialFen: string; moves: GameMove[]; currentFen: string; ply: number; turn: string; whiteTime: bigint | null; blackTime: bigint | null; whitePlayer: string; blackPlayer: string }
 export type GameStatus = "playing" | { finished: { result: GameResult } }
+export type GetEncDisplayRatingArgs = { username: string; timeControl: string }
 export type GoMode = { t: "PlayersTime"; c: PlayersTime } | { t: "Depth"; c: number } | { t: "Time"; c: number } | { t: "Nodes"; c: number } | { t: "Infinite" }
 export type MoveAnalysis = { best: BestMoves[]; novelty: boolean; is_sacrifice: boolean }
 export type NormalizedGame = { id: number; fen: string; event: string; event_id: number; site: string; site_id: number; date?: string | null; time?: string | null; round?: string | null; white: string; white_id: number; white_elo?: number | null; black: string; black_id: number; black_elo?: number | null; result: Outcome; time_control?: string | null; eco?: string | null; ply_count?: number | null; moves: string }
@@ -595,17 +628,11 @@ export type Outcome = "1-0" | "0-1" | "1/2-1/2" | "*"
 export type Player = { id: number; name: string | null; elo: number | null }
 export type PlayerConfig = { type: "human"; name: string } | { type: "engine"; name: string; path: string; options?: EngineOption[]; go: GoMode | null }
 export type PlayerGameInfo = { site_stats_data: SiteStatsData[] }
-export type RecordEncroissantEngineGameArgs = {
-  username: string
-  humanIsWhite: boolean
-  outcome: Outcome
-  opponentElo: number | null
-  limitStrength: boolean
-  timeControl: string
-  movesUci: string[]
-  date: string
-}
 export type PlayerQuery = { options: QueryOptions<PlayerSort>; name?: string | null; range?: [number, number] | null }
+/**
+ * Which color the player must have in a game (`Any` = white or black).
+ */
+export type PlayerSide = "any" | "white" | "black"
 export type PlayerSort = "id" | "name" | "elo"
 export type PlayersTime = { white: number; black: number; winc: number; binc: number }
 export type PositionQueryJs = { fen: string; type_: string }
@@ -616,6 +643,8 @@ export type Puzzle = { id: number; fen: string; moves: string; rating: number; r
 export type PuzzleDatabaseInfo = { title: string; description: string; puzzleCount: number; storageSize: bigint; path: string }
 export type QueryOptions<SortT> = { skipCount: boolean; page?: number | null; pageSize?: number | null; sort: SortT; direction: SortDirection }
 export type QueryResponse<T> = { data: T; count: number | null }
+export type RecordEncroissantEngineGameArgs = { username: string; humanIsWhite: boolean; outcome: string; opponentElo: number | null; limitStrength: boolean; timeControl: string; movesUci: string[]; date: string }
+export type RecordEncroissantHumanGameArgs = { whiteName: string; blackName: string; result: GameResult; whiteTimeControl: string; blackTimeControl: string; movesUci: string[]; date: string }
 export type Score = { value: ScoreValue; 
 /**
  * The probability of each result (win, draw, loss).
@@ -630,17 +659,7 @@ export type ScoreValue =
  * Mate coming up in this many moves. Negative value means the engine is getting mated.
  */
 { type: "mate"; value: number }
-export type PlayerSide = "any" | "white" | "black"
 export type SiteStatsData = { site: string; player: string; data: StatsData[] }
-export type EncEnginePerfStat = { key: string; rating: number; games: number }
-export type EncEngineAccountSummary = {
-  registered: boolean
-  username: string
-  totalGames: number
-  lastPlayedAtMs: number | null
-  perfs: EncEnginePerfStat[]
-}
-
 export type SortDirection = "asc" | "desc"
 export type StatsData = { date: string; is_player_white: boolean; player_elo: number; result: GameOutcome; time_control: string; opening: string }
 export type TimeControl = { initialTime: bigint; increment: bigint }

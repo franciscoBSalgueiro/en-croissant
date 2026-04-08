@@ -7,19 +7,30 @@ use chrono::{NaiveDate, TimeZone, Utc};
 use libm::erf;
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
+use serde_json;
 use shakmaty::{uci::UciMove, Chess, EnPassantMode, Position};
 use specta::Type;
 use tauri::{AppHandle, Manager};
 
 use crate::db::{GameOutcome, PlayerGameInfo, SiteStatsData, StatsData};
 use crate::error::Error;
+use crate::game::GameResult;
 use crate::opening::get_opening_from_setup;
 
 const DB_FILENAME: &str = "EnCroissantEngineGames.db";
 
-fn db_path(app: &AppHandle) -> Result<PathBuf, Error> {
+pub fn local_engine_games_file_path(app: &AppHandle) -> Result<PathBuf, Error> {
     let dir = app.path().app_data_dir()?;
     Ok(dir.join(DB_FILENAME))
+}
+
+fn db_path(app: &AppHandle) -> Result<PathBuf, Error> {
+    local_engine_games_file_path(app)
+}
+
+/// Shared SQLite connection to app-data Enc games (ensures schema exists).
+pub fn open_enc_games_connection(app: &AppHandle) -> Result<Connection, Error> {
+    open_conn(app)
 }
 
 fn open_conn(app: &AppHandle) -> Result<Connection, Error> {
@@ -59,8 +70,25 @@ fn open_conn(app: &AppHandle) -> Result<Connection, Error> {
             FOREIGN KEY (player_id) REFERENCES engine_players(id)
         );
         CREATE INDEX IF NOT EXISTS idx_engine_games_player ON engine_games(player_id);
+        CREATE TABLE IF NOT EXISTS human_vs_human_games (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            white_name TEXT NOT NULL COLLATE NOCASE,
+            black_name TEXT NOT NULL COLLATE NOCASE,
+            result_pgn TEXT NOT NULL,
+            result_json TEXT NOT NULL,
+            time_control TEXT NOT NULL,
+            date TEXT NOT NULL,
+            opening TEXT NOT NULL,
+            moves_uci_json TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_hvh_white ON human_vs_human_games(white_name);
+        CREATE INDEX IF NOT EXISTS idx_hvh_black ON human_vs_human_games(black_name);
         ",
     )?;
+    let _ = conn.execute(
+        "ALTER TABLE engine_games ADD COLUMN moves_uci_json TEXT NOT NULL DEFAULT '[]'",
+        [],
+    );
     Ok(conn)
 }
 
@@ -172,6 +200,7 @@ pub async fn record_encroissant_engine_game(
     };
 
     let opening = opening_from_uci_moves(&args.moves_uci);
+    let moves_json = serde_json::to_string(&args.moves_uci).unwrap_or_else(|_| "[]".to_string());
     let perf = perf_from_time_control(&args.time_control).to_string();
 
     let conn = open_conn(&app)?;
@@ -219,8 +248,8 @@ pub async fn record_encroissant_engine_game(
     tx.execute(
         "INSERT INTO engine_games (
             player_id, perf, human_was_white, opponent_elo, rated,
-            player_elo_before, player_elo_after, result, time_control, date, opening
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            player_elo_before, player_elo_after, result, time_control, date, opening, moves_uci_json
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
         params![
             player_id,
             perf,
@@ -233,6 +262,7 @@ pub async fn record_encroissant_engine_game(
             args.time_control,
             args.date,
             opening,
+            moves_json,
         ],
     )?;
 
@@ -248,6 +278,73 @@ pub async fn record_encroissant_engine_game(
     Ok(())
 }
 
+fn game_result_pgn(result: &GameResult) -> &'static str {
+    match result {
+        GameResult::WhiteWins { .. } => "1-0",
+        GameResult::BlackWins { .. } => "0-1",
+        GameResult::Draw { .. } => "1/2-1/2",
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct RecordEncroissantHumanGameArgs {
+    pub white_name: String,
+    pub black_name: String,
+    pub result: GameResult,
+    pub white_time_control: String,
+    pub black_time_control: String,
+    pub moves_uci: Vec<String>,
+    pub date: String,
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn record_encroissant_human_vs_human_game(
+    app: AppHandle,
+    args: RecordEncroissantHumanGameArgs,
+) -> Result<(), Error> {
+    let white = args.white_name.trim();
+    let black = args.black_name.trim();
+    if white.is_empty() && black.is_empty() {
+        return Ok(());
+    }
+    let white = if white.is_empty() { "White" } else { white };
+    let black = if black.is_empty() { "Black" } else { black };
+    let opening = opening_from_uci_moves(&args.moves_uci);
+    let time_control = if args.white_time_control == args.black_time_control {
+        args.white_time_control.clone()
+    } else {
+        format!("{} / {}", args.white_time_control, args.black_time_control)
+    };
+    let result_pgn = game_result_pgn(&args.result).to_string();
+    let result_json = serde_json::to_string(&args.result).unwrap_or_default();
+    let moves_json = serde_json::to_string(&args.moves_uci).unwrap_or_else(|_| "[]".to_string());
+    let conn = open_conn(&app)?;
+    conn.execute(
+        "INSERT INTO human_vs_human_games (
+            white_name, black_name, result_pgn, result_json, time_control, date, opening, moves_uci_json
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+        params![
+            white,
+            black,
+            result_pgn,
+            result_json,
+            time_control,
+            args.date,
+            opening,
+            moves_json,
+        ],
+    )?;
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn get_encroissant_local_games_db_path(app: AppHandle) -> Result<String, Error> {
+    Ok(local_engine_games_file_path(&app)?.to_string_lossy().into_owned())
+}
+
 fn decode_game_outcome(result: i32) -> Option<GameOutcome> {
     match result {
         0 => Some(GameOutcome::Won),
@@ -257,7 +354,7 @@ fn decode_game_outcome(result: i32) -> Option<GameOutcome> {
     }
 }
 
-/// En Croissant stats for a username. `None` if they are not in the local engine player directory.
+/// Engine + local human vs human stats for a username, merged and sorted by date.
 pub fn load_site_stats(app: &AppHandle, username: &str) -> Result<Option<SiteStatsData>, Error> {
     let username = username.trim();
     if username.is_empty() {
@@ -275,46 +372,98 @@ pub fn load_site_stats(app: &AppHandle, username: &str) -> Result<Option<SiteSta
         Err(e) => return Err(e.into()),
     };
 
-    let Some(pid) = player_id else {
-        return Ok(None);
-    };
+    type SortKey = (String, i64);
+    let mut entries: Vec<(SortKey, StatsData)> = Vec::new();
 
-    let canonical: String = conn.query_row(
-        "SELECT username FROM engine_players WHERE id = ?1",
-        params![pid],
-        |row| row.get(0),
-    )?;
+    if let Some(pid) = player_id {
+        let mut stmt = conn.prepare(
+            "SELECT id, human_was_white, player_elo_after, result, time_control, date, opening
+             FROM engine_games WHERE player_id = ?1",
+        )?;
+
+        let rows = stmt.query_map(params![pid], |row| {
+            Ok((
+                row.get::<_, i32>(0)?,
+                row.get::<_, i32>(1)?,
+                row.get::<_, i32>(2)?,
+                row.get::<_, i32>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, String>(5)?,
+                row.get::<_, String>(6)?,
+            ))
+        })?;
+
+        for r in rows {
+            let (id, hw, elo, res, tc, d, op) = r?;
+            if let Some(go) = decode_game_outcome(res) {
+                entries.push((
+                    (d.clone(), id as i64),
+                    StatsData {
+                        date: d,
+                        is_player_white: hw != 0,
+                        player_elo: elo,
+                        result: go,
+                        time_control: tc,
+                        opening: op,
+                    },
+                ));
+            }
+        }
+    }
 
     let mut stmt = conn.prepare(
-        "SELECT human_was_white, player_elo_after, result, time_control, date, opening
-         FROM engine_games WHERE player_id = ?1 ORDER BY date ASC, id ASC",
+        "SELECT id, white_name, black_name, result_pgn, time_control, date, opening
+         FROM human_vs_human_games
+         WHERE white_name = ?1 COLLATE NOCASE OR black_name = ?1 COLLATE NOCASE",
     )?;
 
-    let rows = stmt.query_map(params![pid], |row| {
+    let rows = stmt.query_map(params![username], |row| {
         Ok((
             row.get::<_, i32>(0)?,
-            row.get::<_, i32>(1)?,
-            row.get::<_, i32>(2)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, String>(2)?,
             row.get::<_, String>(3)?,
             row.get::<_, String>(4)?,
             row.get::<_, String>(5)?,
+            row.get::<_, String>(6)?,
         ))
     })?;
 
-    let mut data = Vec::new();
     for r in rows {
-        let (hw, elo, res, tc, d, op) = r?;
-        if let Some(go) = decode_game_outcome(res) {
-            data.push(StatsData {
-                date: d,
-                is_player_white: hw != 0,
-                player_elo: elo,
-                result: go,
-                time_control: tc,
-                opening: op,
-            });
+        let (id, wn, _bn, pgn, tc, d, op) = r?;
+        let is_player_white = wn.eq_ignore_ascii_case(username);
+        if let Some(go) = GameOutcome::from_str(&pgn, is_player_white) {
+            entries.push((
+                (d.clone(), 1_000_000_000 + id as i64),
+                StatsData {
+                    date: d,
+                    is_player_white,
+                    player_elo: 1500,
+                    result: go,
+                    time_control: tc,
+                    opening: op,
+                },
+            ));
         }
     }
+
+    if entries.is_empty() {
+        return Ok(None);
+    }
+
+    entries.sort_by(|a, b| a.0.cmp(&b.0));
+
+    let canonical: String = if let Some(pid) = player_id {
+        conn.query_row(
+            "SELECT username FROM engine_players WHERE id = ?1",
+            params![pid],
+            |row| row.get(0),
+        )?
+    } else {
+        username.to_string()
+    };
+
+    let data: Vec<StatsData> = entries.into_iter().map(|(_, s)| s).collect();
 
     Ok(Some(SiteStatsData {
         site: "En Croissant".to_string(),
@@ -474,7 +623,13 @@ pub fn enc_engine_account_summary(app: &AppHandle, username: &str) -> Result<Enc
         Err(e) => return Err(e.into()),
     };
 
-    let Some(pid) = player_id else {
+    let hvh_total: i32 = conn.query_row(
+        "SELECT COUNT(*) FROM human_vs_human_games WHERE white_name = ?1 COLLATE NOCASE OR black_name = ?1 COLLATE NOCASE",
+        params![username],
+        |row| row.get(0),
+    )?;
+
+    if player_id.is_none() && hvh_total == 0 {
         return Ok(EncEngineAccountSummary {
             registered: false,
             username: username.to_string(),
@@ -482,37 +637,71 @@ pub fn enc_engine_account_summary(app: &AppHandle, username: &str) -> Result<Enc
             last_played_at_ms: None,
             perfs: vec![],
         });
+    }
+
+    let canonical: String = if let Some(pid) = player_id {
+        conn.query_row(
+            "SELECT username FROM engine_players WHERE id = ?1",
+            params![pid],
+            |row| row.get(0),
+        )?
+    } else {
+        username.to_string()
     };
 
-    let canonical: String = conn.query_row(
-        "SELECT username FROM engine_players WHERE id = ?1",
-        params![pid],
-        |row| row.get(0),
-    )?;
+    let engine_total: i32 = if let Some(pid) = player_id {
+        conn.query_row(
+            "SELECT COUNT(*) FROM engine_games WHERE player_id = ?1",
+            params![pid],
+            |row| row.get(0),
+        )?
+    } else {
+        0
+    };
 
-    let total_games: i32 = conn.query_row(
-        "SELECT COUNT(*) FROM engine_games WHERE player_id = ?1",
-        params![pid],
-        |row| row.get(0),
-    )?;
+    let total_games = engine_total + hvh_total;
 
-    let mut dates: Vec<String> = conn
-        .prepare("SELECT date FROM engine_games WHERE player_id = ?1")?
-        .query_map(params![pid], |row| row.get::<_, String>(0))?
-        .filter_map(|r| r.ok())
-        .collect();
+    let mut dates: Vec<String> = if let Some(pid) = player_id {
+        conn.prepare("SELECT date FROM engine_games WHERE player_id = ?1")?
+            .query_map(params![pid], |row| row.get::<_, String>(0))?
+            .filter_map(|r| r.ok())
+            .collect()
+    } else {
+        vec![]
+    };
+
+    dates.extend(
+        conn.prepare(
+            "SELECT date FROM human_vs_human_games WHERE white_name = ?1 COLLATE NOCASE OR black_name = ?1 COLLATE NOCASE",
+        )?
+        .query_map(params![username], |row| row.get::<_, String>(0))?
+        .filter_map(|r| r.ok()),
+    );
 
     dates.sort_by(|a, b| b.cmp(a));
     let last_played_at_ms = dates.first().and_then(|s| pgn_date_to_ms(s));
 
     let mut counts: HashMap<String, i32> = HashMap::new();
-    let mut stmt = conn.prepare("SELECT perf, COUNT(*) FROM engine_games WHERE player_id = ?1 GROUP BY perf")?;
-    let rows = stmt.query_map(params![pid], |row| {
-        Ok((row.get::<_, String>(0)?, row.get::<_, i32>(1)?))
-    })?;
-    for r in rows {
-        let (perf, n) = r?;
-        counts.insert(perf, n);
+    if let Some(pid) = player_id {
+        let mut stmt =
+            conn.prepare("SELECT perf, COUNT(*) FROM engine_games WHERE player_id = ?1 GROUP BY perf")?;
+        let rows = stmt.query_map(params![pid], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, i32>(1)?))
+        })?;
+        for r in rows {
+            let (perf, n) = r?;
+            counts.insert(perf, n);
+        }
+    }
+
+    let mut hvh_stmt = conn.prepare(
+        "SELECT time_control FROM human_vs_human_games WHERE white_name = ?1 COLLATE NOCASE OR black_name = ?1 COLLATE NOCASE",
+    )?;
+    for r in hvh_stmt.query_map(params![username], |row| row.get::<_, String>(0))? {
+        let tc = r?;
+        let bucket = tc.split(" / ").next().unwrap_or(&tc);
+        let perf = perf_from_time_control(bucket.trim()).to_string();
+        *counts.entry(perf).or_insert(0) += 1;
     }
 
     let bullet_games = *counts.get("bullet").unwrap_or(&0) + *counts.get("ultra_bullet").unwrap_or(&0);
@@ -520,10 +709,16 @@ pub fn enc_engine_account_summary(app: &AppHandle, username: &str) -> Result<Enc
     let rapid_games = *counts.get("rapid").unwrap_or(&0);
     let classical_games = *counts.get("classical").unwrap_or(&0);
 
-    let bullet_rating = rating_for_perf_or_default(&conn, pid, "bullet")?;
-    let blitz_rating = rating_for_perf_or_default(&conn, pid, "blitz")?;
-    let rapid_rating = rating_for_perf_or_default(&conn, pid, "rapid")?;
-    let classical_rating = rating_for_perf_or_default(&conn, pid, "classical")?;
+    let (bullet_rating, blitz_rating, rapid_rating, classical_rating) = if let Some(pid) = player_id {
+        (
+            rating_for_perf_or_default(&conn, pid, "bullet")?,
+            rating_for_perf_or_default(&conn, pid, "blitz")?,
+            rating_for_perf_or_default(&conn, pid, "rapid")?,
+            rating_for_perf_or_default(&conn, pid, "classical")?,
+        )
+    } else {
+        (1000, 1000, 1000, 1000)
+    };
 
     let perfs = vec![
         EncEnginePerfStat {
@@ -570,7 +765,12 @@ pub async fn get_encroissant_engine_account_summary(
 #[specta::specta]
 pub async fn list_encroissant_engine_usernames(app: AppHandle) -> Result<Vec<String>, Error> {
     let conn = open_conn(&app)?;
-    let mut stmt = conn.prepare("SELECT username FROM engine_players ORDER BY username COLLATE NOCASE")?;
+    let mut stmt = conn.prepare(
+        "SELECT username FROM engine_players
+         UNION SELECT white_name FROM human_vs_human_games
+         UNION SELECT black_name FROM human_vs_human_games
+         ORDER BY username COLLATE NOCASE",
+    )?;
     let names = stmt
         .query_map([], |row| row.get(0))?
         .filter_map(|r| r.ok())

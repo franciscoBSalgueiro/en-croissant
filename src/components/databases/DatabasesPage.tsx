@@ -40,7 +40,7 @@ import {
   storedDatabasesDirAtom,
 } from "@/state/atoms";
 import { useActiveDatabaseViewStore } from "@/state/store/database";
-import { getDatabases, type SuccessDatabaseInfo } from "@/utils/db";
+import { getDatabases, isEncLocalPlayedGamesDb, type SuccessDatabaseInfo } from "@/utils/db";
 import { formatBytes, formatNumber, formatPgnStorageDateForDisplay } from "@/utils/format";
 import { unwrap } from "@/utils/unwrap";
 import ConfirmModal from "../common/ConfirmModal";
@@ -215,7 +215,7 @@ export default function DatabasesPage() {
                   filteredDatabases?.map((item) => (
                     <GenericCard
                       id={item.file}
-                      key={item.filename}
+                      key={item.file}
                       isSelected={selectedDatabase?.filename === item.filename}
                       setSelected={setSelected}
                       error={item.type === "error" ? item.error : ""}
@@ -253,8 +253,14 @@ export default function DatabasesPage() {
                             value={referenceDatabase === item.file ? 1 : 0}
                             count={1}
                             onChange={() => {
+                              if (isEncLocalPlayedGamesDb(item.file)) return;
                               changeReferenceDatabase(item.file);
                             }}
+                            styles={
+                              isEncLocalPlayedGamesDb(item.file)
+                                ? { root: { opacity: 0.35, pointerEvents: "none" } }
+                                : undefined
+                            }
                           />
                         </Group>
                       }
@@ -332,6 +338,7 @@ export default function DatabasesPage() {
                       key={selectedDatabase.filename}
                       selectedDatabase={selectedDatabase}
                       mutate={mutate}
+                      readOnlyMetadata={isEncLocalPlayedGamesDb(selectedDatabase.file)}
                     />
                     {selectedDatabase.twic_last_issue != null && (
                       <TwicDatabaseSync
@@ -347,15 +354,18 @@ export default function DatabasesPage() {
                     <Checkbox
                       label={t("Databases.Settings.ReferenceDatabase")}
                       checked={isReference}
+                      disabled={isEncLocalPlayedGamesDb(selectedDatabase.file)}
                       onChange={() => {
                         changeReferenceDatabase(selectedDatabase.file);
                       }}
                     />
-                    <IndexInput
-                      indexed={selectedDatabase.indexed}
-                      file={selectedDatabase.file}
-                      setDatabases={mutate}
-                    />
+                    {!isEncLocalPlayedGamesDb(selectedDatabase.file) && (
+                      <IndexInput
+                        indexed={selectedDatabase.indexed}
+                        file={selectedDatabase.file}
+                        setDatabases={mutate}
+                      />
+                    )}
 
                     <Divider variant="dashed" label={t("Common.Data")} />
                     <Group grow>
@@ -405,76 +415,88 @@ export default function DatabasesPage() {
 
                 <Divider variant="dashed" label={t("Databases.Settings.AdvancedTools")} />
 
-                {selectedDatabase.type === "success" && (
-                  <AdvancedSettings selectedDatabase={selectedDatabase} reload={mutate} />
-                )}
+                {selectedDatabase.type === "success" &&
+                  !isEncLocalPlayedGamesDb(selectedDatabase.file) && (
+                    <AdvancedSettings selectedDatabase={selectedDatabase} reload={mutate} />
+                  )}
 
                 <Divider variant="dashed" label={t("Databases.Settings.Actions")} />
                 <Group justify="space-between">
-                  {selectedDatabase.type === "success" && (
-                    <Group>
-                      <Button
-                        variant="default"
-                        rightSection={<IconPlus size="1rem" />}
-                        onClick={async () => {
-                          const selected = await openDialog({
-                            multiple: true,
-                            filters: [{ name: "PGN", extensions: ["pgn", "pgn.zst"] }],
-                          });
-                          if (!selected) return;
+                  {selectedDatabase.type === "success" &&
+                    !isEncLocalPlayedGamesDb(selectedDatabase.file) && (
+                      <Group>
+                        <Button
+                          variant="default"
+                          rightSection={<IconPlus size="1rem" />}
+                          onClick={async () => {
+                            const selected = await openDialog({
+                              multiple: true,
+                              filters: [{ name: "PGN", extensions: ["pgn", "pgn.zst"] }],
+                            });
+                            if (!selected) return;
 
-                          const files = Array.isArray(selected) ? selected : [selected];
-                          if (files.length === 0) return;
+                            const files = Array.isArray(selected) ? selected : [selected];
+                            if (files.length === 0) return;
 
-                          const firstFileName = await basename(files[0]);
-                          const sourceFileName =
-                            files.length > 1
-                              ? `${firstFileName} (+${files.length - 1})`
-                              : firstFileName;
-                          setConversionState((prev) => ({
-                            ...prev,
-                            inProgress: true,
-                            targetDatabasePath: selectedDatabase.file,
-                            targetDatabaseTitle: selectedDatabase.title,
-                            sourceFileName,
-                          }));
-                          try {
-                            await commands.convertPgn(files, selectedDatabase.file, null, "", null);
-                            mutate();
-                          } finally {
+                            const firstFileName = await basename(files[0]);
+                            const sourceFileName =
+                              files.length > 1
+                                ? `${firstFileName} (+${files.length - 1})`
+                                : firstFileName;
                             setConversionState((prev) => ({
                               ...prev,
-                              inProgress: false,
-                              totalGames: 0,
-                              elapsedSeconds: 0,
-                              targetDatabasePath: null,
-                              targetDatabaseTitle: null,
-                              sourceFileName: null,
+                              inProgress: true,
+                              targetDatabasePath: selectedDatabase.file,
+                              targetDatabaseTitle: selectedDatabase.title,
+                              sourceFileName,
                             }));
-                          }
-                        }}
-                      >
-                        {t("Databases.Settings.AddGames")}
-                      </Button>
-                      <Button
-                        rightSection={<IconArrowRight size="1rem" />}
-                        variant="default"
-                        loading={exportLoading}
-                        onClick={async () => {
-                          const destFile = await save({
-                            filters: [{ name: "PGN", extensions: ["pgn"] }],
-                          });
-                          if (!destFile) return;
-                          setExportLoading(true);
-                          await commands.exportToPgn(selectedDatabase.file, destFile);
-                          setExportLoading(false);
-                        }}
-                      >
-                        {t("Databases.Settings.ExportPGN")}
-                      </Button>
-                    </Group>
-                  )}
-                  <Button onClick={() => toggleDeleteModal()} color="red">
+                            try {
+                              await commands.convertPgn(
+                                files,
+                                selectedDatabase.file,
+                                null,
+                                "",
+                                null,
+                              );
+                              mutate();
+                            } finally {
+                              setConversionState((prev) => ({
+                                ...prev,
+                                inProgress: false,
+                                totalGames: 0,
+                                elapsedSeconds: 0,
+                                targetDatabasePath: null,
+                                targetDatabaseTitle: null,
+                                sourceFileName: null,
+                              }));
+                            }
+                          }}
+                        >
+                          {t("Databases.Settings.AddGames")}
+                        </Button>
+                        <Button
+                          rightSection={<IconArrowRight size="1rem" />}
+                          variant="default"
+                          loading={exportLoading}
+                          onClick={async () => {
+                            const destFile = await save({
+                              filters: [{ name: "PGN", extensions: ["pgn"] }],
+                            });
+                            if (!destFile) return;
+                            setExportLoading(true);
+                            await commands.exportToPgn(selectedDatabase.file, destFile);
+                            setExportLoading(false);
+                          }}
+                        >
+                          {t("Databases.Settings.ExportPGN")}
+                        </Button>
+                      </Group>
+                    )}
+                  <Button
+                    onClick={() => toggleDeleteModal()}
+                    color="red"
+                    disabled={isEncLocalPlayedGamesDb(selectedDatabase.file)}
+                  >
                     {t("Common.Delete")}
                   </Button>
                 </Group>
@@ -596,9 +618,11 @@ function TwicDatabaseSync({
 function GeneralSettings({
   selectedDatabase,
   mutate,
+  readOnlyMetadata,
 }: {
   selectedDatabase: SuccessDatabaseInfo;
   mutate: () => void;
+  readOnlyMetadata?: boolean;
 }) {
   const { t } = useTranslation();
 
@@ -609,22 +633,25 @@ function GeneralSettings({
   const [debouncedDescription] = useDebouncedValue(description, 300);
 
   useEffect(() => {
+    if (readOnlyMetadata) return;
     commands
       .editDbInfo(selectedDatabase.file, debouncedTitle ?? null, debouncedDescription ?? null)
       .then(() => mutate());
-  }, [debouncedTitle, debouncedDescription]);
+  }, [debouncedTitle, debouncedDescription, readOnlyMetadata, selectedDatabase.file, mutate]);
 
   return (
     <>
       <TextInput
         label={t("Common.Name")}
         value={title}
+        readOnly={readOnlyMetadata}
         onChange={(e) => setTitle(e.currentTarget.value)}
         error={title === "" && t("Common.RequireName")}
       />
       <Textarea
         label={t("Common.Description")}
         value={description}
+        readOnly={readOnlyMetadata}
         onChange={(e) => setDescription(e.currentTarget.value)}
       />
     </>

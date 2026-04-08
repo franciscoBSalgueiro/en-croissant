@@ -18,6 +18,13 @@ import { unwrap } from "./unwrap";
 
 export type SuccessDatabaseInfo = Extract<DatabaseInfo, { type: "success" }>;
 
+/** Virtual path for `EnCroissantEngineGames.db` in the databases list (not a `.db3` in the databases folder). */
+export const ENC_LOCAL_PLAYED_GAMES_DB_FILE = "__encLocalPlayedGames__";
+
+export function isEncLocalPlayedGamesDb(file: string): boolean {
+    return file === ENC_LOCAL_PLAYED_GAMES_DB_FILE;
+}
+
 export interface CompleteGame {
     game: NormalizedGame;
     currentMove: number[];
@@ -121,9 +128,27 @@ export async function getDatabases(): Promise<DatabaseInfo[]> {
     const dbDir = await getDatabasesDir();
     const files = await readDir(dbDir);
     const dbs = files.filter((file) => file.name?.endsWith(".db3"));
-    return (await Promise.allSettled(dbs.map((db) => getDatabase(db.name))))
+    const normal = (await Promise.allSettled(dbs.map((db) => getDatabase(db.name!))))
         .filter((r) => r.status === "fulfilled")
         .map((r) => (r as PromiseFulfilledResult<DatabaseInfo>).value);
+
+    const encRes = await commands.getDbInfo(ENC_LOCAL_PLAYED_GAMES_DB_FILE);
+    const enc: DatabaseInfo =
+        encRes.status === "ok"
+            ? {
+                  type: "success",
+                  ...encRes.data,
+                  file: ENC_LOCAL_PLAYED_GAMES_DB_FILE,
+              }
+            : {
+                  type: "error",
+                  filename: ENC_LOCAL_PLAYED_GAMES_DB_FILE,
+                  file: ENC_LOCAL_PLAYED_GAMES_DB_FILE,
+                  error: encRes.error,
+                  indexed: false,
+              };
+
+    return [enc, ...normal];
 }
 
 async function getDatabase(name: string): Promise<DatabaseInfo> {

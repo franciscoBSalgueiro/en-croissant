@@ -6,6 +6,7 @@
 mod chess;
 mod db;
 mod engine;
+mod enc_local_db;
 mod engine_games;
 mod error;
 mod game;
@@ -48,8 +49,9 @@ use crate::db::{
 };
 use crate::engine_games::{
     get_encroissant_engine_account_summary, get_encroissant_engine_display_rating,
-    get_encroissant_engine_site_stats, list_encroissant_engine_usernames,
-    record_encroissant_engine_game, register_encroissant_engine_player,
+    get_encroissant_engine_site_stats, get_encroissant_local_games_db_path,
+    list_encroissant_engine_usernames, record_encroissant_engine_game,
+    record_encroissant_human_vs_human_game, register_encroissant_engine_player,
 };
 use crate::game::{
     abort_game, get_game_engine_logs, get_game_state, make_game_move, resign_game, start_game,
@@ -132,6 +134,8 @@ fn main() {
             get_opening_from_name,
             get_players_game_info,
             record_encroissant_engine_game,
+            record_encroissant_human_vs_human_game,
+            get_encroissant_local_games_db_path,
             get_encroissant_engine_display_rating,
             get_encroissant_engine_site_stats,
             get_encroissant_engine_account_summary,

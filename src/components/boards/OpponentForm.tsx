@@ -222,9 +222,7 @@ export function OpponentForm({
             checked={opponent.limitStrength ?? false}
             onChange={(e) =>
               setOpponent((prev) =>
-                prev.type === "engine"
-                  ? { ...prev, limitStrength: e.currentTarget.checked }
-                  : prev,
+                prev.type === "engine" ? { ...prev, limitStrength: e.currentTarget.checked } : prev,
               )
             }
           />

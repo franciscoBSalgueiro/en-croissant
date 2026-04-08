@@ -18,10 +18,7 @@ import { useTranslation } from "react-i18next";
 import { Chessground } from "@/chessground/Chessground";
 import PiecesGrid from "@/components/boards/PiecesGrid";
 import { PlayerSearchInput } from "@/components/databases/PlayerSearchInput";
-import {
-  PlayerSideMenu,
-  resolveMutualPlayerSides,
-} from "@/components/databases/PlayerSideMenu";
+import { PlayerSideMenu, resolveMutualPlayerSides } from "@/components/databases/PlayerSideMenu";
 import { currentLocalOptionsAtom } from "@/state/atoms";
 
 function LocalOptionsPanel({ boardFen }: { boardFen: string }) {

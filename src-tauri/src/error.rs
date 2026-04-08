@@ -72,6 +72,9 @@ pub enum Error {
     #[error("Game not found: {0}")]
     GameNotFound(String),
 
+    #[error("This operation is not supported on the En Croissant local games database")]
+    EncLocalGamesReadOnly,
+
     #[error("Game not in progress")]
     GameNotInProgress,
 

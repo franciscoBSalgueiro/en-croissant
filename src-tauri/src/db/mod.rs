@@ -46,7 +46,7 @@ use std::{
     io::{BufWriter, Write},
     str::FromStr,
 };
-use tauri::{Emitter, State};
+use tauri::{AppHandle, Emitter, State};
 
 use log::info;
 use tauri_specta::Event as _;
@@ -57,6 +57,8 @@ use self::encoding::{
 pub use self::search_index::{get_index_path, MmapSearchIndex, SearchGameEntry, SearchIndex};
 
 pub use self::models::NormalizedGame;
+pub use self::models::Outcome;
+pub use self::models::Player;
 pub use self::models::Puzzle;
 pub use self::schema::puzzle_themes;
 pub use self::schema::puzzles;
@@ -828,6 +830,24 @@ pub struct DatabaseInfo {
     twic_max_game_date: Option<String>,
 }
 
+impl DatabaseInfo {
+    pub fn enc_croissant_local(storage_size: u64, game_count: i32, player_count: i32) -> Self {
+        Self {
+            title: "En Croissant — Local games".into(),
+            description: "Human vs engine and local over-the-board games recorded in the app."
+                .into(),
+            player_count,
+            event_count: 2,
+            game_count,
+            storage_size,
+            filename: "EnCroissantEngineGames.db".into(),
+            indexed: false,
+            twic_last_issue: None,
+            twic_max_game_date: None,
+        }
+    }
+}
+
 #[derive(QueryableByName, Debug, Serialize)]
 struct IndexInfo {
     #[diesel(sql_type = Text, column_name = "name")]
@@ -845,8 +865,13 @@ fn check_index_exists(conn: &mut SqliteConnection) -> Result<bool, Error> {
 pub async fn get_db_info(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
+    app: AppHandle,
 ) -> Result<DatabaseInfo, Error> {
     info!("get_db_info {:?}", file);
+
+    if crate::enc_local_db::is_enc_local_sentinel(&file) {
+        return crate::enc_local_db::enc_local_database_info(&app);
+    }
 
     let path = file;
 
@@ -897,6 +922,9 @@ pub async fn get_db_info(
 #[tauri::command]
 #[specta::specta]
 pub async fn create_indexes(file: PathBuf, state: tauri::State<'_, AppState>) -> Result<(), Error> {
+    if crate::enc_local_db::is_enc_local_sentinel(&file) {
+        return Err(Error::EncLocalGamesReadOnly);
+    }
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     db.batch_execute(INDEXES_SQL)?;
@@ -907,6 +935,9 @@ pub async fn create_indexes(file: PathBuf, state: tauri::State<'_, AppState>) ->
 #[tauri::command]
 #[specta::specta]
 pub async fn delete_indexes(file: PathBuf, state: tauri::State<'_, AppState>) -> Result<(), Error> {
+    if crate::enc_local_db::is_enc_local_sentinel(&file) {
+        return Err(Error::EncLocalGamesReadOnly);
+    }
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     db.batch_execute(DELETE_INDEXES_SQL)?;
@@ -922,6 +953,9 @@ pub async fn edit_db_info(
     description: Option<String>,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
+    if crate::enc_local_db::is_enc_local_sentinel(&file) {
+        return Err(Error::EncLocalGamesReadOnly);
+    }
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     if let Some(title) = title {
@@ -959,7 +993,7 @@ pub enum PlayerSide {
 }
 
 /// Returns whether a row with the given white/black player ids satisfies player filters.
-pub(super) fn game_matches_player_filters(
+pub(crate) fn game_matches_player_filters(
     white_id: i32,
     black_id: i32,
     query: &GameQuery,
@@ -1417,7 +1451,11 @@ pub async fn get_games(
     file: PathBuf,
     query: GameQuery,
     state: tauri::State<'_, AppState>,
+    app: AppHandle,
 ) -> Result<QueryResponse<Vec<NormalizedGame>>, Error> {
+    if crate::enc_local_db::is_enc_local_sentinel(&file) {
+        return crate::enc_local_db::enc_local_get_games(&app, query);
+    }
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     let (games, count) = query_games_filtered(db, query)?;
@@ -1439,6 +1477,9 @@ pub async fn export_filtered_games_to_database(
     title: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<i32, Error> {
+    if crate::enc_local_db::is_enc_local_sentinel(&source) {
+        return Err(Error::EncLocalGamesReadOnly);
+    }
     if dest_path.exists() {
         return Err(std::io::Error::other("database file already exists").into());
     }
@@ -1640,7 +1681,11 @@ pub async fn get_player(
     file: PathBuf,
     id: i32,
     state: tauri::State<'_, AppState>,
+    app: AppHandle,
 ) -> Result<Option<Player>, Error> {
+    if crate::enc_local_db::is_enc_local_sentinel(&file) {
+        return crate::enc_local_db::enc_local_get_player(&app, id);
+    }
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let player = players::table
         .filter(players::id.eq(id))
@@ -1655,7 +1700,11 @@ pub async fn get_players(
     file: PathBuf,
     query: PlayerQuery,
     state: tauri::State<'_, AppState>,
+    app: AppHandle,
 ) -> Result<QueryResponse<Vec<Player>>, Error> {
+    if crate::enc_local_db::is_enc_local_sentinel(&file) {
+        return crate::enc_local_db::enc_local_get_players(&app, query);
+    }
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let mut count: Option<i64> = None;
 
@@ -1730,6 +1779,14 @@ pub async fn get_tournaments(
     query: TournamentQuery,
     state: tauri::State<'_, AppState>,
 ) -> Result<QueryResponse<Vec<Event>>, Error> {
+    if crate::enc_local_db::is_enc_local_sentinel(&file) {
+        let opts = query.options;
+        let count = if opts.skip_count { None } else { Some(0) };
+        return Ok(QueryResponse {
+            data: vec![],
+            count,
+        });
+    }
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let mut count: Option<i64> = None;
 
@@ -2001,6 +2058,9 @@ pub async fn delete_database(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
+    if crate::enc_local_db::is_enc_local_sentinel(&file) {
+        return Err(Error::EncLocalGamesReadOnly);
+    }
     let pool = &state.connection_pool;
     let path_str = file.to_str().unwrap();
     pool.remove(path_str);
@@ -2241,6 +2301,9 @@ pub async fn delete_db_game(
     game_id: i32,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
+    if crate::enc_local_db::is_enc_local_sentinel(&file) {
+        return Err(Error::EncLocalGamesReadOnly);
+    }
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     diesel::delete(games::table.filter(games::id.eq(game_id))).execute(db)?;
@@ -2260,6 +2323,9 @@ pub async fn write_db_game(
     pgn: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
+    if crate::enc_local_db::is_enc_local_sentinel(&file) {
+        return Err(Error::EncLocalGamesReadOnly);
+    }
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     let mut importer = Importer::new(None);
@@ -2334,6 +2400,9 @@ pub async fn merge_players(
     player2: i32,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
+    if crate::enc_local_db::is_enc_local_sentinel(&file) {
+        return Err(Error::EncLocalGamesReadOnly);
+    }
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     // Check if the players never played against each other

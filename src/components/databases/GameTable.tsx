@@ -31,7 +31,7 @@ import { useStore } from "zustand";
 import type { GameSort, NormalizedGame, Outcome } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
 import { getDatabasesDir } from "@/utils/directories";
-import { export_filtered_games, query_games } from "@/utils/db";
+import { export_filtered_games, isEncLocalPlayedGamesDb, query_games } from "@/utils/db";
 import { createTab } from "@/utils/tabs";
 import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
 import GameCard from "./GameCard";
@@ -52,6 +52,7 @@ function GameTable() {
   const store = useContext(DatabaseViewStateContext)!;
 
   const file = useStore(store, (s) => s.database?.file)!;
+  const encLocalDb = isEncLocalPlayedGamesDb(file);
   const query = useStore(store, (s) => s.games.query);
   const setQuery = useStore(store, (s) => s.setGamesQuery);
   const openedSettings = useStore(store, (s) => s.games.isFilterExpanded);
@@ -309,17 +310,19 @@ function GameTable() {
                 </Stack>
               </Collapse>
             </Box>
-            <Button
-              style={{ flex: "0 0 auto" }}
-              leftSection={<IconDatabaseExport size={16} />}
-              variant="light"
-              onClick={() => {
-                setExportName("");
-                exportModalHandlers.open();
-              }}
-            >
-              {t("Databases.Game.ExportFiltered")}
-            </Button>
+            {!encLocalDb && (
+              <Button
+                style={{ flex: "0 0 auto" }}
+                leftSection={<IconDatabaseExport size={16} />}
+                variant="light"
+                onClick={() => {
+                  setExportName("");
+                  exportModalHandlers.open();
+                }}
+              >
+                {t("Databases.Game.ExportFiltered")}
+              </Button>
+            )}
             <ActionIcon style={{ flex: "0 0 auto" }} onClick={() => toggleOpenedSettings()}>
               <IconDotsVertical size="1rem" />
             </ActionIcon>

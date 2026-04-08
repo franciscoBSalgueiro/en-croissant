@@ -1,13 +1,4 @@
-import {
-  ActionIcon,
-  Box,
-  Divider,
-  Group,
-  ScrollArea,
-  Stack,
-  Text,
-  TextInput,
-} from "@mantine/core";
+import { ActionIcon, Box, Divider, Group, ScrollArea, Stack, Text, TextInput } from "@mantine/core";
 import { IconCheck, IconEdit, IconX } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
 import { useEffect, useRef, useState } from "react";

@@ -16,16 +16,13 @@ const emptySummary: EncEngineAccountSummary = {
 
 export function EncAccountCard({ playerName }: { playerName: string }) {
   const { t } = useTranslation();
-  const { data, mutate, isLoading } = useSWR(
-    ["enc-account-summary", playerName],
-    async () => {
-      const r = await commands.getEncroissantEngineAccountSummary(playerName);
-      if (r.status !== "ok") {
-        throw new Error(r.error);
-      }
-      return r.data;
-    },
-  );
+  const { data, mutate, isLoading } = useSWR(["enc-account-summary", playerName], async () => {
+    const r = await commands.getEncroissantEngineAccountSummary(playerName);
+    if (r.status !== "ok") {
+      throw new Error(r.error);
+    }
+    return r.data;
+  });
 
   const summary = data ?? emptySummary;
 
@@ -94,7 +91,7 @@ export function EncAccountCard({ playerName }: { playerName: string }) {
           {summary.lastPlayedAtMs != null && (
             <Text size="xs" c="dimmed" lineClamp={2}>
               {t("Home.Accounts.LastUpdate", {
-                date: new Date(summary.lastPlayedAtMs).toLocaleDateString(),
+                date: new Date(Number(summary.lastPlayedAtMs)).toLocaleDateString(),
                 interpolation: { escapeValue: false },
               })}
             </Text>

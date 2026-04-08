@@ -300,6 +300,10 @@ pub async fn search_position(
     tab_id: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(Vec<PositionStats>, Vec<NormalizedGame>), Error> {
+    if crate::enc_local_db::is_enc_local_sentinel(&file) {
+        let _ = (app, tab_id);
+        return Ok((vec![], vec![]));
+    }
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     let collision_lock = {

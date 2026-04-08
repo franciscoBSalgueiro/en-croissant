@@ -92,12 +92,8 @@ function Databases() {
     void commands.registerEncroissantEnginePlayer(name).then((res) => {
       if (cancelled || res.status !== "ok") return;
       void mutate("encroissant-engine-usernames");
-      void mutate(
-        (key: unknown) => Array.isArray(key) && key[0] === "enc-engine-site-stats",
-      );
-      void mutate(
-        (key: unknown) => Array.isArray(key) && key[0] === "enc-account-summary",
-      );
+      void mutate((key: unknown) => Array.isArray(key) && key[0] === "enc-engine-site-stats");
+      void mutate((key: unknown) => Array.isArray(key) && key[0] === "enc-account-summary");
     });
     return () => {
       cancelled = true;
@@ -148,12 +144,13 @@ function Databases() {
     },
   );
 
-  const { data: encSiteBlock, isLoading: encSiteLoading } = useSWRImmutable<
-    SiteStatsData | null
-  >(name ? ["enc-engine-site-stats", name] : null, async () => {
-    const r = await commands.getEncroissantEngineSiteStats(name);
-    return r.status === "ok" ? r.data : null;
-  });
+  const { data: encSiteBlock, isLoading: encSiteLoading } = useSWRImmutable<SiteStatsData | null>(
+    name ? ["enc-engine-site-stats", name] : null,
+    async () => {
+      const r = await commands.getEncroissantEngineSiteStats(name);
+      return r.status === "ok" ? r.data : null;
+    },
+  );
 
   const [progress, setProgress] = useState(0);
   useEffect(() => {
@@ -206,50 +203,50 @@ function Databases() {
       )}
       {error && <Text ta="center">{t("Home.Databases.ErrorLoading", { error })}</Text>}
       {personalInfo !== undefined &&
-        !isLoading &&
-        !waitForEncStats &&
-        lichessSiteBlocks.length === 0 &&
-        encSites.length === 0 ? (
-          <Paper
-            h="100%"
-            shadow="sm"
-            p="md"
-            withBorder
-            style={{
-              overflow: "hidden",
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            <Center h="100%">
-              <Stack align="center" gap="md">
-                <ThemeIcon size={80} radius="100%" variant="light" color="blue">
-                  <IconDatabaseOff size={40} />
-                </ThemeIcon>
-                <Title order={3}>{t("Home.Databases.Empty.Title")}</Title>
-                <Text c="dimmed" ta="center" maw={400}>
-                  {t("Home.Databases.Empty.Description")}
-                </Text>
+      !isLoading &&
+      !waitForEncStats &&
+      lichessSiteBlocks.length === 0 &&
+      encSites.length === 0 ? (
+        <Paper
+          h="100%"
+          shadow="sm"
+          p="md"
+          withBorder
+          style={{
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <Center h="100%">
+            <Stack align="center" gap="md">
+              <ThemeIcon size={80} radius="100%" variant="light" color="blue">
+                <IconDatabaseOff size={40} />
+              </ThemeIcon>
+              <Title order={3}>{t("Home.Databases.Empty.Title")}</Title>
+              <Text c="dimmed" ta="center" maw={400}>
+                {t("Home.Databases.Empty.Description")}
+              </Text>
 
-                <Select
-                  value={name}
-                  data={players}
-                  onChange={(e) => setName(e || "")}
-                  clearable={false}
-                  allowDeselect={false}
-                  fw="bold"
-                  styles={{
-                    input: {
-                      textAlign: "center",
-                      fontSize: "1.25rem",
-                    },
-                  }}
-                  mt="md"
-                />
-              </Stack>
-            </Center>
-          </Paper>
-        ) : null}
+              <Select
+                value={name}
+                data={players}
+                onChange={(e) => setName(e || "")}
+                clearable={false}
+                allowDeselect={false}
+                fw="bold"
+                styles={{
+                  input: {
+                    textAlign: "center",
+                    fontSize: "1.25rem",
+                  },
+                }}
+                mt="md"
+              />
+            </Stack>
+          </Center>
+        </Paper>
+      ) : null}
       {personalInfo !== undefined &&
         !isLoading &&
         !waitForEncStats &&

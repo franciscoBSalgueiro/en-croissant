@@ -38,14 +38,12 @@ function sortGamesList(
   return [...games].sort((a, b) => {
     if (col === "white") {
       return (
-        mult *
-        (a.white || "").localeCompare(b.white || "", undefined, { sensitivity: "base" })
+        mult * (a.white || "").localeCompare(b.white || "", undefined, { sensitivity: "base" })
       );
     }
     if (col === "black") {
       return (
-        mult *
-        (a.black || "").localeCompare(b.black || "", undefined, { sensitivity: "base" })
+        mult * (a.black || "").localeCompare(b.black || "", undefined, { sensitivity: "base" })
       );
     }
     if (col === "date") {
@@ -73,10 +71,7 @@ function GamesTable({
     direction: "desc",
   });
 
-  const sortedGames = useMemo(
-    () => sortGamesList(games, sortStatus),
-    [games, sortStatus],
-  );
+  const sortedGames = useMemo(() => sortGamesList(games, sortStatus), [games, sortStatus]);
 
   const filteredGames = sortedGames.slice((page - 1) * 20, page * 20);
 

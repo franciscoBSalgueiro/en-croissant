@@ -32,9 +32,7 @@ const WebsiteAccountSelector = ({
   if (sessions.some((s) => s.player === playerName && s.lichess?.username)) {
     websites.push({ value: "Lichess", label: "Lichess" });
   }
-  const matchedEncUser = encUsernames.find(
-    (u) => u.toLowerCase() === playerName.toLowerCase(),
-  );
+  const matchedEncUser = encUsernames.find((u) => u.toLowerCase() === playerName.toLowerCase());
   const encInStats = info?.site_stats_data.some((s) => s.site === "En Croissant");
   if (matchedEncUser !== undefined || encInStats) {
     websites.push({ value: "En Croissant", label: "En Croissant" });
