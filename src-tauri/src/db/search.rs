@@ -80,6 +80,10 @@ fn build_position_where_clauses(query: &GameQuery, full_fen: &str) -> Vec<String
         ));
     }
 
+    if let Some(tournament) = query.tournament.as_deref() {
+        clauses.push(format!("event = {}", sql_literal(tournament)));
+    }
+
     match query.sides.as_ref() {
         Some(Sides::WhiteBlack) => {
             if let Some(player1) = query.player1.as_deref() {
@@ -88,6 +92,12 @@ fn build_position_where_clauses(query: &GameQuery, full_fen: &str) -> Vec<String
             if let Some(player2) = query.player2.as_deref() {
                 clauses.push(format!("black = {}", sql_literal(player2)));
             }
+            if let Some(range1) = query.range1 {
+                clauses.push(format!("white_rating BETWEEN {} AND {}", range1.0, range1.1));
+            }
+            if let Some(range2) = query.range2 {
+                clauses.push(format!("black_rating BETWEEN {} AND {}", range2.0, range2.1));
+            }
         }
         Some(Sides::BlackWhite) => {
             if let Some(player1) = query.player1.as_deref() {
@@ -95,6 +105,12 @@ fn build_position_where_clauses(query: &GameQuery, full_fen: &str) -> Vec<String
             }
             if let Some(player2) = query.player2.as_deref() {
                 clauses.push(format!("white = {}", sql_literal(player2)));
+            }
+            if let Some(range1) = query.range1 {
+                clauses.push(format!("black_rating BETWEEN {} AND {}", range1.0, range1.1));
+            }
+            if let Some(range2) = query.range2 {
+                clauses.push(format!("white_rating BETWEEN {} AND {}", range2.0, range2.1));
             }
         }
         Some(Sides::Any) => {
@@ -119,6 +135,33 @@ fn build_position_where_clauses(query: &GameQuery, full_fen: &str) -> Vec<String
                 }
                 (None, None) => {}
             }
+
+            if let (Some(range1), Some(range2)) = (query.range1, query.range2) {
+                clauses.push(format!(
+                    "((white_rating BETWEEN {} AND {}) OR (black_rating BETWEEN {} AND {}) OR (white_rating BETWEEN {} AND {}) OR (black_rating BETWEEN {} AND {}))",
+                    range1.0,
+                    range1.1,
+                    range1.0,
+                    range1.1,
+                    range2.0,
+                    range2.1,
+                    range2.0,
+                    range2.1,
+                ));
+            } else {
+                if let Some(range1) = query.range1 {
+                    clauses.push(format!(
+                        "((white_rating BETWEEN {} AND {}) OR (black_rating BETWEEN {} AND {}))",
+                        range1.0, range1.1, range1.0, range1.1,
+                    ));
+                }
+                if let Some(range2) = query.range2 {
+                    clauses.push(format!(
+                        "((white_rating BETWEEN {} AND {}) OR (black_rating BETWEEN {} AND {}))",
+                        range2.0, range2.1, range2.0, range2.1,
+                    ));
+                }
+            }
         }
         None => {
             if let Some(player1) = query.player1.as_deref() {
@@ -126,6 +169,12 @@ fn build_position_where_clauses(query: &GameQuery, full_fen: &str) -> Vec<String
             }
             if let Some(player2) = query.player2.as_deref() {
                 clauses.push(format!("black = {}", sql_literal(player2)));
+            }
+            if let Some(range1) = query.range1 {
+                clauses.push(format!("white_rating BETWEEN {} AND {}", range1.0, range1.1));
+            }
+            if let Some(range2) = query.range2 {
+                clauses.push(format!("black_rating BETWEEN {} AND {}", range2.0, range2.1));
             }
         }
     }
