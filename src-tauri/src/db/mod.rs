@@ -797,6 +797,17 @@ pub fn generate_search_index(
     }
     writer.write_to(&index_path)?;
 
+    {
+        let mut cache = state.db_cache.lock().unwrap();
+        if let Some((p, _)) = cache.as_ref() {
+            if p.as_path() == db_path {
+                *cache = None;
+            }
+        }
+    }
+    let db_owned = db_path.to_path_buf();
+    state.line_cache.retain(|k, _| k.1 != db_owned);
+
     info!("Search index generated in {:?}", start.elapsed());
     Ok(())
 }
@@ -2353,27 +2364,12 @@ pub async fn preload_reference_db(
     file: PathBuf,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    let index_path = get_index_path(&file);
-
-    if !MmapSearchIndex::is_valid(&index_path) {
-        info!("Search index not found for reference database, generating...");
-        generate_search_index(&file, &state)?;
-    }
-
-    let mut cache = state.db_cache.lock().unwrap();
-    if cache.is_none() {
-        info!("Preloading reference database from {:?}", index_path);
-        match MmapSearchIndex::open(&index_path) {
-            Ok(index) => {
-                info!("Preloaded reference database with {} games", index.len());
-                *cache = Some(index);
-            }
-            Err(e) => {
-                return Err(Error::from(e));
-            }
-        }
-    }
-
+    let index = search::open_mmap_index_for_database(file.clone(), &state)?;
+    info!(
+        "Preloaded reference database from {:?} with {} games",
+        get_index_path(&file),
+        index.len()
+    );
     Ok(())
 }
 

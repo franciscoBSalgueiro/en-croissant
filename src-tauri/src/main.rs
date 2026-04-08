@@ -81,7 +81,8 @@ pub struct AppState {
         diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>,
     >,
     line_cache: DashMap<(GameQuery, PathBuf), (Vec<PositionStats>, Vec<NormalizedGame>)>,
-    db_cache: Mutex<Option<MmapSearchIndex>>,
+    /// Cached mmap index for one database path; invalidated when the DB or index file changes.
+    db_cache: Mutex<Option<(PathBuf, MmapSearchIndex)>>,
     #[derivative(Default(value = "Arc::new(Semaphore::new(2))"))]
     new_request: Arc<Semaphore>,
     #[derivative(Default(value = "DashMap::new()"))]

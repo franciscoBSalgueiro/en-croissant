@@ -14,6 +14,7 @@ use zip::ZipArchive;
 
 use crate::db::{
     date_norm,
+    generate_search_index,
     get_db_or_create,
     import_pgn_files_batch,
     query_max_game_date,
@@ -220,6 +221,10 @@ pub async fn sync_twic_database(
         if issue > TWIC_FIRST_ISSUE + 10_000 {
             break;
         }
+    }
+
+    if total_imported > 0 {
+        generate_search_index(db_path.as_path(), &state)?;
     }
 
     Ok(())
