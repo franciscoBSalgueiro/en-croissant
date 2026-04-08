@@ -6,6 +6,8 @@
 mod chess;
 mod db;
 mod engine;
+mod enc_local_db;
+mod engine_games;
 mod error;
 mod game;
 
@@ -45,6 +47,12 @@ use crate::db::{
     delete_indexes, export_to_pgn, get_player, get_players_game_info, get_tournaments,
     preload_reference_db, search_position, MmapSearchIndex,
 };
+use crate::engine_games::{
+    get_encroissant_engine_account_summary, get_encroissant_engine_display_rating,
+    get_encroissant_engine_site_stats, get_encroissant_local_games_db_path,
+    list_encroissant_engine_usernames, record_encroissant_engine_game,
+    record_encroissant_human_vs_human_game, register_encroissant_engine_player,
+};
 use crate::game::{
     abort_game, get_game_engine_logs, get_game_state, make_game_move, resign_game, start_game,
     take_back_game_move, ClockUpdateEvent, GameMoveEvent, GameOverEvent,
@@ -62,8 +70,8 @@ use crate::sound::get_sound_server_port;
 use crate::{
     chess::get_best_moves,
     db::{
-        delete_duplicated_games, edit_db_info, get_db_info, get_games, get_players, merge_players,
-        write_db_game,
+        delete_duplicated_games, edit_db_info, export_filtered_games_to_database, get_db_info,
+        get_games, get_players, merge_players, repair_game_dates, sync_twic_database, write_db_game,
     },
     fs::{download_file, file_exists, get_file_metadata},
     opening::{
@@ -81,7 +89,8 @@ pub struct AppState {
         diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>,
     >,
     line_cache: DashMap<(GameQuery, PathBuf), (Vec<PositionStats>, Vec<NormalizedGame>)>,
-    db_cache: Mutex<Option<MmapSearchIndex>>,
+    /// Cached mmap index for one database path; invalidated when the DB or index file changes.
+    db_cache: Mutex<Option<(PathBuf, MmapSearchIndex)>>,
     #[derivative(Default(value = "Arc::new(Semaphore::new(2))"))]
     new_request: Arc<Semaphore>,
     #[derivative(Default(value = "DashMap::new()"))]
@@ -124,11 +133,21 @@ fn main() {
             get_opening_from_fens,
             get_opening_from_name,
             get_players_game_info,
+            record_encroissant_engine_game,
+            record_encroissant_human_vs_human_game,
+            get_encroissant_local_games_db_path,
+            get_encroissant_engine_display_rating,
+            get_encroissant_engine_site_stats,
+            get_encroissant_engine_account_summary,
+            register_encroissant_engine_player,
+            list_encroissant_engine_usernames,
             get_engine_config,
             file_exists,
             get_file_metadata,
             merge_players,
             convert_pgn,
+            repair_game_dates,
+            sync_twic_database,
             get_player,
             count_pgn_games,
             read_games,
@@ -152,6 +171,7 @@ fn main() {
             get_tournaments,
             get_db_info,
             get_games,
+            export_filtered_games_to_database,
             search_position,
             get_players,
             get_puzzle_db_info,

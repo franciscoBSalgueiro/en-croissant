@@ -19,12 +19,18 @@ import { useForm } from "@mantine/form";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { basename, resolve } from "@tauri-apps/api/path";
 import { open } from "@tauri-apps/plugin-dialog";
+import { exists } from "@tauri-apps/plugin-fs";
 import { useAtom, useSetAtom } from "jotai";
 import { type Dispatch, type SetStateAction, useState } from "react";
+import { notifications } from "@mantine/notifications";
 import { useTranslation } from "react-i18next";
 import type { KeyedMutator } from "swr";
 import { commands, type DatabaseInfo } from "@/bindings";
-import { databaseConversionStateAtom, storedDatabasesDirAtom } from "@/state/atoms";
+import {
+  type DatabaseConversionState,
+  databaseConversionStateAtom,
+  storedDatabasesDirAtom,
+} from "@/state/atoms";
 import { getDatabases, type SuccessDatabaseInfo, useDefaultDatabases } from "@/utils/db";
 import { capitalize, formatBytes, formatNumber } from "@/utils/format";
 import { unwrap } from "@/utils/unwrap";
@@ -128,6 +134,17 @@ function AddDatabase({
           )}
           <ScrollArea.Autosize h={500} offsetScrollbars>
             <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="sm">
+              <TwicDatabaseCard
+                setDatabases={setDatabases}
+                initInstalled={databases.some(
+                  (e) => e.type === "success" && e.twic_last_issue != null,
+                )}
+                databaseDir={databaseDir}
+                disableInstall={disableLocalConversion}
+                setLoading={setLoading}
+                setConversionState={setConversionState}
+                setOpened={setOpened}
+              />
               {defaultDatabases?.map((db, i) => (
                 <DatabaseCard
                   database={db}
@@ -280,6 +297,105 @@ function DatabaseCard({
             inProgress={inProgress}
             setInProgress={setInProgress}
           />
+        </Box>
+      </Group>
+    </Paper>
+  );
+}
+
+const TWIC_DB_FILENAME = "TWIC.db3";
+
+function TwicDatabaseCard({
+  setDatabases,
+  initInstalled,
+  databaseDir,
+  disableInstall,
+  setLoading,
+  setConversionState,
+  setOpened,
+}: {
+  setDatabases: KeyedMutator<DatabaseInfo[]>;
+  initInstalled: boolean;
+  databaseDir: string;
+  disableInstall: boolean;
+  setLoading: Dispatch<SetStateAction<boolean>>;
+  setConversionState: (value: SetStateAction<DatabaseConversionState>) => void;
+  setOpened: (opened: boolean) => void;
+}) {
+  const { t } = useTranslation();
+  const [inProgress, setInProgress] = useState(false);
+
+  async function installTwic() {
+    const dbPath = await resolve(databaseDir, TWIC_DB_FILENAME);
+    if (await exists(dbPath)) {
+      notifications.show({
+        color: "red",
+        title: t("Common.Error"),
+        message: t("Databases.TWIC.Exists"),
+      });
+      return;
+    }
+    setInProgress(true);
+    setLoading(true);
+    setConversionState((prev) => ({
+      ...prev,
+      inProgress: true,
+      targetDatabasePath: dbPath,
+      targetDatabaseTitle: t("Databases.TWIC.CardTitle"),
+      sourceFileName: t("Databases.TWIC.Syncing"),
+    }));
+    try {
+      unwrap(await commands.syncTwicDatabase(dbPath, "initial"));
+      await setDatabases(await getDatabases());
+      setOpened(false);
+      notifications.show({
+        color: "green",
+        title: t("Common.Installed"),
+        message: t("Databases.TWIC.CardTitle"),
+      });
+    } catch (e) {
+      notifications.show({
+        color: "red",
+        title: t("Common.Error"),
+        message: e instanceof Error ? e.message : String(e),
+      });
+    } finally {
+      setInProgress(false);
+      setLoading(false);
+      setConversionState((prev) => ({
+        ...prev,
+        inProgress: false,
+        totalGames: 0,
+        elapsedSeconds: 0,
+        targetDatabasePath: null,
+        targetDatabaseTitle: null,
+        sourceFileName: null,
+      }));
+    }
+  }
+
+  return (
+    <Paper withBorder radius="md" p={0}>
+      <Group wrap="nowrap" gap={0} grow>
+        <Box p="md" flex={1}>
+          <Text tt="uppercase" c="dimmed" fw={700} size="xs">
+            WEB
+          </Text>
+          <Text fw="bold" mb="xs">
+            {t("Databases.TWIC.CardTitle")}
+          </Text>
+          <Text size="xs" c="dimmed">
+            {t("Databases.TWIC.Description")}
+          </Text>
+          <Divider my="md" />
+          <Button
+            fullWidth
+            disabled={initInstalled || inProgress || disableInstall}
+            loading={inProgress}
+            onClick={() => void installTwic()}
+          >
+            {initInstalled ? t("Common.Installed") : t("Databases.TWIC.Install")}
+          </Button>
         </Box>
       </Group>
     </Paper>

@@ -84,10 +84,12 @@ function OverviewPanel({
   playerName,
   info,
   isDatabase,
+  encUsernames = [],
 }: {
   playerName: string;
   info: PlayerGameInfo;
   isDatabase?: boolean;
+  encUsernames?: string[];
 }) {
   const [website, setWebsite] = useState<string | null>("All websites");
   const [account, setAccount] = useState<string | null>("All accounts");
@@ -115,6 +117,8 @@ function OverviewPanel({
             onWebsiteChange={(website) => setWebsite(website)}
             onAccountChange={setAccount}
             allowAll={true}
+            encUsernames={encUsernames}
+            info={info}
           />
         )}
         <TimeControlSelector

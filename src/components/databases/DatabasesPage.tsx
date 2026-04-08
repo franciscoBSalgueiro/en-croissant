@@ -26,20 +26,22 @@ import { IconArrowRight, IconDatabase, IconPlus, IconSearch } from "@tabler/icon
 import { Link, useNavigate } from "@tanstack/react-router";
 import { basename } from "@tauri-apps/api/path";
 import { open as openDialog, save } from "@tauri-apps/plugin-dialog";
-import { useAtom } from "jotai";
-import { useEffect, useMemo, useState } from "react";
+import { notifications } from "@mantine/notifications";
+import { useAtom, useAtomValue } from "jotai";
+import { type SetStateAction, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 import type { DatabaseInfo } from "@/bindings";
 import { commands } from "@/bindings";
 import {
+  type DatabaseConversionState,
   databaseConversionStateAtom,
   referenceDbAtom,
   storedDatabasesDirAtom,
 } from "@/state/atoms";
 import { useActiveDatabaseViewStore } from "@/state/store/database";
-import { getDatabases, type SuccessDatabaseInfo } from "@/utils/db";
-import { formatBytes, formatNumber } from "@/utils/format";
+import { getDatabases, isEncLocalPlayedGamesDb, type SuccessDatabaseInfo } from "@/utils/db";
+import { formatBytes, formatNumber, formatPgnStorageDateForDisplay } from "@/utils/format";
 import { unwrap } from "@/utils/unwrap";
 import ConfirmModal from "../common/ConfirmModal";
 import GenericCard from "../common/GenericCard";
@@ -213,7 +215,7 @@ export default function DatabasesPage() {
                   filteredDatabases?.map((item) => (
                     <GenericCard
                       id={item.file}
-                      key={item.filename}
+                      key={item.file}
                       isSelected={selectedDatabase?.filename === item.filename}
                       setSelected={setSelected}
                       error={item.type === "error" ? item.error : ""}
@@ -239,14 +241,26 @@ export default function DatabasesPage() {
                               <Text size="xs" c="dimmed" style={{ wordWrap: "break-word" }}>
                                 {item.type === "error" ? item.file : item.description}
                               </Text>
+                              {item.type === "success" && item.twic_max_game_date != null && (
+                                <Text size="xs" c="dimmed" mt={4}>
+                                  {t("Databases.TWIC.LatestDate")}:{" "}
+                                  {formatPgnStorageDateForDisplay(item.twic_max_game_date)}
+                                </Text>
+                              )}
                             </Box>
                           </Group>
                           <Rating
                             value={referenceDatabase === item.file ? 1 : 0}
                             count={1}
                             onChange={() => {
+                              if (isEncLocalPlayedGamesDb(item.file)) return;
                               changeReferenceDatabase(item.file);
                             }}
+                            styles={
+                              isEncLocalPlayedGamesDb(item.file)
+                                ? { root: { opacity: 0.35, pointerEvents: "none" } }
+                                : undefined
+                            }
                           />
                         </Group>
                       }
@@ -324,19 +338,34 @@ export default function DatabasesPage() {
                       key={selectedDatabase.filename}
                       selectedDatabase={selectedDatabase}
                       mutate={mutate}
+                      readOnlyMetadata={isEncLocalPlayedGamesDb(selectedDatabase.file)}
                     />
+                    {selectedDatabase.twic_last_issue != null && (
+                      <TwicDatabaseSync
+                        file={selectedDatabase.file}
+                        lastIssue={selectedDatabase.twic_last_issue}
+                        maxDate={formatPgnStorageDateForDisplay(
+                          selectedDatabase.twic_max_game_date ?? null,
+                        )}
+                        mutate={mutate}
+                        setConversionState={setConversionState}
+                      />
+                    )}
                     <Checkbox
                       label={t("Databases.Settings.ReferenceDatabase")}
                       checked={isReference}
+                      disabled={isEncLocalPlayedGamesDb(selectedDatabase.file)}
                       onChange={() => {
                         changeReferenceDatabase(selectedDatabase.file);
                       }}
                     />
-                    <IndexInput
-                      indexed={selectedDatabase.indexed}
-                      file={selectedDatabase.file}
-                      setDatabases={mutate}
-                    />
+                    {!isEncLocalPlayedGamesDb(selectedDatabase.file) && (
+                      <IndexInput
+                        indexed={selectedDatabase.indexed}
+                        file={selectedDatabase.file}
+                        setDatabases={mutate}
+                      />
+                    )}
 
                     <Divider variant="dashed" label={t("Common.Data")} />
                     <Group grow>
@@ -386,76 +415,88 @@ export default function DatabasesPage() {
 
                 <Divider variant="dashed" label={t("Databases.Settings.AdvancedTools")} />
 
-                {selectedDatabase.type === "success" && (
-                  <AdvancedSettings selectedDatabase={selectedDatabase} reload={mutate} />
-                )}
+                {selectedDatabase.type === "success" &&
+                  !isEncLocalPlayedGamesDb(selectedDatabase.file) && (
+                    <AdvancedSettings selectedDatabase={selectedDatabase} reload={mutate} />
+                  )}
 
                 <Divider variant="dashed" label={t("Databases.Settings.Actions")} />
                 <Group justify="space-between">
-                  {selectedDatabase.type === "success" && (
-                    <Group>
-                      <Button
-                        variant="default"
-                        rightSection={<IconPlus size="1rem" />}
-                        onClick={async () => {
-                          const selected = await openDialog({
-                            multiple: true,
-                            filters: [{ name: "PGN", extensions: ["pgn", "pgn.zst"] }],
-                          });
-                          if (!selected) return;
+                  {selectedDatabase.type === "success" &&
+                    !isEncLocalPlayedGamesDb(selectedDatabase.file) && (
+                      <Group>
+                        <Button
+                          variant="default"
+                          rightSection={<IconPlus size="1rem" />}
+                          onClick={async () => {
+                            const selected = await openDialog({
+                              multiple: true,
+                              filters: [{ name: "PGN", extensions: ["pgn", "pgn.zst"] }],
+                            });
+                            if (!selected) return;
 
-                          const files = Array.isArray(selected) ? selected : [selected];
-                          if (files.length === 0) return;
+                            const files = Array.isArray(selected) ? selected : [selected];
+                            if (files.length === 0) return;
 
-                          const firstFileName = await basename(files[0]);
-                          const sourceFileName =
-                            files.length > 1
-                              ? `${firstFileName} (+${files.length - 1})`
-                              : firstFileName;
-                          setConversionState((prev) => ({
-                            ...prev,
-                            inProgress: true,
-                            targetDatabasePath: selectedDatabase.file,
-                            targetDatabaseTitle: selectedDatabase.title,
-                            sourceFileName,
-                          }));
-                          try {
-                            await commands.convertPgn(files, selectedDatabase.file, null, "", null);
-                            mutate();
-                          } finally {
+                            const firstFileName = await basename(files[0]);
+                            const sourceFileName =
+                              files.length > 1
+                                ? `${firstFileName} (+${files.length - 1})`
+                                : firstFileName;
                             setConversionState((prev) => ({
                               ...prev,
-                              inProgress: false,
-                              totalGames: 0,
-                              elapsedSeconds: 0,
-                              targetDatabasePath: null,
-                              targetDatabaseTitle: null,
-                              sourceFileName: null,
+                              inProgress: true,
+                              targetDatabasePath: selectedDatabase.file,
+                              targetDatabaseTitle: selectedDatabase.title,
+                              sourceFileName,
                             }));
-                          }
-                        }}
-                      >
-                        {t("Databases.Settings.AddGames")}
-                      </Button>
-                      <Button
-                        rightSection={<IconArrowRight size="1rem" />}
-                        variant="default"
-                        loading={exportLoading}
-                        onClick={async () => {
-                          const destFile = await save({
-                            filters: [{ name: "PGN", extensions: ["pgn"] }],
-                          });
-                          if (!destFile) return;
-                          setExportLoading(true);
-                          await commands.exportToPgn(selectedDatabase.file, destFile);
-                          setExportLoading(false);
-                        }}
-                      >
-                        {t("Databases.Settings.ExportPGN")}
-                      </Button>
-                    </Group>
-                  )}
-                  <Button onClick={() => toggleDeleteModal()} color="red">
+                            try {
+                              await commands.convertPgn(
+                                files,
+                                selectedDatabase.file,
+                                null,
+                                "",
+                                null,
+                              );
+                              mutate();
+                            } finally {
+                              setConversionState((prev) => ({
+                                ...prev,
+                                inProgress: false,
+                                totalGames: 0,
+                                elapsedSeconds: 0,
+                                targetDatabasePath: null,
+                                targetDatabaseTitle: null,
+                                sourceFileName: null,
+                              }));
+                            }
+                          }}
+                        >
+                          {t("Databases.Settings.AddGames")}
+                        </Button>
+                        <Button
+                          rightSection={<IconArrowRight size="1rem" />}
+                          variant="default"
+                          loading={exportLoading}
+                          onClick={async () => {
+                            const destFile = await save({
+                              filters: [{ name: "PGN", extensions: ["pgn"] }],
+                            });
+                            if (!destFile) return;
+                            setExportLoading(true);
+                            await commands.exportToPgn(selectedDatabase.file, destFile);
+                            setExportLoading(false);
+                          }}
+                        >
+                          {t("Databases.Settings.ExportPGN")}
+                        </Button>
+                      </Group>
+                    )}
+                  <Button
+                    onClick={() => toggleDeleteModal()}
+                    color="red"
+                    disabled={isEncLocalPlayedGamesDb(selectedDatabase.file)}
+                  >
                     {t("Common.Delete")}
                   </Button>
                 </Group>
@@ -468,12 +509,120 @@ export default function DatabasesPage() {
   );
 }
 
+function TwicDatabaseSync({
+  file,
+  lastIssue,
+  maxDate,
+  mutate,
+  setConversionState,
+}: {
+  file: string;
+  lastIssue: number;
+  maxDate: string | null;
+  mutate: () => void;
+  setConversionState: (value: SetStateAction<DatabaseConversionState>) => void;
+}) {
+  const { t } = useTranslation();
+  const conversionBusy = useAtomValue(databaseConversionStateAtom).inProgress;
+  const [updating, setUpdating] = useState(false);
+  const [repairingDates, setRepairingDates] = useState(false);
+
+  async function onUpdate() {
+    setUpdating(true);
+    setConversionState((prev) => ({
+      ...prev,
+      inProgress: true,
+      targetDatabasePath: file,
+      targetDatabaseTitle: t("Databases.TWIC.CardTitle"),
+      sourceFileName: t("Databases.TWIC.Syncing"),
+    }));
+    try {
+      unwrap(await commands.syncTwicDatabase(file, "update"));
+      await mutate();
+      notifications.show({
+        color: "green",
+        title: t("Databases.TWIC.Update"),
+        message: t("Common.Installed"),
+      });
+    } catch (e) {
+      notifications.show({
+        color: "red",
+        title: t("Databases.TWIC.UpdateFailed"),
+        message: e instanceof Error ? e.message : String(e),
+      });
+    } finally {
+      setUpdating(false);
+      setConversionState((prev) => ({
+        ...prev,
+        inProgress: false,
+        totalGames: 0,
+        elapsedSeconds: 0,
+        targetDatabasePath: null,
+        targetDatabaseTitle: null,
+        sourceFileName: null,
+      }));
+    }
+  }
+
+  async function onRepairDates() {
+    setRepairingDates(true);
+    try {
+      const n = unwrap(await commands.repairGameDates(file));
+      await mutate();
+      notifications.show({
+        color: "green",
+        title: t("Databases.TWIC.RepairDates"),
+        message: t("Databases.TWIC.RepairDatesDone", { count: n }),
+      });
+    } catch (e) {
+      notifications.show({
+        color: "red",
+        title: t("Databases.TWIC.RepairDatesFailed"),
+        message: e instanceof Error ? e.message : String(e),
+      });
+    } finally {
+      setRepairingDates(false);
+    }
+  }
+
+  return (
+    <Stack gap="xs">
+      <Divider variant="dashed" label={t("Databases.TWIC.CardTitle")} />
+      <Text size="sm">
+        {t("Databases.TWIC.LastIssue")}: {lastIssue}
+      </Text>
+      {maxDate != null && maxDate !== "" && (
+        <Text size="sm">
+          {t("Databases.TWIC.LatestDate")}: {maxDate}
+        </Text>
+      )}
+      <Button
+        loading={updating}
+        disabled={conversionBusy && !updating}
+        onClick={() => void onUpdate()}
+      >
+        {t("Databases.TWIC.Update")}
+      </Button>
+      <Button
+        variant="light"
+        loading={repairingDates}
+        disabled={(conversionBusy && !repairingDates) || updating}
+        onClick={() => void onRepairDates()}
+      >
+        {t("Databases.TWIC.RepairDates")}
+      </Button>
+    </Stack>
+  );
+}
+
 function GeneralSettings({
   selectedDatabase,
   mutate,
+  readOnlyMetadata,
 }: {
   selectedDatabase: SuccessDatabaseInfo;
   mutate: () => void;
+  readOnlyMetadata?: boolean;
 }) {
   const { t } = useTranslation();
 
@@ -484,22 +633,25 @@ function GeneralSettings({
   const [debouncedDescription] = useDebouncedValue(description, 300);
 
   useEffect(() => {
+    if (readOnlyMetadata) return;
     commands
       .editDbInfo(selectedDatabase.file, debouncedTitle ?? null, debouncedDescription ?? null)
       .then(() => mutate());
-  }, [debouncedTitle, debouncedDescription]);
+  }, [debouncedTitle, debouncedDescription, readOnlyMetadata, selectedDatabase.file, mutate]);
 
   return (
     <>
       <TextInput
         label={t("Common.Name")}
         value={title}
+        readOnly={readOnlyMetadata}
         onChange={(e) => setTitle(e.currentTarget.value)}
         error={title === "" && t("Common.RequireName")}
       />
       <Textarea
         label={t("Common.Description")}
         value={description}
+        readOnly={readOnlyMetadata}
         onChange={(e) => setDescription(e.currentTarget.value)}
       />
     </>

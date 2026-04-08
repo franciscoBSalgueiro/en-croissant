@@ -18,7 +18,12 @@ import { unwrap } from "./unwrap";
 
 export type SuccessDatabaseInfo = Extract<DatabaseInfo, { type: "success" }>;
 
-export type Sides = "WhiteBlack" | "BlackWhite" | "Any";
+/** Virtual path for `EnCroissantEngineGames.db` in the databases list (not a `.db3` in the databases folder). */
+export const ENC_LOCAL_PLAYED_GAMES_DB_FILE = "__encLocalPlayedGames__";
+
+export function isEncLocalPlayedGamesDb(file: string): boolean {
+    return file === ENC_LOCAL_PLAYED_GAMES_DB_FILE;
+}
 
 export interface CompleteGame {
     game: NormalizedGame;
@@ -41,31 +46,63 @@ function normalizeRange(range?: [number, number] | null): [number, number] | und
     return range;
 }
 
+function build_game_query_for_commands(query: GameQuery): GameQuery {
+    return {
+        player1: query.player1,
+        range1: normalizeRange(query.range1),
+        player2: query.player2,
+        range2: normalizeRange(query.range2),
+        tournament_id: query.tournament_id,
+        player1Side: query.player1Side,
+        player2Side: query.player2Side,
+        outcome: query.outcome,
+        start_date: query.start_date,
+        end_date: query.end_date,
+        position: null,
+        options: query.options
+            ? {
+                  skipCount: query.options.skipCount ?? false,
+                  page: query.options.page,
+                  pageSize: query.options.pageSize,
+                  sort: query.options.sort || "id",
+                  direction: query.options.direction || "desc",
+              }
+            : undefined,
+    };
+}
+
 export async function query_games(
     db: string,
     query: GameQuery,
 ): Promise<QueryResponse<NormalizedGame[]>> {
+    return unwrap(await commands.getGames(db, build_game_query_for_commands(query)));
+}
+
+/** Exports every game matching the current filters into a new `.db3` database (same filter semantics as the games table, without pagination). */
+export async function export_filtered_games(
+    db: string,
+    query: GameQuery,
+    destPath: string,
+    title: string,
+): Promise<number> {
     return unwrap(
-        await commands.getGames(db, {
-            player1: query.player1,
-            range1: normalizeRange(query.range1),
-            player2: query.player2,
-            range2: normalizeRange(query.range2),
-            tournament_id: query.tournament_id,
-            sides: query.sides,
-            outcome: query.outcome,
-            start_date: query.start_date,
-            end_date: query.end_date,
-            position: null,
-            options: {
-                skipCount: query.options?.skipCount ?? false,
-                page: query.options?.page,
-                pageSize: query.options?.pageSize,
-                sort: query.options?.sort || "id",
-                direction: query.options?.direction || "desc",
-            },
-        }),
+        await commands.exportFilteredGamesToDatabase(
+            db,
+            build_game_query_for_commands(query),
+            destPath,
+            title,
+        ),
     );
+}
+
+/** Board view: same `GameQuery` as `searchPosition` (includes `position`). */
+export async function export_board_filtered_games(
+    db: string,
+    query: GameQuery,
+    destPath: string,
+    title: string,
+): Promise<number> {
+    return unwrap(await commands.exportFilteredGamesToDatabase(db, query, destPath, title));
 }
 
 export async function query_players(
@@ -91,9 +128,27 @@ export async function getDatabases(): Promise<DatabaseInfo[]> {
     const dbDir = await getDatabasesDir();
     const files = await readDir(dbDir);
     const dbs = files.filter((file) => file.name?.endsWith(".db3"));
-    return (await Promise.allSettled(dbs.map((db) => getDatabase(db.name))))
+    const normal = (await Promise.allSettled(dbs.map((db) => getDatabase(db.name!))))
         .filter((r) => r.status === "fulfilled")
         .map((r) => (r as PromiseFulfilledResult<DatabaseInfo>).value);
+
+    const encRes = await commands.getDbInfo(ENC_LOCAL_PLAYED_GAMES_DB_FILE);
+    const enc: DatabaseInfo =
+        encRes.status === "ok"
+            ? {
+                  type: "success",
+                  ...encRes.data,
+                  file: ENC_LOCAL_PLAYED_GAMES_DB_FILE,
+              }
+            : {
+                  type: "error",
+                  filename: ENC_LOCAL_PLAYED_GAMES_DB_FILE,
+                  file: ENC_LOCAL_PLAYED_GAMES_DB_FILE,
+                  error: encRes.error,
+                  indexed: false,
+              };
+
+    return [enc, ...normal];
 }
 
 async function getDatabase(name: string): Promise<DatabaseInfo> {
@@ -169,15 +224,17 @@ export async function searchPosition(options: LocalOptions, tab: string) {
     const res = await commands.searchPosition(
         options.path!,
         {
-            player1: options.color === "white" ? options.player : undefined,
-            player2: options.color === "black" ? options.player : undefined,
+            player1: options.player ?? undefined,
+            player2: options.player2 ?? undefined,
+            player1Side: options.player1Side,
+            player2Side: options.player2Side,
             position: {
                 fen: options.fen,
                 type_: options.type,
             },
             start_date: options.start_date,
             end_date: options.end_date,
-            wanted_result: options.result,
+            wanted_result: options.result === "any" ? undefined : options.result,
         },
         tab,
     );

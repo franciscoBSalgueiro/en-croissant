@@ -27,11 +27,13 @@ function PersonalPlayerCard({
   setName,
   info,
   isDatabase,
+  encUsernames = [],
 }: {
   name: string;
   setName?: (name: string) => void;
   info: PlayerGameInfo;
   isDatabase?: boolean;
+  encUsernames?: string[];
 }) {
   const { t } = useTranslation();
   const store = useContext(DatabaseViewStateContext)!;
@@ -41,8 +43,11 @@ function PersonalPlayerCard({
   const [opened, setOpened] = useState(false);
   const sessions = useAtomValue(sessionsAtom);
   const players = Array.from(
-    new Set(sessions.map((s) => s.player || s.lichess?.username || s.chessCom?.username || "")),
-  );
+    new Set([
+      ...sessions.map((s) => s.player || s.lichess?.username || s.chessCom?.username || ""),
+      ...encUsernames,
+    ]),
+  ).filter((n) => n !== "");
 
   return (
     <Paper
@@ -103,13 +108,28 @@ function PersonalPlayerCard({
           <Tabs.Tab value="openings">{t("Home.Personal.Openings")}</Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel value="overview">
-          <OverviewPanel playerName={name} info={info} isDatabase={isDatabase} />
+          <OverviewPanel
+            playerName={name}
+            info={info}
+            isDatabase={isDatabase}
+            encUsernames={encUsernames}
+          />
         </Tabs.Panel>
         <Tabs.Panel value="openings" style={{ overflow: "hidden" }}>
-          <OpeningsPanel playerName={name} info={info} isDatabase={isDatabase} />
+          <OpeningsPanel
+            playerName={name}
+            info={info}
+            isDatabase={isDatabase}
+            encUsernames={encUsernames}
+          />
         </Tabs.Panel>
         <Tabs.Panel value="ratings">
-          <RatingsPanel playerName={name} info={info} isDatabase={isDatabase} />
+          <RatingsPanel
+            playerName={name}
+            info={info}
+            isDatabase={isDatabase}
+            encUsernames={encUsernames}
+          />
         </Tabs.Panel>
       </Tabs>
     </Paper>

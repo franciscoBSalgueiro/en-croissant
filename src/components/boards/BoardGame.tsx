@@ -14,6 +14,7 @@ import {
   Text,
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
+import { notifications } from "@mantine/notifications";
 import {
   IconArrowsExchange,
   IconFileText,
@@ -25,12 +26,14 @@ import { open } from "@tauri-apps/plugin-dialog";
 import type { Piece } from "chessops";
 import { makeUci, parseUci } from "chessops";
 import { INITIAL_FEN } from "chessops/fen";
-import { useAtom, useAtomValue } from "jotai";
+import { getDefaultStore, useAtom, useAtomValue } from "jotai";
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { mutate } from "swr";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
-import type { Outcome } from "@/bindings";
+import type { EngineOption, Outcome } from "@/bindings";
 import {
   commands,
   type EngineLog,
@@ -72,6 +75,34 @@ function gameResultToOutcome(result: GameResult): Outcome {
   if (result.type === "whiteWins") return "1-0";
   if (result.type === "blackWins") return "0-1";
   return "1/2-1/2";
+}
+
+function gameEndReasonTranslationKey(result: GameResult): string {
+  switch (result.type) {
+    case "draw":
+      return `Board.GameOver.Reason.${result.reason}`;
+    case "whiteWins":
+    case "blackWins":
+      return `Board.GameOver.Reason.${result.reason}`;
+  }
+}
+
+function buildGameOverNotificationCopy(
+  result: GameResult,
+  t: TFunction,
+  showSavedHint: boolean,
+): { title: string; message: string } {
+  const outcome =
+    result.type === "whiteWins"
+      ? t("Board.GameOver.OutcomeWhiteWins")
+      : result.type === "blackWins"
+        ? t("Board.GameOver.OutcomeBlackWins")
+        : t("Board.GameOver.OutcomeDraw");
+  const reason = t(gameEndReasonTranslationKey(result));
+  const message = showSavedHint
+    ? `${outcome} — ${reason}. ${t("Board.GameOver.SavedHint")}`
+    : `${outcome} — ${reason}.`;
+  return { title: t("Board.GameOver.Title"), message };
 }
 
 type BackendMove = { uci: string; clock: number | null };
@@ -136,6 +167,7 @@ function BoardGame() {
   const [whiteTime, setWhiteTime] = useState<number | null>(null);
   const [blackTime, setBlackTime] = useState<number | null>(null);
   const [gameId, setGameId] = useAtom(currentGameIdAtom);
+  const gameEndNotifiedForGameIdRef = useRef<string | null>(null);
 
   const [logsOpened, toggleLogsOpened] = useToggle();
   const [logsColor, setLogsColor] = useState<"white" | "black">("white");
@@ -243,21 +275,35 @@ function BoardGame() {
         name: settings.name ?? "Player",
       };
     }
+    const withoutStrength = (settings.engineSettings ?? settings.engine?.settings ?? []).filter(
+      (s) => s.name !== "MultiPV" && s.name !== "UCI_LimitStrength" && s.name !== "UCI_Elo",
+    );
+    const baseOptions: EngineOption[] = withoutStrength.map((s) => ({
+      name: s.name,
+      value: s.value?.toString() ?? "",
+    }));
+
+    const strengthOpts: EngineOption[] = [];
+    if (settings.limitStrength) {
+      const elo = Math.min(3200, Math.max(500, Math.round(settings.limitElo ?? 1500)));
+      strengthOpts.push(
+        { name: "UCI_LimitStrength", value: "true" },
+        { name: "UCI_Elo", value: String(elo) },
+      );
+    } else {
+      strengthOpts.push({ name: "UCI_LimitStrength", value: "false" });
+    }
+
     return {
       type: "engine",
       name: settings.engine?.name ?? "Engine",
       path: settings.engine?.path ?? "",
-      options: (settings.engineSettings ?? settings.engine?.settings ?? [])
-        .filter((s) => s.name !== "MultiPV")
-        .map((s) => ({
-          name: s.name,
-          value: s.value?.toString() ?? "",
-        })),
+      options: [...baseOptions, ...strengthOpts],
       go: settings.timeControl ? null : settings.go,
     };
   }
 
-  function getTreeMoves(): string[] {
+  const getTreeMoves = useCallback((): string[] => {
     const moves: string[] = [];
     let node = root;
     while (node.children.length > 0) {
@@ -267,7 +313,7 @@ function BoardGame() {
       }
     }
     return moves;
-  }
+  }, [root]);
 
   async function startGame() {
     const playerSettings = getPlayers();
@@ -370,6 +416,54 @@ function BoardGame() {
       } else {
         newHeaders.white_time_control = whiteTimeControl;
         newHeaders.black_time_control = blackTimeControl;
+      }
+
+      if (whiteIsEngine && playerSettings.white.type === "engine") {
+        if (playerSettings.white.limitStrength) {
+          newHeaders.white_elo = Math.min(
+            3200,
+            Math.max(500, Math.round(playerSettings.white.limitElo ?? 1500)),
+          );
+        }
+      }
+      if (blackIsEngine && playerSettings.black.type === "engine") {
+        if (playerSettings.black.limitStrength) {
+          newHeaders.black_elo = Math.min(
+            3200,
+            Math.max(500, Math.round(playerSettings.black.limitElo ?? 1500)),
+          );
+        }
+      }
+
+      const isPvE = whiteIsEngine !== blackIsEngine;
+      if (isPvE) {
+        const humanSettings = whiteIsEngine ? playerSettings.black : playerSettings.white;
+        const humanTc = whiteIsEngine ? blackTimeControl : whiteTimeControl;
+        if (humanSettings.type === "human") {
+          const uname = (humanSettings.name ?? "").trim();
+          if (uname) {
+            const regRes = await commands.registerEncroissantEnginePlayer(uname);
+            if (regRes.status === "error") {
+              console.error(regRes.error);
+            } else {
+              void mutate("encroissant-engine-usernames");
+              void mutate(
+                (key: unknown) => Array.isArray(key) && key[0] === "enc-engine-site-stats",
+              );
+              void mutate((key: unknown) => Array.isArray(key) && key[0] === "enc-account-summary");
+            }
+            const ratingRes = await commands.getEncroissantEngineDisplayRating({
+              username: uname,
+              timeControl: humanTc,
+            });
+            const elo = ratingRes.status === "ok" ? ratingRes.data : 1000;
+            if (whiteIsEngine) {
+              newHeaders.black_elo = elo;
+            } else {
+              newHeaders.white_elo = elo;
+            }
+          }
+        }
       }
 
       setHeaders({
@@ -476,8 +570,122 @@ function BoardGame() {
 
       syncTreeWithMovesRef.current(mapBackendMoves(payload.moves));
 
+      const outcome = gameResultToOutcome(payload.result);
       setGameState("gameOver");
-      setResult(gameResultToOutcome(payload.result));
+      setResult(outcome);
+
+      const playersNow = getDefaultStore().get(currentPlayersAtom);
+      const pve =
+        (playersNow.white.type === "human" && playersNow.black.type === "engine") ||
+        (playersNow.black.type === "human" && playersNow.white.type === "engine");
+      const pvp = playersNow.white.type === "human" && playersNow.black.type === "human";
+
+      const usernameIfPve =
+        pve && playersNow.white.type === "human"
+          ? (playersNow.white.name ?? "").trim()
+          : pve && playersNow.black.type === "human"
+            ? (playersNow.black.name ?? "").trim()
+            : "";
+
+      const showSavedHint = pvp || (pve && usernameIfPve.length > 0);
+
+      if (gameEndNotifiedForGameIdRef.current !== currentGameId) {
+        gameEndNotifiedForGameIdRef.current = currentGameId;
+        const { title, message } = buildGameOverNotificationCopy(payload.result, t, showSavedHint);
+        notifications.show({ title, message, autoClose: 9000 });
+      }
+
+      const formatTc = (settings: OpponentSettings): string => {
+        if (!settings.timeControl) return "-";
+        const seconds = settings.timeControl.seconds / 1000;
+        const increment = (settings.timeControl.increment ?? 0) / 1000;
+        return increment ? `${seconds}+${increment}` : `${seconds}`;
+      };
+
+      const headerSnapshot = store.getState().headers;
+      const dateStr =
+        headerSnapshot.date?.replace(/-/g, ".") ??
+        new Date().toISOString().slice(0, 10).replace(/-/g, ".");
+
+      const movesUci = payload.moves.map((m) => m.uci);
+
+      const mutateEncStats = () => {
+        void mutate("encroissant-engine-usernames");
+        void mutate((key: unknown) => Array.isArray(key) && key[0] === "enc-engine-site-stats");
+        void mutate((key: unknown) => Array.isArray(key) && key[0] === "enc-account-summary");
+      };
+
+      if (pve) {
+        const human = playersNow.white.type === "human" ? playersNow.white : playersNow.black;
+        const engineSide = playersNow.white.type === "engine" ? playersNow.white : playersNow.black;
+        if (human.type !== "human" || engineSide.type !== "engine") {
+          return;
+        }
+
+        const username = (human.name ?? "").trim();
+        if (!username) {
+          return;
+        }
+
+        const timeControl =
+          playersNow.white.type === "human"
+            ? formatTc(playersNow.white)
+            : formatTc(playersNow.black);
+
+        const opponentElo = engineSide.limitStrength
+          ? Math.min(3200, Math.max(500, Math.round(engineSide.limitElo ?? 1500)))
+          : null;
+
+        void commands
+          .recordEncroissantEngineGame({
+            username,
+            humanIsWhite: playersNow.white.type === "human",
+            outcome,
+            opponentElo,
+            limitStrength: engineSide.limitStrength ?? false,
+            timeControl,
+            movesUci,
+            date: dateStr,
+          })
+          .then((res) => {
+            if (res.status === "error") {
+              console.error(res.error);
+              return;
+            }
+            mutateEncStats();
+          })
+          .catch((err) => {
+            console.error(err);
+          });
+      }
+
+      if (pvp) {
+        const w = playersNow.white;
+        const b = playersNow.black;
+        if (w.type !== "human" || b.type !== "human") {
+          return;
+        }
+        void commands
+          .recordEncroissantHumanVsHumanGame({
+            whiteName: (w.name ?? "").trim() || "White",
+            blackName: (b.name ?? "").trim() || "Black",
+            result: payload.result,
+            whiteTimeControl: formatTc(w),
+            blackTimeControl: formatTc(b),
+            movesUci,
+            date: dateStr,
+          })
+          .then((res) => {
+            if (res.status === "error") {
+              console.error(res.error);
+              return;
+            }
+            mutateEncStats();
+          })
+          .catch((err) => {
+            console.error(err);
+          });
+      }
     });
 
     return () => {
@@ -489,11 +697,12 @@ function BoardGame() {
       unlistenClock.then((f) => f());
       unlistenGameOver.then((f) => f());
     };
-  }, [gameId, gameState, scheduleUpdate, setGameState, setResult]);
+  }, [gameId, gameState, scheduleUpdate, setGameState, setResult, t]);
 
   useEffect(() => {
     if (gameState === "playing" && gameId) {
-      commands.getGameState(gameId).then((result) => {
+      const gid = gameId;
+      commands.getGameState(gid).then((result) => {
         if (result.status === "ok") {
           const state = result.data;
 
@@ -505,13 +714,37 @@ function BoardGame() {
           if (state.status !== "playing") {
             setGameState("gameOver");
             if (typeof state.status === "object" && "finished" in state.status) {
-              setResult(gameResultToOutcome(state.status.finished.result));
+              const finishedResult = state.status.finished.result;
+              setResult(gameResultToOutcome(finishedResult));
+
+              const playersNow = getDefaultStore().get(currentPlayersAtom);
+              const pve =
+                (playersNow.white.type === "human" && playersNow.black.type === "engine") ||
+                (playersNow.black.type === "human" && playersNow.white.type === "engine");
+              const pvp = playersNow.white.type === "human" && playersNow.black.type === "human";
+              const usernameIfPve =
+                pve && playersNow.white.type === "human"
+                  ? (playersNow.white.name ?? "").trim()
+                  : pve && playersNow.black.type === "human"
+                    ? (playersNow.black.name ?? "").trim()
+                    : "";
+              const showSavedHint = pvp || (pve && usernameIfPve.length > 0);
+
+              if (gameEndNotifiedForGameIdRef.current !== gid) {
+                gameEndNotifiedForGameIdRef.current = gid;
+                const { title, message } = buildGameOverNotificationCopy(
+                  finishedResult,
+                  t,
+                  showSavedHint,
+                );
+                notifications.show({ title, message, autoClose: 9000 });
+              }
             }
           }
         }
       });
     }
-  }, [gameId, gameState, setGameState, setResult]);
+  }, [gameId, gameState, setGameState, setResult, t]);
 
   const movable = useMemo(() => {
     if (players.white.type === "human" && players.black.type === "human") {
@@ -552,6 +785,7 @@ function BoardGame() {
   }
 
   async function handleNewGame() {
+    gameEndNotifiedForGameIdRef.current = null;
     setGameId(null);
     setGameState("settingUp");
     setWhiteTime(null);

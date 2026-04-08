@@ -1,14 +1,14 @@
 {
   "name": "en-croissant",
-  "version": "0.15.0",
+  "version": "0.16.7",
   "private": true,
   "type": "module",
   "scripts": {
     "start-vite": "vite",
     "build-vite": "tsgo --noEmit && vite build",
-    "build": "tauri build --no-bundle",
-    "dev": "tauri dev",
-    "tauri": "tauri",
+    "build": "node scripts/with-cargo-path.mjs tauri build --no-bundle",
+    "dev": "node scripts/with-cargo-path.mjs tauri dev",
+    "tauri": "node scripts/with-cargo-path.mjs tauri",
     "format": "oxfmt",
     "test": "vitest run",
     "lint": "tsgo --noEmit && oxlint",
@@ -105,5 +105,8 @@
     "oxlint-tsgolint": "^0.16.0",
     "typescript-plugin-css-modules": "^5.2.0",
     "vitest": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=20.19.0"
   }
 }

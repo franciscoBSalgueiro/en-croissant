@@ -1,10 +1,10 @@
 [package]
 name = "en-croissant"
-version = "0.15.0"
+version = "0.16.7"
 description = "A Modern Chess Database"
-authors = ["Francisco Salgueiro <fgcdbs@gmail.com>"]
+authors = ["Francisco Salgueiro <fgcdbs@gmail.com> | Werner Kruger <wernerkruger888@gmail.com>"]
 license = "GPL-3.0-only"
-repository = "https://github.com/franciscoBSalgueiro/en-croissant"
+repository = "https://github.com/wernerkruger/en-croissant"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -69,6 +69,7 @@ tauri-plugin-opener = "2"
 memmap2 = "0.9"
 rkyv = { version = "0.8", features = ["bytecheck"] }
 polyglot-book-rs = "0.1.0"
+libm = "0.2"
 
 [features]
 # by default Tauri runs in production mode

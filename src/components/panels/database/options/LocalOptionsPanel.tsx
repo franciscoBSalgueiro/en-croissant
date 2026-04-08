@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import { Chessground } from "@/chessground/Chessground";
 import PiecesGrid from "@/components/boards/PiecesGrid";
 import { PlayerSearchInput } from "@/components/databases/PlayerSearchInput";
+import { PlayerSideMenu, resolveMutualPlayerSides } from "@/components/databases/PlayerSideMenu";
 import { currentLocalOptionsAtom } from "@/state/atoms";
 
 function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
@@ -41,29 +42,51 @@ function LocalOptionsPanel({ boardFen }: { boardFen: string }) {
       <SimpleGrid cols={2}>
         <Stack gap={4}>
           <Text fw="bold" fz="sm">
-            {t("Board.Database.Local.Player")}
+            {t("Databases.Player.One")}
           </Text>
           {options.path && (
             <PlayerSearchInput
               label={t("Common.Search")}
               value={options.player ?? undefined}
               file={options.path}
-              setValue={(v) => setOptions((q) => ({ ...q, player: v || null }))}
+              setValue={(v) => setOptions((q) => ({ ...q, player: v ?? null }))}
+              rightSection={
+                <PlayerSideMenu
+                  value={options.player1Side}
+                  onChange={(side) =>
+                    setOptions((o) => ({
+                      ...o,
+                      ...resolveMutualPlayerSides(1, side, o.player1Side, o.player2Side),
+                    }))
+                  }
+                />
+              }
             />
           )}
         </Stack>
         <Stack gap={4}>
           <Text fw="bold" fz="sm">
-            {t("Board.Database.Local.Color")}
+            {t("Databases.Player.Two")}
           </Text>
-          <SegmentedControl
-            data={[
-              { value: "white", label: t("Fen.White") },
-              { value: "black", label: t("Fen.Black") },
-            ]}
-            value={options.color}
-            onChange={(v) => setOptions({ ...options, color: v as "white" | "black" })}
-          />
+          {options.path && (
+            <PlayerSearchInput
+              label={t("Common.Search")}
+              value={options.player2 ?? undefined}
+              file={options.path}
+              setValue={(v) => setOptions((q) => ({ ...q, player2: v ?? null }))}
+              rightSection={
+                <PlayerSideMenu
+                  value={options.player2Side}
+                  onChange={(side) =>
+                    setOptions((o) => ({
+                      ...o,
+                      ...resolveMutualPlayerSides(2, side, o.player1Side, o.player2Side),
+                    }))
+                  }
+                />
+              }
+            />
+          )}
         </Stack>
 
         <Stack gap={4}>

@@ -1,13 +1,4 @@
-import {
-  ActionIcon,
-  Divider,
-  Group,
-  ScrollArea,
-  SimpleGrid,
-  Stack,
-  Text,
-  TextInput,
-} from "@mantine/core";
+import { ActionIcon, Box, Divider, Group, ScrollArea, Stack, Text, TextInput } from "@mantine/core";
 import { IconCheck, IconEdit, IconX } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
 import { useEffect, useRef, useState } from "react";
@@ -17,6 +8,7 @@ import { getChessComAccount, getStats } from "@/utils/chess.com/api";
 import { getLichessAccount } from "@/utils/lichess/api";
 import type { Session } from "@/utils/session";
 import { AccountCard } from "../home/AccountCard";
+import { EncAccountCard } from "../home/EncAccountCard";
 import { EmptyAccounts } from "../home/EmptyAccounts";
 
 function AccountCards({
@@ -158,16 +150,20 @@ function PlayerSession({
         </Group>
       </Group>
       <Divider />
-      <Group>
+      <Group gap="xs" align="stretch" wrap="nowrap" style={{ width: "100%", minWidth: 0 }}>
         {sessions.map((session, i) => (
-          <LichessOrChessCom
-            key={i}
-            session={session}
-            databases={databases}
-            setDatabases={setDatabases}
-            setSessions={setSessions}
-          />
+          <Box key={i} style={{ flex: "1 1 0", minWidth: 0, maxWidth: "100%" }}>
+            <LichessOrChessCom
+              session={session}
+              databases={databases}
+              setDatabases={setDatabases}
+              setSessions={setSessions}
+            />
+          </Box>
         ))}
+        <Box style={{ flex: "1 1 0", minWidth: 0, maxWidth: "100%" }}>
+          <EncAccountCard playerName={name} />
+        </Box>
       </Group>
     </Stack>
   );

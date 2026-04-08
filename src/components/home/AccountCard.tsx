@@ -177,7 +177,7 @@ export function AccountCard({
   }
 
   return (
-    <Card withBorder radius="md" padding="lg">
+    <Card withBorder radius="md" padding="sm" style={{ minWidth: 0 }}>
       <Card.Section withBorder inheritPadding py="xs">
         <Group justify="space-between">
           <Group>

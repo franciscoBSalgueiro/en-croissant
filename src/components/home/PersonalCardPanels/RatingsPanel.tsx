@@ -10,7 +10,7 @@ import {
   YAxis,
 } from "recharts";
 import type { PlayerGameInfo } from "@/bindings";
-import { getTimeControl } from "@/utils/timeControl";
+import { getTimeControl, parsePgnDateUtcMs } from "@/utils/timeControl";
 import DateRangeTabs, { DateRange } from "./DateRangeTabs";
 import {
   gradientStops,
@@ -43,10 +43,12 @@ function RatingsPanel({
   playerName,
   info,
   isDatabase,
+  encUsernames = [],
 }: {
   playerName: string;
   info: PlayerGameInfo;
   isDatabase?: boolean;
+  encUsernames?: string[];
 }) {
   const [dateRange, setDateRange] = useState<string | null>(DateRange.AllTime);
   const [timeControl, setTimeControl] = useState<string | null>(null);
@@ -69,7 +71,8 @@ function RatingsPanel({
           .filter(
             (game) => !timeControl || getTimeControl(website, game.time_control) === timeControl,
           )
-          .map((game) => new Date(game.date).getTime()),
+          .map((game) => parsePgnDateUtcMs(game.date))
+          .filter((t) => t > 0),
       ]),
     ).sort((a, b) => a - b);
   }, [info.site_stats_data, website, account, timeControl]);
@@ -94,7 +97,8 @@ function RatingsPanel({
           (game) => !timeControl || getTimeControl(website!, game.time_control) === timeControl,
         )
         .filter((game) => {
-          const gameDate = new Date(game.date).getTime();
+          const gameDate = parsePgnDateUtcMs(game.date);
+          if (!gameDate) return false;
           return (
             gameDate >= (dates[timeRange.start] || 0) && gameDate <= (dates[timeRange.end] || 0)
           );
@@ -108,7 +112,8 @@ function RatingsPanel({
     const ratingData = (() => {
       const map = new Map<number, { date: number; player_elo: number }>();
       for (const game of filteredGames) {
-        const date = new Date(game.date).getTime();
+        const date = parsePgnDateUtcMs(game.date);
+        if (!date) continue;
         if (!map.has(date) || map.get(date)!.player_elo < game.player_elo) {
           map.set(date, { date, player_elo: game.player_elo });
         }
@@ -125,7 +130,7 @@ function RatingsPanel({
       },
       ratingData,
     ];
-  }, [info.site_stats_data, website, account, timeControl, timeRange]);
+  }, [info.site_stats_data, website, account, timeControl, timeRange, dates]);
 
   const playerEloDomain =
     ratingData.length === 0
@@ -148,6 +153,8 @@ function RatingsPanel({
               onWebsiteChange={setWebsite}
               onAccountChange={setAccount}
               allowAll={false}
+              encUsernames={encUsernames}
+              info={info}
             />
             <TimeControlSelector
               onTimeControlChange={setTimeControl}

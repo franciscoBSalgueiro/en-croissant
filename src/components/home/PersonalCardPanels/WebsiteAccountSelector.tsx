@@ -1,6 +1,7 @@
 import { Group, Select } from "@mantine/core";
 import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
+import type { PlayerGameInfo } from "@/bindings";
 import { sessionsAtom } from "@/state/atoms";
 
 interface WebsiteAccountSelectorProps {
@@ -8,6 +9,10 @@ interface WebsiteAccountSelectorProps {
   onWebsiteChange: (website: string | null) => void;
   onAccountChange: (account: string | null) => void;
   allowAll: boolean;
+  /** Usernames that have En Croissant engine games tracked locally */
+  encUsernames?: string[];
+  /** When stats already include En Croissant (e.g. after merge), show the card even if username list is stale */
+  info?: PlayerGameInfo;
 }
 
 const WebsiteAccountSelector = ({
@@ -15,6 +20,8 @@ const WebsiteAccountSelector = ({
   onWebsiteChange,
   onAccountChange,
   allowAll,
+  encUsernames = [],
+  info,
 }: WebsiteAccountSelectorProps) => {
   const sessions = useAtomValue(sessionsAtom);
 
@@ -24,6 +31,11 @@ const WebsiteAccountSelector = ({
   }
   if (sessions.some((s) => s.player === playerName && s.lichess?.username)) {
     websites.push({ value: "Lichess", label: "Lichess" });
+  }
+  const matchedEncUser = encUsernames.find((u) => u.toLowerCase() === playerName.toLowerCase());
+  const encInStats = info?.site_stats_data.some((s) => s.site === "En Croissant");
+  if (matchedEncUser !== undefined || encInStats) {
+    websites.push({ value: "En Croissant", label: "En Croissant" });
   }
 
   if (allowAll) {
@@ -41,16 +53,23 @@ const WebsiteAccountSelector = ({
     onAccountChange(account);
   }, [account]);
 
+  const encAccountLabel =
+    matchedEncUser ??
+    info?.site_stats_data.find((s) => s.site === "En Croissant")?.player ??
+    playerName;
+
   const accounts = ["All accounts"].concat(
-    sessions
-      .filter(
-        (s) =>
-          s.player === playerName &&
-          ((website === "Chess.com" && s.chessCom?.username) ||
-            (website === "Lichess" && s.lichess?.username)),
-      )
-      .map((s) => s.chessCom?.username || s.lichess?.username)
-      .filter((username): username is string => username !== undefined && username !== null),
+    website === "En Croissant"
+      ? [encAccountLabel]
+      : sessions
+          .filter(
+            (s) =>
+              s.player === playerName &&
+              ((website === "Chess.com" && s.chessCom?.username) ||
+                (website === "Lichess" && s.lichess?.username)),
+          )
+          .map((s) => s.chessCom?.username || s.lichess?.username)
+          .filter((username): username is string => username !== undefined && username !== null),
   );
 
   return (

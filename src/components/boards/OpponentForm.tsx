@@ -1,8 +1,10 @@
 import {
   Center,
+  Checkbox,
   Divider,
   Group,
   InputWrapper,
+  NumberInput,
   SegmentedControl,
   Stack,
   TextInput,
@@ -33,6 +35,9 @@ export type OpponentSettings =
       engineSettings?: EngineSettings;
       timeUnit?: TimeType;
       incrementUnit?: TimeType;
+      /** When set, engine receives UCI_LimitStrength / UCI_Elo if it supports them */
+      limitStrength?: boolean;
+      limitElo?: number;
     };
 
 export const DEFAULT_TIME_CONTROL: TimeControlField = {
@@ -66,6 +71,8 @@ export function OpponentForm({
         type: "engine",
         engine: null,
         go: ("go" in prev && prev.go) || { t: "Depth", c: 24 },
+        limitStrength: false,
+        limitElo: 1500,
       }));
     }
   }
@@ -205,6 +212,42 @@ export function OpponentForm({
           </>
         )}
       </Group>
+
+      {opponent.type === "engine" && (
+        <>
+          <Divider variant="dashed" label={t("Board.Opponent.StrengthLimit")} />
+          <Checkbox
+            label={t("Board.Opponent.LimitStrength")}
+            description={t("Board.Opponent.LimitStrengthHint")}
+            checked={opponent.limitStrength ?? false}
+            onChange={(e) =>
+              setOpponent((prev) =>
+                prev.type === "engine" ? { ...prev, limitStrength: e.currentTarget.checked } : prev,
+              )
+            }
+          />
+          {(opponent.limitStrength ?? false) && (
+            <NumberInput
+              label={t("Board.Opponent.LimitElo")}
+              description={t("Board.Opponent.LimitEloHint")}
+              min={500}
+              max={3200}
+              step={50}
+              value={opponent.limitElo ?? 1500}
+              onChange={(v) =>
+                setOpponent((prev) =>
+                  prev.type === "engine"
+                    ? {
+                        ...prev,
+                        limitElo: typeof v === "number" ? v : (prev.limitElo ?? 1500),
+                      }
+                    : prev,
+                )
+              }
+            />
+          )}
+        </>
+      )}
 
       {opponent.type === "engine" && (
         <Stack>

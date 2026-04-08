@@ -9,7 +9,7 @@ use shakmaty::{
 use specta::Type;
 use std::{
     cmp::Reverse,
-    collections::BinaryHeap,
+    collections::{BinaryHeap, HashSet},
     path::PathBuf,
     sync::{
         atomic::{AtomicUsize, Ordering},
@@ -22,6 +22,7 @@ use tauri::Emitter;
 use crate::{
     db::{
         encoding::{decode_move, iter_mainline_move_bytes},
+        game_matches_player_filters,
         get_db_or_create, get_material_count, get_pawn_home,
         models::*,
         normalize_games,
@@ -232,6 +233,64 @@ pub struct ProgressPayload {
     pub finished: bool,
 }
 
+fn push_elo_sample(heap: &mut BinaryHeap<Reverse<(i16, i32)>>, elo: i16, id: i32, cap: usize) {
+    if heap.len() < cap {
+        heap.push(Reverse((elo, id)));
+    } else if let Some(&Reverse((min_elo, _))) = heap.peek() {
+        if elo > min_elo {
+            heap.pop();
+            heap.push(Reverse((elo, id)));
+        }
+    }
+}
+
+/// Keep `cap` games with the latest `YYYY.MM.DD` dates (lexicographic compare).
+fn push_recent_date_sample(
+    heap: &mut BinaryHeap<Reverse<(String, i32)>>,
+    date: &str,
+    id: i32,
+    cap: usize,
+) {
+    if heap.len() < cap {
+        heap.push(Reverse((date.to_string(), id)));
+    } else if let Some(Reverse((min_date, _))) = heap.peek() {
+        if date > min_date.as_str() {
+            heap.pop();
+            heap.push(Reverse((date.to_string(), id)));
+        }
+    }
+}
+
+/// Opens the mmap position index for `file`, rebuilding it when missing or when the DB is newer than the index.
+pub(crate) fn open_mmap_index_for_database(
+    file: PathBuf,
+    state: &tauri::State<'_, AppState>,
+) -> Result<MmapSearchIndex, Error> {
+    let index_path = get_index_path(&file);
+    {
+        let cache = state.db_cache.lock().unwrap();
+        if let Some((cached_path, idx)) = cache.as_ref() {
+            if cached_path == &file && MmapSearchIndex::is_up_to_date(&file) {
+                return Ok(idx.clone());
+            }
+        }
+    }
+
+    {
+        let mut cache = state.db_cache.lock().unwrap();
+        *cache = None;
+    }
+
+    if !MmapSearchIndex::is_valid(&index_path) || !MmapSearchIndex::is_up_to_date(&file) {
+        super::generate_search_index(file.as_path(), state)?;
+    }
+
+    let index = MmapSearchIndex::open(&index_path)?;
+    let mut cache = state.db_cache.lock().unwrap();
+    *cache = Some((file.clone(), index.clone()));
+    Ok(index)
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn search_position(
@@ -241,6 +300,10 @@ pub async fn search_position(
     tab_id: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(Vec<PositionStats>, Vec<NormalizedGame>), Error> {
+    if crate::enc_local_db::is_enc_local_sentinel(&file) {
+        let _ = (app, tab_id);
+        return Ok((vec![], vec![]));
+    }
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     let collision_lock = {
@@ -262,40 +325,12 @@ pub async fn search_position(
 
     let permit = state.new_request.acquire().await.unwrap();
 
-    let mmap_index = {
-        let mut cache = state.db_cache.lock().unwrap();
-        if cache.is_none() {
-            let index_path = get_index_path(&file);
-
-            if !MmapSearchIndex::is_valid(&index_path) {
-                info!("Search index not found, generating automatically...");
-                drop(cache);
-                if let Err(e) = super::generate_search_index(&file, &state) {
-                    return Err(Error::from(std::io::Error::other(format!(
-                        "Failed to generate search index: {}",
-                        e
-                    ))));
-                }
-                cache = state.db_cache.lock().unwrap();
-            }
-
-            info!("Loading games from mmap binary search index");
-            match MmapSearchIndex::open(&index_path) {
-                Ok(index) => {
-                    info!(
-                        "Opened mmap index with {} games: {:?}",
-                        index.len(),
-                        start.elapsed()
-                    );
-                    *cache = Some(index);
-                }
-                Err(e) => {
-                    return Err(Error::from(e));
-                }
-            }
-        }
-        cache.as_ref().unwrap().clone()
-    };
+    let mmap_index = open_mmap_index_for_database(file.clone(), &state)?;
+    info!(
+        "Opened mmap index with {} games: {:?}",
+        mmap_index.len(),
+        start.elapsed()
+    );
 
     let game_count = mmap_index.len();
 
@@ -306,12 +341,13 @@ pub async fn search_position(
     );
 
     let openings: DashMap<String, PositionStats> = DashMap::new();
-    const MAX_SAMPLES: usize = 500;
-    // Min-heap of (elo_key, game_id) to track top-rated sample games.
-    // Using Reverse so peek() returns the entry with the lowest ELO,
-    // which we can evict when a higher-rated game is found.
-    let top_games: Mutex<BinaryHeap<Reverse<(i16, i32)>>> =
-        Mutex::new(BinaryHeap::with_capacity(MAX_SAMPLES + 1));
+    // Sample for the board Database → Games tab: merge high-ELO games with the latest-dated games.
+    const MAX_SAMPLES_ELO: usize = 500;
+    const MAX_SAMPLES_RECENT: usize = 500;
+    let top_by_elo: Mutex<BinaryHeap<Reverse<(i16, i32)>>> =
+        Mutex::new(BinaryHeap::with_capacity(MAX_SAMPLES_ELO + 1));
+    let top_by_recent_date: Mutex<BinaryHeap<Reverse<(String, i32)>>> =
+        Mutex::new(BinaryHeap::with_capacity(MAX_SAMPLES_RECENT + 1));
 
     let processed = AtomicUsize::new(0);
 
@@ -343,16 +379,8 @@ pub async fn search_position(
             );
         }
 
-        if let Some(white) = query.player1 {
-            if white != entry.white_id {
-                return;
-            }
-        }
-
-        if let Some(black) = query.player2 {
-            if black != entry.black_id {
-                return;
-            }
+        if !game_matches_player_filters(entry.white_id, entry.black_id, &query) {
+            return;
         }
 
         if let Some(wanted) = wanted_result {
@@ -385,16 +413,16 @@ pub async fn search_position(
             if position_query.can_reach(&end_material, entry.pawn_home) {
                 if let Ok(Some(m)) = get_move_after_match(entry.moves, &entry.fen, position_query) {
                     let elo_key = entry.white_elo.max(entry.black_elo);
-                    let mut heap = top_games.lock().unwrap();
-                    if heap.len() < MAX_SAMPLES {
-                        heap.push(Reverse((elo_key, entry.id)));
-                    } else if let Some(&Reverse((min_elo, _))) = heap.peek() {
-                        if elo_key > min_elo {
-                            heap.pop();
-                            heap.push(Reverse((elo_key, entry.id)));
+                    {
+                        let mut heap = top_by_elo.lock().unwrap();
+                        push_elo_sample(&mut heap, elo_key, entry.id, MAX_SAMPLES_ELO);
+                    }
+                    if let Some(d) = entry.date {
+                        if !d.is_empty() && !d.contains('?') {
+                            let mut heap = top_by_recent_date.lock().unwrap();
+                            push_recent_date_sample(&mut heap, d, entry.id, MAX_SAMPLES_RECENT);
                         }
                     }
-                    drop(heap);
 
                     openings
                         .entry(m)
@@ -428,25 +456,31 @@ pub async fn search_position(
             v
         })
         .collect();
-    let ids: Vec<i32> = top_games
-        .into_inner()
-        .unwrap()
-        .into_iter()
-        .map(|Reverse((_, id))| id)
-        .collect();
+    let mut id_set: HashSet<i32> = HashSet::new();
+    for Reverse((_, id)) in top_by_elo.into_inner().unwrap() {
+        id_set.insert(id);
+    }
+    for Reverse((_, id)) in top_by_recent_date.into_inner().unwrap() {
+        id_set.insert(id);
+    }
+    let ids: Vec<i32> = id_set.into_iter().collect();
 
     info!("finished search in {:?}", start.elapsed());
 
     let (white_players, black_players) = diesel::alias!(players as white, players as black);
-    let games: Vec<(Game, Player, Player, Event, Site)> = games::table
-        .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
-        .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
-        .inner_join(events::table.on(games::event_id.eq(events::id)))
-        .inner_join(sites::table.on(games::site_id.eq(sites::id)))
-        .filter(games::id.eq_any(ids))
-        .order((games::white_elo.desc(), games::black_elo.desc()))
-        .load(db)?;
-    let normalized_games = normalize_games(games);
+    let normalized_games = if ids.is_empty() {
+        Vec::new()
+    } else {
+        let games: Vec<(Game, Player, Player, Event, Site)> = games::table
+            .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
+            .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
+            .inner_join(events::table.on(games::event_id.eq(events::id)))
+            .inner_join(sites::table.on(games::site_id.eq(sites::id)))
+            .filter(games::id.eq_any(ids))
+            .order((games::white_elo.desc(), games::black_elo.desc()))
+            .load(db)?;
+        normalize_games(games)
+    };
     let file_path = file.clone();
 
     state.line_cache.insert(
@@ -459,6 +493,126 @@ pub async fn search_position(
     drop(permit);
 
     Ok((openings, normalized_games))
+}
+
+/// Loads every game row matching the same filters as [`search_position`] (full index scan, not the
+/// ELO/recent sample returned by [`search_position`]). Used when exporting the board database view to a new `.db3` file.
+pub(crate) async fn load_all_games_matching_position_export(
+    file: PathBuf,
+    query: GameQuery,
+    state: &tauri::State<'_, AppState>,
+) -> Result<Vec<(Game, Player, Player, Event, Site)>, Error> {
+    let db = &mut get_db_or_create(state, file.to_str().unwrap(), ConnectionOptions::default())?;
+
+    let collision_lock = {
+        let entry = state
+            .search_collisions
+            .entry((query.clone(), file.clone()))
+            .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())));
+        entry.value().clone()
+    };
+
+    let _guard = collision_lock.lock().await;
+
+    let start = Instant::now();
+    info!("export: loading mmap index for full position match");
+
+    let permit = state.new_request.acquire().await.unwrap();
+
+    let mmap_index = open_mmap_index_for_database(file.clone(), &state)?;
+
+    let parsed_position_query: Option<PositionQuery> = if let Some(pq) = &query.position {
+        Some(convert_position_query(pq.clone())?)
+    } else {
+        return Err(std::io::Error::other("position query required for this export").into());
+    };
+
+    let wanted_result = query.wanted_result.as_ref().and_then(|r| match r.as_str() {
+        "whitewon" => Some(GameResult::WhiteWin),
+        "blackwon" => Some(GameResult::BlackWin),
+        "draw" => Some(GameResult::Draw),
+        _ => None,
+    });
+
+    let matched_ids: Mutex<Vec<i32>> = Mutex::new(Vec::new());
+
+    let process_entry = |entry: SearchGameEntryRef<'_>| {
+        if !game_matches_player_filters(entry.white_id, entry.black_id, &query) {
+            return;
+        }
+
+        if let Some(wanted) = wanted_result {
+            if entry.result != wanted {
+                return;
+            }
+        }
+
+        if let Some(start_date) = &query.start_date {
+            if let Some(date) = entry.date {
+                if date < start_date.as_str() {
+                    return;
+                }
+            }
+        }
+
+        if let Some(end_date) = &query.end_date {
+            if let Some(date) = entry.date {
+                if date > end_date.as_str() {
+                    return;
+                }
+            }
+        }
+
+        if let Some(position_query) = &parsed_position_query {
+            let end_material: MaterialCount = ByColor {
+                white: entry.white_material,
+                black: entry.black_material,
+            };
+            if position_query.can_reach(&end_material, entry.pawn_home) {
+                if let Ok(Some(_m)) = get_move_after_match(entry.moves, &entry.fen, position_query) {
+                    matched_ids.lock().unwrap().push(entry.id);
+                }
+            }
+        }
+    };
+
+    mmap_index.par_iter().for_each(process_entry);
+
+    let mut ids = matched_ids.into_inner().unwrap();
+    ids.sort_unstable();
+    ids.dedup();
+
+    info!(
+        "export: matched {} games in {:?}",
+        ids.len(),
+        start.elapsed()
+    );
+
+    let file_path = file.clone();
+    state.search_collisions.remove(&(query, file_path));
+
+    drop(permit);
+
+    if ids.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let (white_players, black_players) = diesel::alias!(players as white, players as black);
+    let mut all_games = Vec::with_capacity(ids.len());
+    for chunk in ids.chunks(500) {
+        let chunk_vec: Vec<i32> = chunk.to_vec();
+        let part: Vec<(Game, Player, Player, Event, Site)> = games::table
+            .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
+            .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
+            .inner_join(events::table.on(games::event_id.eq(events::id)))
+            .inner_join(sites::table.on(games::site_id.eq(sites::id)))
+            .filter(games::id.eq_any(chunk_vec))
+            .order(games::id.asc())
+            .load(db)?;
+        all_games.extend(part);
+    }
+
+    Ok(all_games)
 }
 
 pub async fn is_position_in_db(
@@ -491,40 +645,7 @@ pub async fn is_position_in_db(
 
     let permit = state.new_request.acquire().await.unwrap();
 
-    let mmap_index = {
-        let mut cache = state.db_cache.lock().unwrap();
-        if cache.is_none() {
-            let index_path = get_index_path(&file);
-
-            if !MmapSearchIndex::is_valid(&index_path) {
-                info!("Search index not found, generating automatically...");
-                drop(cache);
-                if let Err(e) = super::generate_search_index(&file, &state) {
-                    return Err(Error::from(std::io::Error::other(format!(
-                        "Failed to generate search index: {}",
-                        e
-                    ))));
-                }
-                cache = state.db_cache.lock().unwrap();
-            }
-
-            info!("Loading games from mmap binary search index");
-            match MmapSearchIndex::open(&index_path) {
-                Ok(index) => {
-                    info!(
-                        "Opened mmap index with {} games: {:?}",
-                        index.len(),
-                        start.elapsed()
-                    );
-                    *cache = Some(index);
-                }
-                Err(e) => {
-                    return Err(Error::from(e));
-                }
-            }
-        }
-        cache.as_ref().unwrap().clone()
-    };
+    let mmap_index = open_mmap_index_for_database(file.clone(), &state)?;
 
     let check_entry = |entry: SearchGameEntryRef<'_>| -> bool {
         let end_material: MaterialCount = ByColor {

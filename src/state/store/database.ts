@@ -48,7 +48,8 @@ const defaultGamesState: DatabaseViewStore["games"] = {
         range1: [0, 3000],
         player2: undefined,
         range2: [0, 3000],
-        sides: "WhiteBlack",
+        player1Side: "white",
+        player2Side: "black",
         outcome: undefined,
         options: {
             sort: "date",
@@ -194,7 +195,29 @@ export const activeDatabaseViewStore = createStore<DatabaseViewStore>()(
         }),
         {
             name: "database-view",
+            version: 2,
             storage: createJSONStorage(() => sessionStorage),
+            migrate: (persisted, version) => {
+                if (version < 2 && persisted && typeof persisted === "object") {
+                    const p = persisted as { games?: { query?: Record<string, unknown> } };
+                    const q = p.games?.query;
+                    if (q && typeof q.sides === "string") {
+                        const sides = q.sides;
+                        delete q.sides;
+                        if (sides === "WhiteBlack") {
+                            q.player1Side = "white";
+                            q.player2Side = "black";
+                        } else if (sides === "BlackWhite") {
+                            q.player1Side = "black";
+                            q.player2Side = "white";
+                        } else {
+                            q.player1Side = "any";
+                            q.player2Side = "any";
+                        }
+                    }
+                }
+                return persisted as DatabaseViewStore;
+            },
         },
     ),
 );
