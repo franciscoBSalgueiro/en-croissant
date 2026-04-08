@@ -23,7 +23,7 @@ use std::sync::{Arc, Mutex};
 
 use chess::{BestMovesPayload, EngineProcess};
 use dashmap::DashMap;
-use db::{DatabaseProgress, GameQuery, NormalizedGame, PositionStats};
+use db::{convert_pgn, DatabaseProgress, GameQuery, NormalizedGame, PositionStats};
 use derivative::Derivative;
 use game::GameManager;
 use progress::{clear_progress, get_progress, ProgressEvent, ProgressStore};
@@ -41,9 +41,8 @@ use crate::chess::{
     stop_engine,
 };
 use crate::db::{
-    clear_games, convert_pgn, create_indexes, delete_database, delete_db_game, delete_empty_games,
-    delete_indexes, export_to_pgn, get_player, get_players_game_info, get_tournaments,
-    preload_reference_db, search_position, MmapSearchIndex,
+    delete_database, delete_db_game, delete_empty_games, export_to_pgn, get_player,
+    get_players_game_info, get_tournaments, search_position,
 };
 use crate::game::{
     abort_game, get_game_engine_logs, get_game_state, make_game_move, resign_game, start_game,
@@ -76,16 +75,9 @@ use tokio::sync::Semaphore;
 #[derive(Derivative)]
 #[derivative(Default)]
 pub struct AppState {
-    connection_pool: DashMap<
-        String,
-        diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::SqliteConnection>>,
-    >,
+    duckdb_connection_pool: DashMap<String, diesel::r2d2::Pool<duckdb::DuckdbConnectionManager>>,
+    aixchess_extension_path: Mutex<Option<PathBuf>>,
     line_cache: DashMap<(GameQuery, PathBuf), (Vec<PositionStats>, Vec<NormalizedGame>)>,
-    db_cache: Mutex<Option<MmapSearchIndex>>,
-    #[derivative(Default(value = "Arc::new(Semaphore::new(2))"))]
-    new_request: Arc<Semaphore>,
-    #[derivative(Default(value = "DashMap::new()"))]
-    search_collisions: DashMap<(GameQuery, PathBuf), Arc<tokio::sync::Mutex<()>>>,
     pgn_offsets: DashMap<String, Vec<u64>>,
 
     engine_processes: DashMap<(String, String), Arc<tokio::sync::Mutex<EngineProcess>>>,
@@ -137,10 +129,7 @@ fn main() {
             delete_game,
             delete_duplicated_games,
             delete_empty_games,
-            clear_games,
             set_file_as_executable,
-            delete_indexes,
-            create_indexes,
             edit_db_info,
             delete_db_game,
             write_db_game,
@@ -165,7 +154,6 @@ fn main() {
             resign_game,
             abort_game,
             get_game_engine_logs,
-            preload_reference_db,
             get_progress,
             clear_progress,
             get_sound_server_port
@@ -213,8 +201,22 @@ fn main() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_os::init())
+        .manage(AppState::default())
         .setup(move |app| {
             log::info!("Setting up application");
+
+            let aixchess_extension_path = app
+                .path()
+                .resolve(
+                    "aixchess.duckdb_extension",
+                    tauri::path::BaseDirectory::Resource,
+                )
+                .expect("failed to resolve aixchess extension resource path");
+            let state = app.state::<AppState>();
+            *state
+                .aixchess_extension_path
+                .lock()
+                .expect("aixchess extension path mutex poisoned") = Some(aixchess_extension_path);
 
             // #[cfg(any(windows, target_os = "macos"))]
             // set_shadow(&app.get_webview_window("main").unwrap(), true).unwrap();
@@ -244,7 +246,6 @@ fn main() {
 
             Ok(())
         })
-        .manage(AppState::default())
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app, event| {

@@ -8,9 +8,10 @@ import PersonalPlayerCard from "../home/PersonalCard";
 function PlayerCard({ player, file }: { player: Player; file: string }) {
   const { t } = useTranslation();
   const { data: info, isLoading } = useSWRImmutable(
-    ["player-game-info", file, player.id],
-    async ([key, file, id]) => {
-      const games = await commands.getPlayersGameInfo(file, id);
+    ["player-game-info", file, player.name],
+    async ([_key, file, player]) => {
+      if (!player) return null;
+      const games = await commands.getPlayersGameInfo(file, player);
       return unwrap(games);
     },
   );
@@ -27,7 +28,14 @@ function PlayerCard({ player, file }: { player: Player; file: string }) {
           </Center>
         </Paper>
       )}
-      {info && <PersonalPlayerCard name={player.name!} info={info} isDatabase />}
+      {info && (
+        <PersonalPlayerCard
+          name={player.name!}
+          info={info}
+          isDatabase
+          openingSources={[{ file, player: player.name! }]}
+        />
+      )}
     </>
   );
 }

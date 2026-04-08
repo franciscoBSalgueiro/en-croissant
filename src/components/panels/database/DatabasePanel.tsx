@@ -16,7 +16,6 @@ import { useTranslation } from "react-i18next";
 import useSWR from "swr/immutable";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
-import { commands } from "@/bindings";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
   currentDbTabAtom,
@@ -32,6 +31,7 @@ import { getDatabases, type Opening, searchPosition } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 import { convertToNormalized, getLichessGames, getMasterGames } from "@/utils/lichess/api";
 import type { LichessGamesOptions, MasterGamesOptions } from "@/utils/lichess/explorer";
+import type { GameQuery } from "@/bindings";
 import DatabaseLoader from "./DatabaseLoader";
 import GamesTable from "./GamesTable";
 import NoDatabaseWarning from "./NoDatabaseWarning";
@@ -55,15 +55,8 @@ type DBType =
       token: string;
     };
 
-export type LocalOptions = {
+export type LocalOptions = Omit<GameQuery, "options"> & {
   path: string | null;
-  fen: string;
-  type: "exact" | "partial";
-  player: number | null;
-  color: "white" | "black";
-  start_date?: string;
-  end_date?: string;
-  result: "any" | "whitewon" | "draw" | "blackwon";
 };
 
 function sortOpenings(openings: Opening[]) {
@@ -131,7 +124,10 @@ function DatabasePanel() {
 
   useEffect(() => {
     if (db === "local") {
-      setLocalOptions((q) => ({ ...q, fen: debouncedFen }));
+      setLocalOptions((q) => ({
+        ...q,
+        position: { fen: debouncedFen, type_: "exact" },
+      }));
     }
   }, [debouncedFen, setLocalOptions, setMasterOptions, setLichessOptions, db]);
 
@@ -168,7 +164,11 @@ function DatabasePanel() {
     isLoading,
     error,
   } = useSWR(
-    tabType !== "options" && !missingExplorerToken ? dbType : null,
+    tabType !== "options" &&
+      !missingExplorerToken &&
+      (dbType.type !== "local" || Boolean(dbType.options.position?.fen))
+      ? dbType
+      : null,
     async (dbType: DBType) => {
       return fetchOpening(dbType, tab?.value || "");
     },
@@ -197,8 +197,7 @@ function DatabasePanel() {
             <Select
               data={dbSelectData}
               value={referenceDatabase}
-              onChange={async (value) => {
-                await commands.clearGames();
+              onChange={(value) => {
                 setReferenceDatabase(value);
               }}
               placeholder={t("Board.Database.SelectReference")}
@@ -235,12 +234,7 @@ function DatabasePanel() {
         style={{ overflow: "hidden" }}
       >
         <Tabs.List>
-          <Tabs.Tab
-            value="stats"
-            disabled={dbType.type === "local" && dbType.options.type === "partial"}
-          >
-            {t("Board.Database.Stats")}
-          </Tabs.Tab>
+          <Tabs.Tab value="stats">{t("Board.Database.Stats")}</Tabs.Tab>
           <Tabs.Tab value="games">{t("Board.Database.Games")}</Tabs.Tab>
           <Tabs.Tab value="options">{t("Board.Database.Options")}</Tabs.Tab>
         </Tabs.List>
@@ -276,7 +270,7 @@ function DatabasePanel() {
         >
           <ScrollArea flex={1} offsetScrollbars pt="sm">
             {match(db)
-              .with("local", () => <LocalOptionsPanel boardFen={debouncedFen} />)
+              .with("local", () => <LocalOptionsPanel />)
               .with("lch_all", () => <LichessOptionsPanel />)
               .with("lch_master", () => <MasterOptionsPanel />)
               .exhaustive()}

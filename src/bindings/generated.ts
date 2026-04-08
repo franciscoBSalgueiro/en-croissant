@@ -112,9 +112,9 @@ async getOpeningFromName(name: string) : Promise<Result<string, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async getPlayersGameInfo(file: string, id: number) : Promise<Result<PlayerGameInfo, string>> {
+async getPlayersGameInfo(file: string, player: string) : Promise<Result<PlayerGameInfo, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_players_game_info", { file, id }) };
+    return { status: "ok", data: await TAURI_INVOKE("get_players_game_info", { file, player }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -144,9 +144,9 @@ async getFileMetadata(path: string) : Promise<Result<FileMetadata, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async mergePlayers(file: string, player1: number, player2: number) : Promise<Result<null, string>> {
+async mergePlayers(file: string, player1Name: string, player2Name: string) : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("merge_players", { file, player1, player2 }) };
+    return { status: "ok", data: await TAURI_INVOKE("merge_players", { file, player1Name, player2Name }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -219,28 +219,9 @@ async deleteEmptyGames(file: string) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async clearGames() : Promise<void> {
-    await TAURI_INVOKE("clear_games");
-},
 async setFileAsExecutable(path: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("set_file_as_executable", { path }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async deleteIndexes(file: string) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("delete_indexes", { file }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async createIndexes(file: string) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("create_indexes", { file }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -438,14 +419,6 @@ async getGameEngineLogs(gameId: string, color: string) : Promise<Result<EngineLo
     else return { status: "error", error: e  as any };
 }
 },
-async preloadReferenceDb(file: string) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("preload_reference_db", { file }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
 async getProgress(id: string) : Promise<ProgressItem | null> {
     return await TAURI_INVOKE("get_progress", { id });
 },
@@ -491,14 +464,14 @@ export type AnalysisOptions = { fen: string; moves: string[]; annotateNovelties:
 export type BestMoves = { nodes: number; depth: number; score: Score; uciMoves: string[]; sanMoves: string[]; multipv: number; nps: number }
 export type BestMovesPayload = { bestLines: BestMoves[]; engine: string; tab: string; fen: string; moves: string[]; progress: number }
 export type ClockUpdateEvent = { gameId: string; whiteTime: bigint | null; blackTime: bigint | null }
-export type DatabaseInfo = { title: string; description: string; player_count: number; event_count: number; game_count: number; storage_size: bigint; filename: string; indexed: boolean }
+export type DatabaseInfo = { title: string; description: string; player_count: number; event_count: number; game_count: number; storage_size: bigint; filename: string }
 export type DatabaseProgress = { id: string; progress: number }
 export type DrawReason = "stalemate" | "insufficientMaterial" | "threefoldRepetition" | "fiftyMoveRule" | "agreement"
 export type EngineConfig = { name: string; options: UciOptionConfig[] }
 export type EngineLog = { type: "gui"; value: string } | { type: "engine"; value: string }
 export type EngineOption = { name: string; value: string }
 export type EngineOptions = { fen: string; moves: string[]; extraOptions: EngineOption[] }
-export type Event = { id: number; name: string | null }
+export type Event = { name: string | null; games_count: number }
 export type FileMetadata = { last_modified: number }
 export type GameConfig = { white: PlayerConfig; black: PlayerConfig; whiteTimeControl: TimeControl | null; blackTimeControl: TimeControl | null; initialFen: string | null; initialMoves?: string[]; openingBook: OpeningBookConfig | null }
 export type GameEndReason = "checkmate" | "timeout" | "resignation" | "abandonment"
@@ -506,22 +479,22 @@ export type GameMove = { uci: string; san: string; fenAfter: string; clock: bigi
 export type GameMoveEvent = { gameId: string; moves: GameMove[]; fen: string; whiteTime: bigint | null; blackTime: bigint | null }
 export type GameOutcome = "Won" | "Drawn" | "Lost"
 export type GameOverEvent = { gameId: string; result: GameResult; moves: GameMove[] }
-export type GameQuery = { options?: QueryOptions<GameSort> | null; player1?: number | null; player2?: number | null; tournament_id?: number | null; start_date?: string | null; end_date?: string | null; range1?: [number, number] | null; range2?: [number, number] | null; sides?: Sides | null; outcome?: string | null; position?: PositionQueryJs | null; wanted_result?: string | null }
+export type GameQuery = { options?: QueryOptions<GameSort> | null; player1?: string | null; player2?: string | null; tournament?: string | null; start_date?: string | null; end_date?: string | null; range1?: [number, number] | null; range2?: [number, number] | null; sides?: Sides | null; outcome?: string | null; position?: PositionQueryJs | null; wanted_result?: string | null }
 export type GameResult = { type: "whiteWins"; reason: GameEndReason } | { type: "blackWins"; reason: GameEndReason } | { type: "draw"; reason: DrawReason }
 export type GameSort = "id" | "date" | "whiteElo" | "blackElo" | "ply_count"
 export type GameState = { gameId: string; status: GameStatus; initialFen: string; moves: GameMove[]; currentFen: string; ply: number; turn: string; whiteTime: bigint | null; blackTime: bigint | null; whitePlayer: string; blackPlayer: string }
 export type GameStatus = "playing" | { finished: { result: GameResult } }
 export type GoMode = { t: "PlayersTime"; c: PlayersTime } | { t: "Depth"; c: number } | { t: "Time"; c: number } | { t: "Nodes"; c: number } | { t: "Infinite" }
 export type MoveAnalysis = { best: BestMoves[]; novelty: boolean; is_sacrifice: boolean }
-export type NormalizedGame = { id: number; fen: string; event: string; event_id: number; site: string; site_id: number; date?: string | null; time?: string | null; round?: string | null; white: string; white_id: number; white_elo?: number | null; black: string; black_id: number; black_elo?: number | null; result: Outcome; time_control?: string | null; eco?: string | null; ply_count?: number | null; moves: string }
+export type NormalizedGame = { id: number; fen: string; event: string; site: string; date?: string | null; time?: string | null; round?: string | null; white: string; white_elo?: number | null; black: string; black_elo?: number | null; result: Outcome; ply_count?: number | null; moves: string }
 export type OpeningBookConfig = { path: string; maxPly?: bigint }
 export type OutOpening = { name: string; fen: string }
 export type Outcome = "1-0" | "0-1" | "1/2-1/2" | "*"
-export type Player = { id: number; name: string | null; elo: number | null }
+export type Player = { name: string | null; elo: number | null }
 export type PlayerConfig = { type: "human"; name: string } | { type: "engine"; name: string; path: string; options?: EngineOption[]; go: GoMode | null }
 export type PlayerGameInfo = { site_stats_data: SiteStatsData[] }
 export type PlayerQuery = { options: QueryOptions<PlayerSort>; name?: string | null; range?: [number, number] | null }
-export type PlayerSort = "id" | "name" | "elo"
+export type PlayerSort = "name" | "elo"
 export type PlayersTime = { white: number; black: number; winc: number; binc: number }
 export type PositionQueryJs = { fen: string; type_: string }
 export type PositionStats = { move: string; white: number; draw: number; black: number }
@@ -548,11 +521,11 @@ export type ScoreValue =
 export type Sides = "BlackWhite" | "WhiteBlack" | "Any"
 export type SiteStatsData = { site: string; player: string; data: StatsData[] }
 export type SortDirection = "asc" | "desc"
-export type StatsData = { date: string; is_player_white: boolean; player_elo: number; result: GameOutcome; time_control: string; opening: string }
+export type StatsData = { date: string; is_player_white: boolean; player_elo: number; result: GameOutcome; time_control: string }
 export type TimeControl = { initialTime: bigint; increment: bigint }
 export type Token = { type: "ParenOpen" } | { type: "ParenClose" } | { type: "Comment"; value: string } | { type: "San"; value: string } | { type: "Header"; value: { tag: string; value: string } } | { type: "Nag"; value: string } | { type: "Outcome"; value: string }
 export type TournamentQuery = { options: QueryOptions<TournamentSort>; name: string | null }
-export type TournamentSort = "id" | "name"
+export type TournamentSort = "name" | "games_count"
 /**
  * Represents a UCI option definition.
  */

@@ -89,11 +89,7 @@ function RepertoireInfo() {
     searchPosition(
       {
         path: referenceDb,
-        type: "exact",
-        fen: queryFen,
-        color: "white",
-        player: null,
-        result: "any",
+        position: { fen: queryFen, type_: "exact" },
       },
       "build-tab",
     )

@@ -98,7 +98,6 @@ export default function DatabasesPage() {
   const [exportLoading, setExportLoading] = useState(false);
 
   function changeReferenceDatabase(file: string) {
-    commands.clearGames();
     if (file === referenceDatabase) {
       setReferenceDatabase(null);
     } else {
@@ -332,11 +331,6 @@ export default function DatabasesPage() {
                         changeReferenceDatabase(selectedDatabase.file);
                       }}
                     />
-                    <IndexInput
-                      indexed={selectedDatabase.indexed}
-                      file={selectedDatabase.file}
-                      setDatabases={mutate}
-                    />
 
                     <Divider variant="dashed" label={t("Common.Data")} />
                     <Group grow>
@@ -524,8 +518,8 @@ function AdvancedSettings({
 function PlayerMerger({ selectedDatabase }: { selectedDatabase: DatabaseInfo }) {
   const { t } = useTranslation();
 
-  const [player1, setPlayer1] = useState<number | undefined>(undefined);
-  const [player2, setPlayer2] = useState<number | undefined>(undefined);
+  const [player1, setPlayer1] = useState<string | undefined>(undefined);
+  const [player2, setPlayer2] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
 
   async function mergePlayers() {
@@ -623,41 +617,5 @@ function DuplicateRemover({
         </Button>
       </Group>
     </Stack>
-  );
-}
-
-function IndexInput({
-  indexed,
-  file,
-  setDatabases,
-}: {
-  indexed: boolean;
-  file: string;
-  setDatabases: (dbs: DatabaseInfo[]) => void;
-}) {
-  const { t } = useTranslation();
-
-  const [loading, setLoading] = useToggle();
-  return (
-    <Group>
-      <Tooltip label={t("Databases.Settings.Indexed.Desc")}>
-        <Checkbox
-          label={t("Databases.Settings.Indexed")}
-          disabled={loading}
-          checked={indexed}
-          onChange={(e) => {
-            setLoading(true);
-            const fn = e.currentTarget.checked ? commands.createIndexes : commands.deleteIndexes;
-            fn(file).then(() => {
-              getDatabases().then((dbs) => {
-                setDatabases(dbs);
-                setLoading(false);
-              });
-            });
-          }}
-        />
-      </Tooltip>
-      {loading && <Loader size="sm" />}
-    </Group>
   );
 }

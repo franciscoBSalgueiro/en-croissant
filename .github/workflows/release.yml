@@ -13,14 +13,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-latest' # for Arm based macs (M1 and above).
-            args: '--target aarch64-apple-darwin --bundles dmg'
-          - platform: 'macos-latest' # for Intel based macs.
-            args: '--target x86_64-apple-darwin --bundles dmg'
-          - platform: 'ubuntu-24.04'
-            args: ''
-          - platform: 'windows-latest'
-            args: '--bundles nsis'
+          - platform: "macos-latest" # for Arm based macs (M1 and above).
+            args: "--target aarch64-apple-darwin --bundles dmg"
+            aix_target: "osx_arm64"
+          - platform: "macos-latest" # for Intel based macs.
+            args: "--target x86_64-apple-darwin --bundles dmg"
+            aix_target: "osx_amd64"
+          - platform: "ubuntu-24.04"
+            args: ""
+            aix_target: "linux_amd64"
+          - platform: "windows-latest"
+            args: "--bundles nsis"
+            aix_target: "windows_amd64"
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Checkout repository
@@ -71,6 +75,8 @@ jobs:
 
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AIX_EXTENSION_TARGET: ${{ matrix.aix_target }}
+          AIX_EXTENSION_FORCE_DOWNLOAD: "1"
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
           CI: false

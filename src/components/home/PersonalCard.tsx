@@ -18,7 +18,7 @@ import { sessionsAtom } from "@/state/atoms";
 import type { DatabaseViewStore } from "@/state/store/database";
 import { DatabaseViewStateContext } from "../databases/DatabaseViewStateContext";
 import FideInfo from "../databases/FideInfo";
-import OpeningsPanel from "./PersonalCardPanels/OpeningsPanel";
+import OpeningsPanel, { type OpeningSource } from "./PersonalCardPanels/OpeningsPanel";
 import OverviewPanel from "./PersonalCardPanels/OverviewPanel";
 import RatingsPanel from "./PersonalCardPanels/RatingsPanel";
 
@@ -27,11 +27,13 @@ function PersonalPlayerCard({
   setName,
   info,
   isDatabase,
+  openingSources,
 }: {
   name: string;
   setName?: (name: string) => void;
   info: PlayerGameInfo;
   isDatabase?: boolean;
+  openingSources?: OpeningSource[];
 }) {
   const { t } = useTranslation();
   const store = useContext(DatabaseViewStateContext)!;
@@ -106,7 +108,7 @@ function PersonalPlayerCard({
           <OverviewPanel playerName={name} info={info} isDatabase={isDatabase} />
         </Tabs.Panel>
         <Tabs.Panel value="openings" style={{ overflow: "hidden" }}>
-          <OpeningsPanel playerName={name} info={info} isDatabase={isDatabase} />
+          <OpeningsPanel playerName={name} info={info} openingSources={openingSources} />
         </Tabs.Panel>
         <Tabs.Panel value="ratings">
           <RatingsPanel playerName={name} info={info} isDatabase={isDatabase} />

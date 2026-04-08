@@ -42,7 +42,6 @@ export async function computeTreeCoverage(
             const [openings] = await searchPosition(
                 {
                     path: dbPath,
-                    type: "exact",
                     fen,
                     color: "white",
                     player: null,

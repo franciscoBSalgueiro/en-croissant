@@ -1,10 +1,10 @@
 import { Autocomplete } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";
 import { type ReactNode, useState } from "react";
-import type { Player } from "@/bindings";
-import { query_players } from "@/utils/db";
+import type { Event } from "@/bindings";
+import { query_tournaments } from "@/utils/db";
 
-export function PlayerSearchInput({
+export function EventSearchInput({
   label,
   value,
   file,
@@ -17,7 +17,7 @@ export function PlayerSearchInput({
   rightSection?: ReactNode;
   setValue: (val: string | undefined) => void;
 }) {
-  const [data, setData] = useState<Player[]>([]);
+  const [data, setData] = useState<Event[]>([]);
 
   async function handleChange(val: string) {
     setValue(val.trim().length === 0 ? undefined : val);
@@ -27,13 +27,13 @@ export function PlayerSearchInput({
       return;
     }
 
-    const res = await query_players(file, {
+    const res = await query_tournaments(file, {
       name: val,
       options: {
         page: 1,
         pageSize: 5,
         skipCount: true,
-        sort: "elo",
+        sort: "games_count",
         direction: "desc",
       },
     });
@@ -42,7 +42,7 @@ export function PlayerSearchInput({
   return (
     <Autocomplete
       value={value ?? ""}
-      data={data.map((player) => player.name!)}
+      data={data.map((event) => event.name!)}
       onChange={handleChange}
       rightSection={rightSection}
       leftSection={<IconSearch size="1rem" />}
