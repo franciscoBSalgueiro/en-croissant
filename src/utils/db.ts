@@ -171,18 +171,15 @@ export async function getTournamentGames(file: string, name: string) {
 }
 
 export async function searchPosition(options: LocalOptions, tab: string) {
+    const { path, ...queryOptions } = options;
     const res = await commands.searchPosition(
-        options.path!,
+        path!,
         {
-            player1: options.color === "white" ? options.player : undefined,
-            player2: options.color === "black" ? options.player : undefined,
+            ...queryOptions,
             position: {
-                fen: options.fen,
+                fen: queryOptions.position?.fen || "",
                 type_: "exact",
             },
-            start_date: options.start_date,
-            end_date: options.end_date,
-            wanted_result: options.result,
         },
         tab,
     );

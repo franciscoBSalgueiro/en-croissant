@@ -31,6 +31,7 @@ import { getDatabases, type Opening, searchPosition } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 import { convertToNormalized, getLichessGames, getMasterGames } from "@/utils/lichess/api";
 import type { LichessGamesOptions, MasterGamesOptions } from "@/utils/lichess/explorer";
+import type { GameQuery } from "@/bindings";
 import DatabaseLoader from "./DatabaseLoader";
 import GamesTable from "./GamesTable";
 import NoDatabaseWarning from "./NoDatabaseWarning";
@@ -54,14 +55,8 @@ type DBType =
       token: string;
     };
 
-export type LocalOptions = {
+export type LocalOptions = Omit<GameQuery, "options"> & {
   path: string | null;
-  fen: string;
-  player: string | null;
-  color: "white" | "black";
-  start_date?: string;
-  end_date?: string;
-  result: "any" | "whitewon" | "draw" | "blackwon";
 };
 
 function sortOpenings(openings: Opening[]) {
@@ -129,7 +124,10 @@ function DatabasePanel() {
 
   useEffect(() => {
     if (db === "local") {
-      setLocalOptions((q) => ({ ...q, fen: debouncedFen }));
+      setLocalOptions((q) => ({
+        ...q,
+        position: { fen: debouncedFen, type_: "exact" },
+      }));
     }
   }, [debouncedFen, setLocalOptions, setMasterOptions, setLichessOptions, db]);
 
@@ -168,7 +166,7 @@ function DatabasePanel() {
   } = useSWR(
     tabType !== "options" &&
       !missingExplorerToken &&
-      (dbType.type !== "local" || Boolean(dbType.options.fen))
+      (dbType.type !== "local" || Boolean(dbType.options.position?.fen))
       ? dbType
       : null,
     async (dbType: DBType) => {

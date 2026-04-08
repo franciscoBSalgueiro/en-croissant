@@ -379,10 +379,6 @@ export const currentReportModalOpenAtom = tabValue(reportModalOpenFamily);
 const localOptionsFamily = atomFamily((_tab: string) =>
     atom<LocalOptions>({
         path: null,
-        fen: "",
-        player: null,
-        color: "white",
-        result: "any",
     }),
 );
 export const currentLocalOptionsAtom = tabValue(localOptionsFamily);

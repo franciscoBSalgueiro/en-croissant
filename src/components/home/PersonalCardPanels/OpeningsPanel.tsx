@@ -130,10 +130,10 @@ function OpeningsPanel({
     store.set(currentLocalOptionsAtom, (prev) => ({
       ...prev,
       path: preferredDb ?? prev.path,
-      fen: prev.fen || INITIAL_FEN,
-      player: playerName,
-      color,
-      result: "any",
+      position: { fen: prev.position?.fen || INITIAL_FEN, type_: "exact" },
+      player1: color === "white" ? playerName : undefined,
+      player2: color === "black" ? playerName : undefined,
+      outcome: undefined,
     }));
 
     void navigate({ to: "/" });

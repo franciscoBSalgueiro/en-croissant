@@ -1,25 +1,6 @@
-import {
-  ActionIcon,
-  Badge,
-  Box,
-  Button,
-  Center,
-  Collapse,
-  Flex,
-  Group,
-  InputWrapper,
-  RangeSlider,
-  Select,
-  Stack,
-  Text,
-  TextInput,
-} from "@mantine/core";
-import { DateInput } from "@mantine/dates";
-import { useDisclosure, useHotkeys } from "@mantine/hooks";
-import { IconDotsVertical, IconSearch } from "@tabler/icons-react";
+import { Box, Center, Flex, Text } from "@mantine/core";
+import { useHotkeys } from "@mantine/hooks";
 import { useNavigate } from "@tanstack/react-router";
-import { INITIAL_FEN } from "chessops/fen";
-import dayjs from "dayjs";
 import { useAtom, useSetAtom } from "jotai";
 import { DataTable } from "mantine-datatable";
 import { useContext } from "react";
@@ -33,21 +14,8 @@ import { createTab } from "@/utils/tabs";
 import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
 import GameCard from "./GameCard";
 import GridLayout from "./GridLayout";
-import { PlayerSearchInput } from "./PlayerSearchInput";
-import { ScoutfishQueryModal } from "./ScoutfishQueryModal";
-import { SideInput } from "./SideInput";
+import { GameFilters } from "./GameFilters";
 import classes from "./styles.module.css";
-
-function exactPositionFromFen(fen: string): PositionQueryJs | undefined {
-  const value = fen.trim();
-  if (!value) {
-    return undefined;
-  }
-  return {
-    fen: value,
-    type_: "exact",
-  };
-}
 
 function GameTable() {
   const { t } = useTranslation();
@@ -56,17 +24,10 @@ function GameTable() {
   const file = useStore(store, (s) => s.database?.file)!;
   const query = useStore(store, (s) => s.games.query);
   const setQuery = useStore(store, (s) => s.setGamesQuery);
-  const openedSettings = useStore(store, (s) => s.games.isFilterExpanded);
-  const toggleOpenedSettings = useStore(store, (s) => s.toggleGamesOpenedSettings);
-
   const selectedGame = useStore(store, (s) => s.games.selectedGame);
   const setSelectedGame = useStore(store, (s) => s.setGamesSelectedGame);
 
   const navigate = useNavigate();
-  const [advancedSearchOpened, { open: openAdvancedSearch, close: closeAdvancedSearch }] =
-    useDisclosure(false);
-
-  const hasScoutfishQuery = query.position?.type_ === "scoutfish";
 
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
@@ -108,190 +69,9 @@ function GameTable() {
   return (
     <GridLayout
       search={
-        <Flex style={{ gap: 20 }}>
-          <Box style={{ flexGrow: 1 }}>
-            <Group grow>
-              <PlayerSearchInput
-                value={query?.player1 ?? undefined}
-                setValue={(value) => setQuery({ ...query, player1: value })}
-                rightSection={
-                  <SideInput
-                    sides={query.sides!}
-                    setSides={(value) => setQuery({ ...query, sides: value })}
-                    label="Player"
-                  />
-                }
-                label={t("Common.Search")}
-                file={file}
-              />
-              <PlayerSearchInput
-                value={query?.player2 ?? undefined}
-                setValue={(value) => setQuery({ ...query, player2: value })}
-                rightSection={
-                  <SideInput
-                    sides={query.sides!}
-                    setSides={(value) => setQuery({ ...query, sides: value })}
-                    label="Opponent"
-                  />
-                }
-                label={t("Common.Search")}
-                file={file}
-              />
-            </Group>
-            <Collapse in={openedSettings} mx={10}>
-              <Stack mt="md">
-                <Group grow>
-                  <InputWrapper label="ELO">
-                    <RangeSlider
-                      step={10}
-                      min={0}
-                      max={3000}
-                      marks={[
-                        { value: 1000, label: "1000" },
-                        { value: 2000, label: "2000" },
-                        { value: 3000, label: "3000" },
-                      ]}
-                      value={query.range1 ?? undefined}
-                      onChangeEnd={(value) => setQuery({ ...query, range1: value })}
-                    />
-                  </InputWrapper>
-
-                  <InputWrapper label="ELO">
-                    <RangeSlider
-                      step={10}
-                      min={0}
-                      max={3000}
-                      marks={[
-                        { value: 1000, label: "1000" },
-                        { value: 2000, label: "2000" },
-                        { value: 3000, label: "3000" },
-                      ]}
-                      value={query.range2 ?? undefined}
-                      onChangeEnd={(value) => setQuery({ ...query, range2: value })}
-                    />
-                  </InputWrapper>
-                </Group>
-                <Select
-                  label="Result"
-                  value={query.outcome}
-                  onChange={(value) =>
-                    setQuery({
-                      ...query,
-                      outcome: (value as Outcome | null) ?? undefined,
-                    })
-                  }
-                  clearable
-                  placeholder="Select result"
-                  data={[
-                    { label: "White wins", value: "1-0" },
-                    { label: "Black wins", value: "0-1" },
-                    { label: "Draw", value: "1/2-1/2" },
-                  ]}
-                />
-                <Group>
-                  <DateInput
-                    label="From"
-                    placeholder="Start date"
-                    clearable
-                    valueFormat="YYYY-MM-DD"
-                    value={query.start_date ? dayjs(query.start_date, "YYYY.MM.DD").toDate() : null}
-                    onChange={(value) =>
-                      setQuery({
-                        ...query,
-                        start_date: value ? dayjs(value).format("YYYY.MM.DD") : undefined,
-                      })
-                    }
-                  />
-                  <DateInput
-                    label="To"
-                    placeholder="End date"
-                    clearable
-                    valueFormat="YYYY-MM-DD"
-                    value={query.end_date ? dayjs(query.end_date, "YYYY.MM.DD").toDate() : null}
-                    onChange={(value) =>
-                      setQuery({
-                        ...query,
-                        end_date: value ? dayjs(value).format("YYYY.MM.DD") : undefined,
-                      })
-                    }
-                  />
-                </Group>
-                <TextInput
-                  label="Position (FEN)"
-                  placeholder="Paste an exact FEN"
-                  value={query.position?.type_ === "exact" ? query.position.fen : ""}
-                  onChange={(event) => {
-                    const position = exactPositionFromFen(event.currentTarget.value);
-                    setQuery({
-                      ...query,
-                      position,
-                    });
-                  }}
-                  disabled={hasScoutfishQuery}
-                />
-                <Group>
-                  <Button
-                    variant="default"
-                    onClick={() => {
-                      setQuery({
-                        ...query,
-                        position: exactPositionFromFen(INITIAL_FEN),
-                      });
-                    }}
-                    disabled={hasScoutfishQuery}
-                  >
-                    Start Position
-                  </Button>
-                  <Button
-                    variant="default"
-                    onClick={() => {
-                      setQuery({
-                        ...query,
-                        position: undefined,
-                      });
-                    }}
-                  >
-                    Clear Position
-                  </Button>
-                  <Button
-                    variant="light"
-                    leftSection={<IconSearch size="1rem" />}
-                    onClick={openAdvancedSearch}
-                  >
-                    Advanced Search
-                  </Button>
-                </Group>
-                {hasScoutfishQuery && (
-                  <Badge
-                    color="blue"
-                    variant="light"
-                    size="lg"
-                    style={{ cursor: "pointer" }}
-                    onClick={openAdvancedSearch}
-                  >
-                    Scoutfish query active
-                  </Badge>
-                )}
-                <ScoutfishQueryModal
-                  opened={advancedSearchOpened}
-                  onClose={closeAdvancedSearch}
-                  onApply={(queryJson) => {
-                    setQuery({
-                      ...query,
-                      position: {
-                        fen: queryJson,
-                        type_: "scoutfish",
-                      },
-                    });
-                  }}
-                />
-              </Stack>
-            </Collapse>
-          </Box>
-          <ActionIcon style={{ flexGrow: 0 }} onClick={() => toggleOpenedSettings()}>
-            <IconDotsVertical size="1rem" />
-          </ActionIcon>
-        </Flex>
+        <Box>
+          <GameFilters query={query} setQuery={setQuery} file={file} />
+        </Box>
       }
       table={
         <DataTable<NormalizedGame>
