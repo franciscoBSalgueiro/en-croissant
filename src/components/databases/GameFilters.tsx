@@ -91,7 +91,7 @@ export function GameFilters({
 
       <Collapse in={alwaysExpanded || advancedExpanded}>
         <Stack gap="sm">
-          <SimpleGrid cols={{ base: 1, md: 2 }}>
+          <SimpleGrid cols={{ base: 1, md: 2 }} mb="md">
             <InputWrapper label="Player 1 ELO">
               <RangeSlider
                 step={10}
