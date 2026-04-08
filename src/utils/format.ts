@@ -1,3 +1,15 @@
+/** DB stores PGN dates as `YYYY.MM.DD`. Show with a four-digit year as `DD.MM.YYYY` (common in EU locales). */
+export function formatPgnStorageDateForDisplay(s: string | null | undefined): string {
+    if (s == null || s === "") return "";
+    const t = s.trim();
+    const m = /^(\d{4})\.(\d{2})\.(\d{2})$/.exec(t);
+    if (m) {
+        const [, y, mo, d] = m;
+        return `${d}.${mo}.${y}`;
+    }
+    return t;
+}
+
 export function formatNumber(value?: number): string {
     if (!value) return "0";
     return Intl.NumberFormat().format(value);

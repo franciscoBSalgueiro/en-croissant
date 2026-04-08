@@ -26,20 +26,22 @@ import { IconArrowRight, IconDatabase, IconPlus, IconSearch } from "@tabler/icon
 import { Link, useNavigate } from "@tanstack/react-router";
 import { basename } from "@tauri-apps/api/path";
 import { open as openDialog, save } from "@tauri-apps/plugin-dialog";
-import { useAtom } from "jotai";
-import { useEffect, useMemo, useState } from "react";
+import { notifications } from "@mantine/notifications";
+import { useAtom, useAtomValue } from "jotai";
+import { type SetStateAction, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 import type { DatabaseInfo } from "@/bindings";
 import { commands } from "@/bindings";
 import {
+  type DatabaseConversionState,
   databaseConversionStateAtom,
   referenceDbAtom,
   storedDatabasesDirAtom,
 } from "@/state/atoms";
 import { useActiveDatabaseViewStore } from "@/state/store/database";
 import { getDatabases, type SuccessDatabaseInfo } from "@/utils/db";
-import { formatBytes, formatNumber } from "@/utils/format";
+import { formatBytes, formatNumber, formatPgnStorageDateForDisplay } from "@/utils/format";
 import { unwrap } from "@/utils/unwrap";
 import ConfirmModal from "../common/ConfirmModal";
 import GenericCard from "../common/GenericCard";
@@ -239,6 +241,12 @@ export default function DatabasesPage() {
                               <Text size="xs" c="dimmed" style={{ wordWrap: "break-word" }}>
                                 {item.type === "error" ? item.file : item.description}
                               </Text>
+                              {item.type === "success" && item.twic_max_game_date != null && (
+                                <Text size="xs" c="dimmed" mt={4}>
+                                  {t("Databases.TWIC.LatestDate")}:{" "}
+                                  {formatPgnStorageDateForDisplay(item.twic_max_game_date)}
+                                </Text>
+                              )}
                             </Box>
                           </Group>
                           <Rating
@@ -325,6 +333,17 @@ export default function DatabasesPage() {
                       selectedDatabase={selectedDatabase}
                       mutate={mutate}
                     />
+                    {selectedDatabase.twic_last_issue != null && (
+                      <TwicDatabaseSync
+                        file={selectedDatabase.file}
+                        lastIssue={selectedDatabase.twic_last_issue}
+                        maxDate={formatPgnStorageDateForDisplay(
+                          selectedDatabase.twic_max_game_date ?? null,
+                        )}
+                        mutate={mutate}
+                        setConversionState={setConversionState}
+                      />
+                    )}
                     <Checkbox
                       label={t("Databases.Settings.ReferenceDatabase")}
                       checked={isReference}
@@ -464,6 +483,112 @@ export default function DatabasesPage() {
           </Paper>
         )}
       </Group>
+    </Stack>
+  );
+}
+
+function TwicDatabaseSync({
+  file,
+  lastIssue,
+  maxDate,
+  mutate,
+  setConversionState,
+}: {
+  file: string;
+  lastIssue: number;
+  maxDate: string | null;
+  mutate: () => void;
+  setConversionState: (value: SetStateAction<DatabaseConversionState>) => void;
+}) {
+  const { t } = useTranslation();
+  const conversionBusy = useAtomValue(databaseConversionStateAtom).inProgress;
+  const [updating, setUpdating] = useState(false);
+  const [repairingDates, setRepairingDates] = useState(false);
+
+  async function onUpdate() {
+    setUpdating(true);
+    setConversionState((prev) => ({
+      ...prev,
+      inProgress: true,
+      targetDatabasePath: file,
+      targetDatabaseTitle: t("Databases.TWIC.CardTitle"),
+      sourceFileName: t("Databases.TWIC.Syncing"),
+    }));
+    try {
+      unwrap(await commands.syncTwicDatabase(file, "update"));
+      await mutate();
+      notifications.show({
+        color: "green",
+        title: t("Databases.TWIC.Update"),
+        message: t("Common.Installed"),
+      });
+    } catch (e) {
+      notifications.show({
+        color: "red",
+        title: t("Databases.TWIC.UpdateFailed"),
+        message: e instanceof Error ? e.message : String(e),
+      });
+    } finally {
+      setUpdating(false);
+      setConversionState((prev) => ({
+        ...prev,
+        inProgress: false,
+        totalGames: 0,
+        elapsedSeconds: 0,
+        targetDatabasePath: null,
+        targetDatabaseTitle: null,
+        sourceFileName: null,
+      }));
+    }
+  }
+
+  async function onRepairDates() {
+    setRepairingDates(true);
+    try {
+      const n = unwrap(await commands.repairGameDates(file));
+      await mutate();
+      notifications.show({
+        color: "green",
+        title: t("Databases.TWIC.RepairDates"),
+        message: t("Databases.TWIC.RepairDatesDone", { count: n }),
+      });
+    } catch (e) {
+      notifications.show({
+        color: "red",
+        title: t("Databases.TWIC.RepairDatesFailed"),
+        message: e instanceof Error ? e.message : String(e),
+      });
+    } finally {
+      setRepairingDates(false);
+    }
+  }
+
+  return (
+    <Stack gap="xs">
+      <Divider variant="dashed" label={t("Databases.TWIC.CardTitle")} />
+      <Text size="sm">
+        {t("Databases.TWIC.LastIssue")}: {lastIssue}
+      </Text>
+      {maxDate != null && maxDate !== "" && (
+        <Text size="sm">
+          {t("Databases.TWIC.LatestDate")}: {maxDate}
+        </Text>
+      )}
+      <Button
+        loading={updating}
+        disabled={conversionBusy && !updating}
+        onClick={() => void onUpdate()}
+      >
+        {t("Databases.TWIC.Update")}
+      </Button>
+      <Button
+        variant="light"
+        loading={repairingDates}
+        disabled={(conversionBusy && !repairingDates) || updating}
+        onClick={() => void onRepairDates()}
+      >
+        {t("Databases.TWIC.RepairDates")}
+      </Button>
     </Stack>
   );
 }

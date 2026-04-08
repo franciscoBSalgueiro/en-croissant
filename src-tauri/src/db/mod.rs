@@ -1,9 +1,11 @@
+pub mod date_norm;
 mod encoding;
 mod models;
 mod ops;
 mod schema;
 mod search;
 mod search_index;
+mod twic;
 
 use crate::{
     db::{
@@ -16,7 +18,7 @@ use crate::{
     opening::get_opening_from_setup,
     AppState,
 };
-use chrono::{NaiveDate, NaiveTime};
+use chrono::{Datelike, NaiveDate, NaiveTime};
 use dashmap::DashMap;
 use diesel::{
     connection::{DefaultLoadingMode, SimpleConnection},
@@ -60,6 +62,7 @@ pub use self::schema::puzzle_themes;
 pub use self::schema::puzzles;
 pub use self::schema::themes;
 pub use self::search::{is_position_in_db, search_position, PositionQueryJs, PositionStats};
+pub use self::twic::sync_twic_database;
 
 const DATABASE_VERSION: &str = "1.0.0";
 
@@ -343,7 +346,14 @@ impl Visitor for Importer {
         } else if key == b"Round" {
             self.game.round = Some(value.decode_utf8_lossy().into_owned());
         } else if key == b"Date" || key == b"UTCDate" {
-            self.game.date = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
+            let raw = String::from_utf8_lossy(value.as_bytes()).to_string();
+            self.game.date = date_norm::normalize_pgn_date_for_storage(&raw).or_else(|| {
+                if raw.trim().is_empty() {
+                    None
+                } else {
+                    Some(raw)
+                }
+            });
         } else if key == b"UTCTime" {
             self.game.time = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
         } else if key == b"Site" {
@@ -378,7 +388,11 @@ impl Visitor for Importer {
     fn end_headers(&mut self) -> Skip {
         // Skip games with timestamp before
         let cur_timestamp = self.game.date.as_ref().and_then(|date| {
-            let date = NaiveDate::parse_from_str(date, "%Y.%m.%d").ok()?;
+            let canon = date_norm::normalize_pgn_date_for_storage(date)?;
+            if canon.contains('?') {
+                return None;
+            }
+            let date = NaiveDate::parse_from_str(&canon, "%Y.%m.%d").ok()?;
             let time = self
                 .game
                 .time
@@ -489,6 +503,160 @@ impl Visitor for Importer {
     }
 }
 
+pub(crate) fn import_pgn_files_batch(
+    db: &mut SqliteConnection,
+    paths: &[PathBuf],
+    timestamp: Option<i64>,
+    app: &tauri::AppHandle,
+    start: Instant,
+    mut imported_games: usize,
+) -> Result<usize, Error> {
+    for file_path in paths {
+        let current_file_name = file_path
+            .file_name()
+            .map(|name| name.to_string_lossy().into_owned());
+        let extension = file_path.extension();
+        let file = File::open(file_path)?;
+
+        let uncompressed: Box<dyn std::io::Read + Send> = if extension == Some("bz2".as_ref()) {
+            Box::new(bzip2::read::MultiBzDecoder::new(file))
+        } else if extension == Some("zst".as_ref()) {
+            Box::new(zstd::Decoder::new(file)?)
+        } else {
+            Box::new(file)
+        };
+
+        let mut importer = Importer::new(timestamp);
+        let mut file_imported_games = 0usize;
+
+        db.transaction::<_, diesel::result::Error, _>(|db| {
+            for game in BufferedReader::new(uncompressed)
+                .into_iter(&mut importer)
+                .flatten()
+                .flatten()
+            {
+                if (imported_games + file_imported_games).is_multiple_of(1000) {
+                    let elapsed = start.elapsed().as_millis() as u32;
+                    app.emit(
+                        "convert_progress",
+                        (
+                            imported_games + file_imported_games,
+                            elapsed,
+                            current_file_name.clone(),
+                        ),
+                    )
+                    .unwrap();
+                }
+                game.insert_to_db(db)?;
+                file_imported_games += 1;
+            }
+            Ok(())
+        })?;
+
+        imported_games += file_imported_games;
+    }
+    Ok(imported_games)
+}
+
+pub(crate) fn update_info_counts(db: &mut SqliteConnection) -> Result<(), diesel::result::Error> {
+    let game_count: i64 = games::table.count().get_result(db)?;
+    let player_count: i64 = players::table.count().get_result(db)?;
+    let event_count: i64 = events::table.count().get_result(db)?;
+    let site_count: i64 = sites::table.count().get_result(db)?;
+
+    let counts = [
+        ("GameCount", game_count),
+        ("PlayerCount", player_count),
+        ("EventCount", event_count),
+        ("SiteCount", site_count),
+    ];
+
+    for c in counts.iter() {
+        insert_into(info::table)
+            .values((info::name.eq(c.0), info::value.eq(c.1.to_string())))
+            .on_conflict(info::name)
+            .do_update()
+            .set(info::value.eq(c.1.to_string()))
+            .execute(db)?;
+    }
+    Ok(())
+}
+
+pub(crate) fn upsert_info_value(
+    db: &mut SqliteConnection,
+    key: &str,
+    value: &str,
+) -> Result<(), diesel::result::Error> {
+    insert_into(info::table)
+        .values((info::name.eq(key), info::value.eq(value)))
+        .on_conflict(info::name)
+        .do_update()
+        .set(info::value.eq(value))
+        .execute(db)?;
+    Ok(())
+}
+
+pub(crate) fn query_max_game_date(
+    db: &mut SqliteConnection,
+) -> Result<Option<String>, diesel::result::Error> {
+    let dates: Vec<Option<String>> = games::table
+        .filter(games::date.is_not_null())
+        .select(games::date)
+        .distinct()
+        .load(db)?;
+    let best = dates
+        .into_iter()
+        .flatten()
+        .filter(|s| !s.is_empty())
+        .filter_map(|s| date_norm::parse_game_date_chronological(&s))
+        .max();
+    Ok(best.map(|d| format!("{:04}.{:02}.{:02}", d.year(), d.month(), d.day())))
+}
+
+/// One-off: rewrite `Games.Date` to canonical `YYYY.MM.DD`, fix DD.MM.YY and future-dated entries.
+/// When the database is a TWIC install (`TwicLastIssue` in Info), refreshes `TwicMaxGameDate`.
+#[tauri::command]
+#[specta::specta]
+pub async fn repair_game_dates(
+    file: PathBuf,
+    state: tauri::State<'_, AppState>,
+) -> Result<u32, Error> {
+    use diesel::OptionalExtension;
+
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+
+    let rows: Vec<(i32, Option<String>)> = games::table
+        .select((games::id, games::date))
+        .load(db)?;
+
+    let mut updated: u32 = 0;
+    for (id, opt) in rows {
+        let Some(old) = opt else { continue };
+        let Some(new_d) = date_norm::normalize_pgn_date_for_storage(&old) else {
+            continue;
+        };
+        if new_d != old {
+            diesel::update(games::table.filter(games::id.eq(id)))
+                .set(games::date.eq(Some(new_d)))
+                .execute(db)?;
+            updated += 1;
+        }
+    }
+
+    let twic: Option<Option<String>> = info::table
+        .filter(info::name.eq("TwicLastIssue"))
+        .select(info::value)
+        .first(db)
+        .optional()?;
+    if twic.flatten().is_some() {
+        if let Some(max) = query_max_game_date(db)? {
+            upsert_info_value(db, "TwicMaxGameDate", &max)?;
+        }
+    }
+
+    Ok(updated)
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn convert_pgn(
@@ -531,82 +699,22 @@ pub async fn convert_pgn(
         )?;
     }
 
-    // start counting time
     let start = Instant::now();
-
-    let mut imported_games = 0usize;
-
-    for file_path in files {
-        let current_file_name = file_path
-            .file_name()
-            .map(|name| name.to_string_lossy().into_owned());
-        let extension = file_path.extension();
-        let file = File::open(&file_path)?;
-
-        let uncompressed: Box<dyn std::io::Read + Send> = if extension == Some("bz2".as_ref()) {
-            Box::new(bzip2::read::MultiBzDecoder::new(file))
-        } else if extension == Some("zst".as_ref()) {
-            Box::new(zstd::Decoder::new(file)?)
-        } else {
-            Box::new(file)
-        };
-
-        let mut importer = Importer::new(timestamp.map(|t| t as i64));
-        let mut file_imported_games = 0usize;
-
-        db.transaction::<_, diesel::result::Error, _>(|db| {
-            for game in BufferedReader::new(uncompressed)
-                .into_iter(&mut importer)
-                .flatten()
-                .flatten()
-            {
-                if (imported_games + file_imported_games).is_multiple_of(1000) {
-                    let elapsed = start.elapsed().as_millis() as u32;
-                    app.emit(
-                        "convert_progress",
-                        (
-                            imported_games + file_imported_games,
-                            elapsed,
-                            current_file_name.clone(),
-                        ),
-                    )
-                    .unwrap();
-                }
-                game.insert_to_db(db)?;
-                file_imported_games += 1;
-            }
-            Ok(())
-        })?;
-
-        imported_games += file_imported_games;
-    }
+    let imported_games = import_pgn_files_batch(
+        db,
+        &files,
+        timestamp.map(|t| t as i64),
+        &app,
+        start,
+        0,
+    )?;
 
     if !db_exists {
-        // Create all the necessary indexes
         db.batch_execute(INDEXES_SQL)?;
     }
 
-    // get game, player, event and site counts and to the info table
-    let game_count: i64 = games::table.count().get_result(db)?;
-    let player_count: i64 = players::table.count().get_result(db)?;
-    let event_count: i64 = events::table.count().get_result(db)?;
-    let site_count: i64 = sites::table.count().get_result(db)?;
-
-    let counts = [
-        ("GameCount", game_count),
-        ("PlayerCount", player_count),
-        ("EventCount", event_count),
-        ("SiteCount", site_count),
-    ];
-
-    for c in counts.iter() {
-        insert_into(info::table)
-            .values((info::name.eq(c.0), info::value.eq(c.1.to_string())))
-            .on_conflict(info::name)
-            .do_update()
-            .set(info::value.eq(c.1.to_string()))
-            .execute(db)?;
-    }
+    update_info_counts(db)?;
+    let _ = imported_games;
 
     Ok(())
 }
@@ -703,6 +811,10 @@ pub struct DatabaseInfo {
     storage_size: u64,
     filename: String,
     indexed: bool,
+    #[specta(optional)]
+    twic_last_issue: Option<i32>,
+    #[specta(optional)]
+    twic_max_game_date: Option<String>,
 }
 
 #[derive(QueryableByName, Debug, Serialize)]
@@ -754,6 +866,9 @@ pub async fn get_db_info(
     let filename = path.file_name().expect("get filename").to_string_lossy();
 
     let is_indexed = check_index_exists(db)?;
+    let twic_last_issue = get_info_value("TwicLastIssue")
+        .and_then(|v| v.parse::<i32>().ok());
+    let twic_max_game_date = get_info_value("TwicMaxGameDate");
     Ok(DatabaseInfo {
         title,
         description,
@@ -763,6 +878,8 @@ pub async fn get_db_info(
         storage_size,
         filename: filename.to_string(),
         indexed: is_indexed,
+        twic_last_issue,
+        twic_max_game_date,
     })
 }
 

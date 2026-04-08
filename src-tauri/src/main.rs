@@ -63,7 +63,7 @@ use crate::{
     chess::get_best_moves,
     db::{
         delete_duplicated_games, edit_db_info, export_filtered_games_to_database, get_db_info,
-        get_games, get_players, merge_players, write_db_game,
+        get_games, get_players, merge_players, repair_game_dates, sync_twic_database, write_db_game,
     },
     fs::{download_file, file_exists, get_file_metadata},
     opening::{
@@ -129,6 +129,8 @@ fn main() {
             get_file_metadata,
             merge_players,
             convert_pgn,
+            repair_game_dates,
+            sync_twic_database,
             get_player,
             count_pgn_games,
             read_games,
