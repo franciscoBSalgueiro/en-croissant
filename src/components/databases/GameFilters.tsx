@@ -9,7 +9,6 @@ import {
   Select,
   SimpleGrid,
   Stack,
-  TextInput,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import { useDisclosure } from "@mantine/hooks";
@@ -50,27 +49,27 @@ export function GameFilters({
       <Group align="flex-end" wrap="nowrap">
         <SimpleGrid cols={{ base: 1, md: 2 }} style={{ flex: 1 }}>
           <PlayerSearchInput
-            label="Player 1"
+            label={t("Databases.Player.One")}
             value={query?.player1 ?? undefined}
             setValue={(value) => setQuery({ ...query, player1: value })}
             rightSection={
               <SideInput
                 sides={query.sides || "WhiteBlack"}
                 setSides={(value) => setQuery({ ...query, sides: value as Sides })}
-                label="Player"
+                label={t("Board.Database.Local.Player")}
               />
             }
             file={file}
           />
           <PlayerSearchInput
-            label="Player 2"
+            label={t("Databases.Player.Two")}
             value={query?.player2 ?? undefined}
             setValue={(value) => setQuery({ ...query, player2: value })}
             rightSection={
               <SideInput
                 sides={query.sides || "WhiteBlack"}
                 setSides={(value) => setQuery({ ...query, sides: value as Sides })}
-                label="Opponent"
+                label={t("Databases.Game.Filters.Opponent")}
               />
             }
             file={file}
@@ -82,7 +81,7 @@ export function GameFilters({
             variant="default"
             size={36}
             onClick={toggleAdvanced}
-            aria-label="Toggle advanced filters"
+            aria-label={t("Databases.Game.Filters.ToggleAdvanced")}
           >
             <IconDotsVertical size="1.2rem" />
           </ActionIcon>
@@ -92,7 +91,7 @@ export function GameFilters({
       <Collapse in={alwaysExpanded || advancedExpanded}>
         <Stack gap="sm">
           <SimpleGrid cols={{ base: 1, md: 2 }} mb="md">
-            <InputWrapper label="Player 1 ELO">
+            <InputWrapper label={t("Databases.Game.Filters.PlayerOneElo")}>
               <RangeSlider
                 step={10}
                 min={0}
@@ -106,7 +105,7 @@ export function GameFilters({
                 onChangeEnd={(value) => setQuery({ ...query, range1: value as [number, number] })}
               />
             </InputWrapper>
-            <InputWrapper label="Player 2 ELO">
+            <InputWrapper label={t("Databases.Game.Filters.PlayerTwoElo")}>
               <RangeSlider
                 step={10}
                 min={0}
@@ -123,15 +122,15 @@ export function GameFilters({
           </SimpleGrid>
 
           <EventSearchInput
-            label="Tournament / Event"
+            label={t("Databases.Game.Filters.TournamentEvent")}
             value={query.tournament ?? undefined}
             setValue={(value) => setQuery({ ...query, tournament: value })}
             file={file}
           />
           <SimpleGrid cols={{ base: 1, md: 2 }}>
             <DateInput
-              label="From"
-              placeholder="Start date"
+              label={t("Common.From")}
+              placeholder={t("Common.StartDate")}
               clearable
               valueFormat="YYYY-MM-DD"
               value={query.start_date ? dayjs(query.start_date, "YYYY.MM.DD").toDate() : null}
@@ -143,8 +142,8 @@ export function GameFilters({
               }
             />
             <DateInput
-              label="To"
-              placeholder="End date"
+              label={t("Common.To")}
+              placeholder={t("Common.EndDate")}
               clearable
               valueFormat="YYYY-MM-DD"
               value={query.end_date ? dayjs(query.end_date, "YYYY.MM.DD").toDate() : null}
@@ -158,7 +157,7 @@ export function GameFilters({
           </SimpleGrid>
 
           <Select
-            label="Game Result"
+            label={t("Board.Database.Local.Result")}
             value={query.outcome ?? query.wanted_result}
             onChange={(value) =>
               setQuery({
@@ -168,11 +167,11 @@ export function GameFilters({
               })
             }
             clearable
-            placeholder="Select result"
+            placeholder={t("Common.PickValue")}
             data={[
-              { label: "White wins", value: "1-0" },
-              { label: "Black wins", value: "0-1" },
-              { label: "Draw", value: "1/2-1/2" },
+              { label: t("Board.Analysis.Tablebase.WhiteWins"), value: "1-0" },
+              { label: t("Board.Analysis.Tablebase.BlackWins"), value: "0-1" },
+              { label: t("Board.Analysis.Tablebase.Draw"), value: "1/2-1/2" },
             ]}
           />
 
@@ -186,7 +185,7 @@ export function GameFilters({
                   style={{ cursor: "pointer" }}
                   onClick={openAdvancedSearch}
                 >
-                  Scoutfish query active
+                  {t("Databases.Game.Filters.ScoutfishActive")}
                 </Badge>
               )}
 
@@ -195,7 +194,7 @@ export function GameFilters({
                 leftSection={<IconSearch size="1rem" />}
                 onClick={openAdvancedSearch}
               >
-                Advanced Scoutfish Search
+                {t("Databases.Game.Filters.AdvancedScoutfishSearch")}
               </Button>
               <ScoutfishQueryModal
                 opened={advancedSearchOpened}
