@@ -11,6 +11,8 @@ import {
     type PlayerQuery,
     type PuzzleDatabaseInfo,
     type QueryResponse,
+    type TournamentQuery,
+    type Event,
 } from "@/bindings";
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { getDatabasesDir } from "@/utils/directories";
@@ -88,6 +90,24 @@ export async function query_players(
             },
             name: query.name,
             range: normalizeRange(query.range),
+        }),
+    );
+}
+
+export async function query_tournaments(
+    db: string,
+    query: TournamentQuery,
+): Promise<QueryResponse<Event[]>> {
+    return unwrap(
+        await commands.getTournaments(db, {
+            options: {
+                skipCount: query.options?.skipCount || false,
+                page: query.options?.page,
+                pageSize: query.options?.pageSize,
+                sort: query.options?.sort || "games_count",
+                direction: query.options?.direction || "desc",
+            },
+            name: query.name || null,
         }),
     );
 }

@@ -18,6 +18,7 @@ import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
 
 import type { GameQuery, Outcome, Sides } from "@/bindings";
+import { EventSearchInput } from "./EventSearchInput";
 import { PlayerSearchInput } from "./PlayerSearchInput";
 import { ScoutfishQueryModal } from "./ScoutfishQueryModal";
 import { SideInput } from "./SideInput";
@@ -121,11 +122,11 @@ export function GameFilters({
             </InputWrapper>
           </SimpleGrid>
 
-          <TextInput
+          <EventSearchInput
             label="Tournament / Event"
-            value={query.tournament ?? ""}
-            onChange={(e) => setQuery({ ...query, tournament: e.currentTarget.value || undefined })}
-            placeholder="Event name"
+            value={query.tournament ?? undefined}
+            setValue={(value) => setQuery({ ...query, tournament: value })}
+            file={file}
           />
           <SimpleGrid cols={{ base: 1, md: 2 }}>
             <DateInput
