@@ -92,6 +92,9 @@ pub enum Error {
 
     #[error("Analysis cancelled")]
     AnalysisCancelled,
+
+    #[error(transparent)]
+    Rusqlite(#[from] rusqlite::Error),
 }
 
 impl From<std::io::Error> for Error {

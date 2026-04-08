@@ -1978,6 +1978,18 @@ pub async fn get_players_game_info(
         .map(|((site, player), data)| SiteStatsData { site, player, data })
         .collect();
 
+    if let Ok(name_opt) = players::table
+        .find(id)
+        .select(players::name)
+        .first::<Option<String>>(db)
+    {
+        if let Some(ref name) = name_opt {
+            if !name.trim().is_empty() {
+                let _ = crate::engine_games::merge_encroissant_into_player_info(&app, name, &mut game_info);
+            }
+        }
+    }
+
     println!("get_players_game_info {:?}: {:?}", file, timer.elapsed());
 
     Ok(game_info)

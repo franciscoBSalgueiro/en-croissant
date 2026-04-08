@@ -120,6 +120,54 @@ async getPlayersGameInfo(file: string, id: number) : Promise<Result<PlayerGameIn
     else return { status: "error", error: e  as any };
 }
 },
+async recordEncroissantEngineGame(args: RecordEncroissantEngineGameArgs) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("record_encroissant_engine_game", { args }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getEncroissantEngineDisplayRating(username: string, timeControl: string) : Promise<Result<number, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_encroissant_engine_display_rating", { args: { username, timeControl } }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getEncroissantEngineSiteStats(username: string) : Promise<Result<SiteStatsData | null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_encroissant_engine_site_stats", { username }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async registerEncroissantEnginePlayer(username: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("register_encroissant_engine_player", { username }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async listEncroissantEngineUsernames() : Promise<Result<string[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_encroissant_engine_usernames", {}) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getEncroissantEngineAccountSummary(username: string) : Promise<Result<EncEngineAccountSummary, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_encroissant_engine_account_summary", { username }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getEngineConfig(path: string) : Promise<Result<EngineConfig, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_engine_config", { path }) };
@@ -547,6 +595,16 @@ export type Outcome = "1-0" | "0-1" | "1/2-1/2" | "*"
 export type Player = { id: number; name: string | null; elo: number | null }
 export type PlayerConfig = { type: "human"; name: string } | { type: "engine"; name: string; path: string; options?: EngineOption[]; go: GoMode | null }
 export type PlayerGameInfo = { site_stats_data: SiteStatsData[] }
+export type RecordEncroissantEngineGameArgs = {
+  username: string
+  humanIsWhite: boolean
+  outcome: Outcome
+  opponentElo: number | null
+  limitStrength: boolean
+  timeControl: string
+  movesUci: string[]
+  date: string
+}
 export type PlayerQuery = { options: QueryOptions<PlayerSort>; name?: string | null; range?: [number, number] | null }
 export type PlayerSort = "id" | "name" | "elo"
 export type PlayersTime = { white: number; black: number; winc: number; binc: number }
@@ -574,6 +632,15 @@ export type ScoreValue =
 { type: "mate"; value: number }
 export type PlayerSide = "any" | "white" | "black"
 export type SiteStatsData = { site: string; player: string; data: StatsData[] }
+export type EncEnginePerfStat = { key: string; rating: number; games: number }
+export type EncEngineAccountSummary = {
+  registered: boolean
+  username: string
+  totalGames: number
+  lastPlayedAtMs: number | null
+  perfs: EncEnginePerfStat[]
+}
+
 export type SortDirection = "asc" | "desc"
 export type StatsData = { date: string; is_player_white: boolean; player_elo: number; result: GameOutcome; time_control: string; opening: string }
 export type TimeControl = { initialTime: bigint; increment: bigint }

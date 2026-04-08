@@ -18,7 +18,7 @@ const keys: KeyMap = {
     SAVE_FILE: { name: "Save File", keys: `${meta}+s` },
     COPY_PGN: { name: "Copy PGN", keys: `${meta}+k` },
     SWAP_ORIENTATION: { name: "Swap orientation", keys: "f" },
-    CLEAR_SHAPES: { name: "Clear shapes", keys: "ctrl+l" },
+    CLEAR_SHAPES: { name: "Clear shapes / drawings", keys: "escape, ctrl+l" },
     NEXT_MOVE: { name: "Next move", keys: "arrowright" },
     PREVIOUS_MOVE: { name: "Previous move", keys: "arrowleft" },
     GO_TO_BRANCH_START: { name: "Go to start of branch", keys: "arrowup" },

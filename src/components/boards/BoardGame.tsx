@@ -25,12 +25,13 @@ import { open } from "@tauri-apps/plugin-dialog";
 import type { Piece } from "chessops";
 import { makeUci, parseUci } from "chessops";
 import { INITIAL_FEN } from "chessops/fen";
-import { useAtom, useAtomValue } from "jotai";
+import { getDefaultStore, useAtom, useAtomValue } from "jotai";
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { mutate } from "swr";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
-import type { Outcome } from "@/bindings";
+import type { EngineOption, Outcome } from "@/bindings";
 import {
   commands,
   type EngineLog,
@@ -243,21 +244,41 @@ function BoardGame() {
         name: settings.name ?? "Player",
       };
     }
+    const withoutStrength = (settings.engineSettings ?? settings.engine?.settings ?? []).filter(
+      (s) =>
+        s.name !== "MultiPV" &&
+        s.name !== "UCI_LimitStrength" &&
+        s.name !== "UCI_Elo",
+    );
+    const baseOptions: EngineOption[] = withoutStrength.map((s) => ({
+      name: s.name,
+      value: s.value?.toString() ?? "",
+    }));
+
+    const strengthOpts: EngineOption[] = [];
+    if (settings.limitStrength) {
+      const elo = Math.min(
+        3200,
+        Math.max(500, Math.round(settings.limitElo ?? 1500)),
+      );
+      strengthOpts.push(
+        { name: "UCI_LimitStrength", value: "true" },
+        { name: "UCI_Elo", value: String(elo) },
+      );
+    } else {
+      strengthOpts.push({ name: "UCI_LimitStrength", value: "false" });
+    }
+
     return {
       type: "engine",
       name: settings.engine?.name ?? "Engine",
       path: settings.engine?.path ?? "",
-      options: (settings.engineSettings ?? settings.engine?.settings ?? [])
-        .filter((s) => s.name !== "MultiPV")
-        .map((s) => ({
-          name: s.name,
-          value: s.value?.toString() ?? "",
-        })),
+      options: [...baseOptions, ...strengthOpts],
       go: settings.timeControl ? null : settings.go,
     };
   }
 
-  function getTreeMoves(): string[] {
+  const getTreeMoves = useCallback((): string[] => {
     const moves: string[] = [];
     let node = root;
     while (node.children.length > 0) {
@@ -267,7 +288,7 @@ function BoardGame() {
       }
     }
     return moves;
-  }
+  }, [root]);
 
   async function startGame() {
     const playerSettings = getPlayers();
@@ -370,6 +391,53 @@ function BoardGame() {
       } else {
         newHeaders.white_time_control = whiteTimeControl;
         newHeaders.black_time_control = blackTimeControl;
+      }
+
+      if (whiteIsEngine && playerSettings.white.type === "engine") {
+        if (playerSettings.white.limitStrength) {
+          newHeaders.white_elo = Math.min(
+            3200,
+            Math.max(500, Math.round(playerSettings.white.limitElo ?? 1500)),
+          );
+        }
+      }
+      if (blackIsEngine && playerSettings.black.type === "engine") {
+        if (playerSettings.black.limitStrength) {
+          newHeaders.black_elo = Math.min(
+            3200,
+            Math.max(500, Math.round(playerSettings.black.limitElo ?? 1500)),
+          );
+        }
+      }
+
+      const isPvE = whiteIsEngine !== blackIsEngine;
+      if (isPvE) {
+        const humanSettings = whiteIsEngine ? playerSettings.black : playerSettings.white;
+        const humanTc = whiteIsEngine ? blackTimeControl : whiteTimeControl;
+        if (humanSettings.type === "human") {
+          const uname = (humanSettings.name ?? "").trim();
+          if (uname) {
+            const regRes = await commands.registerEncroissantEnginePlayer(uname);
+            if (regRes.status === "error") {
+              console.error(regRes.error);
+            } else {
+              void mutate("encroissant-engine-usernames");
+              void mutate(
+                (key: unknown) => Array.isArray(key) && key[0] === "enc-engine-site-stats",
+              );
+              void mutate(
+                (key: unknown) => Array.isArray(key) && key[0] === "enc-account-summary",
+              );
+            }
+            const ratingRes = await commands.getEncroissantEngineDisplayRating(uname, humanTc);
+            const elo = ratingRes.status === "ok" ? ratingRes.data : 1000;
+            if (whiteIsEngine) {
+              newHeaders.black_elo = elo;
+            } else {
+              newHeaders.white_elo = elo;
+            }
+          }
+        }
       }
 
       setHeaders({
@@ -476,8 +544,77 @@ function BoardGame() {
 
       syncTreeWithMovesRef.current(mapBackendMoves(payload.moves));
 
+      const outcome = gameResultToOutcome(payload.result);
       setGameState("gameOver");
-      setResult(gameResultToOutcome(payload.result));
+      setResult(outcome);
+
+      const playersNow = getDefaultStore().get(currentPlayersAtom);
+      const pve =
+        (playersNow.white.type === "human" && playersNow.black.type === "engine") ||
+        (playersNow.black.type === "human" && playersNow.white.type === "engine");
+      if (!pve) {
+        return;
+      }
+
+      const human = playersNow.white.type === "human" ? playersNow.white : playersNow.black;
+      const engineSide = playersNow.white.type === "engine" ? playersNow.white : playersNow.black;
+      if (human.type !== "human" || engineSide.type !== "engine") {
+        return;
+      }
+
+      const username = (human.name ?? "").trim();
+      if (!username) {
+        return;
+      }
+
+      const formatTc = (settings: OpponentSettings): string => {
+        if (!settings.timeControl) return "-";
+        const seconds = settings.timeControl.seconds / 1000;
+        const increment = (settings.timeControl.increment ?? 0) / 1000;
+        return increment ? `${seconds}+${increment}` : `${seconds}`;
+      };
+      const timeControl =
+        playersNow.white.type === "human" ? formatTc(playersNow.white) : formatTc(playersNow.black);
+
+      const opponentElo =
+        engineSide.limitStrength
+          ? Math.min(3200, Math.max(500, Math.round(engineSide.limitElo ?? 1500)))
+          : null;
+
+      const headerSnapshot = store.getState().headers;
+      const dateStr =
+        headerSnapshot.date?.replace(/-/g, ".") ??
+        new Date().toISOString().slice(0, 10).replace(/-/g, ".");
+
+      const movesUci = payload.moves.map((m) => m.uci);
+
+      void commands
+        .recordEncroissantEngineGame({
+          username,
+          humanIsWhite: playersNow.white.type === "human",
+          outcome,
+          opponentElo,
+          limitStrength: engineSide.limitStrength ?? false,
+          timeControl,
+          movesUci,
+          date: dateStr,
+        })
+        .then((res) => {
+          if (res.status === "error") {
+            console.error(res.error);
+            return;
+          }
+          void mutate("encroissant-engine-usernames");
+          void mutate(
+            (key: unknown) => Array.isArray(key) && key[0] === "enc-engine-site-stats",
+          );
+          void mutate(
+            (key: unknown) => Array.isArray(key) && key[0] === "enc-account-summary",
+          );
+        })
+        .catch((err) => {
+          console.error(err);
+        });
     });
 
     return () => {

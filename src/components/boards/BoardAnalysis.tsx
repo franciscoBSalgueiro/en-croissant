@@ -59,7 +59,6 @@ function BoardAnalysis() {
   const dirty = useStore(store, (s) => s.dirty);
 
   const reset = useStore(store, (s) => s.reset);
-  const clearShapes = useStore(store, (s) => s.clearShapes);
   const setAnnotation = useStore(store, (s) => s.setAnnotation);
 
   const saveFile = useCallback(async () => {
@@ -130,10 +129,7 @@ function BoardAnalysis() {
     }
   }, [practicing, setPracticePath]);
 
-  useHotkeys([
-    [keyMap.SAVE_FILE.keys, () => userSaveFile()],
-    [keyMap.CLEAR_SHAPES.keys, () => clearShapes()],
-  ]);
+  useHotkeys([[keyMap.SAVE_FILE.keys, () => userSaveFile()]]);
   useHotkeys([
     [keyMap.ANNOTATION_BRILLIANT.keys, () => !isPracticeRating && setAnnotation("!!")],
     [keyMap.ANNOTATION_GOOD.keys, () => !isPracticeRating && setAnnotation("!")],

@@ -6,6 +6,7 @@
 mod chess;
 mod db;
 mod engine;
+mod engine_games;
 mod error;
 mod game;
 
@@ -44,6 +45,11 @@ use crate::db::{
     clear_games, convert_pgn, create_indexes, delete_database, delete_db_game, delete_empty_games,
     delete_indexes, export_to_pgn, get_player, get_players_game_info, get_tournaments,
     preload_reference_db, search_position, MmapSearchIndex,
+};
+use crate::engine_games::{
+    get_encroissant_engine_account_summary, get_encroissant_engine_display_rating,
+    get_encroissant_engine_site_stats, list_encroissant_engine_usernames,
+    record_encroissant_engine_game, register_encroissant_engine_player,
 };
 use crate::game::{
     abort_game, get_game_engine_logs, get_game_state, make_game_move, resign_game, start_game,
@@ -125,6 +131,12 @@ fn main() {
             get_opening_from_fens,
             get_opening_from_name,
             get_players_game_info,
+            record_encroissant_engine_game,
+            get_encroissant_engine_display_rating,
+            get_encroissant_engine_site_stats,
+            get_encroissant_engine_account_summary,
+            register_encroissant_engine_player,
+            list_encroissant_engine_usernames,
             get_engine_config,
             file_exists,
             get_file_metadata,

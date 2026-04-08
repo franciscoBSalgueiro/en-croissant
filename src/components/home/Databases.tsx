@@ -14,7 +14,8 @@ import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWRImmutable from "swr/immutable";
-import type { DatabaseInfo as PlainDatabaseInfo, PlayerGameInfo } from "@/bindings";
+import { mutate } from "swr";
+import type { DatabaseInfo as PlainDatabaseInfo, PlayerGameInfo, SiteStatsData } from "@/bindings";
 import { commands, events } from "@/bindings";
 import { sessionsAtom } from "@/state/atoms";
 import { activeDatabaseViewStore } from "@/state/store/database";
@@ -54,9 +55,18 @@ function Databases() {
   const { t } = useTranslation();
   const sessions = useAtomValue(sessionsAtom);
 
+  const { data: encUsernames } = useSWRImmutable("encroissant-engine-usernames", async () => {
+    const r = await commands.listEncroissantEngineUsernames();
+    return r.status === "ok" ? r.data : [];
+  });
+
   const players = Array.from(
-    new Set(sessions.map((s) => s.player || s.lichess?.username || s.chessCom?.username || "")),
-  );
+    new Set([
+      ...sessions.map((s) => s.player || s.lichess?.username || s.chessCom?.username || ""),
+      ...(encUsernames ?? []),
+    ]),
+  ).filter((n) => n !== "");
+
   const playerDbNames = players.map((name) => ({
     name,
     databases: sessions
@@ -74,6 +84,25 @@ function Databases() {
       setName(sessions[0].player || getSessionUsername(sessions[0]));
     }
   }, [sessions]);
+
+  /** Everyone in the Home player list gets an En Croissant profile row so the site card can show before any engine games. */
+  useEffect(() => {
+    if (!name) return;
+    let cancelled = false;
+    void commands.registerEncroissantEnginePlayer(name).then((res) => {
+      if (cancelled || res.status !== "ok") return;
+      void mutate("encroissant-engine-usernames");
+      void mutate(
+        (key: unknown) => Array.isArray(key) && key[0] === "enc-engine-site-stats",
+      );
+      void mutate(
+        (key: unknown) => Array.isArray(key) && key[0] === "enc-account-summary",
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [name]);
 
   const { data: databases } = useSWRImmutable<DatabaseInfo[]>(
     sessions.length === 0 ? null : ["personalDatabases", sessions],
@@ -119,6 +148,13 @@ function Databases() {
     },
   );
 
+  const { data: encSiteBlock, isLoading: encSiteLoading } = useSWRImmutable<
+    SiteStatsData | null
+  >(name ? ["enc-engine-site-stats", name] : null, async () => {
+    const r = await commands.getEncroissantEngineSiteStats(name);
+    return r.status === "ok" ? r.data : null;
+  });
+
   const [progress, setProgress] = useState(0);
   useEffect(() => {
     const unlisten = events.databaseProgress.listen((e) => {
@@ -130,9 +166,19 @@ function Databases() {
     };
   }, []);
 
+  const lichessSiteBlocks =
+    personalInfo?.flatMap((i) => i.info.site_stats_data) ?? ([] as SiteStatsData[]);
+  const encSites = encSiteBlock != null ? [encSiteBlock] : ([] as SiteStatsData[]);
+  const mergedPlayerInfo: PlayerGameInfo = {
+    site_stats_data: [...lichessSiteBlocks, ...encSites],
+  };
+
+  const waitForEncStats =
+    Boolean(name) && encSiteLoading && lichessSiteBlocks.length === 0 && databases;
+
   return (
     <>
-      {isLoading && databases && (
+      {(isLoading || waitForEncStats) && databases && (
         <Paper
           h="100%"
           shadow="sm"
@@ -159,8 +205,11 @@ function Databases() {
         </Paper>
       )}
       {error && <Text ta="center">{t("Home.Databases.ErrorLoading", { error })}</Text>}
-      {personalInfo &&
-        (personalInfo.length === 0 ? (
+      {personalInfo !== undefined &&
+        !isLoading &&
+        !waitForEncStats &&
+        lichessSiteBlocks.length === 0 &&
+        encSites.length === 0 ? (
           <Paper
             h="100%"
             shadow="sm"
@@ -200,17 +249,20 @@ function Databases() {
               </Stack>
             </Center>
           </Paper>
-        ) : (
+        ) : null}
+      {personalInfo !== undefined &&
+        !isLoading &&
+        !waitForEncStats &&
+        (lichessSiteBlocks.length > 0 || encSites.length > 0) && (
           <DatabaseViewStateContext.Provider value={activeDatabaseViewStore}>
             <PersonalPlayerCard
               name={name}
               setName={setName}
-              info={{
-                site_stats_data: personalInfo.flatMap((i) => i.info.site_stats_data),
-              }}
+              info={mergedPlayerInfo}
+              encUsernames={encUsernames ?? []}
             />
           </DatabaseViewStateContext.Provider>
-        ))}
+        )}
     </>
   );
 }
