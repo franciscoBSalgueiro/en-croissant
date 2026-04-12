@@ -1,4 +1,5 @@
 use std::{
+    ffi::OsStr,
     fs::create_dir_all,
     io::Cursor,
     path::{Path, PathBuf},
@@ -16,6 +17,67 @@ use futures_util::StreamExt;
 use crate::error::Error;
 use crate::progress::update_progress;
 use crate::AppState;
+
+fn canonicalize_or_original(path: PathBuf) -> PathBuf {
+    path.canonicalize().unwrap_or(path)
+}
+
+#[cfg(unix)]
+fn is_executable(path: &Path) -> bool {
+    let Ok(metadata) = std::fs::metadata(path) else {
+        return false;
+    };
+    metadata.is_file() && metadata.permissions().mode() & 0o111 != 0
+}
+
+#[cfg(not(unix))]
+fn is_executable(path: &Path) -> bool {
+    path.is_file()
+}
+
+#[cfg(target_os = "windows")]
+fn executable_extensions(name: &Path) -> Vec<String> {
+    if name.extension().is_some() {
+        return vec![String::new()];
+    }
+
+    let mut extensions = vec![String::new()];
+    let path_ext = std::env::var("PATHEXT").unwrap_or_else(|_| ".COM;.EXE;.BAT;.CMD".to_string());
+    extensions.extend(
+        path_ext
+            .split(';')
+            .filter(|ext| !ext.is_empty())
+            .map(|ext| ext.to_ascii_lowercase()),
+    );
+    extensions
+}
+
+#[cfg(not(target_os = "windows"))]
+fn executable_extensions(_name: &Path) -> Vec<String> {
+    vec![String::new()]
+}
+
+fn find_executable_in_path(name: &str, search_path: &OsStr) -> Option<PathBuf> {
+    let name_path = Path::new(name);
+    if name_path.is_absolute() || name.contains('/') || name.contains('\\') {
+        return is_executable(name_path).then(|| canonicalize_or_original(name_path.to_path_buf()));
+    }
+
+    for dir in std::env::split_paths(search_path) {
+        for extension in executable_extensions(name_path) {
+            let candidate = if extension.is_empty() {
+                dir.join(name)
+            } else {
+                dir.join(format!("{name}{extension}"))
+            };
+            if is_executable(&candidate) {
+                return Some(canonicalize_or_original(candidate));
+            }
+        }
+    }
+
+    None
+}
 
 #[tauri::command]
 #[specta::specta]
@@ -128,6 +190,13 @@ pub async fn set_file_as_executable(_path: String) -> Result<(), Error> {
 
 #[tauri::command]
 #[specta::specta]
+pub async fn find_executable_on_path(name: String) -> Option<String> {
+    let search_path = std::env::var_os("PATH")?;
+    find_executable_in_path(&name, &search_path).map(|path| path.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn file_exists(path: String) -> Result<bool, Error> {
     Ok(Path::new(&path).exists())
 }
@@ -147,4 +216,34 @@ pub async fn get_file_metadata(path: String) -> Result<FileMetadata, Error> {
     Ok(FileMetadata {
         last_modified: last_modified.as_secs() as u32,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::find_executable_in_path;
+
+    #[cfg(unix)]
+    use std::os::unix::fs::PermissionsExt;
+
+    #[test]
+    fn finds_executable_in_search_path() {
+        let dir = tempfile::tempdir().unwrap();
+        #[cfg(target_os = "windows")]
+        let engine_path = dir.path().join("stockfish.exe");
+        #[cfg(not(target_os = "windows"))]
+        let engine_path = dir.path().join("stockfish");
+
+        std::fs::write(&engine_path, "").unwrap();
+        #[cfg(unix)]
+        {
+            let mut permissions = std::fs::metadata(&engine_path).unwrap().permissions();
+            permissions.set_mode(0o755);
+            std::fs::set_permissions(&engine_path, permissions).unwrap();
+        }
+
+        let search_path = std::env::join_paths([dir.path()]).unwrap();
+        let resolved = find_executable_in_path("stockfish", &search_path).unwrap();
+
+        assert_eq!(resolved, engine_path.canonicalize().unwrap());
+    }
 }
