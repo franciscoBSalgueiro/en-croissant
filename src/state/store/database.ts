@@ -180,7 +180,7 @@ export const activeDatabaseViewStore = createStore<DatabaseViewStore>()(
             setTournamentsSelectedTournament: (tournament?: number) => {
                 set(
                     produce((state: Draft<DatabaseViewStore>) => {
-                        state.tournaments.SelectedTournament = tournament;
+                        state.tournaments.selectedTournament = tournament;
                     }),
                 );
             },
