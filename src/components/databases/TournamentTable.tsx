@@ -19,9 +19,9 @@ function TournamentTable() {
 
   const file = useStore(store, (s) => s.database?.file)!;
   const query = useStore(store, (s) => s.tournaments.query);
-  const selected = useStore(store, (s) => s.tournaments.selectedTournament);
+  const selected = useStore(store, (s) => s.tournaments.SelectedTournament);
   const setQuery = useStore(store, (s) => s.setTournamentsQuery);
-  const setSelected = useStore(store, (s) => s.setTournamentsselectedTournament);
+  const setSelected = useStore(store, (s) => s.setTournamentsSelectedTournament);
 
   const { data, error, isLoading } = useSWR(["tournaments", file, query], () =>
     commands.getTournaments(file, query).then(unwrap),
