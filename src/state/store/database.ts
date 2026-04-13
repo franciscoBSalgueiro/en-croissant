@@ -19,7 +19,7 @@ export interface DatabaseViewStore {
     };
     tournaments: {
         query: TournamentQuery;
-        selectedTournament?: number;
+        SelectedTournament?: number;
         activeTab: "games" | "leaderboard";
     };
 
@@ -180,7 +180,7 @@ export const activeDatabaseViewStore = createStore<DatabaseViewStore>()(
           setTournamentsSelectedTournament: (tournament?: number) => {
                 set(
                     produce((state: Draft<DatabaseViewStore>) => {
-                        state.tournaments.selectedTournament = tournament;
+                        state.tournaments.SelectedTournament = tournament;
                     }),
                 );
             },
