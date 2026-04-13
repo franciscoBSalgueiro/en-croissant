@@ -36,7 +36,7 @@ export interface DatabaseViewStore {
     setPlayersActiveTab: (value: DatabaseViewStore["players"]["activeTab"]) => void;
 
     setTournamentsQuery: (query: TournamentQuery) => void;
-    setTournamentsselectedTournament: (tournament?: number) => void;
+  setTournamentsSelectedTournament: (tournament?: number) => void;
     setTournamentsActiveTab: (value: DatabaseViewStore["tournaments"]["activeTab"]) => void;
 }
 
@@ -177,7 +177,7 @@ export const activeDatabaseViewStore = createStore<DatabaseViewStore>()(
                     }),
                 );
             },
-            setTournamentsselectedTournament: (tournament?: number) => {
+          setTournamentsSelectedTournament: (tournament?: number) => {
                 set(
                     produce((state: Draft<DatabaseViewStore>) => {
                         state.tournaments.selectedTournament = tournament;
