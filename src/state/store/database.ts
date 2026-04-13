@@ -19,7 +19,7 @@ export interface DatabaseViewStore {
     };
     tournaments: {
         query: TournamentQuery;
-        SelectedTournament?: number;
+        selectedTournament?: number;
         activeTab: "games" | "leaderboard";
     };
 
