@@ -95,9 +95,7 @@ function AddEngine({
           <ScrollArea.Autosize mah={720} offsetScrollbars>
             <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="sm">
               <MaiaCard
-                initInstalled={engines.some(
-                  (e) => e.type === "local" && e.runtime === "maia",
-                )}
+                initInstalled={engines.some((e) => e.type === "local" && e.runtime === "maia")}
               />
               {defaultEngines?.map((engine, i) => (
                 <EngineCard
@@ -200,6 +198,8 @@ function CloudCard({ engine }: { engine: RemoteEngine }) {
 const MAIA_DOWNLOAD_ID = "maia_download";
 const MAIA_MODEL_URL =
   "https://github.com/CSSLab/maia-platform-frontend/raw/refs/heads/main/public/maia3/maia3_simplified.onnx";
+const MAIA_IMAGE_URL =
+  "https://raw.githubusercontent.com/CSSLab/maia-platform-frontend/refs/heads/main/public/favicon.png";
 
 function MaiaCard({ initInstalled }: { initInstalled: boolean }) {
   const { t } = useTranslation();
@@ -225,6 +225,7 @@ function MaiaCard({ initInstalled }: { initInstalled: boolean }) {
         name: "Maia",
         version: "3",
         path: enginePath,
+        image: MAIA_IMAGE_URL,
         elo: 1500,
         loaded: true,
         settings: [{ name: "MultiPV", value: 1 }],
@@ -235,6 +236,9 @@ function MaiaCard({ initInstalled }: { initInstalled: boolean }) {
   return (
     <Paper withBorder radius="md" p={0}>
       <Group wrap="nowrap" gap={0} grow>
+        <Box w="1.75rem" px="xs">
+          <Image src={MAIA_IMAGE_URL} alt="Maia" fit="contain" />
+        </Box>
         <Box p="sm" flex={1}>
           <Text tt="uppercase" c="dimmed" fw={700} size="xs">
             ENGINE
