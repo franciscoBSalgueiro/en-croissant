@@ -459,6 +459,30 @@ async getSoundServerPort() : Promise<Result<number, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async maiaEval(id: string, modelPath: string, tab: string, fen: string, moves: string[], elo: number) : Promise<Result<EvaluationResult, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("maia_eval", { id, modelPath, tab, fen, moves, elo }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async maiaEvalBatch(id: string, modelPath: string, tab: string, positions: MaiaEvalPosition[], elo: number) : Promise<Result<EvaluationResult[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("maia_eval_batch", { id, modelPath, tab, positions, elo }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async maiaBestMoves(id: string, modelPath: string, tab: string, fen: string, moves: string[], elo: number, multipv: number) : Promise<Result<[number, BestMoves[]], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("maia_best_moves", { id, modelPath, tab, fen, moves, elo, multipv }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -488,7 +512,7 @@ progressEvent: "progress-event"
 /** user-defined types **/
 
 export type AnalysisOptions = { fen: string; moves: string[]; annotateNovelties: boolean; referenceDb: string | null; reversed: boolean }
-export type BestMoves = { nodes: number; depth: number; score: Score; uciMoves: string[]; sanMoves: string[]; multipv: number; nps: number }
+export type BestMoves = { nodes: number; depth: number; score: Score; uciMoves: string[]; sanMoves: string[]; multipv: number; nps: number; probability: number | null }
 export type BestMovesPayload = { bestLines: BestMoves[]; engine: string; tab: string; fen: string; moves: string[]; progress: number }
 export type ClockUpdateEvent = { gameId: string; whiteTime: bigint | null; blackTime: bigint | null }
 export type DatabaseInfo = { title: string; description: string; player_count: number; event_count: number; game_count: number; storage_size: bigint; filename: string; indexed: boolean }
@@ -498,6 +522,11 @@ export type EngineConfig = { name: string; options: UciOptionConfig[] }
 export type EngineLog = { type: "gui"; value: string } | { type: "engine"; value: string }
 export type EngineOption = { name: string; value: string }
 export type EngineOptions = { fen: string; moves: string[]; extraOptions: EngineOption[] }
+export type EvaluationResult = { policy: MoveProbability[]; 
+/**
+ * WDL is for the current position, not per policy move.
+ */
+white_wr: number; draw: number; black_wr: number }
 export type Event = { id: number; name: string | null }
 export type FileMetadata = { last_modified: number }
 export type GameConfig = { white: PlayerConfig; black: PlayerConfig; whiteTimeControl: TimeControl | null; blackTimeControl: TimeControl | null; initialFen: string | null; initialMoves?: string[]; openingBook: OpeningBookConfig | null }
@@ -512,7 +541,9 @@ export type GameSort = "id" | "date" | "whiteElo" | "blackElo" | "ply_count"
 export type GameState = { gameId: string; status: GameStatus; initialFen: string; moves: GameMove[]; currentFen: string; ply: number; turn: string; whiteTime: bigint | null; blackTime: bigint | null; whitePlayer: string; blackPlayer: string }
 export type GameStatus = "playing" | { finished: { result: GameResult } }
 export type GoMode = { t: "PlayersTime"; c: PlayersTime } | { t: "Depth"; c: number } | { t: "Time"; c: number } | { t: "Nodes"; c: number } | { t: "Infinite" }
+export type MaiaEvalPosition = { fen: string; moves: string[] }
 export type MoveAnalysis = { best: BestMoves[]; novelty: boolean; is_sacrifice: boolean }
+export type MoveProbability = { uci: string; probability: number }
 export type NormalizedGame = { id: number; fen: string; event: string; event_id: number; site: string; site_id: number; date?: string | null; time?: string | null; round?: string | null; white: string; white_id: number; white_elo?: number | null; black: string; black_id: number; black_elo?: number | null; result: Outcome; time_control?: string | null; eco?: string | null; ply_count?: number | null; moves: string }
 export type OpeningBookConfig = { path: string; maxPly?: bigint }
 export type OutOpening = { name: string; fen: string }

@@ -20,8 +20,8 @@ zip = "2.1.6"
 tokio = { version = "1.33", features = ["full"] }
 futures-util = "0.3.24"
 reqwest = { version = "0.12.5", features = ["stream", "blocking", "json"] }
-shakmaty = "0.27.1"
-pgn-reader = "0.26.0"
+shakmaty = "0.30.0"
+pgn-reader = "0.29.0"
 csv = "1.1.6"
 lazy_static = "1.4.0"
 btoi = "0.4.2"
@@ -43,6 +43,7 @@ vampirc-uci = { git = "https://github.com/franciscoBSalgueiro/vampirc-uci", rev 
     "specta",
     "serde",
 ] }
+maia-rust = { git = "https://github.com/xiaoas/maia-rust"}
 tempfile = "3.6.0"
 specta = { version = "^2.0.0-rc.20", features = ["derive"] }
 tauri-specta = { version = "^2.0.0-rc.20", features = ["derive", "typescript"] }
@@ -68,6 +69,7 @@ tauri-plugin-window-state = "2.4.1"
 tauri-plugin-opener = "2"
 memmap2 = "0.9"
 rkyv = { version = "0.8", features = ["bytecheck"] }
+ort = "2.0.0-rc.11"
 polyglot-book-rs = "0.1.0"
 
 [features]

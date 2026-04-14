@@ -12,10 +12,12 @@ import { useNavigate } from "@tanstack/react-router";
 import { useAtomValue } from "jotai";
 import { memo, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import type { GoMode } from "@/bindings";
+import useSWRImmutable from "swr/immutable";
+import { commands, type GoMode } from "@/bindings";
 import GoModeInput from "@/components/common/GoModeInput";
 import { activeTabAtom, enginesAtom } from "@/state/atoms";
-import { type Engine, type EngineSettings, killEngine } from "@/utils/engines";
+import { type Engine, type EngineSettings, isUciEngine, killEngine } from "@/utils/engines";
+import { unwrap } from "@/utils/unwrap";
 import CoresSlider from "./CoresSlider";
 import HashSlider from "./HashSlider";
 import LinesSlider from "./LinesSlider";
@@ -33,7 +35,6 @@ interface EngineSettingsProps {
   setSettings: (fn: (prev: Settings) => Settings) => void;
   color?: MantineColor;
   minimal?: boolean;
-  remote: boolean;
   gameMode?: boolean;
 }
 
@@ -43,89 +44,96 @@ function EngineSettingsForm({
   setSettings,
   color,
   minimal,
-  remote,
   gameMode,
 }: EngineSettingsProps) {
   const { t } = useTranslation();
-
-  const multipv = settings.settings.find((o) => o.name === "MultiPV");
-  const threads = settings.settings.find((o) => o.name === "Threads");
-  const hash = settings.settings.find((o) => o.name === "Hash");
   const activeTab = useAtomValue(activeTabAtom);
+  const local = engine.type === "local";
 
-  const setGoMode = useCallback(
-    (v: GoMode) => {
-      setSettings((prev) => ({
-        ...prev,
-        go: v,
-      }));
+  const { data: config } = useSWRImmutable(
+    local && isUciEngine(engine) && engine.path ? ["engine-config", engine.path] : null,
+    async ([, path]) => {
+      return unwrap(await commands.getEngineConfig(path));
     },
-    [setSettings],
   );
+
+  const getSetting = (name: string) => {
+    const fromProps = settings.settings.find((o) => o.name === name);
+    if (fromProps) return fromProps.value;
+
+    if (config?.options) {
+      const option = config.options.find((o) => o.value.name === name);
+      if (option && option.type !== "button" && option.value.default !== undefined) {
+        return option.value.default;
+      }
+    }
+
+    return undefined; // not found in current settings and default value
+  };
+
+  const updateSetting = (name: string, newValue: number | string | boolean) => {
+    setSettings((prev) => {
+      const exists = prev.settings.some((o) => o.name === name);
+      if (exists) {
+        return {
+          ...prev,
+          settings: prev.settings.map((o) => (o.name === name ? { ...o, value: newValue } : o)),
+        };
+      }
+      return {
+        ...prev,
+        settings: [...prev.settings, { name, value: newValue }],
+      };
+    });
+  };
+
+  const setGoMode = (v: GoMode) => {
+    setSettings((prev) => ({ ...prev, go: v }));
+  };
+  const multiPv = getSetting("MultiPV");
+  const threads = getSetting("Threads");
+  const hash = getSetting("Hash");
 
   return (
     <Stack>
-      {!remote && !minimal && (
+      {local && isUciEngine(engine) && (
         <GoModeInput gameMode={gameMode} goMode={settings.go} setGoMode={setGoMode} />
       )}
 
-      {!minimal && multipv && (
+      {!minimal && (
         <Group grow>
           <Text size="sm" fw="bold">
             {t("Engines.Settings.NumOfLines")}
           </Text>
           <LinesSlider
-            value={Number(multipv.value || 1)}
-            setValue={(v) =>
-              setSettings((prev) => {
-                return {
-                  ...prev,
-                  settings: prev.settings.map((o) =>
-                    o.name === "MultiPV" ? { ...o, value: v || 1 } : o,
-                  ),
-                };
-              })
-            }
+            value={Number(multiPv) || 1}
+            setValue={(v) => updateSetting("MultiPV", v)}
             color={color}
           />
         </Group>
       )}
 
-      {!remote && threads && (
+      {local && threads !== undefined && (
         <>
           <Group grow>
             <Text size="sm" fw="bold">
               {t("Engines.Settings.NumOfCores")}
             </Text>
             <CoresSlider
-              value={Number(threads.value || 1)}
-              setValue={(v) =>
-                setSettings((prev) => ({
-                  ...prev,
-                  settings: prev.settings.map((o) =>
-                    o.name === "Threads" ? { ...o, value: v || 1 } : o,
-                  ),
-                }))
-              }
+              value={Number(threads)}
+              setValue={(v) => updateSetting("Threads", v)}
               color={color}
             />
           </Group>
 
-          {hash && (
+          {hash !== undefined && (
             <Group grow>
               <Text size="sm" fw="bold">
                 {t("Engines.Settings.SizeOfHash")}
               </Text>
               <HashSlider
-                value={Number(hash.value || 1)}
-                setValue={(v) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    settings: prev.settings.map((o) =>
-                      o.name === "Hash" ? { ...o, value: v || 1 } : o,
-                    ),
-                  }))
-                }
+                value={Number(hash)}
+                setValue={(v) => updateSetting("Hash", v)}
                 color={color}
               />
             </Group>
@@ -136,7 +144,7 @@ function EngineSettingsForm({
         <Group>
           <SyncSettings settings={settings} engine={engine.name} setSettings={setSettings} />
           <ActionIcon.Group>
-            {engine.type === "local" && (
+            {local && (
               <Tooltip label="Kill engine">
                 <ActionIcon
                   variant="default"

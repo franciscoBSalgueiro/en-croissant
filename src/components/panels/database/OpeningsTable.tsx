@@ -10,7 +10,17 @@ import type { Opening } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 import classes from "./OpeningsTable.module.css";
 
-function OpeningsTable({ openings, loading }: { openings: Opening[]; loading: boolean }) {
+function OpeningsTable({
+  openings,
+  loading,
+  showTotalRow = true,
+  showMoveCounts = true,
+}: {
+  openings: Opening[];
+  loading: boolean;
+  showTotalRow?: boolean;
+  showMoveCounts?: boolean;
+}) {
   const store = useContext(TreeStateContext)!;
   const makeMove = useStore(store, (s) => s.makeMove);
   const [moveNotationType] = useAtom(moveNotationTypeAtom);
@@ -20,7 +30,7 @@ function OpeningsTable({ openings, loading }: { openings: Opening[]; loading: bo
   const drawTotal = openings?.reduce((acc, curr) => acc + curr.draw, 0);
   const grandTotal = whiteTotal + blackTotal + drawTotal;
 
-  if (openings.length > 0) {
+  if (showTotalRow && openings.length > 0) {
     openings = [
       ...openings,
       {
@@ -39,7 +49,7 @@ function OpeningsTable({ openings, loading }: { openings: Opening[]; loading: bo
       records={openings}
       fetching={loading || openings === null}
       rowStyle={(game, i) => {
-        if (i === openings.length - 1)
+        if (showTotalRow && i === openings.length - 1)
           return {
             fontWeight: 700,
             position: "sticky",
@@ -67,15 +77,17 @@ function OpeningsTable({ openings, loading }: { openings: Opening[]; loading: bo
         {
           accessor: "total",
           width: 180,
-          render: ({ move, white, draw, black }) => {
+          render: ({ move, white, draw, black }: Opening) => {
             const total = white + draw + black;
-            const percentage = (total / grandTotal) * 100;
+            const percentage = grandTotal > 0 ? (total / grandTotal) * 100 : 0;
             return (
               <Group>
                 {move !== "Total" && <Text fz="sm">{percentage.toFixed(0)}%</Text>}
-                <Text fz="sm" flex={1} ta="right">
-                  {formatNumber(total)}
-                </Text>
+                {showMoveCounts && (
+                  <Text fz="sm" flex={1} ta="right">
+                    {formatNumber(total)}
+                  </Text>
+                )}
               </Group>
             );
           },

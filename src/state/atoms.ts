@@ -1,6 +1,7 @@
 import type { MantineColor } from "@mantine/core";
 import { resolve } from "@tauri-apps/api/path";
 import { exists, mkdir, readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
+import { warn } from "@tauri-apps/plugin-log";
 import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import equal from "fast-deep-equal";
@@ -33,15 +34,21 @@ import { getEnginesDir } from "../utils/directories";
 import type { Session } from "../utils/session";
 import { createAsyncZodStorage, createZodStorage } from "./utils";
 
-const zodArray = <Input, Output>(itemSchema: z.ZodType<Output, z.ZodTypeDef, Input>) => {
+const zodArray = <Input, Output>(itemSchema: z.ZodType<Output, Input>) => {
     const catchValue = {} as never;
 
     const res = z
-        .array(itemSchema.catch(catchValue))
+        .array(
+            itemSchema.catch((ctx) => {
+                // Log the actual Zod error here
+                warn(`Dropped invalid item: ${JSON.stringify(ctx.value)}`);
+                return catchValue;
+            }),
+        )
         .transform((a) => a.filter((o): o is Output => o !== catchValue))
         .catch([]);
 
-    return res as z.ZodType<Output[], z.ZodTypeDef, Input[]>;
+    return res as z.ZodType<Output[], Input[]>;
 };
 
 // Tabs
@@ -411,9 +418,12 @@ export const masterOptionsAtom = atomWithStorage<MasterGamesOptions>(
 );
 
 const dbTypeFamily = atomFamily((_tab: string) =>
-    atom<"local" | "lch_all" | "lch_master">("local"),
+    atom<"local" | "lch_all" | "lch_master" | "maia">("local"),
 );
 export const currentDbTypeAtom = tabValue(dbTypeFamily);
+
+const maiaDbEngineFamily = atomFamily((_tab: string) => atom<string | null>(null));
+export const currentMaiaDbEngineAtom = tabValue(maiaDbEngineFamily);
 
 const dbTabFamily = atomFamily((_tab: string) => atom("stats"));
 export const currentDbTabAtom = tabValue(dbTabFamily);
@@ -461,11 +471,9 @@ export const currentGameIdAtom = tabValue(gameIdFamily);
 
 // Practice
 
-const reviewLogSchema = z
-    .object({
-        fen: z.string(),
-    })
-    .passthrough();
+const reviewLogSchema = z.looseObject({
+    fen: z.string(),
+});
 
 const practiceDataSchema = z.object({
     positions: positionSchema.array(),
@@ -576,12 +584,28 @@ export const bestMovesFamily = atomFamily(
                     engineMoves.get(`${swapMove(finalFen)}:`) ||
                     engineMoves.get(`${fen}:${gameMoves.join(",")}`);
                 if (moves && moves.length > 0) {
+                    const settingsAtom = tabEngineSettingsFamily({
+                        tab,
+                        engineId: engine.id,
+                        defaultSettings:
+                            engine.type === "local" ? engine.settings || [] : undefined,
+                        defaultGo: engine.go ?? undefined,
+                    });
+                    const multipvSetting = get(settingsAtom).settings.find(
+                        (setting) => setting.name === "MultiPV",
+                    )?.value;
+                    const parsedMultipv =
+                        typeof multipvSetting === "number"
+                            ? multipvSetting
+                            : Number.parseInt(multipvSetting?.toString() ?? "1", 10);
+                    const multipv = Number.isFinite(parsedMultipv) ? Math.max(1, parsedMultipv) : 1;
+                    const visibleMoves = moves.slice(0, multipv);
                     const bestWinChange = getWinChance(
-                        normalizeScore(moves[0].score.value, pos?.turn || "white"),
+                        normalizeScore(visibleMoves[0].score.value, pos?.turn || "white"),
                     );
                     bestMoves.set(
                         n,
-                        moves.reduce<{ pv: string[]; winChance: number }[]>((acc, m) => {
+                        visibleMoves.reduce<{ pv: string[]; winChance: number }[]>((acc, m) => {
                             const winChance = getWinChance(
                                 normalizeScore(m.score.value, pos?.turn || "white"),
                             );

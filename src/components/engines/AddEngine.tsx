@@ -23,9 +23,9 @@ import { commands } from "@/bindings";
 import { enginesAtom } from "@/state/atoms";
 import { getEnginesDir } from "@/utils/directories";
 import {
+  isLocalEngine,
   type LocalEngine,
   type RemoteEngine,
-  requiredEngineSettings,
   useDefaultEngines,
 } from "@/utils/engines";
 import { usePlatform } from "@/utils/files";
@@ -44,7 +44,7 @@ function AddEngine({
   const { t } = useTranslation();
 
   const [allEngines, setEngines] = useAtom(enginesAtom);
-  const engines = (allEngines ?? []).filter((e): e is LocalEngine => e.type === "local");
+  const engines = (allEngines ?? []).filter(isLocalEngine);
 
   const { os } = usePlatform();
 
@@ -53,6 +53,7 @@ function AddEngine({
   const form = useForm<LocalEngine>({
     initialValues: {
       type: "local",
+      runtime: "uci",
       id: crypto.randomUUID(),
       version: "",
       name: "",
@@ -219,7 +220,6 @@ function EngineCard({
       }
       const enginePath = await join(enginesDirPath, ...engine.path.split("/"));
       await commands.setFileAsExecutable(enginePath);
-      const config = unwrap(await commands.getEngineConfig(enginePath));
       setEngines(async (prev) => [
         ...(await prev),
         {
@@ -228,13 +228,7 @@ function EngineCard({
           type: "local",
           path: enginePath,
           loaded: true,
-          settings: config.options
-            .filter((o) => requiredEngineSettings.includes(o.value.name))
-            .map((o) => ({
-              name: o.value.name,
-              // @ts-expect-error
-              value: o.value.default,
-            })),
+          settings: [],
         },
       ]);
     },

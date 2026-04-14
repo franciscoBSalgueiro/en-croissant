@@ -9,7 +9,7 @@ function GoModeInput({
   setGoMode,
   gameMode,
 }: {
-  goMode: GoMode | null;
+  goMode?: GoMode;
   setGoMode: (v: GoMode) => void;
   gameMode?: boolean;
 }) {

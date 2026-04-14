@@ -8,7 +8,7 @@ import { useStore } from "zustand";
 import { commands, type GoMode } from "@/bindings";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { enginesAtom, referenceDbAtom } from "@/state/atoms";
-import type { LocalEngine } from "@/utils/engines";
+import { isLocalEngine, isUciEngine, type LocalEngine } from "@/utils/engines";
 
 const reportSettingsAtom = atomWithStorage("report-settings", {
   novelty: true,
@@ -38,7 +38,7 @@ function ReportModal({
   const referenceDb = useAtomValue(referenceDbAtom);
   const engines = useAtomValue(enginesAtom);
   const localEngines = useMemo(
-    () => (engines ?? []).filter((e): e is LocalEngine => e.type === "local"),
+    () => (engines ?? []).filter(isLocalEngine).filter(isUciEngine),
     [engines],
   );
   const store = useContext(TreeStateContext)!;
