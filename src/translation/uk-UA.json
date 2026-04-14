@@ -531,6 +531,8 @@
     "Settings.Directories.Puzzles.Desc": "",
     "Settings.EraseDrawablesOnClick": "Стерти позначки при кліку",
     "Settings.EraseDrawablesOnClick.Desc": "Очистити дошку від намальованих стрілок і кіл при натисканні лівої кнопки миші",
+    "Settings.FlipBoardAfterMove": "",
+    "Settings.FlipBoardAfterMove.Desc": "",
     "Settings.Inputs": "Вводи",
     "Settings.Inputs.Desc": "Налаштувати вводи",
     "Settings.Inputs.SpellCheck": "Перевірка орфографії",

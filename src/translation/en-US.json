@@ -539,6 +539,8 @@
     "Settings.Directories.Puzzles.Desc": "This is where your puzzle databases are stored",
     "Settings.EraseDrawablesOnClick": "Erase Drawables On Click",
     "Settings.EraseDrawablesOnClick.Desc": "Clear the board of drawn arrows & circles by left-clicking the mouse",
+    "Settings.FlipBoardAfterMove": "Automatically flip board",
+    "Settings.FlipBoardAfterMove.Desc": "Automatically flip the board after making a move on human games",
     "Settings.Inputs": "Inputs",
     "Settings.Inputs.Desc": "Customize the input settings",
     "Settings.Inputs.SpellCheck": "Spell Check",

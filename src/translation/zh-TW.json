@@ -523,6 +523,8 @@
     "Settings.Directories.Puzzles.Desc": "",
     "Settings.EraseDrawablesOnClick": "點擊時清除繪圖",
     "Settings.EraseDrawablesOnClick.Desc": "點擊滑鼠左鍵以清除棋盤上的箭頭與圓圈",
+    "Settings.FlipBoardAfterMove": "",
+    "Settings.FlipBoardAfterMove.Desc": "",
     "Settings.Inputs": "輸入",
     "Settings.Inputs.Desc": "自訂輸入設定",
     "Settings.Inputs.SpellCheck": "拼字檢查",

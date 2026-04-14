@@ -531,6 +531,8 @@
     "Settings.Directories.Puzzles.Desc": "",
     "Settings.EraseDrawablesOnClick": "Usuń rysunki po kliknięciu",
     "Settings.EraseDrawablesOnClick.Desc": "Wyczyść szachownicę z narysowanych strzałek i okręgów, klikając lewym przyciskiem myszy",
+    "Settings.FlipBoardAfterMove": "",
+    "Settings.FlipBoardAfterMove.Desc": "",
     "Settings.Inputs": "Wejścia",
     "Settings.Inputs.Desc": "Dostosuj ustawienia wejścia",
     "Settings.Inputs.SpellCheck": "Sprawdzanie pisowni",
