@@ -104,9 +104,11 @@ function BestMovesComponent({
       const newSettings = fn(settings);
       setSettings2(newSettings);
       if (newSettings.synced) {
-        setEngines(async (prev) =>
-          (await prev).map((o) =>
-            o.id === engine.id ? { ...o, settings: newSettings.settings, go: newSettings.go } : o,
+        setEngines(
+          (allEngines ?? []).map((o) =>
+            o.id === engine.id
+              ? ({ ...o, settings: newSettings.settings, go: newSettings.go } as Engine)
+              : o,
           ),
         );
       }

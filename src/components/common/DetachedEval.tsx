@@ -12,7 +12,6 @@ import {
   currentDetachedEngineAtom,
   currentThreatAtom,
   engineMovesFamily,
-  engineProgressFamily,
   enginesAtom,
   tabEngineSettingsFamily,
 } from "@/state/atoms";

@@ -144,7 +144,7 @@ function BoardAnalysis() {
     [
       keyMap.PRACTICE_TAB.keys,
       () => {
-        isRepertoire && setCurrentTabSelected("practice");
+        if (isRepertoire) setCurrentTabSelected("practice");
       },
     ],
     [keyMap.ANALYSIS_TAB.keys, () => setCurrentTabSelected("analysis")],

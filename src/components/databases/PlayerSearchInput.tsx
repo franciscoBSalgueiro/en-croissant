@@ -30,7 +30,7 @@ export function PlayerSearchInput({
         }
       });
     }
-  }, [value]);
+  }, [value, file]);
 
   async function handleChange(val: string) {
     setTempValue(val);

@@ -405,7 +405,7 @@ function BoardGame() {
     async (uci: string) => {
       if (!gameId || gameState !== "playing") return;
       try {
-        const result = await commands.makeGameMove(gameId, uci);
+        await commands.makeGameMove(gameId, uci);
         if (!isPlayerVsEngine && autoFlipBoard) {
           toggleOrientation();
         }
@@ -452,7 +452,7 @@ function BoardGame() {
 
   const onTakeBack = useCallback(async () => {
     if (!gameId || gameState !== "playing") return;
-    const result = await commands.takeBackGameMove(gameId);
+    await commands.takeBackGameMove(gameId);
   }, [gameId, gameState]);
 
   useEffect(() => {

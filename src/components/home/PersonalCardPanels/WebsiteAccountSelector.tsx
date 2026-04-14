@@ -35,10 +35,12 @@ const WebsiteAccountSelector = ({
 
   useEffect(() => {
     onWebsiteChange(website);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [website]);
 
   useEffect(() => {
     onAccountChange(account);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account]);
 
   const accounts = ["All accounts"].concat(

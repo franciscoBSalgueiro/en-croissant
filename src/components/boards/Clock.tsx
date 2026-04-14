@@ -23,7 +23,7 @@ function Clock({
   const position = useStore(store, (s) => s.position);
   const headers = useStore(store, (s) => s.headers);
   const currentNode = useStore(store, (s) => s.currentNode());
-  const [pos, error] = positionFromFen(currentNode.fen);
+  const [pos, _error] = positionFromFen(currentNode.fen);
 
   const { white, black } = getClockInfo({
     headers,

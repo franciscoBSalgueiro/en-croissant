@@ -133,6 +133,7 @@ export default function NewTabHome({ id }: { id: string }) {
       }
     };
     checkFiles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const openRecentFile = useCallback(
