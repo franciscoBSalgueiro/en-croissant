@@ -531,6 +531,8 @@
     "Settings.Directories.Puzzles.Desc": "Hier werden deine Spiele auf der Puzzle-Seite gespeichert",
     "Settings.EraseDrawablesOnClick": "Zeichnungen mit Klick löschen",
     "Settings.EraseDrawablesOnClick.Desc": "Lösche Pfeile und Kreise auf dem Brett durch Linksklick",
+    "Settings.FlipBoardAfterMove": "",
+    "Settings.FlipBoardAfterMove.Desc": "",
     "Settings.Inputs": "Eingaben",
     "Settings.Inputs.Desc": "Passe die Eingabeeinstellungen an",
     "Settings.Inputs.SpellCheck": "Rechtschreibprüfung",

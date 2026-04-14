@@ -534,6 +534,8 @@
     "Settings.Directories.Puzzles.Desc": "",
     "Settings.EraseDrawablesOnClick": "Apagar desenhos ao clicar",
     "Settings.EraseDrawablesOnClick.Desc": "Limpar o tabuleiro das setas e círculos desenhados ao clicar com o botão esquerdo do rato",
+    "Settings.FlipBoardAfterMove": "",
+    "Settings.FlipBoardAfterMove.Desc": "",
     "Settings.Inputs": "Inputs",
     "Settings.Inputs.Desc": "Customizar inputs",
     "Settings.Inputs.SpellCheck": "Verificar ortografia",

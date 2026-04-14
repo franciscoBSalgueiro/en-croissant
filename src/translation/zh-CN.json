@@ -545,6 +545,8 @@
     "Settings.Directories.Puzzles.Desc": "这是“谜题”页面中谜题数据库存储的位置",
     "Settings.EraseDrawablesOnClick": "点击时清除绘制",
     "Settings.EraseDrawablesOnClick.Desc": "通过鼠标左键点击清除棋盘上绘制的箭头和圆圈",
+    "Settings.FlipBoardAfterMove": "",
+    "Settings.FlipBoardAfterMove.Desc": "",
     "Settings.Inputs": "输入",
     "Settings.Inputs.Desc": "自定义输入设置",
     "Settings.Inputs.SpellCheck": "拼写检查",

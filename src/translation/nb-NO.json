@@ -531,6 +531,8 @@
     "Settings.Directories.Puzzles.Desc": "",
     "Settings.EraseDrawablesOnClick": "Slett tegninger ved klikk",
     "Settings.EraseDrawablesOnClick.Desc": "Fjern piler og sirkler fra brette med venstre museklikk",
+    "Settings.FlipBoardAfterMove": "",
+    "Settings.FlipBoardAfterMove.Desc": "",
     "Settings.Inputs": "Inputs",
     "Settings.Inputs.Desc": "Tilpass input instillinger",
     "Settings.Inputs.SpellCheck": "Stavekontroll",

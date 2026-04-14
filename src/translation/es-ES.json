@@ -534,6 +534,8 @@
     "Settings.Directories.Puzzles.Desc": "",
     "Settings.EraseDrawablesOnClick": "Borrar dibujos al hacer clic",
     "Settings.EraseDrawablesOnClick.Desc": "Borrar el tablero de las flechas y círculos dibujados al hacer clic izquierdo en el ratón",
+    "Settings.FlipBoardAfterMove": "",
+    "Settings.FlipBoardAfterMove.Desc": "",
     "Settings.Inputs": "Entradas",
     "Settings.Inputs.Desc": "Personalizar la configuración de entrada",
     "Settings.Inputs.SpellCheck": "Revisión ortográfica",
