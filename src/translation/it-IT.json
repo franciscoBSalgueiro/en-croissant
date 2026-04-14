@@ -528,6 +528,8 @@
     "Settings.Directories.Puzzles.Desc": "Seleziona la cartella in cui salvare i database dei puzzle",
     "Settings.EraseDrawablesOnClick": "Cancella annotazioni grafiche con un click",
     "Settings.EraseDrawablesOnClick.Desc": "Rimuovi frecce e cerchi dalla scacchiera con il tasto sinistro del mouse",
+    "Settings.FlipBoardAfterMove": "",
+    "Settings.FlipBoardAfterMove.Desc": "",
     "Settings.Inputs": "Input",
     "Settings.Inputs.Desc": "Personalizza le impostazioni di input",
     "Settings.Inputs.SpellCheck": "Correttore ortografico",
