@@ -212,7 +212,7 @@ pub fn decode_game(moves_bytes: &[u8], initial_fen: Fen) -> Result<DecodedGame, 
                 let pre_move_position = frame.chess.clone();
                 let m = decode_move(move_idx, &frame.chess)
                     .ok_or_else(|| invalid_data("Invalid move index for current position"))?;
-                let san = SanPlus::from_move_and_play_unchecked(&mut frame.chess, &m).to_string();
+                let san = SanPlus::from_move_and_play_unchecked(&mut frame.chess, m).to_string();
                 frame.pre_move_positions.push(pre_move_position);
                 frame.nodes.push(DecodedGameNode::Move(san));
             }
@@ -366,7 +366,7 @@ mod tests {
         let m2 = decode_move(byte, &chess).unwrap();
         assert_eq!(m, m2);
 
-        chess.play_unchecked(&m);
+        chess.play_unchecked(m);
 
         let m = Move::Normal {
             role: Role::Pawn,
@@ -421,7 +421,7 @@ mod tests {
         let mut chess = Chess::default();
         let m = decode_move(12, &chess).unwrap();
         bytes.push(encode_move(&m, &chess).unwrap());
-        chess.play_unchecked(&m);
+        chess.play_unchecked(m);
 
         encode_nag("!", &mut bytes);
         bytes.push(VARIATION_START_MARKER);
@@ -429,7 +429,7 @@ mod tests {
         let mut variation = Chess::default();
         let v = decode_move(12, &variation).unwrap();
         bytes.push(encode_move(&v, &variation).unwrap());
-        variation.play_unchecked(&v);
+        variation.play_unchecked(v);
         encode_nag("$2", &mut bytes);
         bytes.push(VARIATION_END_MARKER);
 
@@ -454,7 +454,7 @@ mod tests {
             promotion: None,
         };
         bytes.push(encode_move(&first, &chess).unwrap());
-        chess.play_unchecked(&first);
+        chess.play_unchecked(first);
 
         let second = Move::Normal {
             role: Role::Pawn,
@@ -464,7 +464,7 @@ mod tests {
             promotion: None,
         };
         bytes.push(encode_move(&second, &chess).unwrap());
-        chess.play_unchecked(&second);
+        chess.play_unchecked(second);
 
         let third = Move::Normal {
             role: Role::Knight,
@@ -474,7 +474,7 @@ mod tests {
             promotion: None,
         };
         bytes.push(encode_move(&third, &chess).unwrap());
-        chess.play_unchecked(&third);
+        chess.play_unchecked(third);
 
         let fourth = Move::Normal {
             role: Role::Knight,
@@ -502,7 +502,7 @@ mod tests {
             promotion: None,
         };
         bytes.push(encode_move(&white_move, &chess).unwrap());
-        chess.play_unchecked(&white_move);
+        chess.play_unchecked(white_move);
 
         encode_comment("mainline", &mut bytes);
 
@@ -549,7 +549,7 @@ mod tests {
         let branch_root = root.clone();
         let m_e4 = decode_move(12, &root).unwrap();
         bytes.push(encode_move(&m_e4, &root).unwrap());
-        root.play_unchecked(&m_e4);
+        root.play_unchecked(m_e4);
 
         encode_comment("hello", &mut bytes);
 
@@ -558,7 +558,7 @@ mod tests {
         let var_branch_root = var.clone();
         let m_var_first = decode_move(12, &var).unwrap();
         bytes.push(encode_move(&m_var_first, &var).unwrap());
-        var.play_unchecked(&m_var_first);
+        var.play_unchecked(m_var_first);
 
         bytes.push(VARIATION_START_MARKER);
         let m_var_nested = decode_move(0, &var_branch_root).unwrap();

@@ -44,7 +44,11 @@ import { enginesAtom } from "@/state/atoms";
 import {
   type Engine,
   engineSchema,
+  isUciEngine,
+  MAIA_ELO_MAX,
+  MAIA_ELO_MIN,
   type LocalEngine,
+  type LocalMaiaEngine,
   requiredEngineSettings,
 } from "@/utils/engines";
 import { unwrap } from "@/utils/unwrap";
@@ -55,7 +59,6 @@ import LocalImage from "../common/LocalImage";
 import OpenFolderButton from "../common/OpenFolderButton";
 import LinesSlider from "../panels/analysis/LinesSlider";
 import AddEngine from "./AddEngine";
-
 export default function EnginesPage() {
   const { t } = useTranslation();
 
@@ -186,7 +189,7 @@ export default function EnginesPage() {
           </Paper>
         ) : (
           <Paper withBorder style={{ borderWidth: 2 }} p="md" h="100%">
-            {selectedEngine.type === "local" ? (
+            {selectedEngine.type === "local" && selectedEngine.runtime === "uci" ? (
               <EngineSettings selected={selected} setSelected={setSelected} />
             ) : (
               <Stack>
@@ -205,30 +208,77 @@ export default function EnginesPage() {
                   }}
                 />
 
+                {selectedEngine.type === "local" && selectedEngine.runtime === "maia" && (
+                  <>
+                    <NumberInput
+                      w="50%"
+                      label={t("Engines.Settings.DefaultMaiaElo")}
+                      value={selectedEngine.elo || 1500}
+                      min={MAIA_ELO_MIN}
+                      max={MAIA_ELO_MAX}
+                      onChange={(value) => {
+                        setEngines(async (prev) => {
+                          const copy = [...(await prev)];
+                          const nextElo =
+                            typeof value === "number"
+                              ? Math.max(MAIA_ELO_MIN, Math.min(MAIA_ELO_MAX, value))
+                              : 1500;
+                          (copy[selected] as LocalEngine).elo = nextElo;
+                          return copy;
+                        });
+                      }}
+                    />
+                    <Checkbox
+                      w="50%"
+                      mt="sm"
+                      label={t("Engines.Settings.ShowInDatabase")}
+                      checked={selectedEngine.showInDatabase !== false}
+                      onChange={(event) => {
+                        setEngines(async (prev) => {
+                          const copy = [...(await prev)];
+                          (copy[selected] as LocalMaiaEngine).showInDatabase =
+                            event.currentTarget.checked;
+                          return copy;
+                        });
+                      }}
+                    />
+                  </>
+                )}
+
                 <Divider variant="dashed" label={t("Engines.Settings.AdvancedSettings")} />
                 <Stack w="50%">
                   <Text fw="bold">{t("Engines.Settings.NumOfLines")}</Text>
                   <LinesSlider
                     value={
                       Number(
-                        selectedEngine.settings?.find((setting) => setting.name === "MultiPV")
+                        selectedEngine.settings?.find((setting: { name: string }) => setting.name === "MultiPV")
                           ?.value,
                       ) || 1
                     }
                     setValue={(v) => {
                       setEngines(async (prev) => {
                         const copy = [...(await prev)];
-                        const setting = copy[selected].settings?.find(
-                          (setting) => setting.name === "MultiPV",
+                        const engine = copy[selected];
+                        const settings = (engine.settings ?? []) as { name: string; value: string | number | boolean | null }[];
+                        const settingIndex = settings.findIndex(
+                          (setting: { name: string }) => setting.name === "MultiPV",
                         );
-                        if (setting) {
-                          setting.value = v;
-                        } else {
-                          copy[selected].settings?.push({
-                            name: "MultiPV",
-                            value: v,
-                          });
-                        }
+                        const nextSettings =
+                          settingIndex >= 0
+                            ? settings.map((setting: { name: string; value: string | number | boolean | null }, index: number) =>
+                                index === settingIndex ? { ...setting, value: v } : setting,
+                              )
+                            : [
+                                ...settings,
+                                {
+                                  name: "MultiPV",
+                                  value: v,
+                                },
+                              ];
+                        copy[selected] = {
+                          ...engine,
+                          settings: nextSettings,
+                        };
                         return copy;
                       });
                     }}
@@ -304,7 +354,6 @@ function EngineSettings({
       }
     }
   }, [options]);
-
   const completeOptions =
     options?.options
       .filter((option) => option.type !== "button")
@@ -341,7 +390,7 @@ function EngineSettings({
     } else {
       newSettings.push({ name, value });
     }
-    if (value !== def || requiredEngineSettings.includes(name)) {
+    if (value !== def) {
       setEngine({
         ...engine,
         settings: newSettings,
@@ -420,11 +469,12 @@ function EngineSettings({
             )}
           </Center>
         </Group>
-        <Divider variant="dashed" label={t("Engines.Settings.SearchSettings")} />
-        <GoModeInput
-          goMode={engine.go || null}
-          setGoMode={(v) => setEngine({ ...engine, go: v })}
-        />
+        {isUciEngine(engine) && (
+          <>
+            <Divider variant="dashed" label={t("Engines.Settings.SearchSettings")} />
+            <GoModeInput goMode={engine.go ?? null} setGoMode={(v) => setEngine({ ...engine, go: v })} />
+          </>
+        )}
 
         <Divider variant="dashed" label={t("Engines.Settings.AdvancedSettings")} />
         <SimpleGrid cols={2}>

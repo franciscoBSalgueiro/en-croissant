@@ -5,9 +5,10 @@ import { z } from "zod";
 import { type BestMoves, commands, type EngineOptions, type GoMode } from "@/bindings";
 import { unwrap } from "./unwrap";
 
-export const requiredEngineSettings = ["MultiPV", "Threads", "Hash"];
+export const MAIA_ELO_MIN = 600;
+export const MAIA_ELO_MAX = 2600;
 
-const goModeSchema: z.ZodSchema<GoMode> = z.union([
+const goModeSchema: z.ZodType<GoMode> = z.union([
     z.object({
         t: z.literal("Depth"),
         c: z.number(),
@@ -24,6 +25,7 @@ const goModeSchema: z.ZodSchema<GoMode> = z.union([
         t: z.literal("Infinite"),
     }),
 ]);
+export const requiredEngineSettings = ["MultiPV", "Threads", "Hash"];
 
 const engineSettingsSchema = z.array(
     z.object({
@@ -34,7 +36,7 @@ const engineSettingsSchema = z.array(
 
 export type EngineSettings = z.infer<typeof engineSettingsSchema>;
 
-const localEngineSchema = z.object({
+const localEngineBaseSchema = z.object({
     type: z.literal("local"),
     id: z.string().default(() => crypto.randomUUID()),
     name: z.string(),
@@ -45,11 +47,31 @@ const localEngineSchema = z.object({
     downloadSize: z.number().nullish(),
     downloadLink: z.string().nullish(),
     loaded: z.boolean().nullish(),
-    go: goModeSchema.nullish(),
     enabled: z.boolean().nullish(),
     settings: engineSettingsSchema.nullish(),
 });
 
+const localUciEngineSchema = z.object({
+    ...localEngineBaseSchema.shape,
+    runtime: z.literal("uci"),
+    go: goModeSchema.optional(),
+});
+export type LocalUciEngine = z.output<typeof localUciEngineSchema>;
+const localMaiaEngineSchema = z.object({
+    ...localEngineBaseSchema.shape,
+    runtime: z.literal("maia"),
+    elo: z.number().min(MAIA_ELO_MIN).max(MAIA_ELO_MAX).nullish(),
+    showInDatabase: z.boolean().nullish(),
+    // maia does not support time control. Put empty field here to make accessing localEngine's goMode when needed easier.
+    // Also in case future ONNX models supports time control
+    go: z.undefined(),
+});
+export type LocalMaiaEngine = z.output<typeof localMaiaEngineSchema>;
+
+const localEngineSchema = z.discriminatedUnion("runtime", [
+    localUciEngineSchema,
+    localMaiaEngineSchema,
+]);
 export type LocalEngine = z.output<typeof localEngineSchema>;
 
 const remoteEngineSchema = z.object({
@@ -60,13 +82,25 @@ const remoteEngineSchema = z.object({
     image: z.string().nullish(),
     loaded: z.boolean().nullish(),
     enabled: z.boolean().nullish(),
-    go: goModeSchema.nullish(),
+    go: goModeSchema.optional(),
     settings: engineSettingsSchema.nullish(),
 });
 
 export type RemoteEngine = z.output<typeof remoteEngineSchema>;
 
-export const engineSchema = z.union([localEngineSchema, remoteEngineSchema]);
+const rawEngineSchema = z.union([localUciEngineSchema, localMaiaEngineSchema, remoteEngineSchema]);
+export const engineSchema = z.preprocess((val) => {
+    if (!val || typeof val !== "object" || Array.isArray(val)) {
+        return val;
+    }
+    const processed = { ...val } as Record<string, any>;
+    // Migration logic: default to 'uci' for old local engine missing 'runtime'
+    if (processed.type === "local" && !("runtime" in processed)) {
+        processed.runtime = "uci";
+    }
+
+    return processed;
+}, rawEngineSchema);
 export type Engine = z.output<typeof engineSchema>;
 
 export function stopEngine(engine: LocalEngine, tab: string): Promise<void> {
@@ -87,8 +121,24 @@ export function getBestMoves(
     goMode: GoMode,
     options: EngineOptions,
 ): Promise<[number, BestMoves[]] | null> {
+    if (isUciEngine(engine)) {
+        return commands
+            .getBestMoves(engine.id, engine.path, tab, goMode, options)
+            .then((r) => unwrap(r));
+    }
+    const multipvSetting = options.extraOptions.find((o) => o.name === "MultiPV")?.value;
+    const parsedMultipv = Number.parseInt(multipvSetting ?? "1", 10);
+    const multipv = Number.isFinite(parsedMultipv) ? Math.max(1, parsedMultipv) : 1;
     return commands
-        .getBestMoves(engine.id, engine.path, tab, goMode, options)
+        .maiaBestMoves(
+            engine.id,
+            engine.path,
+            tab,
+            options.fen,
+            options.moves,
+            Math.max(MAIA_ELO_MIN, Math.min(MAIA_ELO_MAX, engine.elo ?? 1500)),
+            multipv,
+        )
         .then((r) => unwrap(r));
 }
 
@@ -110,4 +160,14 @@ export function useDefaultEngines(os: Platform | undefined, opened: boolean) {
         error,
         isLoading,
     };
+}
+export function isLocalEngine(engine: Engine): engine is LocalEngine {
+    return engine.type === "local";
+}
+export function isUciEngine(engine: LocalEngine): engine is LocalUciEngine {
+    return engine.runtime === "uci";
+}
+
+export function isMaiaEngine(engine: LocalEngine): engine is LocalMaiaEngine {
+    return engine.runtime === "maia";
 }

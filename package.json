@@ -1,6 +1,6 @@
 {
   "name": "en-croissant",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -103,6 +103,7 @@
     "oxfmt": "^0.40.0",
     "oxlint": "^1.55.0",
     "oxlint-tsgolint": "^0.16.0",
+    "typescript": "^6.0.2",
     "typescript-plugin-css-modules": "^5.2.0",
     "vitest": "^4.1.0"
   }

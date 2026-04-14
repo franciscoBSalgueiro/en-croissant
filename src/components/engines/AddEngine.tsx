@@ -53,6 +53,7 @@ function AddEngine({
   const form = useForm<LocalEngine>({
     initialValues: {
       type: "local",
+      runtime: "uci",
       id: crypto.randomUUID(),
       version: "",
       name: "",
@@ -134,7 +135,7 @@ function AddEngine({
             submitLabel={t("Common.Add")}
             form={form}
             onSubmit={(values: LocalEngine) => {
-              setEngines(async (prev) => [...(await prev), values]);
+              setEngines([...(allEngines ?? []), values]);
               setOpened(false);
             }}
           />
@@ -166,8 +167,8 @@ function CloudCard({ engine }: { engine: RemoteEngine }) {
             fullWidth
             size="xs"
             onClick={() => {
-              setEngines(async (prev) => [
-                ...(await prev),
+              setEngines([
+                ...(engines ?? []),
                 {
                   ...engine,
                   id: crypto.randomUUID(),
@@ -203,7 +204,7 @@ function EngineCard({
   const { t } = useTranslation();
 
   const [inProgress, setInProgress] = useState<boolean>(false);
-  const [, setEngines] = useAtom(enginesAtom);
+  const [allEngines, setEngines] = useAtom(enginesAtom);
   const downloadEngine = useCallback(
     async (id: number, url: string) => {
       setInProgress(true);
@@ -220,12 +221,13 @@ function EngineCard({
       const enginePath = await join(enginesDirPath, ...engine.path.split("/"));
       await commands.setFileAsExecutable(enginePath);
       const config = unwrap(await commands.getEngineConfig(enginePath));
-      setEngines(async (prev) => [
-        ...(await prev),
+      setEngines([
+        ...(allEngines ?? []),
         {
           ...engine,
           id: crypto.randomUUID(),
           type: "local",
+          runtime: "uci" as const,
           path: enginePath,
           loaded: true,
           settings: config.options
@@ -238,7 +240,7 @@ function EngineCard({
         },
       ]);
     },
-    [engine, setEngines],
+    [engine, allEngines, setEngines],
   );
 
   return (

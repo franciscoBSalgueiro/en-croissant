@@ -187,7 +187,7 @@ fn get_move_after_match(
         let Some(next_move) = decode_move(next_byte, &chess) else {
             return Ok(None);
         };
-        let san = SanPlus::from_move(chess, &next_move);
+        let san = SanPlus::from_move(chess, next_move);
         return Ok(Some(san.to_string()));
     }
 
@@ -197,7 +197,7 @@ fn get_move_after_match(
         let Some(m) = decode_move(byte, &chess) else {
             return Ok(None);
         };
-        chess.play_unchecked(&m);
+        chess.play_unchecked(m);
 
         let is_irreversible =
             m.is_capture() || m.role() == shakmaty::Role::Pawn || m.is_promotion();
@@ -218,7 +218,7 @@ fn get_move_after_match(
             let Some(next_move) = decode_move(next_byte, &chess) else {
                 return Ok(None);
             };
-            let san = SanPlus::from_move(chess, &next_move);
+            let san = SanPlus::from_move(chess, next_move);
             return Ok(Some(san.to_string()));
         }
     }
