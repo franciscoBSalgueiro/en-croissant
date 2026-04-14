@@ -539,6 +539,8 @@
     "Settings.Directories.Puzzles.Desc": "",
     "Settings.EraseDrawablesOnClick": "Erase Drawables On Click",
     "Settings.EraseDrawablesOnClick.Desc": "Clear the board of drawn arrows & circles by left-clicking the mouse",
+    "Settings.FlipBoardAfterMove": "",
+    "Settings.FlipBoardAfterMove.Desc": "",
     "Settings.Inputs": "Inputs",
     "Settings.Inputs.Desc": "Customise the input settings",
     "Settings.Inputs.SpellCheck": "Spell Check",
