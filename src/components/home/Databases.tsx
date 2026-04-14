@@ -95,7 +95,7 @@ function Databases() {
       const results = await Promise.allSettled(
         databases
           .filter((db) => playerDbs.includes((db.type === "success" && db.title) || ""))
-          .map(async (db, i) => {
+          .map(async (db, _i) => {
             const players = await query_players(db.file, {
               name: db.username,
               options: {

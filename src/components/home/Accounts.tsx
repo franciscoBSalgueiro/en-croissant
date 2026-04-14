@@ -107,6 +107,7 @@ function Accounts() {
     }
 
     listen_for_code();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setSessions]);
 
   return (

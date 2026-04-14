@@ -251,22 +251,32 @@ export default function EnginesPage() {
                   <LinesSlider
                     value={
                       Number(
-                        selectedEngine.settings?.find((setting: { name: string }) => setting.name === "MultiPV")
-                          ?.value,
+                        selectedEngine.settings?.find(
+                          (setting: { name: string }) => setting.name === "MultiPV",
+                        )?.value,
                       ) || 1
                     }
                     setValue={(v) => {
                       setEngines(async (prev) => {
                         const copy = [...(await prev)];
                         const engine = copy[selected];
-                        const settings = (engine.settings ?? []) as { name: string; value: string | number | boolean | null }[];
+                        const settings = (engine.settings ?? []) as {
+                          name: string;
+                          value: string | number | boolean | null;
+                        }[];
                         const settingIndex = settings.findIndex(
                           (setting: { name: string }) => setting.name === "MultiPV",
                         );
                         const nextSettings =
                           settingIndex >= 0
-                            ? settings.map((setting: { name: string; value: string | number | boolean | null }, index: number) =>
-                                index === settingIndex ? { ...setting, value: v } : setting,
+                            ? settings.map(
+                                (
+                                  setting: {
+                                    name: string;
+                                    value: string | number | boolean | null;
+                                  },
+                                  index: number,
+                                ) => (index === settingIndex ? { ...setting, value: v } : setting),
                               )
                             : [
                                 ...settings,
@@ -353,6 +363,7 @@ function EngineSettings({
         setEngine({ ...engine, settings });
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options]);
   const completeOptions =
     options?.options
@@ -472,7 +483,10 @@ function EngineSettings({
         {isUciEngine(engine) && (
           <>
             <Divider variant="dashed" label={t("Engines.Settings.SearchSettings")} />
-            <GoModeInput goMode={engine.go ?? null} setGoMode={(v) => setEngine({ ...engine, go: v })} />
+            <GoModeInput
+              goMode={engine.go ?? null}
+              setGoMode={(v) => setEngine({ ...engine, go: v })}
+            />
           </>
         )}
 

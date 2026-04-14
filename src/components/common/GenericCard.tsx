@@ -1,4 +1,4 @@
-import { Box, Divider, Stack, Text } from "@mantine/core";
+import { Box, Stack, Text } from "@mantine/core";
 import cx from "clsx";
 import type { ReactNode } from "react";
 import classes from "./GenericCard.module.css";

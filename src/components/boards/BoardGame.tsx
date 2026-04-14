@@ -395,7 +395,7 @@ function BoardGame() {
       if (!gameId || gameState !== "playing") return;
 
       try {
-        const result = await commands.makeGameMove(gameId, uci);
+        await commands.makeGameMove(gameId, uci);
       } catch (err) {
         console.error("Failed to make move:", err);
       }
@@ -439,7 +439,7 @@ function BoardGame() {
 
   const onTakeBack = useCallback(async () => {
     if (!gameId || gameState !== "playing") return;
-    const result = await commands.takeBackGameMove(gameId);
+    await commands.takeBackGameMove(gameId);
   }, [gameId, gameState]);
 
   useEffect(() => {

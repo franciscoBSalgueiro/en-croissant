@@ -61,7 +61,7 @@ function EvalChart(props: EvalChartProps) {
       return 2 / (1 + Math.exp(-0.004 * cp)) - 1;
     }
     if (node.children.length === 0) {
-      const [pos, error] = positionFromFen(node.fen);
+      const [pos, _error] = positionFromFen(node.fen);
       if (pos) {
         if (pos.isCheckmate()) {
           return pos?.turn === "white" ? -1 : 1;
@@ -86,7 +86,7 @@ function EvalChart(props: EvalChartProps) {
       }
     }
     if (node.children.length === 0) {
-      const [pos, error] = positionFromFen(node.fen);
+      const [pos, _error] = positionFromFen(node.fen);
       if (pos) {
         if (pos.isCheckmate()) return t("Common.Checkmate");
         if (pos.isStalemate()) return t("Common.Stalemate");
@@ -137,15 +137,16 @@ function EvalChart(props: EvalChartProps) {
     return dataMax / (dataMax - dataMin);
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const data = useMemo(() => [...getData()], [root]);
+  const nodes = getNodes();
+
   const onChartClick: CategoricalChartFunc = (e) => {
     const match = data.find((d) => d.name === e.activeLabel);
     if (match) {
       goToMove(match.movePath);
     }
   };
-
-  const data = [...getData()];
-  const nodes = getNodes();
 
   const phases = useMemo(() => {
     const validBoards = nodes.map((n) => positionFromFen(n.node.fen)[0]).filter((b) => b !== null);

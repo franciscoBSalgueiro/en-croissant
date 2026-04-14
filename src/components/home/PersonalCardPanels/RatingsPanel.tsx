@@ -125,7 +125,7 @@ function RatingsPanel({
       },
       ratingData,
     ];
-  }, [info.site_stats_data, website, account, timeControl, timeRange]);
+  }, [info.site_stats_data, website, account, timeControl, timeRange, dates]);
 
   const playerEloDomain =
     ratingData.length === 0
