@@ -212,7 +212,7 @@ pub fn decode_game(moves_bytes: &[u8], initial_fen: Fen) -> Result<DecodedGame, 
                 let pre_move_position = frame.chess.clone();
                 let m = decode_move(move_idx, &frame.chess)
                     .ok_or_else(|| invalid_data("Invalid move index for current position"))?;
-                let san = SanPlus::from_move_and_play_unchecked(&mut frame.chess, &m).to_string();
+                let san = SanPlus::from_move_and_play_unchecked(&mut frame.chess, m).to_string();
                 frame.pre_move_positions.push(pre_move_position);
                 frame.nodes.push(DecodedGameNode::Move(san));
             }
