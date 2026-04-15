@@ -344,9 +344,9 @@ function EngineTop({
   const nps = isComputed ? formatNodes(engineVariations[0].nps) : 0;
 
   return (
-    <Group justify="space-between">
-      <Group align="center">
-        <Text fw="bold" fz="lg">
+    <Group justify="space-between" wrap="nowrap">
+      <Group align="center" wrap="nowrap">
+        <Text fw="bold" fz="lg" lineClamp={1}>
           {name}
         </Text>
         {enabled && !isGameOver && !error && !engineVariations && (
@@ -362,7 +362,7 @@ function EngineTop({
             </Tooltip>
           )}
       </Group>
-      <Group gap="lg">
+      <Group gap="lg" wrap="nowrap">
         {!isGameOver && engineVariations && engineVariations.length > 0 && (
           <>
             <Stack align="center" gap={0}>
