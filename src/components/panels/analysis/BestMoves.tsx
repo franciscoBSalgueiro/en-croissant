@@ -340,6 +340,7 @@ function EngineTop({
   const { t } = useTranslation();
   const isComputed = engineVariations && engineVariations.length > 0;
   const depth = isComputed ? engineVariations[0].depth : 0;
+  const nodes = isComputed ? formatNodes(engineVariations[0].nodes) : 0;
   const nps = isComputed ? formatNodes(engineVariations[0].nps) : 0;
 
   return (
@@ -378,6 +379,14 @@ function EngineTop({
               </Text>
               <Text fw="bold" fz="md">
                 {depth}
+              </Text>
+            </Stack>
+            <Stack align="center" gap={0}>
+              <Text size="0.7rem" tt="uppercase" fw={700} className={classes.subtitle}>
+                Nodes
+              </Text>
+              <Text fw="bold" fz="md">
+                {nodes}
               </Text>
             </Stack>
           </>
