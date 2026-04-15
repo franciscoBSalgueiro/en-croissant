@@ -444,15 +444,11 @@ function EngineSettings({
             )}
           </Center>
         </Group>
-        {isUciEngine(engine) && (
-          <>
-            <Divider variant="dashed" label={t("Engines.Settings.SearchSettings")} />
-            <GoModeInput
-              goMode={engine.go ?? null}
-              setGoMode={(v) => setEngine({ ...engine, go: v })}
-            />
-          </>
-        )}
+        <Divider variant="dashed" label={t("Engines.Settings.SearchSettings")} />
+        <GoModeInput
+          goMode={engine.go ?? null}
+          setGoMode={(v) => setEngine({ ...engine, go: v })}
+        />
 
         <Divider variant="dashed" label={t("Engines.Settings.AdvancedSettings")} />
         <SimpleGrid cols={2}>

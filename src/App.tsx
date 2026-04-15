@@ -129,7 +129,7 @@ const checkForUpdates = async () => {
       }
     }
   } catch (e) {
-    error(`Failed to check for updates: ${e}`);
+    console.error(`Failed to check for updates: ${e}`);
   }
 };
 
