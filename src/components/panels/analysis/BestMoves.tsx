@@ -340,12 +340,13 @@ function EngineTop({
   const { t } = useTranslation();
   const isComputed = engineVariations && engineVariations.length > 0;
   const depth = isComputed ? engineVariations[0].depth : 0;
+  const nodes = isComputed ? formatNodes(engineVariations[0].nodes) : 0;
   const nps = isComputed ? formatNodes(engineVariations[0].nps) : 0;
 
   return (
-    <Group justify="space-between">
-      <Group align="center">
-        <Text fw="bold" fz="lg">
+    <Group justify="space-between" wrap="nowrap">
+      <Group align="center" wrap="nowrap">
+        <Text fw="bold" fz="lg" lineClamp={1}>
           {name}
         </Text>
         {enabled && !isGameOver && !error && !engineVariations && (
@@ -361,7 +362,7 @@ function EngineTop({
             </Tooltip>
           )}
       </Group>
-      <Group gap="lg">
+      <Group gap="lg" wrap="nowrap">
         {!isGameOver && engineVariations && engineVariations.length > 0 && (
           <>
             <Stack align="center" gap={0}>
@@ -378,6 +379,14 @@ function EngineTop({
               </Text>
               <Text fw="bold" fz="md">
                 {depth}
+              </Text>
+            </Stack>
+            <Stack align="center" gap={0}>
+              <Text size="0.7rem" tt="uppercase" fw={700} className={classes.subtitle}>
+                Nodes
+              </Text>
+              <Text fw="bold" fz="md">
+                {nodes}
               </Text>
             </Stack>
           </>
