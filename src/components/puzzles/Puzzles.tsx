@@ -6,6 +6,7 @@ import {
   Button,
   Divider,
   Group,
+  Modal,
   Paper,
   Portal,
   RangeSlider,
@@ -17,9 +18,9 @@ import {
   Text,
   Tooltip,
 } from "@mantine/core";
-import { useSessionStorage } from "@mantine/hooks";
 import {
   IconAlertTriangle,
+  IconBookmarks,
   IconFlame,
   IconPlus,
   IconSettings,
@@ -30,18 +31,19 @@ import {
 import { isNormal, makeSquare, makeUci, parseUci } from "chessops";
 import { parseFen } from "chessops/fen";
 import { useAtom, useSetAtom } from "jotai";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
-import { commands, type PuzzleDatabaseInfo } from "@/bindings";
+import { commands, type PuzzleDatabaseInfo, type SavedPuzzleSession } from "@/bindings";
 import {
   activeTabAtom,
-  currentPuzzleAtom,
   currentPuzzleTimerAtom,
   hidePuzzleRatingAtom,
   jumpToNextPuzzleAtom,
   progressivePuzzlesAtom,
   puzzleRatingRangeAtom,
+  puzzleSessionIndexAtom,
+  puzzleSessionListAtom,
   puzzleThemeAtom,
   selectedPuzzleDbAtom,
   tabsAtom,
@@ -49,7 +51,13 @@ import {
 } from "@/state/atoms";
 import { positionFromFen } from "@/utils/chessops";
 import { formatThemeLabel, formatTime } from "@/utils/format";
-import { type Completion, getPuzzleDatabases, type Puzzle } from "@/utils/puzzles";
+import {
+  type Completion,
+  fromSessionPuzzle,
+  getPuzzleDatabases,
+  type Puzzle,
+  toSessionPuzzle,
+} from "@/utils/puzzles";
 import { createTab } from "@/utils/tabs";
 import { defaultTree } from "@/utils/treeReducer";
 import { unwrap } from "@/utils/unwrap";
@@ -60,6 +68,7 @@ import MoveControls from "../common/MoveControls";
 import { TreeStateContext } from "../common/TreeStateContext";
 import AddPuzzle from "./AddPuzzle";
 import PuzzleBoard from "./PuzzleBoard";
+import PuzzleSessionsModal from "./PuzzleSessionsModal";
 
 function Puzzles({ id }: { id: string }) {
   const { t } = useTranslation();
@@ -70,11 +79,8 @@ function Puzzles({ id }: { id: string }) {
   const makeMove = useStore(store, (s) => s.makeMove);
   const setShapes = useStore(store, (s) => s.setShapes);
   const currentMove = useStore(store, (s) => s.currentNode().move);
-  const [puzzles, setPuzzles] = useSessionStorage<Puzzle[]>({
-    key: `${id}-puzzles`,
-    defaultValue: [],
-  });
-  const [currentPuzzle, setCurrentPuzzle] = useAtom(currentPuzzleAtom);
+  const [puzzles, setPuzzles] = useAtom(puzzleSessionListAtom);
+  const [currentPuzzle, setCurrentPuzzle] = useAtom(puzzleSessionIndexAtom);
 
   const [puzzleDbs, setPuzzleDbs] = useState<PuzzleDatabaseInfo[]>([]);
   const [selectedDb, setSelectedDb] = useAtom(selectedPuzzleDbAtom);
@@ -138,10 +144,27 @@ function Puzzles({ id }: { id: string }) {
       ? wonPuzzles.reduce((acc, p) => acc + (p.timeSpent || 0), 0) / wonPuzzles.length / 1000
       : 0;
 
-  function setPuzzle(puzzle: { fen: string; moves: string[] }) {
-    setFen(puzzle.fen);
-    makeMove({ payload: parseUci(puzzle.moves[0])! });
-  }
+  const [isPlayingSolution, setIsPlayingSolution] = useState(false);
+  const [progressive, setProgressive] = useAtom(progressivePuzzlesAtom);
+  const [trackTime, setTrackTime] = useAtom(trackPuzzleTimeAtom);
+  const [timerStart, setTimerStart] = useAtom(currentPuzzleTimerAtom);
+
+  const setPuzzle = useCallback(
+    (puzzle: { fen: string; moves: string[] }) => {
+      setFen(puzzle.fen);
+      makeMove({ payload: parseUci(puzzle.moves[0])! });
+    },
+    [setFen, makeMove],
+  );
+
+  // Board always starts empty; sessions are loaded only via explicit user choice in the prompt
+  useEffect(() => {
+    setPuzzles([]);
+    setCurrentPuzzle(0);
+    reset();
+    setTimerStart(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const solutionAbortRef = useRef<AbortController | null>(null);
 
@@ -213,13 +236,94 @@ function Puzzles({ id }: { id: string }) {
 
   const [addOpened, setAddOpened] = useState(false);
   const [deleteModalOpened, setDeleteModalOpened] = useState(false);
-  const [isPlayingSolution, setIsPlayingSolution] = useState(false);
-
-  const [progressive, setProgressive] = useAtom(progressivePuzzlesAtom);
+  const [sessionsOpened, setSessionsOpened] = useState(false);
   const [hideRating, setHideRating] = useAtom(hidePuzzleRatingAtom);
-  const [trackTime, setTrackTime] = useAtom(trackPuzzleTimeAtom);
+  const [savedSessions, setSavedSessions] = useState<SavedPuzzleSession[]>([]);
+  const [resumePromptOpened, setResumePromptOpened] = useState(false);
+  // Blocks the timer-start effect until we know whether the prompt will be shown
+  const [sessionsChecked, setSessionsChecked] = useState(false);
 
-  const [timerStart, setTimerStart] = useAtom(currentPuzzleTimerAtom);
+  // Load saved sessions from the backend on mount; prompt once per app launch if any exist
+  useEffect(() => {
+    commands.getPuzzleSessions().then((res) => {
+      if (res.status === "ok") {
+        setSavedSessions(res.data);
+        if (res.data.length > 0 && !sessionStorage.getItem("puzzle-resume-prompted")) {
+          sessionStorage.setItem("puzzle-resume-prompted", "1");
+          setResumePromptOpened(true);
+        }
+      }
+      setSessionsChecked(true);
+    });
+  }, []);
+
+  function persistSessions(updated: SavedPuzzleSession[]) {
+    setSavedSessions(updated);
+    commands.setPuzzleSessions(updated);
+  }
+
+  function saveSession() {
+    const name = new Date().toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const newSession: SavedPuzzleSession = {
+      id: crypto.randomUUID(),
+      name,
+      savedAt: Date.now(),
+      puzzles: puzzles.map(toSessionPuzzle),
+      currentPuzzle,
+      dbPath: selectedDb,
+    };
+    persistSessions([newSession, ...savedSessions]);
+  }
+
+  function resumeSession(session: SavedPuzzleSession) {
+    solutionAbortRef.current?.abort();
+    setIsPlayingSolution(false);
+    const puzzleList = session.puzzles.map(fromSessionPuzzle);
+    setPuzzles(puzzleList);
+    setCurrentPuzzle(session.currentPuzzle);
+    const puzzle = puzzleList[session.currentPuzzle];
+    if (puzzle) {
+      setPuzzle(puzzle);
+      if (trackTime && puzzle.completion === "incomplete") {
+        setTimerStart(Date.now() - (puzzle.timeSpent || 0));
+      } else {
+        setTimerStart(null);
+      }
+    }
+    if (session.dbPath) {
+      setSelectedDb(session.dbPath);
+    }
+    setSessionsOpened(false);
+  }
+
+  function renameSession(sessionId: string, newName: string) {
+    persistSessions(savedSessions.map((s) => (s.id === sessionId ? { ...s, name: newName } : s)));
+  }
+
+  function overwriteSession(sessionId: string) {
+    persistSessions(
+      savedSessions.map((s) =>
+        s.id === sessionId
+          ? {
+              ...s,
+              savedAt: Date.now(),
+              puzzles: puzzles.map(toSessionPuzzle),
+              currentPuzzle,
+              dbPath: selectedDb,
+            }
+          : s,
+      ),
+    );
+  }
+
+  function deleteSession(sessionId: string) {
+    persistSessions(savedSessions.filter((s) => s.id !== sessionId));
+  }
   const [, setTick] = useState(0);
   const isPuzzleIncomplete = puzzles[currentPuzzle]?.completion === "incomplete";
   const elapsedTime =
@@ -228,10 +332,25 @@ function Puzzles({ id }: { id: string }) {
       : puzzles[currentPuzzle]?.timeSpent || 0;
 
   useEffect(() => {
-    if (trackTime && isPuzzleIncomplete && timerStart === null) {
-      setTimerStart(Date.now());
-    }
-  }, [trackTime, isPuzzleIncomplete, timerStart, setTimerStart]);
+    if (
+      !sessionsChecked ||
+      !trackTime ||
+      !isPuzzleIncomplete ||
+      timerStart !== null ||
+      resumePromptOpened
+    )
+      return;
+    setTimerStart(Date.now() - (puzzles[currentPuzzle]?.timeSpent || 0));
+  }, [
+    sessionsChecked,
+    trackTime,
+    isPuzzleIncomplete,
+    timerStart,
+    setTimerStart,
+    resumePromptOpened,
+    puzzles,
+    currentPuzzle,
+  ]);
 
   useEffect(() => {
     if (!trackTime || !isPuzzleIncomplete || timerStart === null) return;
@@ -290,8 +409,82 @@ function Puzzles({ id }: { id: string }) {
     return nextMove;
   };
 
+  function sessionStats(session: SavedPuzzleSession): string {
+    const total = session.puzzles.length;
+    if (total === 0) return "No puzzles";
+    const correct = session.puzzles.filter((p) => p.completion === "correct").length;
+    const completed = session.puzzles.filter((p) => p.completion !== "incomplete").length;
+    const accuracy = completed > 0 ? Math.round((correct / completed) * 100) : null;
+    const parts: string[] = [`${total} puzzle${total !== 1 ? "s" : ""}`];
+    if (accuracy !== null) parts.push(`${accuracy}% accuracy`);
+    const incomplete = session.puzzles.filter((p) => p.completion === "incomplete").length;
+    if (incomplete > 0) parts.push(`${incomplete} remaining`);
+    return parts.join(" · ");
+  }
+
+  const sortedSavedSessions = [...savedSessions].sort((a, b) => b.savedAt - a.savedAt);
+
   return (
     <>
+      <Modal
+        opened={resumePromptOpened}
+        onClose={() => setResumePromptOpened(false)}
+        title={t("Puzzle.ResumeASession", "Resume a session?")}
+        size="lg"
+        centered
+      >
+        <Stack gap="sm">
+          <ScrollArea.Autosize mah={420} scrollbars="y" type="never">
+            <Stack gap="xs">
+              {sortedSavedSessions.map((session) => (
+                <Paper key={session.id} withBorder p="sm" radius="sm">
+                  <Group justify="space-between" align="center" gap="md">
+                    <Stack gap={2} style={{ minWidth: 0, flex: 1 }}>
+                      <Text fw={500} size="sm" truncate>
+                        {session.name}
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        {new Date(session.savedAt).toLocaleString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </Text>
+                      <Text size="xs" c="dimmed" truncate>
+                        {sessionStats(session)}
+                      </Text>
+                      {session.dbPath && (
+                        <Text size="xs" c="dimmed" truncate>
+                          {session.dbPath.split(/[/\\]/).pop()?.replace(".db3", "")}
+                        </Text>
+                      )}
+                    </Stack>
+                    <Button
+                      size="sm"
+                      color="teal"
+                      variant="light"
+                      style={{ flexShrink: 0 }}
+                      onClick={() => {
+                        resumeSession(session);
+                        setResumePromptOpened(false);
+                      }}
+                    >
+                      {t("Puzzle.ResumeSession", "Resume")}
+                    </Button>
+                  </Group>
+                </Paper>
+              ))}
+            </Stack>
+          </ScrollArea.Autosize>
+          <Group justify="flex-end">
+            <Button variant="subtle" color="gray" onClick={() => setResumePromptOpened(false)}>
+              {t("Puzzle.NotNow", "Not now")}
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
       <Portal target="#left" style={{ height: "100%" }}>
         <PuzzleBoard
           key={currentPuzzle}
@@ -317,6 +510,19 @@ function Puzzles({ id }: { id: string }) {
             setOpened={setAddOpened}
             setPuzzleDbs={setPuzzleDbs}
           />
+          <PuzzleSessionsModal
+            opened={sessionsOpened}
+            onClose={() => setSessionsOpened(false)}
+            sessions={savedSessions}
+            currentPuzzles={puzzles}
+            currentIndex={currentPuzzle}
+            currentDb={selectedDb}
+            onSave={saveSession}
+            onResume={resumeSession}
+            onOverwrite={overwriteSession}
+            onRename={renameSession}
+            onDelete={deleteSession}
+          />
           <ConfirmModal
             title="Delete Puzzle Database"
             description="Are you sure you want to delete this puzzle database?"
@@ -328,6 +534,7 @@ function Puzzles({ id }: { id: string }) {
                 setPuzzleDbs((dbs) => dbs.filter((db) => db.path !== selectedDb));
                 setSelectedDb(null);
                 setPuzzles([]);
+                setCurrentPuzzle(0);
                 reset();
                 setTimerStart(null);
                 setIsPlayingSolution(false);
@@ -363,6 +570,15 @@ function Puzzles({ id }: { id: string }) {
                   onClick={() => setDeleteModalOpened(true)}
                 >
                   <IconTrash size={20} />
+                </ActionIcon>
+              </Tooltip>
+              <Tooltip label={t("Puzzle.SavedSessions", "Saved sessions")}>
+                <ActionIcon
+                  onClick={() => setSessionsOpened(true)}
+                  variant={savedSessions.length > 0 ? "light" : "subtle"}
+                  color={savedSessions.length > 0 ? "blue" : undefined}
+                >
+                  <IconBookmarks size={20} />
                 </ActionIcon>
               </Tooltip>
               <Tooltip label={t("SideBar.Settings")}>
@@ -574,6 +790,7 @@ function Puzzles({ id }: { id: string }) {
                 <ActionIcon
                   onClick={() => {
                     setPuzzles([]);
+                    setCurrentPuzzle(0);
                     reset();
                     setTimerStart(null);
                     setIsPlayingSolution(false);
