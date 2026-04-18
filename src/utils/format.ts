@@ -66,7 +66,7 @@ export function formatThemeLabel(theme: string) {
         .join(" ");
 }
 
-export function formatNodes(nodes: number) {
+export function formatNodes(nodes: number, decimals = 0) {
     const units = ["", "k", "M", "B", "T"];
     let i = 0;
     let value = nodes;
@@ -76,7 +76,7 @@ export function formatNodes(nodes: number) {
         i++;
     }
 
-    return `${value.toFixed(0)}${units[i]}`;
+    return `${value.toFixed(decimals)}${units[i]}`;
 }
 
 export function formatTime(ms: number) {
