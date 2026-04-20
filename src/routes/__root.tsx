@@ -20,7 +20,7 @@ import type { Dirs } from "@/App";
 import AboutModal from "@/components/About";
 import { SideBar } from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
-import { activeTabAtom, nativeBarAtom, tabsAtom } from "@/state/atoms";
+import { activeTabAtom, enginesAtom, nativeBarAtom, tabsAtom } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { openFile } from "@/utils/files";
 import { createTab } from "@/utils/tabs";
@@ -87,6 +87,9 @@ export const Route = createRootRouteWithContext<{
 
 function RootLayout() {
   const isNative = useAtomValue(nativeBarAtom);
+  // Keep enginesAtom permanently subscribed so onMount never re-fires during
+  // navigation, preventing stale disk reads from overwriting in-memory state.
+  useAtomValue(enginesAtom);
   const navigate = useNavigate();
 
   const [, setTabs] = useAtom(tabsAtom);
@@ -312,6 +315,7 @@ function RootLayout() {
         ],
       },
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [t, checkForUpdates, createNewTab, keyMap, openNewFile, toggleFullscreen],
   );
 

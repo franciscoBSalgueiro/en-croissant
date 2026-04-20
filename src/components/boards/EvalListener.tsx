@@ -40,7 +40,7 @@ function EvalListener() {
     useShallow((s) => getVariationLine(s.root, s.position)),
   );
 
-  const [pos, error] = positionFromFen(fen);
+  const [pos, _error] = positionFromFen(fen);
   if (pos) {
     for (const uci of moves) {
       const move = parseUci(uci);
@@ -131,6 +131,7 @@ function EngineListener({
       tab: activeTab!,
     }),
   );
+  const searchingMovesKey = JSON.stringify(searchingMoves);
   useEffect(() => {
     if (!settings.enabled) return;
     const unlisten = events.bestMovesPayload.listen(({ payload }) => {
@@ -166,13 +167,14 @@ function EngineListener({
     return () => {
       unlisten.then((f) => f());
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     activeTab,
     setScore,
     settings.enabled,
     isGameOver,
     searchingFen,
-    JSON.stringify(searchingMoves),
+    searchingMovesKey,
     engine.id,
     setEngineVariation,
     firstEngineWithLines,
@@ -189,7 +191,7 @@ function EngineListener({
         .with("chessdb", () => chessdbGetBestMoves)
         .with("lichess", () => lichessGetBestMoves)
         .exhaustive(),
-    [engine.type, engine],
+    [engine],
   );
 
   useThrottledEffect(

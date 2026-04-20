@@ -14,7 +14,7 @@ import {
   Text,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { IconAlertCircle, IconDatabase, IconTrophy } from "@tabler/icons-react";
+import { IconAlertCircle, IconBrain, IconDatabase, IconTrophy } from "@tabler/icons-react";
 import { join, resolve } from "@tauri-apps/api/path";
 import { useAtom } from "jotai";
 import { useCallback, useState } from "react";
@@ -53,6 +53,7 @@ function AddEngine({
   const form = useForm<LocalEngine>({
     initialValues: {
       type: "local",
+      runtime: "uci",
       id: crypto.randomUUID(),
       version: "",
       name: "",
@@ -93,6 +94,9 @@ function AddEngine({
           )}
           <ScrollArea.Autosize mah={720} offsetScrollbars>
             <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="sm">
+              <MaiaCard
+                initInstalled={engines.some((e) => e.type === "local" && e.runtime === "maia")}
+              />
               {defaultEngines?.map((engine, i) => (
                 <EngineCard
                   engine={engine}
@@ -134,7 +138,7 @@ function AddEngine({
             submitLabel={t("Common.Add")}
             form={form}
             onSubmit={(values: LocalEngine) => {
-              setEngines(async (prev) => [...(await prev), values]);
+              setEngines([...(allEngines ?? []), values]);
               setOpened(false);
             }}
           />
@@ -166,8 +170,8 @@ function CloudCard({ engine }: { engine: RemoteEngine }) {
             fullWidth
             size="xs"
             onClick={() => {
-              setEngines(async (prev) => [
-                ...(await prev),
+              setEngines([
+                ...(engines ?? []),
                 {
                   ...engine,
                   id: crypto.randomUUID(),
@@ -191,6 +195,83 @@ function CloudCard({ engine }: { engine: RemoteEngine }) {
   );
 }
 
+const MAIA_DOWNLOAD_ID = "maia_download";
+const MAIA_MODEL_URL =
+  "https://github.com/CSSLab/maia-platform-frontend/raw/refs/heads/main/public/maia3/maia3_simplified.onnx";
+const MAIA_IMAGE_URL =
+  "https://raw.githubusercontent.com/CSSLab/maia-platform-frontend/refs/heads/main/public/favicon.png";
+
+function MaiaCard({ initInstalled }: { initInstalled: boolean }) {
+  const { t } = useTranslation();
+  const [inProgress, setInProgress] = useState<boolean>(false);
+  const [allEngines, setEngines] = useAtom(enginesAtom);
+
+  const downloadMaia = useCallback(async () => {
+    setInProgress(true);
+    const enginesDir = await getEnginesDir();
+    let enginesDirPath = enginesDir;
+    if (enginesDirPath.endsWith("/") || enginesDirPath.endsWith("\\")) {
+      enginesDirPath = enginesDirPath.slice(0, -1);
+    }
+    const filename = MAIA_MODEL_URL.slice(MAIA_MODEL_URL.lastIndexOf("/") + 1);
+    const enginePath = await join(enginesDirPath, filename);
+    await commands.downloadFile(MAIA_DOWNLOAD_ID, MAIA_MODEL_URL, enginePath, null, null, null);
+    setEngines([
+      ...(allEngines ?? []),
+      {
+        id: crypto.randomUUID(),
+        type: "local",
+        runtime: "maia",
+        name: "Maia",
+        version: "3",
+        path: enginePath,
+        image: MAIA_IMAGE_URL,
+        elo: 1500,
+        loaded: true,
+        settings: [{ name: "MultiPV", value: 1 }],
+      },
+    ]);
+  }, [allEngines, setEngines]);
+
+  return (
+    <Paper withBorder radius="md" p={0}>
+      <Group wrap="nowrap" gap={0} grow>
+        <Box w="1.75rem" px="xs">
+          <Image src={MAIA_IMAGE_URL} alt="Maia" fit="contain" />
+        </Box>
+        <Box p="sm" flex={1}>
+          <Text tt="uppercase" c="dimmed" fw={700} size="xs">
+            ENGINE
+          </Text>
+          <Text fw="bold" size="sm" mb="xs">
+            Maia 3
+          </Text>
+          <Group wrap="nowrap" gap="xs" fz="xs">
+            <IconBrain size="1rem" />
+            <Text size="xs">Human-like play · 1100–1900 ELO</Text>
+          </Group>
+          <Group wrap="nowrap" gap="xs" mb="xs" fz="xs">
+            <IconDatabase size="1rem" />
+            <Text size="xs">CSSLab</Text>
+          </Group>
+          <ProgressButton
+            id={MAIA_DOWNLOAD_ID}
+            initInstalled={initInstalled}
+            labels={{
+              completed: t("Common.Installed"),
+              action: t("Common.Install"),
+              inProgress: t("Common.Downloading"),
+            }}
+            onClick={downloadMaia}
+            inProgress={inProgress}
+            setInProgress={setInProgress}
+          />
+        </Box>
+      </Group>
+    </Paper>
+  );
+}
+
 function EngineCard({
   engine,
   engineId,
@@ -203,7 +284,7 @@ function EngineCard({
   const { t } = useTranslation();
 
   const [inProgress, setInProgress] = useState<boolean>(false);
-  const [, setEngines] = useAtom(enginesAtom);
+  const [allEngines, setEngines] = useAtom(enginesAtom);
   const downloadEngine = useCallback(
     async (id: number, url: string) => {
       setInProgress(true);
@@ -220,12 +301,13 @@ function EngineCard({
       const enginePath = await join(enginesDirPath, ...engine.path.split("/"));
       await commands.setFileAsExecutable(enginePath);
       const config = unwrap(await commands.getEngineConfig(enginePath));
-      setEngines(async (prev) => [
-        ...(await prev),
+      setEngines([
+        ...(allEngines ?? []),
         {
           ...engine,
           id: crypto.randomUUID(),
           type: "local",
+          runtime: "uci" as const,
           path: enginePath,
           loaded: true,
           settings: config.options
@@ -238,7 +320,7 @@ function EngineCard({
         },
       ]);
     },
-    [engine, setEngines],
+    [engine, allEngines, setEngines],
   );
 
   return (

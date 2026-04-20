@@ -14,7 +14,7 @@ export const fileStorage: AsyncStringStorage = {
     async getItem(key) {
         try {
             return await readTextFile(key, options);
-        } catch (error) {
+        } catch {
             return null;
         }
     },
@@ -86,10 +86,10 @@ export function createAsyncZodStorage<Input, Output>(
             }
         },
         async setItem(key, value) {
-            storage.setItem(key, JSON.stringify(value, null, 4));
+            await storage.setItem(key, JSON.stringify(value, null, 4));
         },
         async removeItem(key) {
-            storage.removeItem(key);
+            await storage.removeItem(key);
         },
     };
 }

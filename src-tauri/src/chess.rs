@@ -154,16 +154,17 @@ impl EngineProcess {
 #[derive(Clone, Serialize, Debug, Derivative, Type)]
 #[derivative(Default)]
 pub struct BestMoves {
-    nodes: u32,
-    depth: u32,
-    score: Score,
+    pub nodes: u32,
+    pub depth: u32,
+    pub score: Score,
     #[serde(rename = "uciMoves")]
-    uci_moves: Vec<String>,
+    pub uci_moves: Vec<String>,
     #[serde(rename = "sanMoves")]
-    san_moves: Vec<String>,
+    pub san_moves: Vec<String>,
     #[derivative(Default(value = "1"))]
-    multipv: u16,
-    nps: u32,
+    pub multipv: u16,
+    pub nps: u32,
+    pub probability: Option<f32>,
 }
 
 #[derive(Serialize, Debug, Clone, Type, Event)]
@@ -206,7 +207,7 @@ fn parse_uci_attrs(
                 for mv in m {
                     let uci: UciMove = mv.to_string().parse()?;
                     let m = uci.to_move(&pos)?;
-                    let san = SanPlus::from_move_and_play_unchecked(&mut pos, &m);
+                    let san = SanPlus::from_move_and_play_unchecked(&mut pos, m);
                     best_moves.san_moves.push(san.to_string());
                     best_moves.uci_moves.push(uci.to_string());
                 }
@@ -268,6 +269,7 @@ pub async fn kill_engines(tab: String, state: tauri::State<'_, AppState>) -> Res
             state.engine_processes.remove(&key);
         }
     }
+    state.maia_sessions.retain(|(key_tab, _), _| !key_tab.starts_with(&tab));
     Ok(())
 }
 
@@ -283,6 +285,8 @@ pub async fn kill_engine(
         let mut process = process.lock().await;
         process.kill().await?;
     }
+    state.engine_processes.remove(&key);
+    state.maia_sessions.remove(&key);
     Ok(())
 }
 #[tauri::command]
@@ -507,13 +511,13 @@ pub async fn analyze_game(
             let uci = UciMove::from_ascii(m.as_bytes())?;
             let m = uci.to_move(&chess)?;
             let previous_pos = chess.clone();
-            chess.play_unchecked(&m);
+            chess.play_unchecked(m);
             let current_pos = chess.clone();
             if !chess.is_game_over() {
                 let prev_eval = naive_eval(&previous_pos);
                 let cur_eval = -naive_eval(&current_pos);
                 fens.push((
-                    Fen::from_position(current_pos, EnPassantMode::Legal),
+                    Fen::from_position(&current_pos, EnPassantMode::Legal),
                     options.moves.clone().into_iter().take(i + 1).collect(),
                     prev_eval > cur_eval + 100,
                 ));
@@ -682,7 +686,7 @@ fn qsearch(position: &Chess, mut alpha: i32, beta: i32) -> i32 {
 
     for capture in captures {
         let mut new_position = position.clone();
-        new_position.play_unchecked(capture);
+        new_position.play_unchecked(*capture);
         let score = -qsearch(&new_position, -beta, -alpha);
         if score >= beta {
             return beta;
@@ -700,7 +704,7 @@ fn naive_eval(pos: &Chess) -> i32 {
         .iter()
         .map(|mv| {
             let mut new_position = pos.clone();
-            new_position.play_unchecked(mv);
+            new_position.play_unchecked(*mv);
             -qsearch(&new_position, i32::MIN, i32::MAX)
         })
         .max()

@@ -459,6 +459,30 @@ async getSoundServerPort() : Promise<Result<number, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async maiaEval(id: string, modelPath: string, tab: string, fen: string, moves: string[], elo: number) : Promise<Result<EvaluationResult, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("maia_eval", { id, modelPath, tab, fen, moves, elo }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async maiaEvalBatch(id: string, modelPath: string, tab: string, positions: MaiaEvalPosition[], elo: number) : Promise<Result<EvaluationResult[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("maia_eval_batch", { id, modelPath, tab, positions, elo }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async maiaBestMoves(id: string, modelPath: string, tab: string, fen: string, moves: string[], elo: number, multipv: number) : Promise<Result<[number, BestMoves[]], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("maia_best_moves", { id, modelPath, tab, fen, moves, elo, multipv }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -488,7 +512,10 @@ progressEvent: "progress-event"
 /** user-defined types **/
 
 export type AnalysisOptions = { fen: string; moves: string[]; annotateNovelties: boolean; referenceDb: string | null; reversed: boolean }
-export type BestMoves = { nodes: number; depth: number; score: Score; uciMoves: string[]; sanMoves: string[]; multipv: number; nps: number }
+export type BestMoves = { nodes: number; depth: number; score: Score; uciMoves: string[]; sanMoves: string[]; multipv: number; nps: number; probability?: number | null }
+export type EvaluationResult = { policy: MoveProbability[]; whiteWr: number; draw: number; blackWr: number }
+export type MaiaEvalPosition = { fen: string; moves: string[] }
+export type MoveProbability = { uci: string; probability: number }
 export type BestMovesPayload = { bestLines: BestMoves[]; engine: string; tab: string; fen: string; moves: string[]; progress: number }
 export type ClockUpdateEvent = { gameId: string; whiteTime: bigint | null; blackTime: bigint | null }
 export type DatabaseInfo = { title: string; description: string; player_count: number; event_count: number; game_count: number; storage_size: bigint; filename: string; indexed: boolean }

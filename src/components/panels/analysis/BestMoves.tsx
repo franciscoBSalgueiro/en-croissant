@@ -79,7 +79,7 @@ function BestMovesComponent({
   const activeTab = useAtomValue(activeTabAtom);
   const ev = useAtomValue(engineMovesFamily({ engine: engine.id, tab: activeTab! }));
   const progress = useAtomValue(engineProgressFamily({ engine: engine.id, tab: activeTab! }));
-  const [, setEngines] = useAtom(enginesAtom);
+  const [allEngines, setEngines] = useAtom(enginesAtom);
   const [settings, setSettings2] = useAtom(
     tabEngineSettingsFamily({
       engineId: engine.id,
@@ -104,14 +104,16 @@ function BestMovesComponent({
       const newSettings = fn(settings);
       setSettings2(newSettings);
       if (newSettings.synced) {
-        setEngines(async (prev) =>
-          (await prev).map((o) =>
-            o.id === engine.id ? { ...o, settings: newSettings.settings, go: newSettings.go } : o,
+        setEngines(
+          (allEngines ?? []).map((o) =>
+            o.id === engine.id
+              ? ({ ...o, settings: newSettings.settings, go: newSettings.go } as Engine)
+              : o,
           ),
         );
       }
     },
-    [engine, settings, setSettings2, setEngines],
+    [engine, settings, allEngines, setSettings2, setEngines],
   );
 
   const [settingsOn, toggleSettingsOn] = useToggle();

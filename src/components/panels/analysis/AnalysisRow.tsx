@@ -67,7 +67,7 @@ function AnalysisRow({
     };
   }, [reset]);
 
-  useEffect(() => reset(), [open]);
+  useEffect(() => reset(), [open, reset]);
 
   const [evalDisplay, setEvalDisplay] = useAtom(scoreTypeFamily(engine));
 

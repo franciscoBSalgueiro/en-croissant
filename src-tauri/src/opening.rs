@@ -108,7 +108,7 @@ pub async fn search_opening_name(query: String) -> Result<Vec<OutOpening>, Error
         .take(15)
         .map(|o| OutOpening {
             name: o.name,
-            fen: Fen::from_setup(o.setup.clone()).to_string(),
+            fen: Fen::try_from_setup(o.setup.clone()).map(|f| f.to_string()).unwrap_or_default(),
         })
         .collect();
     Ok(best_matches_names)
@@ -140,13 +140,13 @@ lazy_static! {
                 let mut pos = Chess::default();
                 for token in record.pgn.split_whitespace() {
                     if let Ok(san) = token.parse::<San>() {
-                        pos.play_unchecked(&san.to_move(&pos).expect("legal move"));
+                        pos.play_unchecked(san.to_move(&pos).expect("legal move"));
                     }
                 }
                 positions.push(Opening {
                     _eco: record.eco,
                     name: record.name,
-                    setup: pos.into_setup(EnPassantMode::Legal),
+                    setup: pos.to_setup(EnPassantMode::Legal),
                     pgn: Some(record.pgn),
                 });
             }

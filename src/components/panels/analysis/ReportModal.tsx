@@ -67,6 +67,7 @@ function ReportModal({
           : reportSettings.engine;
 
     form.setValues({ ...reportSettings, engine });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localEngines, reportSettings]);
 
   function analyze() {
