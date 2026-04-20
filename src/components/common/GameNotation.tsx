@@ -27,7 +27,7 @@ import {
 import { INITIAL_FEN } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { useAtom, useAtomValue } from "jotai";
-import React, { memo, useContext, useEffect, useRef, useState } from "react";
+import React, { memo, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
@@ -41,6 +41,7 @@ import {
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { formatScore } from "@/utils/score";
+import { getTranspositions } from "@/utils/transpositions";
 import { getNodeAtPath, type TreeNode } from "@/utils/treeReducer";
 import CompleteMoveCell from "./CompleteMoveCell";
 import styles from "./GameNotation.module.css";
@@ -201,6 +202,9 @@ const RenderVariationTree = memo(
     const showVariations = useAtomValue(currentShowVariationsAtom);
     const showComments = useAtomValue(currentShowCommentsAtom);
     const node = useStore(store, (s) => getNodeAtPath(s.root, nodePath));
+    const currentPath = useStore(store, (s) => s.position);
+    const start = useStore(store, (s) => s.headers.start);
+    const root = useStore(store, (s) => s.root);
     const variations = node.children;
 
     const variationNodes = showVariations
@@ -218,6 +222,11 @@ const RenderVariationTree = memo(
                 fen={variation.fen}
                 movePath={newPath}
                 showComments={showComments}
+                isCurrentVariation={equal(newPath, currentPath)}
+                isStart={equal(newPath, start)}
+                transpositions={
+                  variation.fen ? getTranspositions(variation.fen, newPath, root) : []
+                }
                 first
               />
               <RenderVariationTree targetRef={targetRef} nodePath={newPath} depth={depth + 2} />
@@ -239,6 +248,11 @@ const RenderVariationTree = memo(
             fen={variations[0].fen}
             movePath={mainLinePath}
             showComments={showComments}
+            isCurrentVariation={equal(mainLinePath, currentPath)}
+            isStart={equal(mainLinePath, start)}
+            transpositions={
+              variations[0].fen ? getTranspositions(variations[0].fen, mainLinePath, root) : []
+            }
             first={first}
           />
         )}
@@ -287,6 +301,8 @@ const TableNotation = memo(function TableNotation({
   const showVariations = useAtomValue(currentShowVariationsAtom);
   const showComments = useAtomValue(currentShowCommentsAtom);
   const root = useStore(store, (s) => s.root);
+  const currentPath = useStore(store, (s) => s.position);
+  const start = useStore(store, (s) => s.headers.start);
 
   const segments: Segment[] = [];
 
@@ -477,6 +493,13 @@ const TableNotation = memo(function TableNotation({
                             fen={variation.fen}
                             movePath={variationPath}
                             showComments={showComments}
+                            isCurrentVariation={equal(variationPath, currentPath)}
+                            isStart={equal(variationPath, start)}
+                            transpositions={
+                              variation.fen
+                                ? getTranspositions(variation.fen, variationPath, root)
+                                : []
+                            }
                             first
                           />
                           <RenderVariationTree
@@ -523,10 +546,19 @@ function RowSegment({
 }) {
   const store = useContext(TreeStateContext)!;
   const showComments = useAtomValue(currentShowCommentsAtom);
-  const whitePath = whitePathStr ? whitePathStr.split(",").map(Number) : [];
+  const whitePath = useMemo(
+    () => (whitePathStr ? whitePathStr.split(",").map(Number) : []),
+    [whitePathStr],
+  );
   const white = useStore(store, (s) => s.getNode(whitePath));
-  const blackPath = blackPathStr ? blackPathStr.split(",").map(Number) : [];
+  const blackPath = useMemo(
+    () => (blackPathStr ? blackPathStr.split(",").map(Number) : []),
+    [blackPathStr],
+  );
   const black = useStore(store, (s) => s.getNode(blackPath));
+  const currentPath = useStore(store, (s) => s.position);
+  const start = useStore(store, (s) => s.headers.start);
+  const root = useStore(store, (s) => s.root);
   return (
     <Table.Tr>
       <Table.Td className={styles.moveTableMoveNumber}>{moveNumber}</Table.Td>
@@ -541,6 +573,9 @@ function RowSegment({
             fen={white.fen}
             movePath={whitePath}
             showComments={showComments}
+            isCurrentVariation={equal(whitePath, currentPath)}
+            isStart={equal(whitePath, start)}
+            transpositions={white.fen ? getTranspositions(white.fen, whitePath, root) : []}
             tableLayout
             scoreText={showComments && white.score ? formatScore(white.score.value, 1) : undefined}
           />
@@ -561,6 +596,9 @@ function RowSegment({
             fen={black.fen}
             movePath={blackPath}
             showComments={showComments}
+            isCurrentVariation={equal(blackPath, currentPath)}
+            isStart={equal(blackPath, start)}
+            transpositions={black.fen ? getTranspositions(black.fen, blackPath, root) : []}
             tableLayout
             scoreText={showComments && black.score ? formatScore(black.score.value, 1) : undefined}
           />
