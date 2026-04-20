@@ -340,8 +340,8 @@ function EngineTop({
   const { t } = useTranslation();
   const isComputed = engineVariations && engineVariations.length > 0;
   const depth = isComputed ? engineVariations[0].depth : 0;
-  const nodes = isComputed ? formatNodes(engineVariations[0].nodes) : 0;
-  const nps = isComputed ? formatNodes(engineVariations[0].nps) : 0;
+  const nodes = isComputed ? formatNodes(engineVariations[0].nodes, 2) : 0;
+  const nps = isComputed ? formatNodes(engineVariations[0].nps, 1) : 0;
 
   return (
     <Group justify="space-between" wrap="nowrap">
