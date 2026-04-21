@@ -9,7 +9,7 @@ function PlayerCard({ player, file }: { player: Player; file: string }) {
   const { t } = useTranslation();
   const { data: info, isLoading } = useSWRImmutable(
     ["player-game-info", file, player.id],
-    async ([key, file, id]) => {
+    async ([_key, file, id]) => {
       const games = await commands.getPlayersGameInfo(file, id);
       return unwrap(games);
     },

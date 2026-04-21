@@ -140,6 +140,7 @@ function RepertoireInfo() {
         setCoverageLoading(false);
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rootStructureHash, orientation, referenceDb, startPathKey, minGames]);
 
   const positionMoves = useMemo(() => {
@@ -225,7 +226,8 @@ function RepertoireInfo() {
         minGames,
         startPath,
       ),
-    [root, orientation, coverageMap, gamesMap, missingGamesMap, startPath, minGames],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [root, orientation, coverageMap, gamesMap, missingGamesMap, startPathKey, minGames],
   );
 
   if (!currentTab) return null;

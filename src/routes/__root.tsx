@@ -312,6 +312,7 @@ function RootLayout() {
         ],
       },
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [t, checkForUpdates, createNewTab, keyMap, openNewFile, toggleFullscreen],
   );
 

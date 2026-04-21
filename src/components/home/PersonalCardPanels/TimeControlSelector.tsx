@@ -1,5 +1,5 @@
 import { Select } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const LICHESS_TIME_CONTROLS = [
   { value: "ultra_bullet", label: "UltraBullet" },
@@ -28,22 +28,27 @@ const TimeControlSelector = ({
   website,
   allowAll,
 }: TimeControlSelectorProps) => {
-  const timeControls =
-    website === "Chess.com"
-      ? [...(allowAll ? [{ value: "any", label: "Any" }] : []), ...CHESSCOM_TIME_CONTROLS]
-      : [...(allowAll ? [{ value: "any", label: "Any" }] : []), ...LICHESS_TIME_CONTROLS];
+  const timeControls = useMemo(
+    () =>
+      website === "Chess.com"
+        ? [...(allowAll ? [{ value: "any", label: "Any" }] : []), ...CHESSCOM_TIME_CONTROLS]
+        : [...(allowAll ? [{ value: "any", label: "Any" }] : []), ...LICHESS_TIME_CONTROLS],
+    [website, allowAll],
+  );
 
   const defaultTimeControl = allowAll ? "any" : "rapid";
   const [timeControl, setTimeControl] = useState<string | null>(defaultTimeControl);
 
   useEffect(() => {
     onTimeControlChange(timeControl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeControl]);
 
   useEffect(() => {
     if (!timeControls.some((control) => control.value === timeControl)) {
       setTimeControl(defaultTimeControl);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [website, timeControls]);
 
   return (

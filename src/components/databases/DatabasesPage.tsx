@@ -487,7 +487,7 @@ function GeneralSettings({
     commands
       .editDbInfo(selectedDatabase.file, debouncedTitle ?? null, debouncedDescription ?? null)
       .then(() => mutate());
-  }, [debouncedTitle, debouncedDescription]);
+  }, [debouncedTitle, debouncedDescription, mutate, selectedDatabase.file]);
 
   return (
     <>

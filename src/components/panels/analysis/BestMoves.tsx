@@ -106,7 +106,9 @@ function BestMovesComponent({
       if (newSettings.synced) {
         setEngines(async (prev) =>
           (await prev).map((o) =>
-            o.id === engine.id ? { ...o, settings: newSettings.settings, go: newSettings.go } : o,
+            o.id === engine.id
+              ? ({ ...o, settings: newSettings.settings, go: newSettings.go } as Engine)
+              : o,
           ),
         );
       }

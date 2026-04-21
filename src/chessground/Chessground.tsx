@@ -111,7 +111,7 @@ export function Chessground({ ref, ...props }: ChessgroundProps) {
       });
       setApi(chessgroundApi);
     }
-  }, [api, props, boardRef]);
+  }, [api, props, boardRef, moveMethod]);
 
   useEffect(() => {
     api?.set({

@@ -124,7 +124,7 @@ importers:
         version: 7.0.0
       i18next:
         specifier: ^25.8.11
-        version: 25.8.11(typescript@5.9.3)
+        version: 25.8.11(typescript@6.0.2)
       i18next-browser-languagedetector:
         specifier: ^8.2.1
         version: 8.2.1
@@ -169,7 +169,7 @@ importers:
         version: 4.5.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       react-i18next:
         specifier: ^16.5.4
-        version: 16.5.4(i18next@25.8.11(typescript@5.9.3))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
+        version: 16.5.4(i18next@25.8.11(typescript@6.0.2))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@6.0.2)
       react-markdown:
         specifier: ^10.1.0
         version: 10.1.0(@types/react@19.2.14)(react@19.2.4)
@@ -239,7 +239,7 @@ importers:
         version: 1.0.0
       i18next-cli:
         specifier: ^1.42.12
-        version: 1.42.12(i18next@25.8.11(typescript@5.9.3))(react-dom@19.2.4(react@19.2.4))(typescript@5.9.3)
+        version: 1.42.12(i18next@25.8.11(typescript@6.0.2))(react-dom@19.2.4(react@19.2.4))(typescript@6.0.2)
       jsdom:
         specifier: ^28.1.0
         version: 28.1.0
@@ -252,9 +252,12 @@ importers:
       oxlint-tsgolint:
         specifier: ^0.16.0
         version: 0.16.0
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
       typescript-plugin-css-modules:
         specifier: ^5.2.0
-        version: 5.2.0(typescript@5.9.3)
+        version: 5.2.0(typescript@6.0.2)
       vitest:
         specifier: ^4.1.0
         version: 4.1.0(@opentelemetry/api@1.9.0)(jsdom@28.1.0)(vite@8.0.0(esbuild@0.27.2)(jiti@2.6.1)(less@4.6.4)(sass@1.98.0)(stylus@0.62.0)(tsx@4.21.0)(yaml@2.8.2))
@@ -3803,8 +3806,8 @@ packages:
     peerDependencies:
       typescript: '>=4.0.0'
 
-  typescript@5.9.3:
-    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
+  typescript@6.0.2:
+    resolution: {integrity: sha512-bGdAIrZ0wiGDo5l8c++HWtbaNCWTS4UTv7RaTH/ThVIgjkveJt83m74bBHMJkuCbslY8ixgLBVZJIOiQlQTjfQ==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -6155,7 +6158,7 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.28.6
 
-  i18next-cli@1.42.12(i18next@25.8.11(typescript@5.9.3))(react-dom@19.2.4(react@19.2.4))(typescript@5.9.3):
+  i18next-cli@1.42.12(i18next@25.8.11(typescript@6.0.2))(react-dom@19.2.4(react@19.2.4))(typescript@6.0.2):
     dependencies:
       '@croct/json5-parser': 0.2.2
       '@swc/core': 1.15.11
@@ -6170,7 +6173,7 @@ snapshots:
       minimatch: 10.2.2
       ora: 9.3.0
       react: 19.2.4
-      react-i18next: 16.5.4(i18next@25.8.11(typescript@5.9.3))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
+      react-i18next: 16.5.4(i18next@25.8.11(typescript@6.0.2))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@6.0.2)
       yaml: 2.8.2
     transitivePeerDependencies:
       - '@swc/helpers'
@@ -6189,11 +6192,11 @@ snapshots:
     transitivePeerDependencies:
       - '@swc/helpers'
 
-  i18next@25.8.11(typescript@5.9.3):
+  i18next@25.8.11(typescript@6.0.2):
     dependencies:
       '@babel/runtime': 7.28.6
     optionalDependencies:
-      typescript: 5.9.3
+      typescript: 6.0.2
 
   iconv-lite@0.6.3:
     dependencies:
@@ -7248,16 +7251,16 @@ snapshots:
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
 
-  react-i18next@16.5.4(i18next@25.8.11(typescript@5.9.3))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3):
+  react-i18next@16.5.4(i18next@25.8.11(typescript@6.0.2))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@6.0.2):
     dependencies:
       '@babel/runtime': 7.28.6
       html-parse-stringify: 3.0.1
-      i18next: 25.8.11(typescript@5.9.3)
+      i18next: 25.8.11(typescript@6.0.2)
       react: 19.2.4
       use-sync-external-store: 1.6.0(react@19.2.4)
     optionalDependencies:
       react-dom: 19.2.4(react@19.2.4)
-      typescript: 5.9.3
+      typescript: 6.0.2
 
   react-is@16.13.1: {}
 
@@ -7673,7 +7676,7 @@ snapshots:
 
   type-fest@4.41.0: {}
 
-  typescript-plugin-css-modules@5.2.0(typescript@5.9.3):
+  typescript-plugin-css-modules@5.2.0(typescript@6.0.2):
     dependencies:
       '@types/postcss-modules-local-by-default': 4.0.2
       '@types/postcss-modules-scope': 3.0.4
@@ -7690,14 +7693,14 @@ snapshots:
       sass: 1.98.0
       source-map-js: 1.2.1
       tsconfig-paths: 4.2.0
-      typescript: 5.9.3
+      typescript: 6.0.2
     optionalDependencies:
       stylus: 0.62.0
     transitivePeerDependencies:
       - supports-color
       - ts-node
 
-  typescript@5.9.3: {}
+  typescript@6.0.2: {}
 
   uc.micro@2.1.0: {}
 

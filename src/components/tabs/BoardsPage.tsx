@@ -146,7 +146,7 @@ export default function BoardsPage() {
     window.addEventListener("keydown", handler, { capture: true });
 
     return () => window.removeEventListener("keydown", handler, { capture: true });
-  }, [closeTab]);
+  }, [closeTab, activeTab]);
 
   const keyMap = useAtomValue(keyMapAtom);
 

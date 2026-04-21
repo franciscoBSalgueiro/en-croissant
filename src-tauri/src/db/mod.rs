@@ -26,7 +26,8 @@ use diesel::{
     sql_query,
     sql_types::Text,
 };
-use pgn_reader::{BufferedReader, Nag, RawHeader, SanPlus, Skip, Visitor};
+use pgn_reader::{Nag, RawTag, Reader, SanPlus, Skip, Visitor};
+use std::ops::ControlFlow;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
@@ -279,10 +280,18 @@ impl TempGame {
 }
 
 struct Importer {
-    game: TempGame,
     timestamp: Option<i64>,
+}
+
+struct ImportTags {
+    game: TempGame,
     skip: bool,
+}
+
+struct ImportMovetext {
+    game: TempGame,
     frames: Vec<ImportFrame>,
+    skip: bool,
 }
 
 struct ImportFrame {
@@ -301,85 +310,96 @@ impl ImportFrame {
 
 impl Importer {
     fn new(timestamp: Option<i64>) -> Importer {
-        Importer {
-            game: TempGame::default(),
-            timestamp,
-            skip: false,
-            frames: Vec::new(),
-        }
+        Importer { timestamp }
     }
 }
 
 impl Visitor for Importer {
-    type Result = Option<TempGame>;
+    type Tags = ImportTags;
+    type Movetext = ImportMovetext;
+    type Output = Option<TempGame>;
 
-    fn begin_game(&mut self) {
-        self.game = TempGame::default();
-        self.skip = false;
-        self.frames.clear();
+    fn begin_tags(&mut self) -> ControlFlow<Self::Output, Self::Tags> {
+        ControlFlow::Continue(ImportTags {
+            game: TempGame::default(),
+            skip: false,
+        })
     }
 
-    fn header(&mut self, key: &[u8], value: RawHeader<'_>) {
+    fn tag(
+        &mut self,
+        tags: &mut Self::Tags,
+        key: &[u8],
+        value: RawTag<'_>,
+    ) -> ControlFlow<Self::Output> {
         if key == b"White" {
-            self.game.white_name = Some(value.decode_utf8_lossy().into_owned());
+            tags.game.white_name = Some(value.decode_utf8_lossy().into_owned());
         } else if key == b"Black" {
-            self.game.black_name = Some(value.decode_utf8_lossy().into_owned());
+            tags.game.black_name = Some(value.decode_utf8_lossy().into_owned());
         } else if key == b"WhiteElo" {
             if value.as_bytes() == b"-" {
-                self.game.white_elo = Some(0);
+                tags.game.white_elo = Some(0);
             } else {
-                self.game.white_elo = btoi::btoi(value.as_bytes()).ok();
+                tags.game.white_elo = btoi::btoi(value.as_bytes()).ok();
             }
         } else if key == b"BlackElo" {
             if value.as_bytes() == b"-" {
-                self.game.black_elo = Some(0);
+                tags.game.black_elo = Some(0);
             } else {
-                self.game.black_elo = btoi::btoi(value.as_bytes()).ok();
+                tags.game.black_elo = btoi::btoi(value.as_bytes()).ok();
             }
         } else if key == b"TimeControl" {
-            self.game.time_control = Some(value.decode_utf8_lossy().into_owned());
+            tags.game.time_control = Some(value.decode_utf8_lossy().into_owned());
         } else if key == b"ECO" {
-            self.game.eco = Some(value.decode_utf8_lossy().into_owned());
+            tags.game.eco = Some(value.decode_utf8_lossy().into_owned());
         } else if key == b"Round" {
-            self.game.round = Some(value.decode_utf8_lossy().into_owned());
+            tags.game.round = Some(value.decode_utf8_lossy().into_owned());
         } else if key == b"Date" || key == b"UTCDate" {
-            self.game.date = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
+            tags.game.date = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
         } else if key == b"UTCTime" {
-            self.game.time = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
+            tags.game.time = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
         } else if key == b"Site" {
-            self.game.site_name = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
+            tags.game.site_name = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
         } else if key == b"Event" {
-            self.game.event_name = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
+            tags.game.event_name = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
         } else if key == b"Result" {
-            self.game.result = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
+            tags.game.result = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
         } else if key == b"FEN" {
             if value.as_bytes() == b"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" {
-                self.game.fen = None;
+                tags.game.fen = None;
             } else {
                 let fen = Fen::from_ascii(value.as_bytes());
                 if let Ok(fen) = fen {
-                    self.game.fen = Some(value.decode_utf8_lossy().into_owned());
+                    tags.game.fen = Some(value.decode_utf8_lossy().into_owned());
                     let setup = fen.into_setup();
                     let castling_mode = CastlingMode::detect(&setup);
                     if let Ok(setup) = Chess::from_setup(setup, castling_mode)
                         .or_else(PositionError::ignore_too_much_material)
                     {
-                        self.game.position = setup;
+                        tags.game.position = setup;
                     } else {
-                        self.skip = true;
+                        tags.skip = true;
                     }
                 } else {
-                    self.skip = true;
+                    tags.skip = true;
                 }
             }
         }
+        ControlFlow::Continue(())
     }
 
-    fn end_headers(&mut self) -> Skip {
-        // Skip games with timestamp before
-        let cur_timestamp = self.game.date.as_ref().and_then(|date| {
+    fn begin_movetext(
+        &mut self,
+        tags: Self::Tags,
+    ) -> ControlFlow<Self::Output, Self::Movetext> {
+        if tags.skip {
+            return ControlFlow::Break(None);
+        }
+
+        // Skip games with timestamp before the given cutoff
+        let cur_timestamp = tags.game.date.as_ref().and_then(|date| {
             let date = NaiveDate::parse_from_str(date, "%Y.%m.%d").ok()?;
-            let time = self
+            let time = tags
                 .game
                 .time
                 .as_ref()
@@ -389,102 +409,116 @@ impl Visitor for Importer {
 
         if let (Some(cur_timestamp), Some(timestamp)) = (cur_timestamp, self.timestamp) {
             if cur_timestamp <= timestamp {
-                self.skip = true;
+                return ControlFlow::Break(None);
             }
         }
 
-        // Skip games without ELO
-        // self.skip |= self.current.white_elo.is_none() || self.current.black_elo.is_none();
-
-        self.frames.clear();
-        self.frames
-            .push(ImportFrame::new(self.game.position.clone()));
-
-        Skip(self.skip)
+        let initial_frame = ImportFrame::new(tags.game.position.clone());
+        ControlFlow::Continue(ImportMovetext {
+            game: tags.game,
+            frames: vec![initial_frame],
+            skip: false,
+        })
     }
 
-    fn san(&mut self, san: SanPlus) {
-        if self.frames.is_empty() {
-            self.frames
-                .push(ImportFrame::new(self.game.position.clone()));
+    fn san(
+        &mut self,
+        movetext: &mut Self::Movetext,
+        san: SanPlus,
+    ) -> ControlFlow<Self::Output> {
+        if movetext.frames.is_empty() {
+            movetext
+                .frames
+                .push(ImportFrame::new(movetext.game.position.clone()));
         }
 
-        let is_mainline = self.frames.len() == 1;
-        let frame = self.frames.last_mut().unwrap();
+        let is_mainline = movetext.frames.len() == 1;
+        let frame = movetext.frames.last_mut().unwrap();
         let pre_move_position = frame.position.clone();
 
         let m = san.san.to_move(&frame.position).ok();
         if let Some(m) = m {
             if is_mainline && m.is_promotion() {
                 let cur_material = get_material_count(frame.position.board());
-                if cur_material.white < self.game.material_count.white {
-                    self.game.material_count.white = cur_material.white;
+                if cur_material.white < movetext.game.material_count.white {
+                    movetext.game.material_count.white = cur_material.white;
                 }
-                if cur_material.black < self.game.material_count.black {
-                    self.game.material_count.black = cur_material.black;
+                if cur_material.black < movetext.game.material_count.black {
+                    movetext.game.material_count.black = cur_material.black;
                 }
             }
-            self.game
+            movetext
+                .game
                 .moves
                 .push(encode_move(&m, &frame.position).unwrap());
             frame.pre_move_positions.push(pre_move_position);
-            frame.position.play_unchecked(&m);
+            frame.position.play_unchecked(m);
 
             if is_mainline {
-                self.game.position = frame.position.clone();
+                movetext.game.position = frame.position.clone();
             }
         } else {
-            self.skip = true;
+            movetext.skip = true;
         }
+        ControlFlow::Continue(())
     }
 
-    fn begin_variation(&mut self) -> Skip {
-        if self.frames.is_empty() {
-            self.frames
-                .push(ImportFrame::new(self.game.position.clone()));
+    fn begin_variation(
+        &mut self,
+        movetext: &mut Self::Movetext,
+    ) -> ControlFlow<Self::Output, Skip> {
+        if movetext.frames.is_empty() {
+            movetext
+                .frames
+                .push(ImportFrame::new(movetext.game.position.clone()));
         }
 
-        let parent = self.frames.last().unwrap();
+        let parent = movetext.frames.last().unwrap();
         let variation_start = parent
             .pre_move_positions
             .last()
             .cloned()
             .unwrap_or_else(|| parent.position.clone());
 
-        self.game.moves.push(VARIATION_START_MARKER);
-        self.frames.push(ImportFrame::new(variation_start));
-        Skip(false)
+        movetext.game.moves.push(VARIATION_START_MARKER);
+        movetext.frames.push(ImportFrame::new(variation_start));
+        ControlFlow::Continue(Skip(false))
     }
 
-    fn end_variation(&mut self) {
-        self.game.moves.push(VARIATION_END_MARKER);
-        if self.frames.len() > 1 {
-            self.frames.pop();
+    fn end_variation(&mut self, movetext: &mut Self::Movetext) -> ControlFlow<Self::Output> {
+        movetext.game.moves.push(VARIATION_END_MARKER);
+        if movetext.frames.len() > 1 {
+            movetext.frames.pop();
         } else {
-            self.skip = true;
+            movetext.skip = true;
         }
 
-        if let Some(root) = self.frames.first() {
-            self.game.position = root.position.clone();
+        if let Some(root) = movetext.frames.first() {
+            movetext.game.position = root.position.clone();
         }
+        ControlFlow::Continue(())
     }
 
-    fn comment(&mut self, comment: pgn_reader::RawComment<'_>) {
+    fn comment(
+        &mut self,
+        movetext: &mut Self::Movetext,
+        comment: pgn_reader::RawComment<'_>,
+    ) -> ControlFlow<Self::Output> {
         let comment = String::from_utf8_lossy(comment.as_bytes());
-        encode_comment(comment.as_ref(), &mut self.game.moves);
+        encode_comment(comment.as_ref(), &mut movetext.game.moves);
+        ControlFlow::Continue(())
     }
 
-    fn nag(&mut self, nag: Nag) {
-        encode_nag(&nag.to_string(), &mut self.game.moves);
+    fn nag(&mut self, movetext: &mut Self::Movetext, nag: Nag) -> ControlFlow<Self::Output> {
+        encode_nag(&nag.to_string(), &mut movetext.game.moves);
+        ControlFlow::Continue(())
     }
 
-    fn end_game(&mut self) -> Self::Result {
-        self.frames.clear();
-        if self.skip {
-            self.game = TempGame::default();
+    fn end_game(&mut self, movetext: Self::Movetext) -> Self::Output {
+        if movetext.skip {
             None
         } else {
-            Some(std::mem::take(&mut self.game))
+            Some(movetext.game)
         }
     }
 }
@@ -555,9 +589,9 @@ pub async fn convert_pgn(
         let mut file_imported_games = 0usize;
 
         db.transaction::<_, diesel::result::Error, _>(|db| {
-            for game in BufferedReader::new(uncompressed)
-                .into_iter(&mut importer)
-                .flatten()
+            for game in Reader::new(uncompressed)
+                .read_games(&mut importer)
+                .filter_map(|r| r.ok())
                 .flatten()
             {
                 if (imported_games + file_imported_games).is_multiple_of(1000) {
@@ -1465,14 +1499,14 @@ pub async fn get_players_game_info(
                     let Some(m) = decode_move(byte, &chess) else {
                         break;
                     };
-                    chess.play_unchecked(&m);
-                    setups.push(chess.clone().into_setup(EnPassantMode::Legal));
+                    chess.play_unchecked(m);
+                    setups.push(chess.clone().to_setup(EnPassantMode::Legal));
                 }
 
                 setups.reverse();
                 let opening = setups
                     .iter()
-                    .find_map(|setup| get_opening_from_setup(setup.clone()).ok())
+                    .find_map(|setup: &shakmaty::Setup| get_opening_from_setup(setup.clone()).ok())
                     .unwrap_or_default();
 
                 let p = progress.fetch_add(1, Ordering::Relaxed);
@@ -1793,9 +1827,11 @@ pub async fn write_db_game(
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     let mut importer = Importer::new(None);
-    let mut parsed = BufferedReader::new(pgn.as_bytes())
-        .into_iter(&mut importer)
-        .flatten()
+    let pgn_bytes = pgn.as_bytes().to_vec();
+    let mut reader = Reader::new(pgn_bytes.as_slice());
+    let mut parsed = reader
+        .read_games(&mut importer)
+        .filter_map(|r| r.ok())
         .flatten();
     let temp_game = parsed.next().ok_or(Error::NoMovesFound)?;
 
@@ -1933,7 +1969,6 @@ pub async fn preload_reference_db(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pgn_reader::BufferedReader;
 
     #[test]
     fn home_row() {
@@ -1965,9 +2000,9 @@ mod tests {
 "#;
 
         let mut importer = Importer::new(None);
-        let games: Vec<TempGame> = BufferedReader::new(pgn.as_bytes())
-            .into_iter(&mut importer)
-            .flatten()
+        let games: Vec<TempGame> = Reader::new(pgn.as_bytes())
+            .read_games(&mut importer)
+            .filter_map(|r| r.ok())
             .flatten()
             .collect();
 
@@ -1991,9 +2026,9 @@ mod tests {
 "#;
 
         let mut importer = Importer::new(None);
-        let games: Vec<TempGame> = BufferedReader::new(pgn.as_bytes())
-            .into_iter(&mut importer)
-            .flatten()
+        let games: Vec<TempGame> = Reader::new(pgn.as_bytes())
+            .read_games(&mut importer)
+            .filter_map(|r| r.ok())
             .flatten()
             .collect();
 
