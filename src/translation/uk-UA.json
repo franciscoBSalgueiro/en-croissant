@@ -301,6 +301,7 @@
     "Engines.Remove.Message": "Ви впевнені, що хочете видалити цей движок із En Croissant?",
     "Engines.Remove.Title": "Видалити движок",
     "Engines.Selection.None": "",
+    "Engines.Settings.AdjustRating": "",
     "Engines.Settings.AdvancedSettings": "Додаткові налаштування",
     "Engines.Settings.EditJSON": "Редагувати JSON",
     "Engines.Settings.NoEngine": "Движок не вибрано",
