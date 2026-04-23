@@ -296,6 +296,7 @@
     "Engines.Add.Name": "Ім'я",
     "Engines.Add.Name.Autodetect": "Автовизначення",
     "Engines.Add.Title": "Додати движок",
+    "Engines.Add.UseStockfish": "",
     "Engines.Empty.AddHint": "",
     "Engines.Empty.NoInstalled": "",
     "Engines.Remove.Message": "Ви впевнені, що хочете видалити цей движок із En Croissant?",

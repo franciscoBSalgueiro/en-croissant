@@ -290,6 +290,7 @@
     "Engines.Add.Name": "名稱",
     "Engines.Add.Name.Autodetect": "自動偵測",
     "Engines.Add.Title": "新增引擎",
+    "Engines.Add.UseStockfish": "",
     "Engines.Empty.AddHint": "",
     "Engines.Empty.NoInstalled": "",
     "Engines.Remove.Message": "您確定要從 En Croissant 中移除此引擎嗎？",

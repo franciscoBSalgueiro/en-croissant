@@ -50,7 +50,7 @@ use crate::game::{
     take_back_game_move, ClockUpdateEvent, GameMoveEvent, GameOverEvent,
 };
 
-use crate::fs::set_file_as_executable;
+use crate::fs::{find_executable_on_path, set_file_as_executable};
 use crate::lexer::lex_pgn;
 use crate::oauth::authenticate;
 use crate::pgn::{count_pgn_games, delete_game, read_games, write_game};
@@ -139,6 +139,7 @@ fn main() {
             delete_empty_games,
             clear_games,
             set_file_as_executable,
+            find_executable_on_path,
             delete_indexes,
             create_indexes,
             edit_db_info,

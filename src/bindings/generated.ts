@@ -230,6 +230,9 @@ async setFileAsExecutable(path: string) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async findExecutableOnPath(name: string) : Promise<string | null> {
+    return await TAURI_INVOKE("find_executable_on_path", { name });
+},
 async deleteIndexes(file: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("delete_indexes", { file }) };
