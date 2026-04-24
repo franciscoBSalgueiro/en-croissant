@@ -321,6 +321,8 @@ A12	Réti Opening: Anglo-Slav Variation, with dxc4	1. c4 Nf6 2. g3 c6 3. Nf3 d5 
 A13	English Opening: Agincourt Defense	1. c4 e6
 A13	English Opening: Agincourt Defense	1. c4 e6 2. Nf3
 A13	English Opening: Agincourt Defense	1. c4 e6 2. Nf3 d5
+A13	English Opening: Agincourt Defense	1. c4 e6 2. Nf3 d5 3. b3 Nf6 4. Bb2 Be7 5. e3 O-O
+A13	English Opening: Agincourt Defense	1. c4 e6 2. Nf3 d5 3. b3 Nf6 4. Bb2 Be7 5. e3 O-O 6. d4
 A13	English Opening: Agincourt Defense, Bogoljubow Defense	1. c4 e6 2. Nf3 d5 3. g3 Nf6 4. Bg2 Bd6
 A13	English Opening: Agincourt Defense, Catalan Defense	1. c4 e6 2. Nf3 d5 3. g3 b6 4. Bg2 Bb7 5. O-O
 A13	English Opening: Agincourt Defense, Catalan Defense	1. c4 e6 2. Nf3 d5 3. g3 c5
@@ -604,6 +606,7 @@ A47	Indian Defense: Schnepper Gambit	1. d4 Nf6 2. Nf3 b6 3. c3 e5
 A47	Marienbad System	1. d4 Nf6 2. Nf3 b6 3. g3 Bb7 4. Bg2 c5
 A47	Marienbad System: Berg Variation	1. d4 Nf6 2. Nf3 b6 3. g3 Bb7 4. Bg2 c5 5. c4 cxd4 6. Qxd4
 A47	Pseudo Queen's Indian Defense	1. d4 Nf6 2. Nf3 b6
+A47	Pseudo Queen's Indian Defense	1. d4 Nf6 2. Nf3 b6 3. e3 Bb7 4. Bd3 e6 5. Nbd2 c5 6. b3 Be7
 A48	East Indian Defense	1. d4 Nf6 2. Nf3 g6
 A48	Indian Defense: Colle System, King's Indian Variation	1. d4 Nf6 2. Nf3 g6 3. e3 Bg7 4. Bd3 d6
 A48	London System	1. d4 Nf6 2. Nf3 g6 3. Bf4
