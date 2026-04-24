@@ -502,6 +502,8 @@
     "Settings.AutoPromition.Desc": "當兵到達底線時自動升變為后",
     "Settings.AutoSave": "自動儲存",
     "Settings.AutoSave.Desc": "每步棋後自動儲存檔案",
+    "Settings.AutoStartEngineOnBoardEnter": "",
+    "Settings.AutoStartEngineOnBoardEnter.Desc": "",
     "Settings.Board": "棋盤",
     "Settings.Board.Desc": "自訂分析棋盤與對局控制",
     "Settings.ConsecutiveArrows": "連續箭頭",

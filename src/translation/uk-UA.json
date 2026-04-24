@@ -510,6 +510,8 @@
     "Settings.AutoPromition.Desc": "Автоматично підвищувати до ферзя",
     "Settings.AutoSave": "Автозбереження",
     "Settings.AutoSave.Desc": "Автоматично зберігати після кожного ходу",
+    "Settings.AutoStartEngineOnBoardEnter": "",
+    "Settings.AutoStartEngineOnBoardEnter.Desc": "",
     "Settings.Board": "Дошка",
     "Settings.Board.Desc": "Налаштувати дошку аналізу та елементи керування грою",
     "Settings.ConsecutiveArrows": "Послідовні стрілки",

@@ -518,6 +518,8 @@
     "Settings.AutoPromition.Desc": "Automatically promote to a queen when a pawn reaches the last rank",
     "Settings.AutoSave": "Auto Save",
     "Settings.AutoSave.Desc": "Auto save to file after each move",
+    "Settings.AutoStartEngineOnBoardEnter": "Auto-start Engines On Analysis Board Entry",
+    "Settings.AutoStartEngineOnBoardEnter.Desc": "Automatically start all loaded engines when entering an analysis board",
     "Settings.Board": "Board",
     "Settings.Board.Desc": "Customize the analysis board and game controls",
     "Settings.ConsecutiveArrows": "Consecutive Arrows",

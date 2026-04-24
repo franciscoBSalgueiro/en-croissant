@@ -507,6 +507,8 @@
     "Settings.AutoPromition.Desc": "Promuove automaticamente a donna quando un pedone raggiunge l'ultima traversa",
     "Settings.AutoSave": "Salvataggio automatico",
     "Settings.AutoSave.Desc": "Salva automaticamente il file dopo ogni mossa",
+    "Settings.AutoStartEngineOnBoardEnter": "",
+    "Settings.AutoStartEngineOnBoardEnter.Desc": "",
     "Settings.Board": "Scacchiera",
     "Settings.Board.Desc": "Personalizza la scacchiera di analisi e i controlli di gioco",
     "Settings.ConsecutiveArrows": "Frecce consecutive",

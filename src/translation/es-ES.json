@@ -507,6 +507,8 @@
     "Settings.AutoPromition.Desc": "Promocionar automáticamente a reina",
     "Settings.AutoSave": "Guardar automáticamente",
     "Settings.AutoSave.Desc": "Guardar automáticamente después de cada movimiento",
+    "Settings.AutoStartEngineOnBoardEnter": "",
+    "Settings.AutoStartEngineOnBoardEnter.Desc": "",
     "Settings.Board": "Tablero",
     "Settings.Board.Desc": "Personalizar el tablero de análisis y los controles de la partida",
     "Settings.ConsecutiveArrows": "Flechas consecutivas",

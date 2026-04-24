@@ -504,6 +504,8 @@
     "Settings.AutoPromition.Desc": "Piyon son yataya eriştiğinde otomatik olarak vezire terfi et",
     "Settings.AutoSave": "Otomatik Kaydet",
     "Settings.AutoSave.Desc": "Her hamle sonrası otomatik olarak dosyaya kaydet",
+    "Settings.AutoStartEngineOnBoardEnter": "",
+    "Settings.AutoStartEngineOnBoardEnter.Desc": "",
     "Settings.Board": "Tahta",
     "Settings.Board.Desc": "Analiz tahtasını ve oyun kontrollerini düzenleyin",
     "Settings.ConsecutiveArrows": "Ardışık Oklar",
