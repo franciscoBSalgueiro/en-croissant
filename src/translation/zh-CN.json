@@ -518,6 +518,8 @@
     "Settings.AutoPromition.Desc": "当兵到达底线时，自动升变为后",
     "Settings.AutoSave": "自动保存",
     "Settings.AutoSave.Desc": "每步棋后自动保存到文件",
+    "Settings.AutoStartEngineOnBoardEnter": "",
+    "Settings.AutoStartEngineOnBoardEnter.Desc": "",
     "Settings.Board": "棋盘",
     "Settings.Board.Desc": "自定义分析棋盘与对局控制",
     "Settings.ConsecutiveArrows": "连续箭头",

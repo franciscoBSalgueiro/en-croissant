@@ -507,6 +507,8 @@
     "Settings.AutoPromition.Desc": "Automaticamente promover para rainha",
     "Settings.AutoSave": "Gravar automaticamente",
     "Settings.AutoSave.Desc": "Grava automaticamente após cada jogada",
+    "Settings.AutoStartEngineOnBoardEnter": "",
+    "Settings.AutoStartEngineOnBoardEnter.Desc": "",
     "Settings.Board": "Tabuleiro",
     "Settings.Board.Desc": "Customizar o tabuleiro de análise e controlos de jogo",
     "Settings.ConsecutiveArrows": "Setas consecutivas",

@@ -504,6 +504,8 @@
     "Settings.AutoPromition.Desc": "Automatisch in eine Dame umwandeln, wenn ein Bauer die letzte Reihe erreicht",
     "Settings.AutoSave": "Automatisches Speichern",
     "Settings.AutoSave.Desc": "Speichere nach jedem Zug automatisch in eine Datei",
+    "Settings.AutoStartEngineOnBoardEnter": "",
+    "Settings.AutoStartEngineOnBoardEnter.Desc": "",
     "Settings.Board": "Brett",
     "Settings.Board.Desc": "Passe das Analysebrett und die Spielsteuerung an",
     "Settings.ConsecutiveArrows": "Folgepfeile",
