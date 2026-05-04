@@ -476,6 +476,8 @@
     "Settings.Anarchy.ForcedEnCroissant": "強制吃過路兵",
     "Settings.Anarchy.ForcedEnCroissant.Desc": "如果吃過路兵是合法著手，則強制走這步棋。",
     "Settings.Appearance": "外觀",
+    "Settings.Appearance.3DMode": "",
+    "Settings.Appearance.3DMode.Desc": "",
     "Settings.Appearance.AccentColor": "強調色",
     "Settings.Appearance.AccentColor.Desc": "應用程式的主要顏色",
     "Settings.Appearance.BoardImage": "棋盤圖片",

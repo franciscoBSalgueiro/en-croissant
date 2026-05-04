@@ -478,6 +478,8 @@
     "Settings.Anarchy.ForcedEnCroissant": "Forced En Croissant",
     "Settings.Anarchy.ForcedEnCroissant.Desc": "Tvinger deg til å spille en passant, hvis det er ett lovlig trekk.",
     "Settings.Appearance": "Utseende",
+    "Settings.Appearance.3DMode": "",
+    "Settings.Appearance.3DMode.Desc": "",
     "Settings.Appearance.AccentColor": "Aksentfarge",
     "Settings.Appearance.AccentColor.Desc": "Sekundær farge",
     "Settings.Appearance.BoardImage": "Sjakkbrett",

@@ -4,7 +4,7 @@ import type { Config } from "@lichess-org/chessground/config";
 import { Box } from "@mantine/core";
 import { useAtomValue } from "jotai";
 import { type Ref, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { boardImageAtom, moveMethodAtom } from "@/state/atoms";
+import { boardImageAtom, is3dAtom, moveMethodAtom } from "@/state/atoms";
 
 const BOARD_COORDINATE_COLORS: Record<string, { white: string; black: string }> = {
   blue: { white: "#dee3e6", black: "#788a94" },
@@ -64,6 +64,7 @@ export function Chessground({ ref, ...props }: ChessgroundProps) {
   const boardRef = useRef<HTMLDivElement>(null);
 
   const moveMethod = useAtomValue(moveMethodAtom);
+  const is3d = useAtomValue(is3dAtom);
 
   useImperativeHandle(
     ref,
@@ -108,6 +109,7 @@ export function Chessground({ ref, ...props }: ChessgroundProps) {
           ...props.selectable,
           enabled: moveMethod !== "drag",
         },
+        addPieceZIndex: is3d,
       });
       setApi(chessgroundApi);
     }
@@ -132,18 +134,26 @@ export function Chessground({ ref, ...props }: ChessgroundProps) {
         ...props.selectable,
         enabled: moveMethod !== "drag",
       },
+      addPieceZIndex: is3d,
     });
-  }, [api, props, moveMethod]);
+  }, [api, props, moveMethod, is3d]);
 
   const boardImage = useAtomValue(boardImageAtom);
   const boardCoordColors = getBoardCoordinateColors(boardImage);
+  const boardImagePath = is3d ? `/board-3d/${boardImage}` : `/board/${boardImage}`;
+
+  // 3D mode uses padding-bottom to create 476:512 ratio
+  // 2D mode uses aspect-ratio: 1 to maintain square
+  const boardStyle = is3d
+    ? { width: "100%", paddingBottom: "91%", position: "relative" as const }
+    : { width: "100%", aspectRatio: 1 };
 
   return (
     <Box
+      className={is3d ? "is3d" : undefined}
       style={{
-        aspectRatio: 1,
-        width: "100%",
-        "--board-image": `url('/board/${boardImage}')`,
+        ...boardStyle,
+        "--board-image": `url('${boardImagePath}')`,
         "--board-coord-color-white": boardCoordColors.white,
         "--board-coord-color-black": boardCoordColors.black,
       }}
