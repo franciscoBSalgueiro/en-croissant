@@ -254,5 +254,5 @@ piece.fading {
 }
 
 .is3d.cg-wrap coords.files {
-  bottom: calc(1px - 2.5%);
+  bottom: 2%;
 }
