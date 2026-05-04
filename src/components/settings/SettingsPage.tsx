@@ -39,7 +39,6 @@ import {
   enableBoardScrollAtom,
   eraseDrawablesOnClickAtom,
   forcedEnPassantAtom,
-  is3dAtom,
   materialDisplayAtom,
   moveHighlightAtom,
   moveInputAtom,
@@ -66,6 +65,7 @@ import { keyMapAtom } from "@/state/keybinds";
 import FileInput from "../common/FileInput";
 import BoardSelect from "./BoardSelect";
 import ColorControl from "./ColorControl";
+import DimensionToggle from "./DimensionToggle";
 import FontSizeSlider from "./FontSizeSlider";
 import KeybindInput from "./KeybindInput";
 import PiecesSelect from "./PiecesSelect";
@@ -482,7 +482,7 @@ export default function Page() {
         title: t("Settings.Appearance.3DMode"),
         description: t("Settings.Appearance.3DMode.Desc"),
         keywords: ["3d", "3d mode", "dimension"],
-        render: () => <SettingsSwitch atom={is3dAtom} />,
+        render: () => <DimensionToggle />,
       },
       {
         id: "accent-color",

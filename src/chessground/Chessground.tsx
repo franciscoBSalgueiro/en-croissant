@@ -134,18 +134,19 @@ export function Chessground({ ref, ...props }: ChessgroundProps) {
         ...props.selectable,
         enabled: moveMethod !== "drag",
       },
+      addPieceZIndex: is3d,
     });
-  }, [api, props, moveMethod]);
+  }, [api, props, moveMethod, is3d]);
 
   const boardImage = useAtomValue(boardImageAtom);
   const boardCoordColors = getBoardCoordinateColors(boardImage);
   const boardImagePath = is3d ? `/board-3d/${boardImage}` : `/board/${boardImage}`;
 
   // 3D mode uses padding-bottom to create 476:512 ratio
-  // 2D mode uses height: 100% to fill parent
+  // 2D mode uses aspect-ratio: 1 to maintain square
   const boardStyle = is3d
     ? { width: "100%", paddingBottom: "92.96875%", position: "relative" as const }
-    : { width: "100%", height: "100%", position: "absolute" as const };
+    : { width: "100%", aspectRatio: 1 };
 
   return (
     <Box
