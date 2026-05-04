@@ -39,6 +39,7 @@ import {
   enableBoardScrollAtom,
   eraseDrawablesOnClickAtom,
   forcedEnPassantAtom,
+  is3dAtom,
   materialDisplayAtom,
   moveHighlightAtom,
   moveInputAtom,
@@ -474,6 +475,14 @@ export default function Page() {
         description: t("Settings.Appearance.BoardImage.Desc"),
         keywords: ["board", "image", "texture"],
         render: () => <BoardSelect />,
+      },
+      {
+        id: "3d-mode",
+        category: "appearance",
+        title: t("Settings.Appearance.3DMode"),
+        description: t("Settings.Appearance.3DMode.Desc"),
+        keywords: ["3d", "3d mode", "dimension"],
+        render: () => <SettingsSwitch atom={is3dAtom} />,
       },
       {
         id: "accent-color",

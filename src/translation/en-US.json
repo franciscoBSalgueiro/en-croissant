@@ -496,6 +496,8 @@
     "Settings.Appearance.AccentColor.Desc": "Main color of the app",
     "Settings.Appearance.BoardImage": "Board Image",
     "Settings.Appearance.BoardImage.Desc": "Image used as the background of the board",
+        "Settings.Appearance.3DMode": "3D Mode",
+        "Settings.Appearance.3DMode.Desc": "Use 3D-styled pieces and board texture",
     "Settings.Appearance.Desc": "Customize the look of the app",
     "Settings.Appearance.FontSize": "Font Size",
     "Settings.Appearance.FontSize.Desc": "Overall font size",

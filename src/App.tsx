@@ -23,6 +23,7 @@ import {
   activeTabAtom,
   databaseConversionStateAtom,
   fontSizeAtom,
+  is3dAtom,
   pieceSetAtom,
   primaryColorAtom,
   referenceDbAtom,
@@ -209,6 +210,7 @@ export default function App() {
   const pieceSet = useAtomValue(pieceSetAtom);
   const fontSize = useAtomValue(fontSizeAtom);
   const spellCheck = useAtomValue(spellCheckAtom);
+  const is3d = useAtomValue(is3dAtom);
   const setDatabaseConversionState = useSetAtom(databaseConversionStateAtom);
 
   useAppStartup();
@@ -273,9 +275,18 @@ export default function App() {
     },
   });
 
+  const valid3dPieceSets = ['Basic', 'CubesAndPi', 'Experimental', 'Glass', 'Metal', 'ModernJade', 'ModernWood', 'RedVBlue', 'Staunton', 'Trimmed', 'Wood'];
+
+  const getPieceSet = (pieceSet: string, is3d: boolean) => {
+    if (is3d && !valid3dPieceSets.includes(pieceSet)) {
+      return 'Staunton';
+    }
+    return pieceSet;
+  };
+
   return (
     <DndProvider backend={HTML5Backend}>
-      <link rel="stylesheet" href={`/pieces/${pieceSet}.css`} />
+      <link rel="stylesheet" href={`/pieces${is3d ? '-3d' : ''}/${getPieceSet(pieceSet, is3d)}.css`} />
 
       <MantineProvider
         colorSchemeManager={colorSchemeManager}

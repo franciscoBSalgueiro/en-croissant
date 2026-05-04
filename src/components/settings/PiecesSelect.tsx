@@ -10,7 +10,7 @@ import {
 } from "@mantine/core";
 import { useAtom } from "jotai";
 import { useTranslation } from "react-i18next";
-import { pieceSetAtom } from "@/state/atoms";
+import { is3dAtom, pieceSetAtom } from "@/state/atoms";
 import PieceComponent from "../common/Piece";
 
 type Item = {
@@ -18,7 +18,7 @@ type Item = {
   value: string;
 };
 
-const pieceSets: Item[] = [
+const pieceSets2d: Item[] = [
   { label: "Alpha", value: "alpha" },
   { label: "Anarcandy", value: "anarcandy" },
   { label: "California", value: "california" },
@@ -51,6 +51,20 @@ const pieceSets: Item[] = [
   { label: "Tatiana", value: "tatiana" },
 ];
 
+const pieceSets3d = [
+  { label: "Basic", value: "Basic" },
+  { label: "CubesAndPi", value: "CubesAndPi" },
+  { label: "Experimental", value: "Experimental" },
+  { label: "Glass", value: "Glass" },
+  { label: "Metal", value: "Metal" },
+  { label: "ModernJade", value: "ModernJade" },
+  { label: "ModernWood", value: "ModernWood" },
+  { label: "RedVBlue", value: "RedVBlue" },
+  { label: "Staunton", value: "Staunton" },
+  { label: "Trimmed", value: "Trimmed" },
+  { label: "Wood", value: "Wood" },
+];
+
 function DisplayPieces() {
   const pieces = ["rook", "knight", "bishop", "queen", "king", "pawn"] as const;
   return (
@@ -71,6 +85,9 @@ export default function PiecesSelect() {
   });
 
   const [pieceSet, setPieceSet] = useAtom(pieceSetAtom);
+  const [is3d] = useAtom(is3dAtom);
+
+  const pieceSets = is3d ? pieceSets3d : pieceSets2d;
 
   const options = pieceSets.map((item) => (
     <Combobox.Option

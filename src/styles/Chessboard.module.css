@@ -3,7 +3,11 @@
   flex: 1;
   z-index: 1;
   display: flex;
-  aspect-ratio: 1;
+}
+
+/* In 3D mode, aspect ratio is controlled by padding-bottom in Chessground */
+.chessboard:global(.is3d) {
+  aspect-ratio: auto;
 }
 
 [data-mantine-color-scheme="dark"]
