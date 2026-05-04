@@ -9,6 +9,7 @@ import {
   useCombobox,
 } from "@mantine/core";
 import { useAtom } from "jotai";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { is3dAtom, pieceSetAtom } from "@/state/atoms";
 import PieceComponent from "../common/Piece";
@@ -102,6 +103,13 @@ export default function PiecesSelect() {
   ));
 
   const selected = pieceSets.find((p) => p.value === pieceSet);
+
+  // Reset to default when switching modes if current value doesn't exist
+  useEffect(() => {
+    if (!selected && pieceSet) {
+      setPieceSet(pieceSets[0].value);
+    }
+  }, [is3d, selected, pieceSet, pieceSets, setPieceSet]);
 
   return (
     <div>

@@ -9,6 +9,7 @@ import {
   useCombobox,
 } from "@mantine/core";
 import { useAtom } from "jotai";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { boardImageAtom, is3dAtom } from "@/state/atoms";
 
@@ -92,6 +93,13 @@ export default function BoardSelect() {
   ));
 
   const selected = boardImages.find((p) => p === board);
+
+  // Reset to default when switching modes if current value doesn't exist
+  useEffect(() => {
+    if (!selected && board) {
+      setBoard(boardImages[0]);
+    }
+  }, [is3d, selected, board, boardImages, setBoard]);
 
   return (
     <Combobox
