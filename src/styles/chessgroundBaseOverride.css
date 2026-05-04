@@ -225,8 +225,8 @@ piece.fading {
 }
 
 /* 3D Mode Overrides - from lila's _board-3d.scss */
-.is3d .cg-wrap {
-  height: 97.58%;
+.is3d.cg-wrap {
+  height: 100%;
 }
 
 .is3d cg-board {
@@ -246,13 +246,13 @@ piece.fading {
   z-index: 0;
 }
 
-.is3d .cg-wrap piece {
+.is3d.cg-wrap piece {
   width: 16.741%;
   height: 23.563%;
   left: -1.85%;
   top: -9.1%;
 }
 
-.is3d .cg-wrap coords.files {
+.is3d.cg-wrap coords.files {
   bottom: calc(1px - 2.5%);
 }

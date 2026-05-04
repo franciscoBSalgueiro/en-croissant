@@ -145,7 +145,7 @@ export function Chessground({ ref, ...props }: ChessgroundProps) {
   // 3D mode uses padding-bottom to create 476:512 ratio
   // 2D mode uses aspect-ratio: 1 to maintain square
   const boardStyle = is3d
-    ? { width: "100%", paddingBottom: "92.96875%", position: "relative" as const }
+    ? { width: "100%", paddingBottom: "91%", position: "relative" as const }
     : { width: "100%", aspectRatio: 1 };
 
   return (
