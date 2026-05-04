@@ -481,6 +481,8 @@
     "Settings.Anarchy.ForcedEnCroissant": "En Croissant forzato",
     "Settings.Anarchy.ForcedEnCroissant.Desc": "Ti obbliga a giocare En Croissant, se è una mossa legale.",
     "Settings.Appearance": "Aspetto",
+    "Settings.Appearance.3DMode": "",
+    "Settings.Appearance.3DMode.Desc": "",
     "Settings.Appearance.AccentColor": "Colore d'accento",
     "Settings.Appearance.AccentColor.Desc": "Colore principale dell'applicazione",
     "Settings.Appearance.BoardImage": "Immagine della scacchiera",

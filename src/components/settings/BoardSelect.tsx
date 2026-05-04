@@ -43,11 +43,26 @@ const boardImages2d: string[] = [
 ];
 
 const boardImages3d = [
-  "Black-White-Aluminium.png", "Brushed-Aluminium.png", "China-Blue.png", "China-Green.png",
-  "China-Grey.png", "China-Scarlet.png", "China-Yellow.png", "Classic-Blue.png",
-  "Glass.png", "Gold-Silver.png", "Green-Glass.png", "Jade.png", "Light-Wood.png",
-  "Marble.png", "Power-Coated.png", "Purple-Black.png", "Rosewood.png",
-  "Wax.png", "Wood-Glass.png", "Woodi.png"
+  "Black-White-Aluminium.png",
+  "Brushed-Aluminium.png",
+  "China-Blue.png",
+  "China-Green.png",
+  "China-Grey.png",
+  "China-Scarlet.png",
+  "China-Yellow.png",
+  "Classic-Blue.png",
+  "Glass.png",
+  "Gold-Silver.png",
+  "Green-Glass.png",
+  "Jade.png",
+  "Light-Wood.png",
+  "Marble.png",
+  "Power-Coated.png",
+  "Purple-Black.png",
+  "Rosewood.png",
+  "Wax.png",
+  "Wood-Glass.png",
+  "Woodi.png",
 ];
 
 function SelectOption({ label, is3d }: { label: string; is3d: boolean }) {

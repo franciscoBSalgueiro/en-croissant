@@ -484,6 +484,8 @@
     "Settings.Anarchy.ForcedEnCroissant": "Прымусовы En Croissant",
     "Settings.Anarchy.ForcedEnCroissant.Desc": "Змушае рабіць ход En Croissant, калі гэта легальны ход.",
     "Settings.Appearance": "Знешні выгляд",
+    "Settings.Appearance.3DMode": "",
+    "Settings.Appearance.3DMode.Desc": "",
     "Settings.Appearance.AccentColor": "Асноўны колер",
     "Settings.Appearance.AccentColor.Desc": "Асноўны колер праграмы",
     "Settings.Appearance.BoardImage": "Выява дошкі",

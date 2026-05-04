@@ -7,18 +7,10 @@ export default function DimensionToggle() {
 
   return (
     <Group gap="xs">
-      <Button
-        size="xs"
-        variant={!is3d ? "filled" : "default"}
-        onClick={() => setIs3d(false)}
-      >
+      <Button size="xs" variant={!is3d ? "filled" : "default"} onClick={() => setIs3d(false)}>
         2D
       </Button>
-      <Button
-        size="xs"
-        variant={is3d ? "filled" : "default"}
-        onClick={() => setIs3d(true)}
-      >
+      <Button size="xs" variant={is3d ? "filled" : "default"} onClick={() => setIs3d(true)}>
         3D
       </Button>
     </Group>
