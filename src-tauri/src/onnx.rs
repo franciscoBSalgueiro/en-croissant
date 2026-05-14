@@ -1,6 +1,7 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use maia_rust::Maia;
+use ort::{ep::CPU, session::builder::GraphOptimizationLevel};
 use serde::{Deserialize, Serialize};
 use shakmaty::{san::SanPlus, uci::UciMove, EnPassantMode, Position};
 use specta::Type;
@@ -62,6 +63,17 @@ pub fn wdl_to_cp(win: f32, draw: f32) -> i32 {
     (111.71464 * (1.5620688 * q).tan()).round() as i32
 }
 
+// TODO: Build the ONNX session with graph optimizations disabled to work around incorrect
+// ONNX Runtime graph optimizer.
+// Revisit once the optimizer bug is fixed upstream.
+fn maia_from_model_path(path: impl AsRef<Path>) -> Result<Maia, ort::Error> {
+    let session = ort::session::Session::builder()?
+        .with_execution_providers([CPU::default().build()])?
+        .with_optimization_level(GraphOptimizationLevel::Disable)?
+        .commit_from_file(path)?;
+    Ok(Maia::from_session(session))
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn maia_eval(
@@ -76,7 +88,7 @@ pub async fn maia_eval(
     let mut maia = state
         .maia_sessions
         .entry((tab, id))
-        .or_try_insert_with(|| Maia::from_file(model_path))?;
+        .or_try_insert_with(|| maia_from_model_path(model_path).map_err(maia_rust::Error::from))?;
     let pos = parse_fen_and_apply_moves(&fen, &moves)?.to_setup(EnPassantMode::Always);
     let opts = ort::session::RunOptions::new().unwrap();
     let results = maia
@@ -102,7 +114,7 @@ pub async fn maia_eval_batch(
     let mut maia = state
         .maia_sessions
         .entry((tab, id))
-        .or_try_insert_with(|| Maia::from_file(model_path))?;
+        .or_try_insert_with(|| maia_from_model_path(model_path).map_err(maia_rust::Error::from))?;
     let setups: Vec<_> = positions
         .into_iter()
         .map(|position| {
@@ -133,7 +145,7 @@ pub async fn maia_best_moves(
     let mut maia = state
         .maia_sessions
         .entry((tab, id))
-        .or_try_insert_with(|| Maia::from_file(model_path))?;
+        .or_try_insert_with(|| maia_from_model_path(model_path).map_err(maia_rust::Error::from))?;
     let pos = parse_fen_and_apply_moves(&fen, &moves)?;
     let setup = pos.clone().to_setup(EnPassantMode::Always);
     let opts = ort::session::RunOptions::new().unwrap();
