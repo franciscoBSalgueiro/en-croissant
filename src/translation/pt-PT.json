@@ -453,7 +453,7 @@
     "Puzzle.AvgTime": "",
     "Puzzle.ClearSession": "",
     "Puzzle.Database": "",
-    "Puzzle.GetAHint": "",
+    "Puzzle.GetAHint": "Obter uma dica",
     "Puzzle.HideRating": "",
     "Puzzle.HideRating.Desc": "",
     "Puzzle.JumpToNextPuzzleImmediately": "",
