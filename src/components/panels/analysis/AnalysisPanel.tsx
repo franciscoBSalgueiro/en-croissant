@@ -37,7 +37,7 @@ import {
 } from "@/state/atoms";
 import { getVariationLine } from "@/utils/chess";
 import { getPiecesCount, hasCaptures, isOp1, positionFromFen } from "@/utils/chessops";
-import type { Engine } from "@/utils/engines";
+import { type Engine, isLocalEngine, isUciEngine, isMaiaEngine } from "@/utils/engines";
 import { getInitials } from "@/utils/format";
 import BestMoves, { arrowColors } from "./BestMoves";
 import EngineSelection from "./EngineSelection";
@@ -75,6 +75,9 @@ function AnalysisPanel() {
     () => optimisticEngines.filter((e) => e.loaded),
     [optimisticEngines],
   );
+  const enginesWithLogs = loadedEngines.filter(
+    (engine) => isLocalEngine(engine) && isUciEngine(engine),
+  );
 
   const [, enable] = useAtom(enableAllAtom);
   const allEnabled = useAtomValue(allEnabledAtom);
@@ -101,7 +104,7 @@ function AnalysisPanel() {
         <Tabs.List>
           <Tabs.Tab value="engines">{t("Board.Analysis.Engines")}</Tabs.Tab>
           <Tabs.Tab value="report">{t("Board.Analysis.Report")}</Tabs.Tab>
-          <Tabs.Tab value="logs" disabled={loadedEngines.length === 0}>
+          <Tabs.Tab value="logs" disabled={enginesWithLogs.length === 0}>
             {t("Board.Analysis.Logs")}
           </Tabs.Tab>
         </Tabs.List>
@@ -328,7 +331,11 @@ function EngineSummary({
             : engine.name}
         </Text>
         {score ? (
-          <ScoreBubble size="sm" score={score} />
+          <ScoreBubble
+            size="sm"
+            score={score}
+            evalDisplay={isLocalEngine(engine) && isMaiaEngine(engine) ? "wdl" : "cp"}
+          />
         ) : (
           <Text fz="sm" c="dimmed">
             ???

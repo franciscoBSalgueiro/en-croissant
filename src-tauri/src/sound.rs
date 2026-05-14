@@ -137,8 +137,6 @@ pub use server::start_sound_server;
 
 #[tauri::command]
 #[specta::specta]
-pub fn get_sound_server_port(
-    state: tauri::State<'_, SoundServerPort>,
-) -> Result<u16, Error> {
+pub fn get_sound_server_port(state: tauri::State<'_, SoundServerPort>) -> Result<u16, Error> {
     Ok(state.0)
 }

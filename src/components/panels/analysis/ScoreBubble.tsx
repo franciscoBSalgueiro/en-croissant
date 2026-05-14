@@ -6,14 +6,19 @@ import classes from "./ScoreBubble.module.css";
 function ScoreBubble({
   size,
   score,
+  probability = null,
   evalDisplay = "cp",
   setEvalDisplay = () => {},
 }: {
   size: "sm" | "md";
   score: Score;
+  probability?: number | null;
   evalDisplay?: "cp" | "wdl";
   setEvalDisplay?: (display: "cp" | "wdl") => void;
 }) {
+  const isProbability = probability != null;
+  const probabilityDisplay = isProbability ? `${(probability * 100).toFixed(1)}%` : null;
+
   if (evalDisplay === "wdl" && score.wdl) {
     const [w, d, l] = score.wdl;
     return (
@@ -59,9 +64,17 @@ function ScoreBubble({
   }
   return (
     <Box
-      onClick={() => setEvalDisplay("wdl")}
+      onClick={() => {
+        if (!isProbability) {
+          setEvalDisplay("wdl");
+        }
+      }}
       style={(theme) => ({
-        backgroundColor: score.value.value >= 0 ? theme.colors.gray[0] : theme.colors.dark[9],
+        backgroundColor: isProbability
+          ? theme.colors.gray[0]
+          : score.value.value >= 0
+            ? theme.colors.gray[0]
+            : theme.colors.dark[9],
         textAlign: "center",
         padding: "0.15rem",
         borderRadius: theme.radius.sm,
@@ -72,14 +85,14 @@ function ScoreBubble({
     >
       <Text
         fw={700}
-        c={score.value.value >= 0 ? "black" : "white"}
+        c={isProbability || score.value.value >= 0 ? "black" : "white"}
         size={size}
         ta="center"
         style={(theme) => ({
           fontFamily: theme.fontFamilyMonospace,
         })}
       >
-        {formatScore(score.value)}
+        {probabilityDisplay ?? formatScore(score.value)}
       </Text>
     </Box>
   );

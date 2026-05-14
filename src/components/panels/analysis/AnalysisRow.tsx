@@ -21,6 +21,7 @@ import ScoreBubble from "./ScoreBubble";
 function AnalysisRow({
   engine,
   score,
+  probability,
   moves,
   halfMoves,
   threat,
@@ -29,6 +30,7 @@ function AnalysisRow({
 }: {
   engine: string;
   score: Score;
+  probability?: number | null;
   moves: string[];
   halfMoves: number;
   threat: boolean;
@@ -78,6 +80,7 @@ function AnalysisRow({
           <ScoreBubble
             size="md"
             score={score}
+            probability={probability}
             evalDisplay={evalDisplay}
             setEvalDisplay={setEvalDisplay}
           />
