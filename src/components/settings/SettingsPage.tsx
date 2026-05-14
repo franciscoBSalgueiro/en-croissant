@@ -47,6 +47,7 @@ import {
   nativeBarAtom,
   practiceAutoDifficultyAtom,
   previewBoardOnHoverAtom,
+  flipBoardAfterMoveAtom,
   showArrowsAtom,
   showConsecutiveArrowsAtom,
   showCoordinatesAtom,
@@ -318,6 +319,14 @@ export default function Page() {
         description: t("Settings.PreviewBoard.Desc"),
         keywords: ["preview", "hover"],
         render: () => <SettingsSwitch atom={previewBoardOnHoverAtom} />,
+      },
+      {
+        id: "flip-board-after-move",
+        category: "board",
+        title: t("Settings.FlipBoardAfterMove"),
+        description: t("Settings.FlipBoardAfterMove.Desc"),
+        keywords: ["flip", "board", "move"],
+        render: () => <SettingsSwitch atom={flipBoardAfterMoveAtom} />,
       },
       {
         id: "scroll-moves",

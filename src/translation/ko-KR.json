@@ -545,6 +545,8 @@
     "Settings.Directories.Puzzles.Desc": "",
     "Settings.EraseDrawablesOnClick": "클릭으로 그림 지우기",
     "Settings.EraseDrawablesOnClick.Desc": "마우스 왼쪽 클릭으로 보드의 그려진 화살표와 원을 지웁니다",
+    "Settings.FlipBoardAfterMove": "",
+    "Settings.FlipBoardAfterMove.Desc": "",
     "Settings.Inputs": "입력",
     "Settings.Inputs.Desc": "입력 방식을 설정합니다",
     "Settings.Inputs.SpellCheck": "맞춤법 검사",

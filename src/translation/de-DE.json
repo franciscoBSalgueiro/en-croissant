@@ -534,6 +534,8 @@
     "Settings.Directories.Puzzles.Desc": "",
     "Settings.EraseDrawablesOnClick": "Zeichnungen mit Klick löschen",
     "Settings.EraseDrawablesOnClick.Desc": "Lösche Pfeile und Kreise auf dem Brett durch Linksklick",
+    "Settings.FlipBoardAfterMove": "",
+    "Settings.FlipBoardAfterMove.Desc": "",
     "Settings.Inputs": "Eingaben",
     "Settings.Inputs.Desc": "Passe die Eingabeeinstellungen an",
     "Settings.Inputs.SpellCheck": "Rechtschreibprüfung",
