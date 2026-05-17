@@ -19,6 +19,7 @@ import { type Engine, type EngineSettings, killEngine } from "@/utils/engines";
 import CoresSlider from "./CoresSlider";
 import HashSlider from "./HashSlider";
 import LinesSlider from "./LinesSlider";
+import EloSlider from "./EloSlider";
 
 export type Settings = {
   enabled: boolean;
@@ -48,6 +49,9 @@ function EngineSettingsForm({
 }: EngineSettingsProps) {
   const { t } = useTranslation();
 
+  const limitStrength = settings.settings.find((o) => o.name === "UCI_LimitStrength");
+  const maxElo = settings.settings.find((o) => o.name === "UCI_Elo")?.max;
+  const minElo = settings.settings.find((o) => o.name === "UCI_Elo")?.min;
   const multipv = settings.settings.find((o) => o.name === "MultiPV");
   const threads = settings.settings.find((o) => o.name === "Threads");
   const hash = settings.settings.find((o) => o.name === "Hash");
@@ -129,6 +133,35 @@ function EngineSettingsForm({
                 color={color}
               />
             </Group>
+          )}
+          {limitStrength && (
+            <Checkbox
+              label={t("Engines.Settings.AdjustRating")}
+              checked={Boolean(limitStrength.value)}
+              onChange={(e) => {
+                setSettings((prev) => ({
+                  ...prev,
+                  settings: prev.settings.map((o) =>
+                    o.name === "UCI_LimitStrength" ? { ...o, value: e.target.checked } : o,
+                  ),
+                }));
+              }}
+            />
+          )}
+          {limitStrength?.value && maxElo && (
+            <EloSlider
+              value={maxElo}
+              minElo={Number(minElo)}
+              setValue={(v) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  settings: prev.settings.map((o) =>
+                    o.name === "UCI_Elo" ? { ...o, value: v || 1 } : o,
+                  ),
+                }))
+              }
+              color={color}
+            />
           )}
         </>
       )}
