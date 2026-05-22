@@ -17,12 +17,16 @@ import {
   IconArrowsSplit,
   IconArticle,
   IconArticleOff,
+  IconChevronDown,
+  IconChevronRight,
   IconEye,
   IconEyeOff,
   IconLayoutList,
   IconList,
+  IconListTree,
   IconMinus,
   IconPlus,
+  IconPointFilled,
 } from "@tabler/icons-react";
 import { INITIAL_FEN } from "chessops/fen";
 import equal from "fast-deep-equal";
@@ -35,9 +39,10 @@ import Comment from "@/components/common/Comment";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
   currentInvisibleAtom,
+  currentRepertoirePrioritizeAtom,
   currentShowCommentsAtom,
   currentShowVariationsAtom,
-  tableViewAtom,
+  viewModeAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { formatScore } from "@/utils/score";
@@ -46,11 +51,30 @@ import CompleteMoveCell from "./CompleteMoveCell";
 import styles from "./GameNotation.module.css";
 import OpeningName from "./OpeningName";
 
+function hasMultipleChildrenInChain(node: TreeNode): boolean {
+  if (!node.children) return false;
+  if (node.children.length > 1) return true;
+  if (node.children.length === 1) {
+    return hasMultipleChildrenInChain(node.children[0]);
+  }
+  return false;
+}
+
+function hasMultipleChildrenUntilPosition(node: TreeNode, remainingPath: number[]): boolean {
+  if (remainingPath.length === 0) return false;
+  if (!node.children) return false;
+  if (node.children.length > 1) return true;
+  const nextNode = node.children[remainingPath[0]];
+  if (!nextNode) return false;
+  return hasMultipleChildrenUntilPosition(nextNode, remainingPath.slice(1));
+}
+
 function GameNotation({ topBar, controls }: { topBar?: boolean; controls?: React.ReactNode }) {
   const store = useContext(TreeStateContext)!;
   const currentFen = useStore(store, (s) => s.currentNode().fen);
   const copyPgn = useStore(store, (s) => s.copyPgn);
   const headers = useStore(store, (s) => s.headers);
+  const root = useStore(store, (s) => s.root);
   const rootComment = useStore(store, (s) => s.root.comment);
 
   const viewport = useRef<HTMLDivElement>(null);
@@ -76,9 +100,9 @@ function GameNotation({ topBar, controls }: { topBar?: boolean; controls?: React
 
   const [invisibleValue, setInvisible] = useAtom(currentInvisibleAtom);
   const invisible = topBar && invisibleValue;
-  const showVariations = useAtomValue(currentShowVariationsAtom);
   const showComments = useAtomValue(currentShowCommentsAtom);
-  const [tableView, setTableView] = useAtom(tableViewAtom);
+  const viewMode = useAtomValue(viewModeAtom);
+  const repertoirePrioritize = useAtomValue(currentRepertoirePrioritizeAtom);
   const colorScheme = useColorScheme();
 
   const keyMap = useAtomValue(keyMapAtom);
@@ -114,7 +138,20 @@ function GameNotation({ topBar, controls }: { topBar?: boolean; controls?: React
                     <Comment comment={rootComment} />
                   </Box>
                 )}
-                {tableView ? (
+                {viewMode === "repertoire" ? (
+                  <Box pt="md" px="sm">
+                    <RenderRepertoire
+                      tree={root}
+                      depth={0}
+                      path={[]}
+                      start={headers.start}
+                      showComments={showComments}
+                      nextLevelExpanded={true}
+                      targetRef={targetRef}
+                      prioritizeMainline={repertoirePrioritize}
+                    />
+                  </Box>
+                ) : viewMode === "table" ? (
                   <TableNotation targetRef={targetRef} />
                 ) : (
                   <Box pt="md" px="sm">
@@ -150,34 +187,84 @@ function NotationHeader() {
   const [invisible, setInvisible] = useAtom(currentInvisibleAtom);
   const [showComments, setShowComments] = useAtom(currentShowCommentsAtom);
   const [showVariations, setShowVariations] = useAtom(currentShowVariationsAtom);
-  const [tableView, setTableView] = useAtom(tableViewAtom);
+  const [viewMode, setViewMode] = useAtom(viewModeAtom);
+  const [repertoirePrioritize, setRepertoirePrioritize] = useAtom(
+    currentRepertoirePrioritizeAtom,
+  );
+
+  const cycleViewMode = () => {
+    if (viewMode === "normal") setViewMode("table");
+    else if (viewMode === "table") setViewMode("repertoire");
+    else setViewMode("normal");
+  };
+
   return (
     <Stack gap="xs" pt="xs">
       <Group justify="space-between" px="sm">
         <OpeningName />
         <Group gap="sm">
-          <Tooltip label={invisible ? t("Notation.ShowMoves") : t("Notation.HideMoves")}>
+          <Tooltip label={invisible ? t("Notation.MovesHidden") : t("Notation.MovesVisible")}>
             <ActionIcon onClick={() => setInvisible((v) => !v)}>
               {invisible ? <IconEyeOff size="1rem" /> : <IconEye size="1rem" />}
             </ActionIcon>
           </Tooltip>
-          <Tooltip label={tableView ? t("Notation.NormalView") : t("Notation.TableView")}>
-            <ActionIcon onClick={() => setTableView((v) => !v)}>
-              {tableView ? <IconList size="1rem" /> : <IconLayoutList size="1rem" />}
+          <Tooltip
+            label={
+              viewMode === "normal"
+                ? t("Notation.NormalView")
+                : viewMode === "table"
+                  ? t("Notation.TableView")
+                  : t("Notation.RepertoireView")
+            }
+          >
+            <ActionIcon onClick={cycleViewMode}>
+              {viewMode === "normal" ? (
+                <IconList size="1rem" />
+              ) : viewMode === "table" ? (
+                <IconLayoutList size="1rem" />
+              ) : (
+                <IconListTree size="1rem" />
+              )}
             </ActionIcon>
           </Tooltip>
-          <Tooltip label={showComments ? t("Notation.HideComments") : t("Notation.ShowComments")}>
+          <Tooltip label={showComments ? t("Notation.CommentsVisible") : t("Notation.CommentsHidden")}>
             <ActionIcon onClick={() => setShowComments((v) => !v)}>
               {showComments ? <IconArticle size="1rem" /> : <IconArticleOff size="1rem" />}
             </ActionIcon>
           </Tooltip>
-          <Tooltip
-            label={showVariations ? t("Notation.HideVariations") : t("Notation.ShowVariations")}
-          >
-            <ActionIcon onClick={() => setShowVariations((v) => !v)}>
-              {showVariations ? <IconArrowsSplit size="1rem" /> : <IconArrowRight size="1rem" />}
-            </ActionIcon>
-          </Tooltip>
+          {viewMode === "repertoire" ? (
+            <Tooltip
+              label={
+                repertoirePrioritize
+                  ? t("Notation.FlatView")
+                  : t("Notation.PrioritizeMainline")
+              }
+            >
+              <ActionIcon onClick={() => setRepertoirePrioritize((v) => !v)}>
+                {repertoirePrioritize ? (
+                  <IconArrowsSplit size="1rem" />
+                ) : (
+                  <IconListTree size="1rem" />
+                )}
+              </ActionIcon>
+            </Tooltip>
+          ) : (
+            <Tooltip
+              label={
+                showVariations
+                  ? t("Notation.VariationsVisible")
+                  : t("Notation.VariationsHidden")
+              }
+            >
+              <ActionIcon onClick={() => setShowVariations((v) => !v)}>
+                {showVariations ? (
+                  <IconArrowsSplit size="1rem" />
+                ) : (
+                  <IconArrowRight size="1rem" />
+                )}
+              </ActionIcon>
+            </Tooltip>
+          )}
         </Group>
       </Group>
       <Divider />
@@ -588,6 +675,226 @@ function VariationCell({ moveNodes }: { moveNodes: React.ReactNode[] }) {
             {node}
           </Box>
         ))}
+    </Box>
+  );
+}
+
+function RenderRepertoire({
+  tree,
+  depth,
+  path,
+  start,
+  first,
+  showComments,
+  nextLevelExpanded,
+  targetRef,
+  prioritizeMainline,
+}: {
+  tree: TreeNode;
+  depth: number;
+  start?: number[];
+  path: number[];
+  first?: boolean;
+  showComments: boolean;
+  nextLevelExpanded?: boolean;
+  targetRef: React.RefObject<HTMLSpanElement | null>;
+  prioritizeMainline: boolean;
+}) {
+  const variations = tree.children;
+  if (!variations?.length) return null;
+
+  if (depth > 0 && variations.length === 1) {
+    const newPath = [...path, 0];
+    return (
+      <>
+        <CompleteMoveCell
+          targetRef={targetRef}
+          annotations={variations[0].annotations}
+          comment={variations[0].comment}
+          halfMoves={variations[0].halfMoves}
+          move={variations[0].san}
+          fen={variations[0].fen}
+          movePath={newPath}
+          showComments={showComments}
+          first={first}
+        />
+        <RenderRepertoire
+          tree={variations[0]}
+          depth={depth}
+          start={start}
+          showComments={showComments}
+          path={newPath}
+          nextLevelExpanded={nextLevelExpanded}
+          targetRef={targetRef}
+          prioritizeMainline={prioritizeMainline}
+        />
+      </>
+    );
+  }
+
+  if (prioritizeMainline) {
+    const mainPath = [...path, 0];
+    return (
+      <>
+        {variations.length > 0 && (
+          <>
+            <CompleteMoveCell
+              targetRef={targetRef}
+              annotations={variations[0].annotations}
+              comment={variations[0].comment}
+              halfMoves={variations[0].halfMoves}
+              move={variations[0].san}
+              fen={variations[0].fen}
+              movePath={mainPath}
+              showComments={showComments}
+              first={first}
+            />
+            <RenderRepertoire
+              tree={variations[0]}
+              depth={depth + 1}
+              start={start}
+              showComments={showComments}
+              path={mainPath}
+              nextLevelExpanded={nextLevelExpanded}
+              targetRef={targetRef}
+              prioritizeMainline={prioritizeMainline}
+            />
+          </>
+        )}
+        {variations.slice(1).map((variation, index) => (
+          <RepertoireCell
+            key={variation.fen}
+            variation={variation}
+            path={[...path, index + 1]}
+            depth={depth + 1}
+            start={start}
+            showComments={showComments}
+            nextLevelExpanded={nextLevelExpanded}
+            targetRef={targetRef}
+          />
+        ))}
+      </>
+    );
+  }
+
+  return (
+    <>
+      {variations.map((variation, index) => (
+        <RepertoireCell
+          key={variation.fen}
+          variation={variation}
+          path={[...path, index]}
+          depth={depth + 1}
+          start={start}
+          showComments={showComments}
+          nextLevelExpanded={nextLevelExpanded}
+          targetRef={targetRef}
+        />
+      ))}
+    </>
+  );
+}
+
+function RepertoireCell({
+  variation,
+  path,
+  depth,
+  start,
+  showComments,
+  nextLevelExpanded,
+  targetRef,
+}: {
+  variation: TreeNode;
+  path: number[];
+  depth: number;
+  start?: number[];
+  showComments: boolean;
+  nextLevelExpanded?: boolean;
+  targetRef: React.RefObject<HTMLSpanElement | null>;
+}) {
+  const store = useContext(TreeStateContext);
+  if (!store) {
+    throw new Error("RepertoireCell must be used within a TreeStateProvider");
+  }
+  const position = useStore(store, (s) => s.position);
+  const prioritizeMainline = useAtomValue(currentRepertoirePrioritizeAtom);
+
+  const isOnPath = path.every((value, i) => position[i] === value);
+  const isPositionDeeper = position.length > path.length;
+  const remainingPath = position.slice(path.length);
+  const isInCurrentPath =
+    isPositionDeeper &&
+    isOnPath &&
+    hasMultipleChildrenUntilPosition(variation, remainingPath);
+
+  const [expanded, setExpanded] = useState(() => isInCurrentPath);
+  const [chevronClicked, setChevronClicked] = useState(false);
+
+  if (depth > 1 && !nextLevelExpanded) {
+    return null;
+  }
+
+  return (
+    <Box className={depth === 1 ? undefined : styles.variationBorder}>
+      {hasMultipleChildrenInChain(variation) ? (
+        expanded ? (
+          isInCurrentPath ? (
+            <span style={{ width: "0.6rem", display: "inline-block" }} />
+          ) : (
+            <IconChevronDown
+              size="0.6rem"
+              style={{
+                opacity: chevronClicked ? 1 : 0,
+                transition: "opacity 0.4s",
+                cursor: "pointer",
+              }}
+              onMouseEnter={(event) => {
+                event.currentTarget.style.opacity = "1";
+              }}
+              onMouseLeave={(event) => {
+                setChevronClicked(false);
+                event.currentTarget.style.opacity = "0";
+              }}
+              onClick={() => setExpanded(false)}
+            />
+          )
+        ) : (
+          <IconChevronRight
+            size="0.6rem"
+            style={{
+              cursor: "pointer",
+            }}
+            onClick={() => {
+              setChevronClicked(true);
+              setExpanded(true);
+            }}
+          />
+        )
+      ) : (
+        <span style={{ width: "0.6rem", display: "inline-block" }} />
+      )}
+      <IconPointFilled size="0.6rem" />
+      <CompleteMoveCell
+        annotations={variation.annotations}
+        comment={variation.comment}
+        halfMoves={variation.halfMoves}
+        move={variation.san}
+        fen={variation.fen}
+        movePath={path}
+        showComments={showComments}
+        first={true}
+        targetRef={targetRef}
+      />
+      <RenderRepertoire
+        tree={variation}
+        depth={depth}
+        path={path}
+        start={start}
+        showComments={showComments}
+        nextLevelExpanded={expanded}
+        targetRef={targetRef}
+        prioritizeMainline={prioritizeMainline}
+      />
     </Box>
   );
 }

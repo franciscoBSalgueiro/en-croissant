@@ -1,3 +1,9 @@
+allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
+  core-js: true
+  esbuild: true
+  protobufjs: true
 onlyBuiltDependencies:
   - "@parcel/watcher"
   - "@swc/core"
