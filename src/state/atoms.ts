@@ -160,7 +160,8 @@ export const enginesAtom = unwrap(
 
 // Settings
 
-export const tableViewAtom = atomWithStorage<boolean>("table-view", false);
+export type ViewMode = "normal" | "table" | "repertoire";
+export const viewModeAtom = atomWithStorage<ViewMode>("view-mode", "normal");
 
 export const fontSizeAtom = atomWithStorage(
     "font-size",
@@ -370,6 +371,9 @@ export const currentShowCommentsAtom = tabValue(showCommentsFamily);
 
 const showVariationsFamily = atomFamily((_tab: string) => atom(true));
 export const currentShowVariationsAtom = tabValue(showVariationsFamily);
+
+const repertoirePrioritizeFamily = atomFamily((_tab: string) => atom(false));
+export const currentRepertoirePrioritizeAtom = tabValue(repertoirePrioritizeFamily);
 
 export const tabFamily = atomFamily((_tab: string) => atom("info"));
 export const currentTabSelectedAtom = tabValue(tabFamily);
