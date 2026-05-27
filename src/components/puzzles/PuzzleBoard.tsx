@@ -8,7 +8,7 @@ import { useAtom, useAtomValue } from "jotai";
 import { useContext, useState } from "react";
 import { useStore } from "zustand";
 import { Chessground } from "@/chessground/Chessground";
-import { jumpToNextPuzzleAtom, moveHighlightAtom, showCoordinatesAtom } from "@/state/atoms";
+import { jumpToNextPuzzleAtom, moveHighlightAtom, showCoordinatesAtom, showDestsAtom } from "@/state/atoms";
 import classes from "@/styles/Chessboard.module.css";
 import { positionFromFen } from "@/utils/chessops";
 import type { Completion, Puzzle } from "@/utils/puzzles";
@@ -33,6 +33,7 @@ function PuzzleBoard({
   const root = useStore(store, (s) => s.root);
   const position = useStore(store, (s) => s.position);
   const moveHighlight = useAtomValue(moveHighlightAtom);
+  const showDests = useAtomValue(showDestsAtom);
   const boardShapes = useStore(store, (s) => s.currentNode().shapes);
   const makeMove = useStore(store, (s) => s.makeMove);
   const makeMoves = useStore(store, (s) => s.makeMoves);
@@ -156,6 +157,7 @@ function PuzzleBoard({
                 ? turn
                 : undefined,
             dests: dests,
+            showDests: showDests,
             events: {
               after: (orig, dest) => {
                 const from = parseSquare(orig)!;
