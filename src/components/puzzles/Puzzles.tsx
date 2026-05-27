@@ -6,7 +6,6 @@ import {
   Button,
   Divider,
   Group,
-  Modal,
   Paper,
   Portal,
   RangeSlider,
@@ -34,7 +33,11 @@ import { useAtom, useSetAtom } from "jotai";
 import { useContext, useEffect, useRef, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
-import { commands, type PuzzleDatabaseInfo, type SavedPuzzleSession } from "@/bindings";
+import {
+  commands,
+  type PuzzleDatabaseInfo,
+  type SavedPuzzleSession,
+} from "@/bindings";
 import {
   activeTabAtom,
   currentPuzzleTimerAtom,
@@ -70,6 +73,9 @@ import AddPuzzle from "./AddPuzzle";
 import PuzzleBoard from "./PuzzleBoard";
 import PuzzleSessionsModal from "./PuzzleSessionsModal";
 
+/** ID used for the automatic save slot. Never shown as a named session. */
+const AUTO_SAVE_SESSION_ID = "__autosave__";
+
 function Puzzles({ id }: { id: string }) {
   const { t } = useTranslation();
   const store = useContext(TreeStateContext)!;
@@ -77,6 +83,8 @@ function Puzzles({ id }: { id: string }) {
   const goToStart = useStore(store, (s) => s.goToStart);
   const reset = useStore(store, (s) => s.reset);
   const makeMove = useStore(store, (s) => s.makeMove);
+  const makeMoves = useStore(store, (s) => s.makeMoves);
+  const position = useStore(store, (s) => s.position);
   const setShapes = useStore(store, (s) => s.setShapes);
   const currentMove = useStore(store, (s) => s.currentNode().move);
   const [puzzles, setPuzzles] = useAtom(puzzleSessionListAtom);
@@ -99,7 +107,9 @@ function Puzzles({ id }: { id: string }) {
   const [availableThemes, setAvailableThemes] = useState<string[]>([]);
   const [themesTableMissing, setThemesTableMissing] = useState(false);
   const effectiveSelectedTheme =
-    selectedTheme && availableThemes.includes(selectedTheme) ? selectedTheme : null;
+    selectedTheme && availableThemes.includes(selectedTheme)
+      ? selectedTheme
+      : null;
 
   useEffect(() => {
     setThemesTableMissing(false);
@@ -117,7 +127,10 @@ function Puzzles({ id }: { id: string }) {
 
       setAvailableThemes([]);
 
-      if (typeof res.error === "string" && res.error.includes("no such table")) {
+      if (
+        typeof res.error === "string" &&
+        res.error.includes("no such table")
+      ) {
         setThemesTableMissing(true);
       }
     });
@@ -131,7 +144,9 @@ function Puzzles({ id }: { id: string }) {
 
   const totalCompleted = wonPuzzles.length + lostPuzzles.length;
   const accuracy =
-    totalCompleted > 0 ? Math.round((wonPuzzles.length / totalCompleted) * 100) : null;
+    totalCompleted > 0
+      ? Math.round((wonPuzzles.length / totalCompleted) * 100)
+      : null;
 
   let currentStreak = 0;
   for (let i = puzzles.length - 1; i >= 0; i--) {
@@ -141,7 +156,9 @@ function Puzzles({ id }: { id: string }) {
 
   const avgTimeSeconds =
     wonPuzzles.length > 0
-      ? wonPuzzles.reduce((acc, p) => acc + (p.timeSpent || 0), 0) / wonPuzzles.length / 1000
+      ? wonPuzzles.reduce((acc, p) => acc + (p.timeSpent || 0), 0) /
+        wonPuzzles.length /
+        1000
       : 0;
 
   const [isPlayingSolution, setIsPlayingSolution] = useState(false);
@@ -149,6 +166,8 @@ function Puzzles({ id }: { id: string }) {
   const [trackTime, setTrackTime] = useAtom(trackPuzzleTimeAtom);
   const [timerStart, setTimerStart] = useAtom(currentPuzzleTimerAtom);
 
+  // Reset the board to the very start of a puzzle (after the first forced move).
+  // Used when loading a brand-new puzzle for the first time.
   const setPuzzle = useCallback(
     (puzzle: { fen: string; moves: string[] }) => {
       setFen(puzzle.fen);
@@ -157,34 +176,107 @@ function Puzzles({ id }: { id: string }) {
     [setFen, makeMove],
   );
 
-  // Board always starts empty; sessions are loaded only via explicit user choice in the prompt
+  // Navigate to an existing puzzle, restoring the board to the depth the user
+  // reached last time.  Falls back to depth 1 (the forced first move) for
+  // puzzles that have never been visited this session.
+  const navigateToPuzzle = useCallback(
+    (puzzleIndex: number, puzzle: { fen: string; moves: string[] }) => {
+      const depth = puzzleDepthRef.current.get(puzzleIndex) ?? 1;
+      setFen(puzzle.fen);
+      makeMoves({
+        payload: puzzle.moves.slice(0, depth),
+        mainline: true,
+        changeHeaders: false,
+      });
+    },
+    [setFen, makeMoves],
+  );
+
+  const solutionAbortRef = useRef<AbortController | null>(null);
+  // Tracks the current autosave entry so persistSessions can include it without
+  // a backend round-trip every time named sessions are written.
+  const autosaveRef = useRef<SavedPuzzleSession | null>(null);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Remembers how many moves were played (tree depth) for each puzzle index so
+  // that navigating back restores the board to where the user left off.
+  const puzzleDepthRef = useRef<Map<number, number>>(new Map());
+
+  // On mount: restore the board from the localStorage-persisted session, or
+  // auto-load the last autosave from the backend when no local session exists.
+  // Named sessions (excluding the autosave slot) are loaded into savedSessions.
   useEffect(() => {
-    setPuzzles([]);
-    setCurrentPuzzle(0);
-    reset();
-    setTimerStart(null);
+    commands.getPuzzleSessions().then((res) => {
+      if (res.status === "ok") {
+        const autosave = res.data.find((s) => s.id === AUTO_SAVE_SESSION_ID);
+
+        if (autosave) {
+          autosaveRef.current = autosave;
+        }
+
+        // Exclude the autosave slot from the user-visible named sessions list
+        setSavedSessions(res.data.filter((s) => s.id !== AUTO_SAVE_SESSION_ID));
+
+        if (puzzles.length > 0) {
+          // Active session already in localStorage; just restore the board
+          const puzzle = puzzles[currentPuzzle];
+
+          if (puzzle) {
+            setPuzzle(puzzle);
+          }
+        } else if (autosave && autosave.puzzles.length > 0) {
+          // No local session found; auto-load the last autosave
+          const puzzleList = autosave.puzzles.map(fromSessionPuzzle);
+
+          setPuzzles(puzzleList);
+
+          const safeIndex = Math.min(
+            autosave.currentPuzzle,
+            puzzleList.length - 1,
+          );
+
+          setCurrentPuzzle(safeIndex);
+
+          const restoredPuzzle = puzzleList[safeIndex];
+
+          if (restoredPuzzle) {
+            setPuzzle(restoredPuzzle);
+          }
+
+          if (autosave.dbPath) {
+            setSelectedDb(autosave.dbPath);
+          }
+        }
+      }
+
+      setSessionsChecked(true);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const solutionAbortRef = useRef<AbortController | null>(null);
-
   async function generatePuzzle(db: string, force: boolean = false) {
-    let nextIndex = puzzles.findIndex((p, i) => i > currentPuzzle && p.completion === "incomplete");
+    let nextIndex = puzzles.findIndex(
+      (p, i) => i > currentPuzzle && p.completion === "incomplete",
+    );
+
     if (nextIndex === -1) {
-      nextIndex = puzzles.findIndex((p, i) => i < currentPuzzle && p.completion === "incomplete");
+      nextIndex = puzzles.findIndex(
+        (p, i) => i < currentPuzzle && p.completion === "incomplete",
+      );
     }
 
     if (nextIndex !== -1 && !force) {
+      puzzleDepthRef.current.set(currentPuzzle, position.length);
       solutionAbortRef.current?.abort();
       setIsPlayingSolution(false);
       setCurrentPuzzle(nextIndex);
-      setPuzzle(puzzles[nextIndex]);
+      navigateToPuzzle(nextIndex, puzzles[nextIndex]);
       if (trackTime) {
         setTimerStart(Date.now() - (puzzles[nextIndex].timeSpent || 0));
       }
       return;
     }
 
+    puzzleDepthRef.current.set(currentPuzzle, position.length);
     solutionAbortRef.current?.abort();
     setIsPlayingSolution(false);
 
@@ -196,7 +288,14 @@ function Puzzles({ id }: { id: string }) {
         setRatingRange([rating + 50, rating + 100]);
       }
     }
-    const res = await commands.getPuzzle(db, range[0], range[1], effectiveSelectedTheme);
+
+    const res = await commands.getPuzzle(
+      db,
+      range[0],
+      range[1],
+      effectiveSelectedTheme,
+    );
+
     const puzzle = unwrap(res);
     const newPuzzle: Puzzle = {
       ...puzzle,
@@ -239,27 +338,17 @@ function Puzzles({ id }: { id: string }) {
   const [sessionsOpened, setSessionsOpened] = useState(false);
   const [hideRating, setHideRating] = useAtom(hidePuzzleRatingAtom);
   const [savedSessions, setSavedSessions] = useState<SavedPuzzleSession[]>([]);
-  const [resumePromptOpened, setResumePromptOpened] = useState(false);
-  // Blocks the timer-start effect until we know whether the prompt will be shown
+  // Blocks the timer-start effect until the init load is complete
   const [sessionsChecked, setSessionsChecked] = useState(false);
-
-  // Load saved sessions from the backend on mount; prompt once per app launch if any exist
-  useEffect(() => {
-    commands.getPuzzleSessions().then((res) => {
-      if (res.status === "ok") {
-        setSavedSessions(res.data);
-        if (res.data.length > 0 && !sessionStorage.getItem("puzzle-resume-prompted")) {
-          sessionStorage.setItem("puzzle-resume-prompted", "1");
-          setResumePromptOpened(true);
-        }
-      }
-      setSessionsChecked(true);
-    });
-  }, []);
 
   function persistSessions(updated: SavedPuzzleSession[]) {
     setSavedSessions(updated);
-    commands.setPuzzleSessions(updated);
+    // Always keep the autosave slot alongside named sessions so it is not lost
+    // when the user saves, renames, or deletes a named session.
+    const allSessions = autosaveRef.current
+      ? [autosaveRef.current, ...updated]
+      : updated;
+    commands.setPuzzleSessions(allSessions);
   }
 
   function saveSession() {
@@ -283,6 +372,7 @@ function Puzzles({ id }: { id: string }) {
   function resumeSession(session: SavedPuzzleSession) {
     solutionAbortRef.current?.abort();
     setIsPlayingSolution(false);
+    puzzleDepthRef.current.clear();
     const puzzleList = session.puzzles.map(fromSessionPuzzle);
     setPuzzles(puzzleList);
     setCurrentPuzzle(session.currentPuzzle);
@@ -302,7 +392,11 @@ function Puzzles({ id }: { id: string }) {
   }
 
   function renameSession(sessionId: string, newName: string) {
-    persistSessions(savedSessions.map((s) => (s.id === sessionId ? { ...s, name: newName } : s)));
+    persistSessions(
+      savedSessions.map((s) =>
+        s.id === sessionId ? { ...s, name: newName } : s,
+      ),
+    );
   }
 
   function overwriteSession(sessionId: string) {
@@ -324,8 +418,44 @@ function Puzzles({ id }: { id: string }) {
   function deleteSession(sessionId: string) {
     persistSessions(savedSessions.filter((s) => s.id !== sessionId));
   }
+
+  // Auto-save the current session to the backend whenever it changes.
+  // Uses a debounce to avoid excessive I/O on rapid state changes.
+  useEffect(() => {
+    if (!sessionsChecked) return;
+
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+
+    if (puzzles.length === 0) {
+      // Session was cleared; remove the autosave slot from the backend
+      if (autosaveRef.current) {
+        autosaveRef.current = null;
+        commands.setPuzzleSessions(savedSessions);
+      }
+      return;
+    }
+
+    autoSaveTimerRef.current = setTimeout(() => {
+      const autosave: SavedPuzzleSession = {
+        id: AUTO_SAVE_SESSION_ID,
+        name: "Autosave",
+        savedAt: Date.now(),
+        puzzles: puzzles.map(toSessionPuzzle),
+        currentPuzzle,
+        dbPath: selectedDb,
+      };
+      autosaveRef.current = autosave;
+      commands.setPuzzleSessions([autosave, ...savedSessions]);
+    }, 1500);
+
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  }, [puzzles, currentPuzzle, selectedDb, sessionsChecked, savedSessions]);
+
   const [, setTick] = useState(0);
-  const isPuzzleIncomplete = puzzles[currentPuzzle]?.completion === "incomplete";
+  const isPuzzleIncomplete =
+    puzzles[currentPuzzle]?.completion === "incomplete";
   const elapsedTime =
     timerStart && isPuzzleIncomplete && trackTime
       ? Date.now() - timerStart
@@ -336,8 +466,7 @@ function Puzzles({ id }: { id: string }) {
       !sessionsChecked ||
       !trackTime ||
       !isPuzzleIncomplete ||
-      timerStart !== null ||
-      resumePromptOpened
+      timerStart !== null
     )
       return;
     setTimerStart(Date.now() - (puzzles[currentPuzzle]?.timeSpent || 0));
@@ -347,7 +476,6 @@ function Puzzles({ id }: { id: string }) {
     isPuzzleIncomplete,
     timerStart,
     setTimerStart,
-    resumePromptOpened,
     puzzles,
     currentPuzzle,
   ]);
@@ -399,7 +527,8 @@ function Puzzles({ id }: { id: string }) {
     const curPuzzle = puzzles[currentPuzzle];
     if (!curPuzzle || !currentMove) return;
 
-    const indexOfNextMoveToPlay = curPuzzle.moves.indexOf(makeUci(currentMove)) + 1;
+    const indexOfNextMoveToPlay =
+      curPuzzle.moves.indexOf(makeUci(currentMove)) + 1;
     const nextMoveUci = curPuzzle.moves[indexOfNextMoveToPlay];
     if (!nextMoveUci) return;
 
@@ -409,82 +538,8 @@ function Puzzles({ id }: { id: string }) {
     return nextMove;
   };
 
-  function sessionStats(session: SavedPuzzleSession): string {
-    const total = session.puzzles.length;
-    if (total === 0) return "No puzzles";
-    const correct = session.puzzles.filter((p) => p.completion === "correct").length;
-    const completed = session.puzzles.filter((p) => p.completion !== "incomplete").length;
-    const accuracy = completed > 0 ? Math.round((correct / completed) * 100) : null;
-    const parts: string[] = [`${total} puzzle${total !== 1 ? "s" : ""}`];
-    if (accuracy !== null) parts.push(`${accuracy}% accuracy`);
-    const incomplete = session.puzzles.filter((p) => p.completion === "incomplete").length;
-    if (incomplete > 0) parts.push(`${incomplete} remaining`);
-    return parts.join(" · ");
-  }
-
-  const sortedSavedSessions = [...savedSessions].sort((a, b) => b.savedAt - a.savedAt);
-
   return (
     <>
-      <Modal
-        opened={resumePromptOpened}
-        onClose={() => setResumePromptOpened(false)}
-        title={t("Puzzle.ResumeASession", "Resume a session?")}
-        size="lg"
-        centered
-      >
-        <Stack gap="sm">
-          <ScrollArea.Autosize mah={420} scrollbars="y" type="never">
-            <Stack gap="xs">
-              {sortedSavedSessions.map((session) => (
-                <Paper key={session.id} withBorder p="sm" radius="sm">
-                  <Group justify="space-between" align="center" gap="md">
-                    <Stack gap={2} style={{ minWidth: 0, flex: 1 }}>
-                      <Text fw={500} size="sm" truncate>
-                        {session.name}
-                      </Text>
-                      <Text size="xs" c="dimmed">
-                        {new Date(session.savedAt).toLocaleString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </Text>
-                      <Text size="xs" c="dimmed" truncate>
-                        {sessionStats(session)}
-                      </Text>
-                      {session.dbPath && (
-                        <Text size="xs" c="dimmed" truncate>
-                          {session.dbPath.split(/[/\\]/).pop()?.replace(".db3", "")}
-                        </Text>
-                      )}
-                    </Stack>
-                    <Button
-                      size="sm"
-                      color="teal"
-                      variant="light"
-                      style={{ flexShrink: 0 }}
-                      onClick={() => {
-                        resumeSession(session);
-                        setResumePromptOpened(false);
-                      }}
-                    >
-                      {t("Puzzle.ResumeSession", "Resume")}
-                    </Button>
-                  </Group>
-                </Paper>
-              ))}
-            </Stack>
-          </ScrollArea.Autosize>
-          <Group justify="flex-end">
-            <Button variant="subtle" color="gray" onClick={() => setResumePromptOpened(false)}>
-              {t("Puzzle.NotNow", "Not now")}
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
-
       <Portal target="#left" style={{ height: "100%" }}>
         <PuzzleBoard
           key={currentPuzzle}
@@ -531,13 +586,18 @@ function Puzzles({ id }: { id: string }) {
             onConfirm={async () => {
               if (selectedDb) {
                 await commands.deletePuzzleDatabase(selectedDb);
-                setPuzzleDbs((dbs) => dbs.filter((db) => db.path !== selectedDb));
+                setPuzzleDbs((dbs) =>
+                  dbs.filter((db) => db.path !== selectedDb),
+                );
                 setSelectedDb(null);
                 setPuzzles([]);
                 setCurrentPuzzle(0);
                 reset();
                 setTimerStart(null);
                 setIsPlayingSolution(false);
+                puzzleDepthRef.current.clear();
+                autosaveRef.current = null;
+                commands.setPuzzleSessions(savedSessions);
               }
               setDeleteModalOpened(false);
             }}
@@ -602,7 +662,8 @@ function Puzzles({ id }: { id: string }) {
                       title="Puzzle database outdated"
                       color="yellow"
                     >
-                      This database does not support themes. Update to the latest puzzle DB.
+                      This database does not support themes. Update to the
+                      latest puzzle DB.
                     </Alert>
                   )}
                   <div>
@@ -640,20 +701,26 @@ function Puzzles({ id }: { id: string }) {
                       label={t("Puzzle.Progressive")}
                       description={t("Puzzle.Progressive.Desc")}
                       checked={progressive}
-                      onChange={(event) => setProgressive(event.currentTarget.checked)}
+                      onChange={(event) =>
+                        setProgressive(event.currentTarget.checked)
+                      }
                     />
                     <Switch
                       label={t("Puzzle.HideRating")}
                       description={t("Puzzle.HideRating.Desc")}
                       checked={hideRating}
-                      onChange={(event) => setHideRating(event.currentTarget.checked)}
+                      onChange={(event) =>
+                        setHideRating(event.currentTarget.checked)
+                      }
                     />
                     <Switch
                       label={t("Puzzle.JumpToNextPuzzleImmediately")}
                       description={t("Puzzle.JumpToNextPuzzleImmediately.Desc")}
                       checked={jumpToNextPuzzleImmediately}
                       onChange={(event) =>
-                        setJumpToNextPuzzleImmediately(event.currentTarget.checked)
+                        setJumpToNextPuzzleImmediately(
+                          event.currentTarget.checked,
+                        )
                       }
                     />
                     <Switch
@@ -680,7 +747,9 @@ function Puzzles({ id }: { id: string }) {
                 {t("Puzzle.Rating")}
               </Text>
               <Text fw={700} size="lg">
-                {isPuzzleIncomplete && hideRating && puzzles[currentPuzzle]?.rating
+                {isPuzzleIncomplete &&
+                hideRating &&
+                puzzles[currentPuzzle]?.rating
                   ? "?"
                   : puzzles[currentPuzzle]?.rating || "-"}
               </Text>
@@ -704,7 +773,13 @@ function Puzzles({ id }: { id: string }) {
               <Text
                 fw={700}
                 size="lg"
-                c={accuracy === null ? "dimmed" : accuracy >= 50 ? "teal" : "orange"}
+                c={
+                  accuracy === null
+                    ? "dimmed"
+                    : accuracy >= 50
+                      ? "teal"
+                      : "orange"
+                }
               >
                 {accuracy !== null ? `${accuracy}%` : "-"}
               </Text>
@@ -734,15 +809,16 @@ function Puzzles({ id }: { id: string }) {
             )}
           </Group>
           <Divider my="sm" />
-          {!isPuzzleIncomplete && (puzzles[currentPuzzle]?.themes?.length ?? 0) > 0 && (
-            <Group gap="xs" mb="sm">
-              {puzzles[currentPuzzle]?.themes?.map((theme) => (
-                <Badge key={theme} variant="light" size="sm">
-                  {formatThemeLabel(theme)}
-                </Badge>
-              ))}
-            </Group>
-          )}
+          {!isPuzzleIncomplete &&
+            (puzzles[currentPuzzle]?.themes?.length ?? 0) > 0 && (
+              <Group gap="xs" mb="sm">
+                {puzzles[currentPuzzle]?.themes?.map((theme) => (
+                  <Badge key={theme} variant="light" size="sm">
+                    {formatThemeLabel(theme)}
+                  </Badge>
+                ))}
+              </Group>
+            )}
           <Group justify="space-between">
             <Text fz="1.75rem" fw={500}>
               {!turnToMove
@@ -776,7 +852,8 @@ function Puzzles({ id }: { id: string }) {
                         ...defaultTree().headers,
                         fen: puzzles[currentPuzzle]?.fen,
                         orientation:
-                          parseFen(puzzles[currentPuzzle].fen).unwrap().turn === "white"
+                          parseFen(puzzles[currentPuzzle].fen).unwrap().turn ===
+                          "white"
                             ? "black"
                             : "white",
                       },
@@ -794,6 +871,11 @@ function Puzzles({ id }: { id: string }) {
                     reset();
                     setTimerStart(null);
                     setIsPlayingSolution(false);
+                    puzzleDepthRef.current.clear();
+                    // Remove the autosave so the cleared session is not
+                    // reloaded on the next startup
+                    autosaveRef.current = null;
+                    commands.setPuzzleSessions(savedSessions);
                   }}
                 >
                   <IconX />
@@ -827,27 +909,40 @@ function Puzzles({ id }: { id: string }) {
                 const currentShapes = store.getState().currentNode().shapes;
 
                 // Progressive hints: circle > arrow > clear
-                const hasCircle = currentShapes.some((s) => s.orig === from && !s.dest);
-                const hasArrow = currentShapes.some((s) => s.orig === from && s.dest === to);
+                const hasCircle = currentShapes.some(
+                  (s) => s.orig === from && !s.dest,
+                );
+                const hasArrow = currentShapes.some(
+                  (s) => s.orig === from && s.dest === to,
+                );
 
                 if (hasArrow) {
                   // Third click: Remove all hint shapes for this move
                   setShapes(
-                    currentShapes.filter((s) => !(s.orig === from && (!s.dest || s.dest === to))),
+                    currentShapes.filter(
+                      (s) => !(s.orig === from && (!s.dest || s.dest === to)),
+                    ),
                   );
                 } else if (hasCircle) {
                   // Second click: Replace circle with arrow
                   setShapes([
-                    ...currentShapes.filter((s) => !(s.orig === from && !s.dest)),
+                    ...currentShapes.filter(
+                      (s) => !(s.orig === from && !s.dest),
+                    ),
                     { orig: from, dest: to, brush: "green" },
                   ]);
                 } else {
                   // First click: Add circle
-                  setShapes([...currentShapes, { orig: from, dest: undefined, brush: "green" }]);
+                  setShapes([
+                    ...currentShapes,
+                    { orig: from, dest: undefined, brush: "green" },
+                  ]);
                 }
               }}
               disabled={
-                puzzles.length === 0 || currentlyOnLastMoveOrNoLastMove() || isPlayingSolution
+                puzzles.length === 0 ||
+                currentlyOnLastMoveOrNoLastMove() ||
+                isPlayingSolution
               }
             >
               {t("Puzzle.GetAHint")}
@@ -896,10 +991,13 @@ function Puzzles({ id }: { id: string }) {
                 current={currentPuzzle}
                 select={(i) => {
                   if (i === currentPuzzle) return;
+                  // Save where the user was in the current puzzle before leaving
+                  puzzleDepthRef.current.set(currentPuzzle, position.length);
                   solutionAbortRef.current?.abort();
                   setIsPlayingSolution(false);
                   setCurrentPuzzle(i);
-                  setPuzzle(puzzles[i]);
+                  // Restore the board to the depth last visited for puzzle i
+                  navigateToPuzzle(i, puzzles[i]);
                   if (puzzles[i].completion === "incomplete") {
                     setTimerStart(Date.now() - (puzzles[i].timeSpent || 0));
                   } else {
