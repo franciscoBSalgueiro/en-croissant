@@ -33,11 +33,7 @@ import { useAtom, useSetAtom } from "jotai";
 import { useContext, useEffect, useRef, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
-import {
-  commands,
-  type PuzzleDatabaseInfo,
-  type SavedPuzzleSession,
-} from "@/bindings";
+import { commands, type PuzzleDatabaseInfo, type SavedPuzzleSession } from "@/bindings";
 import {
   activeTabAtom,
   currentPuzzleTimerAtom,
@@ -107,9 +103,7 @@ function Puzzles({ id }: { id: string }) {
   const [availableThemes, setAvailableThemes] = useState<string[]>([]);
   const [themesTableMissing, setThemesTableMissing] = useState(false);
   const effectiveSelectedTheme =
-    selectedTheme && availableThemes.includes(selectedTheme)
-      ? selectedTheme
-      : null;
+    selectedTheme && availableThemes.includes(selectedTheme) ? selectedTheme : null;
 
   useEffect(() => {
     setThemesTableMissing(false);
@@ -127,10 +121,7 @@ function Puzzles({ id }: { id: string }) {
 
       setAvailableThemes([]);
 
-      if (
-        typeof res.error === "string" &&
-        res.error.includes("no such table")
-      ) {
+      if (typeof res.error === "string" && res.error.includes("no such table")) {
         setThemesTableMissing(true);
       }
     });
@@ -144,9 +135,7 @@ function Puzzles({ id }: { id: string }) {
 
   const totalCompleted = wonPuzzles.length + lostPuzzles.length;
   const accuracy =
-    totalCompleted > 0
-      ? Math.round((wonPuzzles.length / totalCompleted) * 100)
-      : null;
+    totalCompleted > 0 ? Math.round((wonPuzzles.length / totalCompleted) * 100) : null;
 
   let currentStreak = 0;
   for (let i = puzzles.length - 1; i >= 0; i--) {
@@ -156,9 +145,7 @@ function Puzzles({ id }: { id: string }) {
 
   const avgTimeSeconds =
     wonPuzzles.length > 0
-      ? wonPuzzles.reduce((acc, p) => acc + (p.timeSpent || 0), 0) /
-        wonPuzzles.length /
-        1000
+      ? wonPuzzles.reduce((acc, p) => acc + (p.timeSpent || 0), 0) / wonPuzzles.length / 1000
       : 0;
 
   const [isPlayingSolution, setIsPlayingSolution] = useState(false);
@@ -229,10 +216,7 @@ function Puzzles({ id }: { id: string }) {
 
           setPuzzles(puzzleList);
 
-          const safeIndex = Math.min(
-            autosave.currentPuzzle,
-            puzzleList.length - 1,
-          );
+          const safeIndex = Math.min(Number(autosave.currentPuzzle), puzzleList.length - 1);
 
           setCurrentPuzzle(safeIndex);
 
@@ -254,14 +238,10 @@ function Puzzles({ id }: { id: string }) {
   }, []);
 
   async function generatePuzzle(db: string, force: boolean = false) {
-    let nextIndex = puzzles.findIndex(
-      (p, i) => i > currentPuzzle && p.completion === "incomplete",
-    );
+    let nextIndex = puzzles.findIndex((p, i) => i > currentPuzzle && p.completion === "incomplete");
 
     if (nextIndex === -1) {
-      nextIndex = puzzles.findIndex(
-        (p, i) => i < currentPuzzle && p.completion === "incomplete",
-      );
+      nextIndex = puzzles.findIndex((p, i) => i < currentPuzzle && p.completion === "incomplete");
     }
 
     if (nextIndex !== -1 && !force) {
@@ -289,12 +269,7 @@ function Puzzles({ id }: { id: string }) {
       }
     }
 
-    const res = await commands.getPuzzle(
-      db,
-      range[0],
-      range[1],
-      effectiveSelectedTheme,
-    );
+    const res = await commands.getPuzzle(db, range[0], range[1], effectiveSelectedTheme);
 
     const puzzle = unwrap(res);
     const newPuzzle: Puzzle = {
@@ -345,9 +320,7 @@ function Puzzles({ id }: { id: string }) {
     setSavedSessions(updated);
     // Always keep the autosave slot alongside named sessions so it is not lost
     // when the user saves, renames, or deletes a named session.
-    const allSessions = autosaveRef.current
-      ? [autosaveRef.current, ...updated]
-      : updated;
+    const allSessions = autosaveRef.current ? [autosaveRef.current, ...updated] : updated;
     commands.setPuzzleSessions(allSessions);
   }
 
@@ -361,9 +334,9 @@ function Puzzles({ id }: { id: string }) {
     const newSession: SavedPuzzleSession = {
       id: crypto.randomUUID(),
       name,
-      savedAt: Date.now(),
+      savedAt: BigInt(Date.now()),
       puzzles: puzzles.map(toSessionPuzzle),
-      currentPuzzle,
+      currentPuzzle: BigInt(currentPuzzle),
       dbPath: selectedDb,
     };
     persistSessions([newSession, ...savedSessions]);
@@ -375,8 +348,8 @@ function Puzzles({ id }: { id: string }) {
     puzzleDepthRef.current.clear();
     const puzzleList = session.puzzles.map(fromSessionPuzzle);
     setPuzzles(puzzleList);
-    setCurrentPuzzle(session.currentPuzzle);
-    const puzzle = puzzleList[session.currentPuzzle];
+    setCurrentPuzzle(Number(session.currentPuzzle));
+    const puzzle = puzzleList[Number(session.currentPuzzle)];
     if (puzzle) {
       setPuzzle(puzzle);
       if (trackTime && puzzle.completion === "incomplete") {
@@ -392,11 +365,7 @@ function Puzzles({ id }: { id: string }) {
   }
 
   function renameSession(sessionId: string, newName: string) {
-    persistSessions(
-      savedSessions.map((s) =>
-        s.id === sessionId ? { ...s, name: newName } : s,
-      ),
-    );
+    persistSessions(savedSessions.map((s) => (s.id === sessionId ? { ...s, name: newName } : s)));
   }
 
   function overwriteSession(sessionId: string) {
@@ -405,9 +374,9 @@ function Puzzles({ id }: { id: string }) {
         s.id === sessionId
           ? {
               ...s,
-              savedAt: Date.now(),
+              savedAt: BigInt(Date.now()),
               puzzles: puzzles.map(toSessionPuzzle),
-              currentPuzzle,
+              currentPuzzle: BigInt(currentPuzzle),
               dbPath: selectedDb,
             }
           : s,
@@ -439,9 +408,9 @@ function Puzzles({ id }: { id: string }) {
       const autosave: SavedPuzzleSession = {
         id: AUTO_SAVE_SESSION_ID,
         name: "Autosave",
-        savedAt: Date.now(),
+        savedAt: BigInt(Date.now()),
         puzzles: puzzles.map(toSessionPuzzle),
-        currentPuzzle,
+        currentPuzzle: BigInt(currentPuzzle),
         dbPath: selectedDb,
       };
       autosaveRef.current = autosave;
@@ -454,21 +423,14 @@ function Puzzles({ id }: { id: string }) {
   }, [puzzles, currentPuzzle, selectedDb, sessionsChecked, savedSessions]);
 
   const [, setTick] = useState(0);
-  const isPuzzleIncomplete =
-    puzzles[currentPuzzle]?.completion === "incomplete";
+  const isPuzzleIncomplete = puzzles[currentPuzzle]?.completion === "incomplete";
   const elapsedTime =
     timerStart && isPuzzleIncomplete && trackTime
       ? Date.now() - timerStart
       : puzzles[currentPuzzle]?.timeSpent || 0;
 
   useEffect(() => {
-    if (
-      !sessionsChecked ||
-      !trackTime ||
-      !isPuzzleIncomplete ||
-      timerStart !== null
-    )
-      return;
+    if (!sessionsChecked || !trackTime || !isPuzzleIncomplete || timerStart !== null) return;
     setTimerStart(Date.now() - (puzzles[currentPuzzle]?.timeSpent || 0));
   }, [
     sessionsChecked,
@@ -527,8 +489,7 @@ function Puzzles({ id }: { id: string }) {
     const curPuzzle = puzzles[currentPuzzle];
     if (!curPuzzle || !currentMove) return;
 
-    const indexOfNextMoveToPlay =
-      curPuzzle.moves.indexOf(makeUci(currentMove)) + 1;
+    const indexOfNextMoveToPlay = curPuzzle.moves.indexOf(makeUci(currentMove)) + 1;
     const nextMoveUci = curPuzzle.moves[indexOfNextMoveToPlay];
     if (!nextMoveUci) return;
 
@@ -586,9 +547,7 @@ function Puzzles({ id }: { id: string }) {
             onConfirm={async () => {
               if (selectedDb) {
                 await commands.deletePuzzleDatabase(selectedDb);
-                setPuzzleDbs((dbs) =>
-                  dbs.filter((db) => db.path !== selectedDb),
-                );
+                setPuzzleDbs((dbs) => dbs.filter((db) => db.path !== selectedDb));
                 setSelectedDb(null);
                 setPuzzles([]);
                 setCurrentPuzzle(0);
@@ -662,8 +621,7 @@ function Puzzles({ id }: { id: string }) {
                       title="Puzzle database outdated"
                       color="yellow"
                     >
-                      This database does not support themes. Update to the
-                      latest puzzle DB.
+                      This database does not support themes. Update to the latest puzzle DB.
                     </Alert>
                   )}
                   <div>
@@ -701,26 +659,20 @@ function Puzzles({ id }: { id: string }) {
                       label={t("Puzzle.Progressive")}
                       description={t("Puzzle.Progressive.Desc")}
                       checked={progressive}
-                      onChange={(event) =>
-                        setProgressive(event.currentTarget.checked)
-                      }
+                      onChange={(event) => setProgressive(event.currentTarget.checked)}
                     />
                     <Switch
                       label={t("Puzzle.HideRating")}
                       description={t("Puzzle.HideRating.Desc")}
                       checked={hideRating}
-                      onChange={(event) =>
-                        setHideRating(event.currentTarget.checked)
-                      }
+                      onChange={(event) => setHideRating(event.currentTarget.checked)}
                     />
                     <Switch
                       label={t("Puzzle.JumpToNextPuzzleImmediately")}
                       description={t("Puzzle.JumpToNextPuzzleImmediately.Desc")}
                       checked={jumpToNextPuzzleImmediately}
                       onChange={(event) =>
-                        setJumpToNextPuzzleImmediately(
-                          event.currentTarget.checked,
-                        )
+                        setJumpToNextPuzzleImmediately(event.currentTarget.checked)
                       }
                     />
                     <Switch
@@ -747,9 +699,7 @@ function Puzzles({ id }: { id: string }) {
                 {t("Puzzle.Rating")}
               </Text>
               <Text fw={700} size="lg">
-                {isPuzzleIncomplete &&
-                hideRating &&
-                puzzles[currentPuzzle]?.rating
+                {isPuzzleIncomplete && hideRating && puzzles[currentPuzzle]?.rating
                   ? "?"
                   : puzzles[currentPuzzle]?.rating || "-"}
               </Text>
@@ -773,13 +723,7 @@ function Puzzles({ id }: { id: string }) {
               <Text
                 fw={700}
                 size="lg"
-                c={
-                  accuracy === null
-                    ? "dimmed"
-                    : accuracy >= 50
-                      ? "teal"
-                      : "orange"
-                }
+                c={accuracy === null ? "dimmed" : accuracy >= 50 ? "teal" : "orange"}
               >
                 {accuracy !== null ? `${accuracy}%` : "-"}
               </Text>
@@ -809,16 +753,15 @@ function Puzzles({ id }: { id: string }) {
             )}
           </Group>
           <Divider my="sm" />
-          {!isPuzzleIncomplete &&
-            (puzzles[currentPuzzle]?.themes?.length ?? 0) > 0 && (
-              <Group gap="xs" mb="sm">
-                {puzzles[currentPuzzle]?.themes?.map((theme) => (
-                  <Badge key={theme} variant="light" size="sm">
-                    {formatThemeLabel(theme)}
-                  </Badge>
-                ))}
-              </Group>
-            )}
+          {!isPuzzleIncomplete && (puzzles[currentPuzzle]?.themes?.length ?? 0) > 0 && (
+            <Group gap="xs" mb="sm">
+              {puzzles[currentPuzzle]?.themes?.map((theme) => (
+                <Badge key={theme} variant="light" size="sm">
+                  {formatThemeLabel(theme)}
+                </Badge>
+              ))}
+            </Group>
+          )}
           <Group justify="space-between">
             <Text fz="1.75rem" fw={500}>
               {!turnToMove
@@ -852,8 +795,7 @@ function Puzzles({ id }: { id: string }) {
                         ...defaultTree().headers,
                         fen: puzzles[currentPuzzle]?.fen,
                         orientation:
-                          parseFen(puzzles[currentPuzzle].fen).unwrap().turn ===
-                          "white"
+                          parseFen(puzzles[currentPuzzle].fen).unwrap().turn === "white"
                             ? "black"
                             : "white",
                       },
@@ -909,40 +851,27 @@ function Puzzles({ id }: { id: string }) {
                 const currentShapes = store.getState().currentNode().shapes;
 
                 // Progressive hints: circle > arrow > clear
-                const hasCircle = currentShapes.some(
-                  (s) => s.orig === from && !s.dest,
-                );
-                const hasArrow = currentShapes.some(
-                  (s) => s.orig === from && s.dest === to,
-                );
+                const hasCircle = currentShapes.some((s) => s.orig === from && !s.dest);
+                const hasArrow = currentShapes.some((s) => s.orig === from && s.dest === to);
 
                 if (hasArrow) {
                   // Third click: Remove all hint shapes for this move
                   setShapes(
-                    currentShapes.filter(
-                      (s) => !(s.orig === from && (!s.dest || s.dest === to)),
-                    ),
+                    currentShapes.filter((s) => !(s.orig === from && (!s.dest || s.dest === to))),
                   );
                 } else if (hasCircle) {
                   // Second click: Replace circle with arrow
                   setShapes([
-                    ...currentShapes.filter(
-                      (s) => !(s.orig === from && !s.dest),
-                    ),
+                    ...currentShapes.filter((s) => !(s.orig === from && !s.dest)),
                     { orig: from, dest: to, brush: "green" },
                   ]);
                 } else {
                   // First click: Add circle
-                  setShapes([
-                    ...currentShapes,
-                    { orig: from, dest: undefined, brush: "green" },
-                  ]);
+                  setShapes([...currentShapes, { orig: from, dest: undefined, brush: "green" }]);
                 }
               }}
               disabled={
-                puzzles.length === 0 ||
-                currentlyOnLastMoveOrNoLastMove() ||
-                isPlayingSolution
+                puzzles.length === 0 || currentlyOnLastMoveOrNoLastMove() || isPlayingSolution
               }
             >
               {t("Puzzle.GetAHint")}

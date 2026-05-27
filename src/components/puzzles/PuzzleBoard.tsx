@@ -153,8 +153,7 @@ function PuzzleBoard({
           }}
           movable={{
             free: false,
-            color:
-              puzzle && equal(position, Array(currentMove).fill(0)) ? turn : undefined,
+            color: puzzle && equal(position, Array(currentMove).fill(0)) ? turn : undefined,
             dests: dests,
             events: {
               after: (orig, dest) => {
