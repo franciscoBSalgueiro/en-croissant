@@ -52,7 +52,7 @@ export function toSessionPuzzle(p: Puzzle): SessionPuzzle {
         popularity: p.popularity,
         nbPlays: p.nb_plays,
         completion: p.completion,
-        timeSpent: p.timeSpent !== undefined ? BigInt(p.timeSpent) : null,
+        timeSpent: p.timeSpent !== undefined ? p.timeSpent : null,
         themes: p.themes ?? null,
     };
 }
@@ -68,7 +68,7 @@ export function fromSessionPuzzle(p: SessionPuzzle): Puzzle {
         popularity: p.popularity,
         nb_plays: p.nbPlays,
         completion: p.completion as Completion,
-        timeSpent: p.timeSpent !== null ? Number(p.timeSpent) : undefined,
+        timeSpent: p.timeSpent !== null ? p.timeSpent : undefined,
         themes: p.themes ?? undefined,
     };
 }

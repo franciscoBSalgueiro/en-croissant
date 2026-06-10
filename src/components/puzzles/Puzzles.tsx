@@ -334,9 +334,9 @@ function Puzzles({ id }: { id: string }) {
     const newSession: SavedPuzzleSession = {
       id: crypto.randomUUID(),
       name,
-      savedAt: BigInt(Date.now()),
+      savedAt: Date.now(),
       puzzles: puzzles.map(toSessionPuzzle),
-      currentPuzzle: BigInt(currentPuzzle),
+      currentPuzzle: currentPuzzle,
       dbPath: selectedDb,
     };
     persistSessions([newSession, ...savedSessions]);
@@ -348,8 +348,8 @@ function Puzzles({ id }: { id: string }) {
     puzzleDepthRef.current.clear();
     const puzzleList = session.puzzles.map(fromSessionPuzzle);
     setPuzzles(puzzleList);
-    setCurrentPuzzle(Number(session.currentPuzzle));
-    const puzzle = puzzleList[Number(session.currentPuzzle)];
+    setCurrentPuzzle(session.currentPuzzle);
+    const puzzle = puzzleList[session.currentPuzzle];
     if (puzzle) {
       setPuzzle(puzzle);
       if (trackTime && puzzle.completion === "incomplete") {
@@ -374,9 +374,9 @@ function Puzzles({ id }: { id: string }) {
         s.id === sessionId
           ? {
               ...s,
-              savedAt: BigInt(Date.now()),
+              savedAt: Date.now(),
               puzzles: puzzles.map(toSessionPuzzle),
-              currentPuzzle: BigInt(currentPuzzle),
+              currentPuzzle: currentPuzzle,
               dbPath: selectedDb,
             }
           : s,
@@ -408,9 +408,9 @@ function Puzzles({ id }: { id: string }) {
       const autosave: SavedPuzzleSession = {
         id: AUTO_SAVE_SESSION_ID,
         name: "Autosave",
-        savedAt: BigInt(Date.now()),
+        savedAt: Date.now(),
         puzzles: puzzles.map(toSessionPuzzle),
-        currentPuzzle: BigInt(currentPuzzle),
+        currentPuzzle: currentPuzzle,
         dbPath: selectedDb,
       };
       autosaveRef.current = autosave;

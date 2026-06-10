@@ -55,8 +55,8 @@ function sessionStats(session: SavedPuzzleSession): string {
   return parts.join(" · ");
 }
 
-function formatSavedAt(timestamp: bigint): string {
-  return new Date(Number(timestamp)).toLocaleString(undefined, {
+function formatSavedAt(timestamp: number): string {
+  return new Date(timestamp).toLocaleString(undefined, {
     month: "short",
     day: "numeric",
     hour: "2-digit",

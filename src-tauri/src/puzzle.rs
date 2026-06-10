@@ -166,7 +166,7 @@ pub struct SessionPuzzle {
     pub popularity: i32,
     pub nb_plays: i32,
     pub completion: String,
-    pub time_spent: Option<i64>,
+    pub time_spent: Option<f64>,
     pub themes: Option<Vec<String>>,
 }
 
@@ -175,9 +175,9 @@ pub struct SessionPuzzle {
 pub struct SavedPuzzleSession {
     pub id: String,
     pub name: String,
-    pub saved_at: i64,
+    pub saved_at: f64,
     pub puzzles: Vec<SessionPuzzle>,
-    pub current_puzzle: usize,
+    pub current_puzzle: u32,
     pub db_path: Option<String>,
 }
 
