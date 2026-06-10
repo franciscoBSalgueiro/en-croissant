@@ -547,7 +547,7 @@ export type Puzzle = { id: number; fen: string; moves: string; rating: number; r
 export type PuzzleDatabaseInfo = { title: string; description: string; puzzleCount: number; storageSize: bigint; path: string }
 export type QueryOptions<SortT> = { skipCount: boolean; page?: number | null; pageSize?: number | null; sort: SortT; direction: SortDirection }
 export type QueryResponse<T> = { data: T; count: number | null }
-export type SavedPuzzleSession = { id: string; name: string; savedAt: bigint; puzzles: SessionPuzzle[]; currentPuzzle: bigint; dbPath: string | null }
+export type SavedPuzzleSession = { id: string; name: string; savedAt: number; puzzles: SessionPuzzle[]; currentPuzzle: number; dbPath: string | null }
 export type Score = { value: ScoreValue; 
 /**
  * The probability of each result (win, draw, loss).
@@ -566,7 +566,7 @@ export type ScoreValue =
  * A puzzle enriched with session state (completion, time, themes).
  * Stored in `puzzle-sessions.json` in the app data directory.
  */
-export type SessionPuzzle = { id: number; fen: string; moves: string[]; rating: number; ratingDeviation: number; popularity: number; nbPlays: number; completion: string; timeSpent: bigint | null; themes: string[] | null }
+export type SessionPuzzle = { id: number; fen: string; moves: string[]; rating: number; ratingDeviation: number; popularity: number; nbPlays: number; completion: string; timeSpent: number | null; themes: string[] | null }
 export type Sides = "BlackWhite" | "WhiteBlack" | "Any"
 export type SiteStatsData = { site: string; player: string; data: StatsData[] }
 export type SortDirection = "asc" | "desc"
