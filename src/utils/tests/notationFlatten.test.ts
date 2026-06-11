@@ -1,5 +1,10 @@
 import { expect, test } from "vitest";
-import { findRowIndex, flattenNotation, flattenTableNotation } from "../notationFlatten";
+import {
+    filterCollapsedRows,
+    findRowIndex,
+    flattenNotation,
+    flattenTableNotation,
+} from "../notationFlatten";
 import { type TreeNode, treeIterator } from "../treeReducer";
 
 let fenCounter = 0;
@@ -419,4 +424,65 @@ test("line rows carry first:true for variation/mainline starts and false for mai
         { type: "line", paths: [[0, 1]], first: true }, // c5 (variation start)
         { type: "line", paths: [[0, 0, 0]], first: false }, // Nf3 (mainline resumes)
     ]);
+});
+
+test("the first line of a variation group carries branchHead = the branch point path", () => {
+    // root -> e4 -> [e5 -> Nf3, c5]  (branch at [0]; first variation c5 at [0,1])
+    const root = mk(null, [
+        mk(
+            "e4",
+            [
+                mk("e5", [mk("Nf3", [], { halfMoves: 3 })], { halfMoves: 2 }),
+                mk("c5", [], { halfMoves: 2 }),
+            ],
+            { halfMoves: 1 },
+        ),
+    ]);
+
+    const rows = flattenNotation(root, opts);
+    const variationLine = rows.find((r) => r.type === "line" && r.paths[0].join(",") === "0,1");
+    const mainLine = rows.find((r) => r.type === "line" && r.paths[0].join(",") === "0");
+
+    expect(variationLine).toMatchObject({ branchHead: [0] });
+    expect((mainLine as { branchHead?: number[] }).branchHead).toBeUndefined();
+});
+
+test("filterCollapsedRows hides nested variation rows but keeps the branch head and the mainline", () => {
+    // root -> e4 -> [e5 -> Nf3, c5 -> [Nc3, e6]]
+    const root = mk(null, [
+        mk(
+            "e4",
+            [
+                mk("e5", [mk("Nf3", [], { halfMoves: 3 })], { halfMoves: 2 }),
+                mk("c5", [mk("Nc3", [], { halfMoves: 3 }), mk("e6", [], { halfMoves: 3 })], {
+                    halfMoves: 2,
+                }),
+            ],
+            { halfMoves: 1 },
+        ),
+    ]);
+
+    const rows = flattenNotation(root, opts);
+    const visible = filterCollapsedRows(rows, new Set(["0"])); // collapse the branch at [0]
+    const lineKeys = visible
+        .filter((r) => r.type === "line")
+        .map((r) => (r.type === "line" ? r.paths[0].join(",") : ""));
+
+    expect(lineKeys).toContain("0"); // mainline e4 e5
+    expect(lineKeys).toContain("0,1"); // head (c5 Nc3) kept, rendered collapsed
+    expect(lineKeys).toContain("0,0,0"); // mainline Nf3 resumes
+    expect(lineKeys).not.toContain("0,1,1"); // e6 sub-variation hidden
+});
+
+test("filterCollapsedRows with an empty set returns the rows unchanged", () => {
+    const root = mk(null, [
+        mk(
+            "e4",
+            [mk("e5", [], { halfMoves: 2 }), mk("c5", [], { halfMoves: 2 })],
+            { halfMoves: 1 },
+        ),
+    ]);
+    const rows = flattenNotation(root, opts);
+
+    expect(filterCollapsedRows(rows, new Set())).toEqual(rows);
 });

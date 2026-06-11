@@ -8,6 +8,9 @@ export type NotationLineRow = {
     // renderer: true for the first move of a variation and the very first mainline move; false
     // for a mainline that resumes after a variation, where a black move shows no number).
     first: boolean;
+    // Set on the first line of a variation group: the branch-point path the variations alternate
+    // at. Carries the collapse (+/-) control and is what filterCollapsedRows keys collapse on.
+    branchHead?: number[];
     paths: number[][];
 };
 
@@ -65,6 +68,51 @@ export function findRowIndex(rows: TableNotationRow[], path: number[]): number {
     return -1;
 }
 
+// True when `fp` sits inside a variation branching at `branch`: strictly deeper than `branch` and
+// the index right after `branch` selects a sibling variation (>= 1), not the mainline child (0).
+function isUnderVariation(fp: number[], branch: number[]): boolean {
+    if (fp.length <= branch.length) return false;
+    for (let i = 0; i < branch.length; i++) {
+        if (fp[i] !== branch[i]) return false;
+    }
+    return fp[branch.length] >= 1;
+}
+
+function rowFilterPath(row: TableNotationRow): number[] | null {
+    switch (row.type) {
+        case "line":
+            return row.paths[0];
+        case "comment":
+            return row.path;
+        case "pair":
+            return row.whitePath ?? row.blackPath;
+        default:
+            return null;
+    }
+}
+
+// Drop rows hidden under a collapsed variation. `collapsed` holds branch-point path keys
+// (path.join(",")). A row is hidden when it is inside a collapsed branch's variation — except that
+// branch's own head line (whose branchHead equals it), which stays so its +/- control can render.
+export function filterCollapsedRows<R extends TableNotationRow>(
+    rows: R[],
+    collapsed: Set<string>,
+): R[] {
+    if (collapsed.size === 0) return rows;
+    return rows.filter((row) => {
+        const fp = rowFilterPath(row);
+        if (!fp) return true;
+        const headKey = row.type === "line" && row.branchHead ? row.branchHead.join(",") : null;
+        for (const key of collapsed) {
+            const branch = key === "" ? [] : key.split(",").map(Number);
+            if (key !== headKey && isUnderVariation(fp, branch)) {
+                return false;
+            }
+        }
+        return true;
+    });
+}
+
 // Walk the mainline from `startPath` (following children[0]) accumulating moves into a single
 // flowing line, appending line/comment rows to `rows`. Mirrors RenderVariationTree: at a node,
 // children[0] is the next mainline move and children[1..] are sibling variations. A branch
@@ -79,9 +127,11 @@ function emitLines(
     startPath: number[],
     depth: number,
     initialLine: number[][],
+    branchHead?: number[],
 ) {
     // The first non-empty line in this walk is the variation/mainline start (its first move
-    // always shows a number); later lines are continuations after a sub-variation.
+    // always shows a number); later lines are continuations after a sub-variation. The very first
+    // line of a variation group also carries `branchHead` (the collapse control anchor).
     let isFirstLine = true;
     const flushLine = (paths: number[][]) => {
         if (paths.length === 0) return;
@@ -91,6 +141,7 @@ function emitLines(
             depth,
             first: isFirstLine,
             paths,
+            ...(isFirstLine && branchHead ? { branchHead } : {}),
         });
         isFirstLine = false;
     };
@@ -115,8 +166,17 @@ function emitLines(
         }
         if (opts.showVariations && node.children.length > 1) {
             flushLine(line);
+            // The branch point is `path`; the first variation line anchors its +/- collapse control.
             for (let i = 1; i < node.children.length; i++) {
-                emitLines(root, opts, rows, [...path, i], depth + 1, [[...path, i]]);
+                emitLines(
+                    root,
+                    opts,
+                    rows,
+                    [...path, i],
+                    depth + 1,
+                    [[...path, i]],
+                    i === 1 ? path : undefined,
+                );
             }
             line = [];
         }
