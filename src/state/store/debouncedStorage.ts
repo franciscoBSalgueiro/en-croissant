@@ -1,4 +1,22 @@
+import { compressToUTF16, decompressFromUTF16 } from "lz-string";
 import { type PersistStorage, type StorageValue } from "zustand/middleware";
+
+// Tree state is persisted compressed. A ~6,600-node game serializes to ~1.5MB of JSON, which
+// fills the ~5MB sessionStorage quota after a couple of tabs. compressToUTF16 shrinks it ~5x
+// with an exact (lossless) round-trip and stays synchronous (no async hydration / flash). The
+// seed writes in createTab / ImportModal use these same helpers so the store reads them back.
+export function serializeStorageValue(value: unknown): string {
+    return compressToUTF16(JSON.stringify(value));
+}
+
+export function deserializeStorageValue<T>(stored: string): T | null {
+    try {
+        const json = decompressFromUTF16(stored);
+        return json ? (JSON.parse(json) as T) : null;
+    } catch {
+        return null;
+    }
+}
 
 const DEBOUNCE_MS = 300;
 const pendingWrites = new Map<string, StorageValue<unknown>>();
@@ -12,7 +30,7 @@ function flush() {
     }
 
     for (const [name, value] of pendingWrites) {
-        sessionStorage.setItem(name, JSON.stringify(value));
+        sessionStorage.setItem(name, serializeStorageValue(value));
     }
 
     pendingWrites.clear();
@@ -60,7 +78,7 @@ export function createDebouncedSessionStorage<S>(delay = DEBOUNCE_MS): PersistSt
             }
 
             const stored = sessionStorage.getItem(name);
-            return stored ? (JSON.parse(stored) as StorageValue<S>) : null;
+            return stored ? deserializeStorageValue<StorageValue<S>>(stored) : null;
         },
         setItem: (name, value) => {
             pendingWrites.set(name, value as StorageValue<unknown>);
