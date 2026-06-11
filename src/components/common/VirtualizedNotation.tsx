@@ -2,7 +2,7 @@ import { Box, Overlay, ScrollArea, Text } from "@mantine/core";
 import { useColorScheme } from "@mantine/hooks";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useAtomValue } from "jotai";
-import { useContext, useEffect, useRef } from "react";
+import { type ReactNode, useContext, useEffect, useRef } from "react";
 import { useStore } from "zustand";
 import Comment from "@/components/common/Comment";
 import CompleteMoveCell from "@/components/common/CompleteMoveCell";
@@ -25,7 +25,6 @@ import styles from "./GameNotation.module.css";
 // mainline is split into several windowed rows instead of one huge row.
 const MAX_LINE_PLIES = 40;
 const ESTIMATED_ROW_HEIGHT = 28;
-const INDENT_PX = 12;
 
 type DisplayRow =
   | TableNotationRow
@@ -80,6 +79,18 @@ function PairRow({
   );
 }
 
+// Re-create the nested variation "swimlanes". Because rows are windowed (there is no wrapping
+// container spanning a whole variation), each row paints its full set of ancestor depth guides;
+// rows are vertically flush and the vertical padding lives inside the guides, so the left borders
+// connect into continuous lanes across consecutive rows.
+function Lanes({ depth, children }: { depth: number; children: ReactNode }) {
+  let node = children;
+  for (let d = 0; d < depth; d++) {
+    node = <div className={styles.variationBorder}>{node}</div>;
+  }
+  return <>{node}</>;
+}
+
 function LineRow({
   row,
   root,
@@ -90,29 +101,28 @@ function LineRow({
   showComments: boolean;
 }) {
   return (
-    <Box
-      className={row.depth > 0 ? styles.variationBorder : undefined}
-      style={{ marginLeft: row.depth * INDENT_PX }}
-      px="sm"
-      pt="md"
-    >
-      {row.paths.map((path, i) => {
-        const node = getNodeAtPath(root, path);
-        return (
-          <CompleteMoveCell
-            key={path.join(",")}
-            movePath={path}
-            halfMoves={node.halfMoves}
-            move={node.san}
-            fen={node.fen}
-            // multi-line comments render as their own row; only inline (single-line) ones stay on the move
-            comment={isMultilineComment(node.comment) ? "" : node.comment}
-            annotations={node.annotations}
-            showComments={showComments}
-            first={i === 0 && row.first}
-          />
-        );
-      })}
+    <Box px="sm">
+      <Lanes depth={row.depth}>
+        <Box pt={4}>
+          {row.paths.map((path, i) => {
+            const node = getNodeAtPath(root, path);
+            return (
+              <CompleteMoveCell
+                key={path.join(",")}
+                movePath={path}
+                halfMoves={node.halfMoves}
+                move={node.san}
+                fen={node.fen}
+                // multi-line comments render as their own row; only inline (single-line) ones stay on the move
+                comment={isMultilineComment(node.comment) ? "" : node.comment}
+                annotations={node.annotations}
+                showComments={showComments}
+                first={i === 0 && row.first}
+              />
+            );
+          })}
+        </Box>
+      </Lanes>
     </Box>
   );
 }
@@ -146,13 +156,12 @@ function NotationRowView({
   }
   if (row.type === "comment") {
     return (
-      <Box
-        className={row.depth > 0 ? styles.variationBorder : undefined}
-        style={{ marginLeft: row.depth * INDENT_PX }}
-        px="sm"
-        fz="sm"
-      >
-        <Comment comment={row.comment} />
+      <Box px="sm" fz="sm">
+        <Lanes depth={row.depth}>
+          <Box pt={4}>
+            <Comment comment={row.comment} />
+          </Box>
+        </Lanes>
       </Box>
     );
   }
