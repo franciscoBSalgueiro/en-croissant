@@ -120,7 +120,14 @@ export async function createTab({
                 tree.position = position;
             }
         }
-        sessionStorage.setItem(id, JSON.stringify({ version: 0, state: tree }));
+        try {
+            sessionStorage.setItem(id, JSON.stringify({ version: 0, state: tree }));
+        } catch (e) {
+            throw new Error(
+                "Could not open the game: the browser's session storage is full. Close some open tabs and try again.",
+                { cause: e },
+            );
+        }
     }
 
     setTabs((prev) => {
