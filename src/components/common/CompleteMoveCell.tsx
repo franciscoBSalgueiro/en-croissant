@@ -77,7 +77,7 @@ function CompleteMoveCell({
   fen?: string;
   first?: boolean;
   movePath: number[];
-  targetRef: React.RefObject<HTMLSpanElement | null>;
+  targetRef?: React.RefObject<HTMLSpanElement | null>;
   tableLayout?: boolean;
   scoreText?: string;
 }) {
