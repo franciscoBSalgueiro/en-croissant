@@ -113,6 +113,8 @@ function CompleteMoveCell({
     <>
       <Box
         ref={isCurrentVariation ? targetRef : undefined}
+        // marks the active move so the virtualized list can scroll the exact cell into view
+        data-current-move={isCurrentVariation ? true : undefined}
         component="span"
         style={{
           display: tableLayout ? "block" : "inline-block",

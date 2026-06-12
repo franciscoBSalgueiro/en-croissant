@@ -249,17 +249,39 @@ function VirtualizedNotation({ invisible }: { invisible?: boolean }) {
     getScrollElement: () => parentRef.current,
     estimateSize: () => ESTIMATED_ROW_HEIGHT,
     overscan: 16,
+    // Track measured heights by row identity, not index, so toggling comments / variations / table
+    // view / collapse (which adds, removes, or resizes rows) never reuses a stale neighbour height.
+    getItemKey: (index) => rows[index].key,
   });
 
+  // A toggle can also change a row's height in place (inline comments appear/disappear, a head row
+  // collapses to just its +/-), which identity keying alone wouldn't catch — re-measure on those.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    virtualizer.measure();
+  }, [showComments, showVariations, tableView, collapsed, virtualizer]);
+
+  // Bring the current move's row into the window when the row changes.
   const moveRowIndex = findRowIndex(visibleMoveRows, position);
   const currentRowIndex = moveRowIndex >= 0 ? moveRowIndex + moveRowOffset : -1;
   useEffect(() => {
     if (currentRowIndex >= 0) {
-      virtualizer.scrollToIndex(currentRowIndex, { align: "auto" });
+      virtualizer.scrollToIndex(currentRowIndex, { align: "center" });
     } else {
       virtualizer.scrollToOffset(0);
     }
   }, [currentRowIndex, virtualizer]);
+
+  // Then scroll the exact active move into view: a line row packs up to MAX_LINE_PLIES, so stepping
+  // within a row needs cell-level follow. rAF lets a freshly scrolled row mount first; block:
+  // "nearest" follows the move without re-centering the row on every step.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      parentRef.current?.querySelector("[data-current-move]")?.scrollIntoView({ block: "nearest" });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [position]);
 
   return (
     <ScrollArea
