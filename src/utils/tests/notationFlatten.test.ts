@@ -476,11 +476,9 @@ test("filterCollapsedRows hides nested variation rows but keeps the branch head 
 
 test("filterCollapsedRows with an empty set returns the rows unchanged", () => {
     const root = mk(null, [
-        mk(
-            "e4",
-            [mk("e5", [], { halfMoves: 2 }), mk("c5", [], { halfMoves: 2 })],
-            { halfMoves: 1 },
-        ),
+        mk("e4", [mk("e5", [], { halfMoves: 2 }), mk("c5", [], { halfMoves: 2 })], {
+            halfMoves: 1,
+        }),
     ]);
     const rows = flattenNotation(root, opts);
 
