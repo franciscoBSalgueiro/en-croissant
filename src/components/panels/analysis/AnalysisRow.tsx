@@ -195,7 +195,7 @@ function AnalysisRow({
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-    
+
     playbackIndexRef.current = 0;
     setIsPlaying(true);
     setIsPaused(false);
@@ -221,7 +221,16 @@ function AnalysisRow({
       // Only one move, auto-stop
       stopPlayback();
     }
-  }, [threat, allMoves, isPaused, playSpeed, makeMove, getPosition, stopPlayback, setEnginePanelFrozen]);
+  }, [
+    threat,
+    allMoves,
+    isPaused,
+    playSpeed,
+    makeMove,
+    getPosition,
+    stopPlayback,
+    setEnginePanelFrozen,
+  ]);
 
   const pausePlayback = useCallback(() => {
     if (intervalRef.current !== null) {
@@ -290,7 +299,7 @@ function AnalysisRow({
                     </ActionIcon>
                   </Tooltip>
                 )}
-                {(hasSession) && (
+                {hasSession && (
                   <Tooltip label="Cancel" withArrow position="right">
                     <ActionIcon variant="subtle" color="red" size="sm" onClick={cancelPlayback}>
                       <IconX size={14} />
