@@ -37,6 +37,7 @@ import {
   autoPromoteAtom,
   autoSaveAtom,
   enableBoardScrollAtom,
+  engineLinePlaySpeedAtom,
   eraseDrawablesOnClickAtom,
   forcedEnPassantAtom,
   materialDisplayAtom,
@@ -70,6 +71,7 @@ import KeybindInput from "./KeybindInput";
 import PiecesSelect from "./PiecesSelect";
 import RepertoireMinGamesSetting from "./RepertoireMinGamesSetting";
 import classes from "./SettingsPage.module.css";
+import SettingsNumberInput from "./SettingsNumberInput";
 import SettingsSwitch from "./SettingsSwitch";
 import SoundSelect from "./SoundSelect";
 import ThemeButton from "./ThemeButton";
@@ -335,6 +337,14 @@ export default function Page() {
         description: t("Settings.ScrollThroughMoves.Desc"),
         keywords: ["scroll", "moves", "wheel"],
         render: () => <SettingsSwitch atom={enableBoardScrollAtom} />,
+      },
+      {
+        id: "engine-line-play-speed",
+        category: "board",
+        title: "Engine Line Play Speed",
+        description: "Time in seconds between each move when playing engine lines on the board.",
+        keywords: ["engine", "line", "play", "speed", "delay", "animation"],
+        render: () => <SettingsNumberInput atom={engineLinePlaySpeedAtom} min={0.1} max={10} step={0.1} />,
       },
       {
         id: "material-display",

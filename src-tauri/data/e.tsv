@@ -92,6 +92,7 @@ E14	Queen's Indian Defense, with e3	1. d4 Nf6 2. c4 e6 3. Nf3 d5 4. e3 Be7 5. b3
 E14	Queen's Indian Defense, with e3	1. d4 Nf6 2. c4 e6 3. Nf3 d5 4. e3 Be7 5. b3 O-O 6. Bb2 b6 7. Nbd2 Bb7 8. Bd3
 E14	Queen's Indian Defense, with e3	1. d4 Nf6 2. c4 e6 3. Nf3 Bb4+ 4. Nbd2 b6 5. a3 Bxd2+ 6. Qxd2 Bb7 7. e3
 E14	Queen's Indian Defense, with e3	1. Nf3 d5 2. e3 Nf6 3. c4 e6 4. Nc3 Be7 5. d4 O-O 6. b3 b6 7. cxd5 exd5 8. Bb2 Bb7 9. Bd3
+E14	Queen's Indian Defense, with e3	1. d4 Nf6 2. Nf3 d5 3. c4 e6 4. e3 b6 5. b3 Bb7 6. Bd3 Nbd7 7. O-O Bd6 8. Bb2 O-O 9. Nbd2
 E14	Queen's Indian Defense, with e3, Bb4+ Line	1. d4 Nf6 2. c4 e6 3. Nf3 Bb4+ 4. Nbd2 b6 5. e3 Bb7
 E14	Queen's Indian Defense: Averbakh Variation	1. d4 Nf6 2. c4 e6 3. Nf3 b6 4. e3 Bb7 5. Bd3 c5 6. O-O Be7 7. b3 O-O 8. Bb2 cxd4 9. Nxd4
 E14	Queen's Indian Defense: Spassky System	1. d4 Nf6 2. c4 e6 3. Nf3 b6 4. e3
@@ -199,7 +200,7 @@ E43	Nimzo-Indian Defense: St. Petersburg Variation	1. d4 Nf6 2. c4 e6 3. Nc3 Bb4
 E43	Nimzo-Indian Defense: St. Petersburg Variation, with Ne4	1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 b6 5. Bd3 Bb7 6. Nf3 Ne4
 E44	Nimzo-Indian Defense: St. Petersburg Variation	1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 b6 5. Ne2
 E44	Nimzo-Indian Defense: St. Petersburg Variation, American Variation	1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 b6 5. Ne2 Ne4
-E44	Nimzo-Indian Defense: St. Petersburg Variation, Romanishin–Psakhis Variation	1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 b6 5. Ne2 c5 6. a3 Ba5
+E44	Nimzo-Indian Defense: St. Petersburg Variation, Romanishin-Psakhis Variation	1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 b6 5. Ne2 c5 6. a3 Ba5
 E45	Nimzo-Indian Defense: St. Petersburg Variation, Fischer Variation	1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 b6 5. Ne2 Ba6
 E46	Nimzo-Indian Defense: Normal Variation	1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O
 E46	Nimzo-Indian Defense: Reshevsky Variation	1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 O-O 5. Ne2
