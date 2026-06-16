@@ -344,7 +344,9 @@ export default function Page() {
         title: "Engine Line Play Speed",
         description: "Time in seconds between each move when playing engine lines on the board.",
         keywords: ["engine", "line", "play", "speed", "delay", "animation"],
-        render: () => <SettingsNumberInput atom={engineLinePlaySpeedAtom} min={0.1} max={10} step={0.1} />,
+        render: () => (
+          <SettingsNumberInput atom={engineLinePlaySpeedAtom} min={0.1} max={10} step={0.1} />
+        ),
       },
       {
         id: "material-display",

@@ -1,7 +1,14 @@
 import type { Key } from "@lichess-org/chessground/types";
 import { ActionIcon, Box, CopyButton, Flex, Portal, rem, Table, Tooltip } from "@mantine/core";
 import { useForceUpdate } from "@mantine/hooks";
-import { IconCheck, IconChevronDown, IconCopy, IconPlayerPause, IconPlayerPlay, IconX } from "@tabler/icons-react";
+import {
+  IconCheck,
+  IconChevronDown,
+  IconCopy,
+  IconPlayerPause,
+  IconPlayerPlay,
+  IconX,
+} from "@tabler/icons-react";
 import { chessgroundMove } from "chessops/compat";
 import { makeFen } from "chessops/fen";
 import { parseSan } from "chessops/san";
@@ -13,7 +20,12 @@ import type { Score } from "@/bindings";
 import { Chessground } from "@/chessground/Chessground";
 import MoveCell from "@/components/common/MoveCell";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
-import { engineLinePlaySpeedAtom, moveHighlightAtom, previewBoardOnHoverAtom, scoreTypeFamily } from "@/state/atoms";
+import {
+  engineLinePlaySpeedAtom,
+  moveHighlightAtom,
+  previewBoardOnHoverAtom,
+  scoreTypeFamily,
+} from "@/state/atoms";
 import { positionFromFen } from "@/utils/chessops";
 import { formatScore } from "@/utils/score";
 import ScoreBubble from "./ScoreBubble";
@@ -250,35 +262,20 @@ function AnalysisRow({
               <Flex direction="row" align="center" gap={2}>
                 {isPlaying ? (
                   <Tooltip label="Pause" withArrow position="right">
-                    <ActionIcon
-                      variant="subtle"
-                      color="yellow"
-                      size="sm"
-                      onClick={pausePlayback}
-                    >
+                    <ActionIcon variant="subtle" color="yellow" size="sm" onClick={pausePlayback}>
                       <IconPlayerPause size={14} />
                     </ActionIcon>
                   </Tooltip>
                 ) : (
                   <Tooltip label={isPaused ? "Resume" : "Play line"} withArrow position="right">
-                    <ActionIcon
-                      variant="subtle"
-                      color="green"
-                      size="sm"
-                      onClick={startPlayback}
-                    >
+                    <ActionIcon variant="subtle" color="green" size="sm" onClick={startPlayback}>
                       <IconPlayerPlay size={14} />
                     </ActionIcon>
                   </Tooltip>
                 )}
                 {(isPlaying || isPaused) && (
                   <Tooltip label="Cancel" withArrow position="right">
-                    <ActionIcon
-                      variant="subtle"
-                      color="red"
-                      size="sm"
-                      onClick={cancelPlayback}
-                    >
+                    <ActionIcon variant="subtle" color="red" size="sm" onClick={cancelPlayback}>
                       <IconX size={14} />
                     </ActionIcon>
                   </Tooltip>
