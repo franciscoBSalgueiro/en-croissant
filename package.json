@@ -98,6 +98,7 @@
     "@types/react-dom": "^19.2.3",
     "@typescript/native-preview": "7.0.0-dev.20260306.1",
     "babel-plugin-react-compiler": "^1.0.0",
+    "esbuild": "^0.27.2",
     "i18next-cli": "^1.42.12",
     "jsdom": "^28.1.0",
     "oxfmt": "^0.40.0",
