@@ -147,6 +147,8 @@
     "Board.Practice.PracticedAll1": "Hai praticato tutte le posizioni.",
     "Board.Practice.PracticedAll2": "La prossima posizione è",
     "Board.Practice.PracticeFullRepertoire": "Pratica intero repertorio",
+    "Board.Practice.PracticeVariationsBlack": "",
+    "Board.Practice.PracticeVariationsWhite": "",
     "Board.Practice.Progress": "Progresso",
     "Board.Practice.Rating": "Punteggio",
     "Board.Practice.Reset.Description": "Sei sicure di voler resettare i dati sulle aperture per \"{{name}}\"? Tutti i progressi di apprendimento andranno persi.",
