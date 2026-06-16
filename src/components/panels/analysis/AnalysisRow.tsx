@@ -94,10 +94,11 @@ function AnalysisRow({
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
   const playbackIndexRef = useRef(0);
   const prePlaybackPositionRef = useRef<number[] | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const playbackActiveRef = useRef(false);
+  const hasSessionRef = useRef(false);
 
   const cancelPlaybackSilent = useCallback(() => {
     if (intervalRef.current !== null) {
@@ -110,15 +111,16 @@ function AnalysisRow({
     }
     setIsPlaying(false);
     setIsPaused(false);
+    setHasSession(false);
     playbackIndexRef.current = 0;
-    playbackActiveRef.current = false;
+    hasSessionRef.current = false;
     setEnginePanelFrozen(false);
   }, [goToMove, setEnginePanelFrozen]);
 
   // Listen for other rows starting playback — cancel ourselves
   useEffect(() => {
     const handler = () => {
-      if (playbackActiveRef.current) {
+      if (hasSessionRef.current) {
         cancelPlaybackSilent();
       }
     };
@@ -145,9 +147,9 @@ function AnalysisRow({
     setIsPlaying(false);
     setIsPaused(false);
     playbackIndexRef.current = 0;
-    playbackActiveRef.current = false;
-    setEnginePanelFrozen(false);
-  }, [setEnginePanelFrozen]);
+    // We intentionally DO NOT setEnginePanelFrozen(false) here!
+    // This leaves the engine panel frozen on the original line.
+  }, []);
 
   const cancelPlayback = useCallback(() => {
     cancelPlaybackSilent();
@@ -157,16 +159,17 @@ function AnalysisRow({
     if (threat || allMoves.length === 0) return;
 
     // Mark ourselves inactive before dispatching, so our own handler won't cancel us
-    // (dispatchEvent is synchronous — all listeners run before it returns)
-    playbackActiveRef.current = false;
+    const wasSession = hasSessionRef.current;
+    hasSessionRef.current = false;
     // Signal all other playing rows to cancel
     document.dispatchEvent(new Event("stop-engine-line-playback"));
+    hasSessionRef.current = wasSession;
 
     // If paused, resume from current index
     if (isPaused) {
       setIsPaused(false);
       setIsPlaying(true);
-      playbackActiveRef.current = true;
+      hasSessionRef.current = true;
       setEnginePanelFrozen(true);
       intervalRef.current = setInterval(() => {
         const idx = playbackIndexRef.current;
@@ -180,16 +183,24 @@ function AnalysisRow({
       return;
     }
 
-    // Fresh start: clear any prior interval (guards against rapid double-click)
+    // If restarting from a finished session
+    if (prePlaybackPositionRef.current !== null) {
+      goToMove(prePlaybackPositionRef.current);
+    } else {
+      prePlaybackPositionRef.current = [...getPosition()];
+    }
+
+    // Fresh start: clear any prior interval
     if (intervalRef.current !== null) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-    prePlaybackPositionRef.current = [...getPosition()];
+    
     playbackIndexRef.current = 0;
     setIsPlaying(true);
     setIsPaused(false);
-    playbackActiveRef.current = true;
+    setHasSession(true);
+    hasSessionRef.current = true;
     setEnginePanelFrozen(true);
 
     // Play first move immediately
@@ -279,7 +290,7 @@ function AnalysisRow({
                     </ActionIcon>
                   </Tooltip>
                 )}
-                {(isPlaying || isPaused) && (
+                {(hasSession) && (
                   <Tooltip label="Cancel" withArrow position="right">
                     <ActionIcon variant="subtle" color="red" size="sm" onClick={cancelPlayback}>
                       <IconX size={14} />
