@@ -576,7 +576,9 @@ function DuplicateRemover({
 }) {
   const { t } = useTranslation();
 
-  const [loading, setLoading] = useState(false);
+  const [loadingDup, setLoadingDup] = useState(false);
+  const [loadingEmpty, setLoadingEmpty] = useState(false);
+  
   return (
     <Stack>
       <Text fz="lg" fw="bold">
@@ -585,38 +587,32 @@ function DuplicateRemover({
       <Text fz="sm">{t("Databases.Settings.BatchDelete.Desc")}</Text>
       <Group>
         <Button
-          loading={loading}
+          loading={loadingDup}
           onClick={async () => {
-            setLoading(true);
-            commands
-              .deleteDuplicatedGames(selectedDatabase.file)
-              .then(() => {
-                setLoading(false);
-                reload();
-              })
-              .catch(() => {
-                setLoading(false);
-                reload();
-              });
+            setLoadingDup(true);
+            try {
+              const res = await commands.deleteDuplicatedGames(selectedDatabase.file);
+              unwrap(res);
+            } finally {
+              setLoadingDup(false);
+              reload();
+            }
           }}
         >
           {t("Databases.Settings.RemoveDup")}
         </Button>
 
         <Button
-          loading={loading}
+          loading={loadingEmpty}
           onClick={async () => {
-            setLoading(true);
-            commands
-              .deleteEmptyGames(selectedDatabase.file)
-              .then(() => {
-                setLoading(false);
-                reload();
-              })
-              .catch(() => {
-                setLoading(false);
-                reload();
-              });
+            setLoadingEmpty(true);
+            try {
+              const res = await commands.deleteEmptyGames(selectedDatabase.file);
+              unwrap(res);
+            } finally {
+              setLoadingEmpty(false);
+              reload();
+            }
           }}
         >
           {t("Databases.Settings.RemoveEmpty")}

@@ -266,7 +266,7 @@ export function getStats(stats: ChessComStats) {
   if (stats.chess_daily) {
     statsArray.push({
       value: stats.chess_daily.last.rating,
-      label: "Daily",
+      label: "Correspondence/Daily",
     });
   }
   return statsArray;

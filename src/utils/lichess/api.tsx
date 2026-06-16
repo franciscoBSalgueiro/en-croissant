@@ -177,6 +177,7 @@ export async function convertToNormalized(data: PositionGames): Promise<Normaliz
         black_id: 0,
         event_id: 0,
         site_id: 0,
+        annotated: false,
         moves: pgn,
         ply_count: countMainPly(root),
         // ply_count: root,

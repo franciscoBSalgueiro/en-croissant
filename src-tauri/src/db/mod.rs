@@ -889,6 +889,8 @@ pub struct GameQuery {
     pub position: Option<PositionQueryJs>,
     #[specta(optional)]
     pub wanted_result: Option<String>,
+    #[specta(optional)]
+    pub speed: Option<String>,
 }
 
 impl GameQuery {
@@ -928,10 +930,21 @@ pub async fn get_games(
         .into_boxed();
     let mut count_query = games::table.into_boxed();
 
-    // if let Some(speed) = query.speed {
-    //     sql_query = sql_query.filter(games::speed.eq(speed as i32));
-    //     count_query = count_query.filter(games::speed.eq(speed as i32));
-    // }
+    if let Some(speed) = query.speed {
+        if speed != "any" {
+            let sql_cond = match speed.as_str() {
+                "ultra_bullet" => "time_control != '-' AND time_control NOT LIKE '%/%' AND (CAST(SUBSTR(time_control, 1, CASE WHEN INSTR(time_control, '+') > 0 THEN INSTR(time_control, '+') - 1 ELSE LENGTH(time_control) END) AS INTEGER) + CAST(CASE WHEN INSTR(time_control, '+') > 0 THEN SUBSTR(time_control, INSTR(time_control, '+') + 1) ELSE '0' END AS INTEGER) * 40) < 30",
+                "bullet" => "time_control != '-' AND time_control NOT LIKE '%/%' AND (CAST(SUBSTR(time_control, 1, CASE WHEN INSTR(time_control, '+') > 0 THEN INSTR(time_control, '+') - 1 ELSE LENGTH(time_control) END) AS INTEGER) + CAST(CASE WHEN INSTR(time_control, '+') > 0 THEN SUBSTR(time_control, INSTR(time_control, '+') + 1) ELSE '0' END AS INTEGER) * 40) >= 30 AND (CAST(SUBSTR(time_control, 1, CASE WHEN INSTR(time_control, '+') > 0 THEN INSTR(time_control, '+') - 1 ELSE LENGTH(time_control) END) AS INTEGER) + CAST(CASE WHEN INSTR(time_control, '+') > 0 THEN SUBSTR(time_control, INSTR(time_control, '+') + 1) ELSE '0' END AS INTEGER) * 40) < 180",
+                "blitz" => "time_control != '-' AND time_control NOT LIKE '%/%' AND (CAST(SUBSTR(time_control, 1, CASE WHEN INSTR(time_control, '+') > 0 THEN INSTR(time_control, '+') - 1 ELSE LENGTH(time_control) END) AS INTEGER) + CAST(CASE WHEN INSTR(time_control, '+') > 0 THEN SUBSTR(time_control, INSTR(time_control, '+') + 1) ELSE '0' END AS INTEGER) * 40) >= 180 AND (CAST(SUBSTR(time_control, 1, CASE WHEN INSTR(time_control, '+') > 0 THEN INSTR(time_control, '+') - 1 ELSE LENGTH(time_control) END) AS INTEGER) + CAST(CASE WHEN INSTR(time_control, '+') > 0 THEN SUBSTR(time_control, INSTR(time_control, '+') + 1) ELSE '0' END AS INTEGER) * 40) < 480",
+                "rapid" => "time_control != '-' AND time_control NOT LIKE '%/%' AND (CAST(SUBSTR(time_control, 1, CASE WHEN INSTR(time_control, '+') > 0 THEN INSTR(time_control, '+') - 1 ELSE LENGTH(time_control) END) AS INTEGER) + CAST(CASE WHEN INSTR(time_control, '+') > 0 THEN SUBSTR(time_control, INSTR(time_control, '+') + 1) ELSE '0' END AS INTEGER) * 40) >= 480 AND (CAST(SUBSTR(time_control, 1, CASE WHEN INSTR(time_control, '+') > 0 THEN INSTR(time_control, '+') - 1 ELSE LENGTH(time_control) END) AS INTEGER) + CAST(CASE WHEN INSTR(time_control, '+') > 0 THEN SUBSTR(time_control, INSTR(time_control, '+') + 1) ELSE '0' END AS INTEGER) * 40) < 1500",
+                "classical" => "time_control != '-' AND time_control NOT LIKE '%/%' AND (CAST(SUBSTR(time_control, 1, CASE WHEN INSTR(time_control, '+') > 0 THEN INSTR(time_control, '+') - 1 ELSE LENGTH(time_control) END) AS INTEGER) + CAST(CASE WHEN INSTR(time_control, '+') > 0 THEN SUBSTR(time_control, INSTR(time_control, '+') + 1) ELSE '0' END AS INTEGER) * 40) >= 1500",
+                "correspondence" | "daily" => "time_control = '-' OR time_control LIKE '%/%'",
+                _ => "1=1",
+            };
+            sql_query = sql_query.filter(diesel::dsl::sql::<diesel::sql_types::Bool>(sql_cond));
+            count_query = count_query.filter(diesel::dsl::sql::<diesel::sql_types::Bool>(sql_cond));
+        }
+    }
 
     if let Some(outcome) = query.outcome {
         sql_query = sql_query.filter(games::result.eq(outcome.clone()));
@@ -1144,6 +1157,7 @@ fn normalize_games(games: Vec<(Game, Player, Player, Event, Site)>) -> Vec<Norma
                 eco: game.eco,
                 ply_count: game.ply_count,
                 fen: fen.to_string(),
+                annotated: game.moves.iter().any(|&b| b == crate::db::encoding::COMMENT_MARKER || b == crate::db::encoding::VARIATION_START_MARKER || b == crate::db::encoding::NAG_MARKER),
                 moves: {
                     let movetext = decode_game_to_movetext(&game.moves, fen).unwrap_or_default();
                     if movetext.is_empty() {

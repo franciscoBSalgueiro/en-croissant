@@ -88,6 +88,7 @@ function AnalysisRow({
   const store = useContext(TreeStateContext)!;
   const makeMove = useStore(store, (s) => s.makeMove);
   const goToMove = useStore(store, (s) => s.goToMove);
+  const clearPreviews = useStore(store, (s) => s.clearPreviews);
   const getPosition = useCallback(() => store.getState().position, [store]);
   const playSpeed = useAtomValue(engineLinePlaySpeedAtom);
   const setEnginePanelFrozen = useSetAtom(enginePanelFrozenAtom);
@@ -107,6 +108,7 @@ function AnalysisRow({
     }
     if (prePlaybackPositionRef.current !== null) {
       goToMove(prePlaybackPositionRef.current);
+      clearPreviews();
       prePlaybackPositionRef.current = null;
     }
     setIsPlaying(false);
@@ -115,7 +117,7 @@ function AnalysisRow({
     playbackIndexRef.current = 0;
     hasSessionRef.current = false;
     setEnginePanelFrozen(false);
-  }, [goToMove, setEnginePanelFrozen]);
+  }, [goToMove, clearPreviews, setEnginePanelFrozen]);
 
   // Listen for other rows starting playback — cancel ourselves
   useEffect(() => {
@@ -177,7 +179,7 @@ function AnalysisRow({
           stopPlayback();
           return;
         }
-        makeMove({ payload: allMoves[idx], changeHeaders: false });
+        makeMove({ payload: allMoves[idx], changeHeaders: false, preview: true });
         playbackIndexRef.current = idx + 1;
       }, playSpeed * 1000);
       return;
@@ -204,7 +206,7 @@ function AnalysisRow({
     setEnginePanelFrozen(true);
 
     // Play first move immediately
-    makeMove({ payload: allMoves[0], changeHeaders: false });
+    makeMove({ payload: allMoves[0], changeHeaders: false, preview: true });
     playbackIndexRef.current = 1;
 
     if (allMoves.length > 1) {
@@ -214,7 +216,7 @@ function AnalysisRow({
           stopPlayback();
           return;
         }
-        makeMove({ payload: allMoves[idx], changeHeaders: false });
+        makeMove({ payload: allMoves[idx], changeHeaders: false, preview: true });
         playbackIndexRef.current = idx + 1;
       }, playSpeed * 1000);
     } else {

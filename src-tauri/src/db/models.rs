@@ -173,5 +173,6 @@ pub struct NormalizedGame {
     pub eco: Option<String>,
     #[specta(optional)]
     pub ply_count: Option<i32>,
+    pub annotated: bool,
     pub moves: String,
 }

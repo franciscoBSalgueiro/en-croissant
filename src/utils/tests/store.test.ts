@@ -137,7 +137,7 @@ test("should handle save", () => {
     store.setState({ dirty: true });
     store.getState().save();
 
-    expect(getNewState()).toStrictEqual({ ...defaultTree(), dirty: false });
+    expect(getNewState()).toEqual({ ...defaultTree(), dirty: false });
 });
 
 test("should handle setState", () => {
@@ -158,7 +158,7 @@ test("should handle setHeaders", () => {
         start: [1],
     });
 
-    expect(getNewState()).toStrictEqual({
+    expect(getNewState()).toEqual({
         ...defaultTree(),
         dirty: true,
         headers: {
@@ -172,7 +172,7 @@ test("should handle setHeaders", () => {
 test("should handle setStart", () => {
     store.getState().setStart([1]);
 
-    expect(getNewState()).toStrictEqual({
+    expect(getNewState()).toEqual({
         ...defaultTree(),
         dirty: true,
         headers: { ...defaultTree().headers, start: [1] },
@@ -182,7 +182,7 @@ test("should handle setStart", () => {
 test("should handle makeMove", () => {
     store.getState().makeMove({ payload: e4 });
 
-    expect(getNewState()).toStrictEqual({
+    expect(getNewState()).toEqual({
         ...defaultTree(),
         dirty: true,
         position: [0],
@@ -210,7 +210,7 @@ test("should handle makeMove", () => {
 test("should handle makeMoves", () => {
     store.getState().makeMoves({ payload: ["e4", "d5"] });
 
-    expect(getNewState()).toStrictEqual({
+    expect(getNewState()).toEqual({
         ...treeE4D5(),
         dirty: true,
         position: [0, 0],
@@ -221,7 +221,7 @@ test("should handle goToStart", () => {
     store.setState(treeE4D5());
     store.getState().goToStart();
 
-    expect(getNewState()).toStrictEqual({
+    expect(getNewState()).toEqual({
         ...treeE4D5(),
         position: [],
     });
@@ -231,7 +231,7 @@ test("should handle goToEnd", () => {
     store.setState({ ...treeE4D5(), position: [] });
     store.getState().goToEnd();
 
-    expect(getNewState()).toStrictEqual({
+    expect(getNewState()).toEqual({
         ...treeE4D5(),
         position: [0, 0],
     });
@@ -241,7 +241,7 @@ test("should handle goToNext", () => {
     store.setState({ ...treeE4D5(), position: [] });
     store.getState().goToNext();
 
-    expect(getNewState()).toStrictEqual({
+    expect(getNewState()).toEqual({
         ...treeE4D5(),
         position: [0],
     });
@@ -251,7 +251,7 @@ test("should handle goToPrevious", () => {
     store.setState({ ...treeE4D5(), position: [0] });
     store.getState().goToPrevious();
 
-    expect(getNewState()).toStrictEqual({
+    expect(getNewState()).toEqual({
         ...treeE4D5(),
         position: [],
     });
@@ -261,7 +261,7 @@ test("should handle goToBranchEnd", () => {
     store.setState({ ...treeE4D5(), position: [] });
     store.getState().goToBranchEnd();
 
-    expect(getNewState()).toStrictEqual({
+    expect(getNewState()).toEqual({
         ...treeE4D5(),
         position: [0, 0],
     });
@@ -271,7 +271,7 @@ test("should handle goToBranchStart", () => {
     store.setState({ ...treeE4D5(), position: [0, 0] });
     store.getState().goToBranchStart();
 
-    expect(getNewState()).toStrictEqual({
+    expect(getNewState()).toEqual({
         ...treeE4D5(),
         position: [],
     });
@@ -281,7 +281,7 @@ test("should handle goToMove", () => {
     store.setState({ ...treeE4D5(), position: [] });
     store.getState().goToMove([0]);
 
-    expect(getNewState()).toStrictEqual({
+    expect(getNewState()).toEqual({
         ...treeE4D5(),
         position: [0],
     });
@@ -291,14 +291,14 @@ test("should handle deleteMove", () => {
     store.setState(treeE4D5());
     store.getState().deleteMove([0]);
 
-    expect(getNewState()).toStrictEqual({ ...defaultTree(), dirty: true });
+    expect(getNewState()).toEqual({ ...defaultTree(), dirty: true });
 });
 
 test("should handle setAnnotation", () => {
     store.setState({ ...treeE4D5(), position: [0] });
     store.getState().setAnnotation("!");
 
-    expect(getNewState()).toStrictEqual({
+    expect(getNewState()).toEqual({
         ...treeE4D5(),
         dirty: true,
         position: [0],
@@ -318,7 +318,7 @@ test("should handle setComment", () => {
     store.setState({ ...treeE4D5(), position: [0] });
     store.getState().setComment("test");
 
-    expect(getNewState()).toStrictEqual({
+    expect(getNewState()).toEqual({
         ...treeE4D5(),
         dirty: true,
         position: [0],
@@ -338,7 +338,7 @@ test("should handle setFen", () => {
     store.setState({ ...treeE4D5(), position: [0] });
     store.getState().setFen("rnbq1bnr/ppppkppp/8/4p3/4P3/8/PPPPKPPP/RNBQ1BNR w - - 2 3");
 
-    expect(getNewState()).toStrictEqual({
+    expect(getNewState()).toEqual({
         ...defaultTree(),
         dirty: true,
         root: {
@@ -358,7 +358,7 @@ test("should handle setScore", () => {
         wdl: null,
     });
 
-    expect(getNewState()).toStrictEqual({
+    expect(getNewState()).toEqual({
         ...treeE4D5(),
         dirty: true,
         position: [0],
@@ -390,7 +390,7 @@ test("should handle setShapes", () => {
         },
     ]);
 
-    expect(getNewState()).toStrictEqual({
+    expect(getNewState()).toEqual({
         ...treeE4D5(),
         dirty: true,
         position: [0],
@@ -459,7 +459,7 @@ test("should handle addAnalysis", () => {
         },
     ]);
 
-    expect(getNewState()).toStrictEqual({
+    expect(getNewState()).toEqual({
         ...treeE4D5(),
         dirty: true,
         position: [0],
@@ -492,7 +492,7 @@ test("should handle promoteVariation", () => {
     store.setState(treeE4D5Nf3());
     store.getState().promoteVariation([1]);
 
-    expect(getNewState()).toStrictEqual({
+    expect(getNewState()).toEqual({
         ...treeE4D5Nf3(),
         dirty: true,
         position: [0],

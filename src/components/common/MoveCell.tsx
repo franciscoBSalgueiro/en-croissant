@@ -15,6 +15,7 @@ interface MoveCellProps {
   onContextMenu: (e: React.MouseEvent) => void;
   fullWidth?: boolean;
   rightAccessory?: ReactNode;
+  isPreview?: boolean;
   ref?: RefObject<HTMLButtonElement>;
 }
 
@@ -47,6 +48,15 @@ function MoveCell(props: MoveCellProps) {
     hoverDark = rgba(darkBg, 0.25);
   }
 
+  if (props.isPreview) {
+    if (props.isCurrentVariation) {
+      darkBg = rgba(theme.colors.orange[6], 0.2);
+      lightBg = rgba(theme.colors.orange[6], 0.2);
+      hoverLight = rgba(lightBg, 0.25);
+      hoverDark = rgba(darkBg, 0.25);
+    }
+  }
+
   return (
     <Box
       ref={props.ref}
@@ -59,6 +69,7 @@ function MoveCell(props: MoveCellProps) {
         "--dark-hover-color": hoverDark,
         "--dark-bg": darkBg,
         "--light-bg": lightBg,
+        opacity: props.isPreview ? 0.6 : 1,
       }}
       onClick={props.onClick}
       onContextMenu={props.onContextMenu}

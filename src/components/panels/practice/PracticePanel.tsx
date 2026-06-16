@@ -39,6 +39,7 @@ import ConfirmModal from "@/components/common/ConfirmModal";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
   buildFromTree,
+  buildVariationsFromTree,
   formatReviewInterval,
   getCardForReview,
   getNextReviewTimes,
@@ -73,6 +74,9 @@ function PracticePanel() {
   const goToMove = useStore(store, (s) => s.goToMove);
   const setPracticePath = useStore(store, (s) => s.setPracticePath);
   const currentFen = useStore(store, (s) => s.currentNode().fen);
+  const currentPathLength = useStore(store, (s) => s.position.length);
+  const currentHalfMoves = useStore(store, (s) => s.currentNode().halfMoves);
+  const goToNext = useStore(store, (s) => s.goToNext);
 
   const currentTab = useAtomValue(currentTabAtom);
   const tabFile = getTabFile(currentTab);
@@ -183,6 +187,37 @@ function PracticePanel() {
     ],
   );
 
+  const newPracticeVariation = useCallback(
+    (stats?: Partial<PracticeSessionStats>) => {
+      const remaining = stats?.remainingVariations ?? sessionStats.remainingVariations;
+      if (!remaining || remaining.length === 0) {
+        setPracticeState({ phase: "idle" });
+        setPracticePath(null);
+        setInvisible(false);
+        setShowComments(true);
+        setEvalOpen(true);
+        return;
+      }
+      const variation = remaining[0];
+      goToMove(headers.start || []);
+      setPracticePath(variation);
+      setInvisible(true);
+      setShowComments(false);
+      setEvalOpen(false);
+      setPracticeState({ phase: "waiting_variation", currentVariation: variation });
+    },
+    [
+      sessionStats.remainingVariations,
+      headers.start,
+      goToMove,
+      setPracticePath,
+      setInvisible,
+      setShowComments,
+      setEvalOpen,
+      setPracticeState,
+    ],
+  );
+
   useEffect(() => {
     if (practiceState.phase === "correct") {
       if (sessionStats.mode === "full") {
@@ -228,6 +263,45 @@ function PracticePanel() {
     setDeck,
   ]);
 
+  useEffect(() => {
+    if (practiceState.phase === "waiting_variation" && practiceState.currentVariation && sessionStats.mode === "variations") {
+      const variation = practiceState.currentVariation;
+      const color = sessionStats.color || "white";
+      const isUserTurn = (color === "white" && currentHalfMoves % 2 === 0) || (color === "black" && currentHalfMoves % 2 === 1);
+      
+      if (!isUserTurn) {
+        if (currentPathLength < variation.length) {
+          const timer = setTimeout(() => {
+            goToNext();
+          }, 500);
+          return () => clearTimeout(timer);
+        }
+      }
+      
+      if (currentPathLength === variation.length) {
+        const timer = setTimeout(() => {
+          if (sessionStats.remainingVariations) {
+            const nextVariations = sessionStats.remainingVariations.slice(1);
+            setSessionStats(prev => ({...prev, remainingVariations: nextVariations}));
+            newPracticeVariation({ remainingVariations: nextVariations });
+          }
+        }, 800);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [
+    practiceState.phase,
+    practiceState.currentVariation,
+    sessionStats.mode,
+    sessionStats.color,
+    sessionStats.remainingVariations,
+    currentPathLength,
+    currentHalfMoves,
+    goToNext,
+    setSessionStats,
+    newPracticeVariation
+  ]);
+
   function handleQualityRating(grade: 1 | 2 | 3 | 4) {
     if (practiceState.phase !== "correct" || practiceState.positionIndex === undefined) return;
 
@@ -269,6 +343,22 @@ function PracticePanel() {
     };
     setSessionStats((prev) => ({ ...prev, ...stats }));
     newPractice(stats);
+  }
+
+  function startVariationsPractice(color: "white" | "black") {
+    const variations = buildVariationsFromTree(root, headers.start || [], color);
+    const stats: Partial<PracticeSessionStats> = {
+      mode: "variations",
+      color,
+      remainingVariations: variations,
+      remainingPositions: [],
+      correct: 0,
+      incorrect: 0,
+      streak: 0,
+      bestStreak: 0,
+    };
+    setSessionStats((prev) => ({ ...prev, ...stats }));
+    newPracticeVariation(stats);
   }
 
   function skipCard() {
@@ -517,6 +607,28 @@ function PracticePanel() {
                     >
                       {t("Board.Practice.PracticeFullRepertoire")}
                     </Button>
+                    <Group wrap="nowrap" gap="xs">
+                      <Button
+                        size="md"
+                        variant="light"
+                        color="grape"
+                        fullWidth
+                        onClick={() => startVariationsPractice("white")}
+                        leftSection={<IconBook size={20} />}
+                      >
+                        {t("Board.Practice.PracticeVariationsWhite", "Variations (White)")}
+                      </Button>
+                      <Button
+                        size="md"
+                        variant="light"
+                        color="grape"
+                        fullWidth
+                        onClick={() => startVariationsPractice("black")}
+                        leftSection={<IconBook size={20} />}
+                      >
+                        {t("Board.Practice.PracticeVariationsBlack", "Variations (Black)")}
+                      </Button>
+                    </Group>
                   </Stack>
                 )}
 

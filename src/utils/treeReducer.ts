@@ -25,6 +25,7 @@ export interface TreeNode {
     annotations: Annotation[];
     comment: string;
     clock?: number;
+    preview?: boolean;
 }
 
 export type ListNode = {
@@ -113,12 +114,14 @@ export function createNode({
     san,
     halfMoves,
     clock,
+    preview,
 }: {
     move: Move;
     san: string;
     fen: string;
     halfMoves: number;
     clock?: number;
+    preview?: boolean;
 }): TreeNode {
     return {
         fen,
@@ -132,6 +135,7 @@ export function createNode({
         shapes: [],
         annotations: [],
         comment: "",
+        preview,
     };
 }
 

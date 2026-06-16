@@ -68,6 +68,7 @@ function CompleteMoveCell({
   targetRef,
   tableLayout,
   scoreText,
+  preview,
 }: {
   halfMoves: number;
   comment: string;
@@ -80,6 +81,7 @@ function CompleteMoveCell({
   targetRef: React.RefObject<HTMLSpanElement | null>;
   tableLayout?: boolean;
   scoreText?: string;
+  preview?: boolean;
 }) {
   const store = useContext(TreeStateContext)!;
   const isStart = useStore(store, (s) => equal(movePath, s.headers.start));
@@ -131,6 +133,7 @@ function CompleteMoveCell({
                 annotations={annotations}
                 isStart={isStart}
                 isCurrentVariation={isCurrentVariation}
+                isPreview={preview}
                 onClick={() => goToMove(movePath)}
                 onContextMenu={(e: React.MouseEvent) => {
                   setOpen((v) => !v);
@@ -213,6 +216,7 @@ export default memo(CompleteMoveCell, (prev, next) => {
     equal(prev.movePath, next.movePath) &&
     prev.halfMoves === next.halfMoves &&
     prev.tableLayout === next.tableLayout &&
-    prev.scoreText === next.scoreText
+    prev.scoreText === next.scoreText &&
+    prev.preview === next.preview
   );
 });

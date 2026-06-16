@@ -7,14 +7,14 @@ const LICHESS_TIME_CONTROLS = [
   { value: "blitz", label: "Blitz" },
   { value: "rapid", label: "Rapid" },
   { value: "classical", label: "Classical" },
-  { value: "correspondence", label: "Correspondence" },
+  { value: "correspondence", label: "Correspondence/Daily" },
 ];
 
 const CHESSCOM_TIME_CONTROLS = [
   { value: "bullet", label: "Bullet" },
   { value: "blitz", label: "Blitz" },
   { value: "rapid", label: "Rapid" },
-  { value: "daily", label: "Daily" },
+  { value: "daily", label: "Correspondence/Daily" },
 ];
 
 interface TimeControlSelectorProps {

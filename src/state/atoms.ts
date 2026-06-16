@@ -495,18 +495,21 @@ export const deckAtomFamily = atomFamily(
 );
 
 export type PracticePhase =
-    | "idle" // Not practicing
-    | "waiting" // Waiting for user to make a move
-    | "correct" // Move was correct, waiting for quality rating
-    | "incorrect"; // Move was incorrect, showing feedback
+    | "idle"
+    | "waiting"
+    | "waiting_variation"
+    | "correct"
+    | "incorrect";
 
 export type PracticeState = {
     phase: PracticePhase;
     currentFen?: string;
+    currentVariation?: number[];
     answer?: string;
+    expectedUci?: string;
     playedMove?: string;
-    timeTaken?: number;
     positionIndex?: number;
+    timeTaken?: number;
 };
 
 export const practiceStateFamily = atomFamily((_tab: string) =>
@@ -515,8 +518,10 @@ export const practiceStateFamily = atomFamily((_tab: string) =>
 export const practiceStateAtom = tabValue(practiceStateFamily);
 
 export type PracticeSessionStats = {
-    mode: "anki" | "full";
+    mode: "anki" | "full" | "variations";
     remainingPositions: number[];
+    remainingVariations?: number[][];
+    color?: "white" | "black";
     correct: number;
     incorrect: number;
     streak: number;
