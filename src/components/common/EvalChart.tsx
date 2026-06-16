@@ -301,7 +301,7 @@ function CustomTooltip({
   type,
 }: {
   active?: boolean;
-  payload: readonly { payload: DataPoint }[];
+  payload?: any;
   type: "cp" | "wdl";
 }) {
   if (active && payload && payload.length && payload[0].payload) {
