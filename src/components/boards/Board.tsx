@@ -182,7 +182,7 @@ function Board({
       let expectedSan: string | null | undefined;
       let expectedUci: string | undefined;
       let cardIndex: number | undefined;
-      let c: typeof deck.positions[0] | undefined;
+      let c: (typeof deck.positions)[0] | undefined;
 
       if (sessionStats.mode === "variations") {
         const practicePath = sessionStats.remainingVariations?.[0];
@@ -208,7 +208,12 @@ function Board({
       const timeTaken = Date.now() - cardStartTime;
 
       if (san !== expectedSan) {
-        if (sessionStats.mode !== "full" && sessionStats.mode !== "variations" && cardIndex !== undefined && c) {
+        if (
+          sessionStats.mode !== "full" &&
+          sessionStats.mode !== "variations" &&
+          cardIndex !== undefined &&
+          c
+        ) {
           updateCardPerformance(setDeck, cardIndex, c.card, 1);
         }
         setPracticeState({

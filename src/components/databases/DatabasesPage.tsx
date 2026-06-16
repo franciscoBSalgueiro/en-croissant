@@ -578,7 +578,7 @@ function DuplicateRemover({
 
   const [loadingDup, setLoadingDup] = useState(false);
   const [loadingEmpty, setLoadingEmpty] = useState(false);
-  
+
   return (
     <Stack>
       <Text fz="lg" fw="bold">

@@ -264,11 +264,17 @@ function PracticePanel() {
   ]);
 
   useEffect(() => {
-    if (practiceState.phase === "waiting_variation" && practiceState.currentVariation && sessionStats.mode === "variations") {
+    if (
+      practiceState.phase === "waiting_variation" &&
+      practiceState.currentVariation &&
+      sessionStats.mode === "variations"
+    ) {
       const variation = practiceState.currentVariation;
       const color = sessionStats.color || "white";
-      const isUserTurn = (color === "white" && currentHalfMoves % 2 === 0) || (color === "black" && currentHalfMoves % 2 === 1);
-      
+      const isUserTurn =
+        (color === "white" && currentHalfMoves % 2 === 0) ||
+        (color === "black" && currentHalfMoves % 2 === 1);
+
       if (!isUserTurn) {
         if (currentPathLength < variation.length) {
           const timer = setTimeout(() => {
@@ -277,12 +283,12 @@ function PracticePanel() {
           return () => clearTimeout(timer);
         }
       }
-      
+
       if (currentPathLength === variation.length) {
         const timer = setTimeout(() => {
           if (sessionStats.remainingVariations) {
             const nextVariations = sessionStats.remainingVariations.slice(1);
-            setSessionStats(prev => ({...prev, remainingVariations: nextVariations}));
+            setSessionStats((prev) => ({ ...prev, remainingVariations: nextVariations }));
             newPracticeVariation({ remainingVariations: nextVariations });
           }
         }, 800);
@@ -299,7 +305,7 @@ function PracticePanel() {
     currentHalfMoves,
     goToNext,
     setSessionStats,
-    newPracticeVariation
+    newPracticeVariation,
   ]);
 
   function handleQualityRating(grade: 1 | 2 | 3 | 4) {

@@ -494,12 +494,7 @@ export const deckAtomFamily = atomFamily(
     (a, b) => a.file === b.file && a.game === b.game,
 );
 
-export type PracticePhase =
-    | "idle"
-    | "waiting"
-    | "waiting_variation"
-    | "correct"
-    | "incorrect";
+export type PracticePhase = "idle" | "waiting" | "waiting_variation" | "correct" | "incorrect";
 
 export type PracticeState = {
     phase: PracticePhase;
