@@ -187,6 +187,7 @@ export const previewBoardOnHoverAtom = atomWithStorage<boolean>("preview-board-o
 export const flipBoardAfterMoveAtom = atomWithStorage<boolean>("flip-board-after-move", true);
 export const enableBoardScrollAtom = atomWithStorage<boolean>("board-scroll", true);
 export const engineLinePlaySpeedAtom = atomWithStorage<number>("engine-line-play-speed", 1.0);
+export const enginePanelFrozenAtom = atom<boolean>(false);
 export const materialDisplayAtom = atomWithStorage<"diff" | "all">("material-display", "diff");
 export const forcedEnPassantAtom = atomWithStorage<boolean>("forced-ep", false);
 export const showCoordinatesAtom = atomWithStorage<"no" | "edge" | "all">(

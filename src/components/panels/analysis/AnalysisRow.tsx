@@ -12,7 +12,7 @@ import {
 import { chessgroundMove } from "chessops/compat";
 import { makeFen } from "chessops/fen";
 import { parseSan } from "chessops/san";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
@@ -22,6 +22,7 @@ import MoveCell from "@/components/common/MoveCell";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
   engineLinePlaySpeedAtom,
+  enginePanelFrozenAtom,
   moveHighlightAtom,
   previewBoardOnHoverAtom,
   scoreTypeFamily,
@@ -89,6 +90,7 @@ function AnalysisRow({
   const goToMove = useStore(store, (s) => s.goToMove);
   const getPosition = useCallback(() => store.getState().position, [store]);
   const playSpeed = useAtomValue(engineLinePlaySpeedAtom);
+  const setEnginePanelFrozen = useSetAtom(enginePanelFrozenAtom);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -110,7 +112,8 @@ function AnalysisRow({
     setIsPaused(false);
     playbackIndexRef.current = 0;
     playbackActiveRef.current = false;
-  }, [goToMove]);
+    setEnginePanelFrozen(false);
+  }, [goToMove, setEnginePanelFrozen]);
 
   // Listen for other rows starting playback — cancel ourselves
   useEffect(() => {
@@ -143,7 +146,8 @@ function AnalysisRow({
     setIsPaused(false);
     playbackIndexRef.current = 0;
     playbackActiveRef.current = false;
-  }, []);
+    setEnginePanelFrozen(false);
+  }, [setEnginePanelFrozen]);
 
   const cancelPlayback = useCallback(() => {
     cancelPlaybackSilent();
@@ -163,6 +167,7 @@ function AnalysisRow({
       setIsPaused(false);
       setIsPlaying(true);
       playbackActiveRef.current = true;
+      setEnginePanelFrozen(true);
       intervalRef.current = setInterval(() => {
         const idx = playbackIndexRef.current;
         if (idx >= allMoves.length) {
@@ -185,6 +190,7 @@ function AnalysisRow({
     setIsPlaying(true);
     setIsPaused(false);
     playbackActiveRef.current = true;
+    setEnginePanelFrozen(true);
 
     // Play first move immediately
     makeMove({ payload: allMoves[0], changeHeaders: false });
@@ -204,7 +210,7 @@ function AnalysisRow({
       // Only one move, auto-stop
       stopPlayback();
     }
-  }, [threat, allMoves, isPaused, playSpeed, makeMove, getPosition, stopPlayback]);
+  }, [threat, allMoves, isPaused, playSpeed, makeMove, getPosition, stopPlayback, setEnginePanelFrozen]);
 
   const pausePlayback = useCallback(() => {
     if (intervalRef.current !== null) {
@@ -257,7 +263,7 @@ function AnalysisRow({
           </Flex>
         </Table.Td>
         <Table.Th>
-          <Flex direction="column" align="center" gap={4}>
+          <Flex direction="row" align="center" gap={4}>
             {!threat && allMoves.length > 0 && (
               <Flex direction="row" align="center" gap={2}>
                 {isPlaying ? (
