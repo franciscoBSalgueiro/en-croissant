@@ -47,6 +47,46 @@ export function buildFromTree(tree: TreeNode, color: "white" | "black", start: n
     return cards;
 }
 
+export function buildVariationsFromTree(
+    tree: TreeNode,
+    start: number[],
+    color: "white" | "black",
+): number[][] {
+    const variations: number[][] = [];
+
+    function traverse(node: TreeNode, currentPath: number[]) {
+        if (node.children.length === 0) {
+            // It's a leaf node. Only add if it's longer than start
+            // and starts with the `start` path.
+            if (currentPath.length > start.length && isPrefix(currentPath, start)) {
+                // Determine if this variation actually contains moves for the selected color after the start position
+                let hasMovesForColor = false;
+                let tempNode = tree;
+                for (let i = 0; i < currentPath.length; i++) {
+                    const isUserTurn =
+                        (color === "white" && tempNode.halfMoves % 2 === 0) ||
+                        (color === "black" && tempNode.halfMoves % 2 === 1);
+                    if (i >= start.length && isUserTurn) {
+                        hasMovesForColor = true;
+                    }
+                    tempNode = tempNode.children[currentPath[i]];
+                }
+
+                if (hasMovesForColor) {
+                    variations.push([...currentPath]);
+                }
+            }
+            return;
+        }
+        for (let i = 0; i < node.children.length; i++) {
+            traverse(node.children[i], [...currentPath, i]);
+        }
+    }
+
+    traverse(tree, []);
+    return variations;
+}
+
 type Stats = {
     unseen: number;
     due: number;

@@ -186,6 +186,8 @@ export const autoSaveAtom = atomWithStorage<boolean>("auto-save", true);
 export const previewBoardOnHoverAtom = atomWithStorage<boolean>("preview-board-on-hover", true);
 export const flipBoardAfterMoveAtom = atomWithStorage<boolean>("flip-board-after-move", true);
 export const enableBoardScrollAtom = atomWithStorage<boolean>("board-scroll", true);
+export const engineLinePlaySpeedAtom = atomWithStorage<number>("engine-line-play-speed", 1.0);
+export const enginePanelFrozenAtom = atom<boolean>(false);
 export const materialDisplayAtom = atomWithStorage<"diff" | "all">("material-display", "diff");
 export const forcedEnPassantAtom = atomWithStorage<boolean>("forced-ep", false);
 export const showCoordinatesAtom = atomWithStorage<"no" | "edge" | "all">(
@@ -492,19 +494,17 @@ export const deckAtomFamily = atomFamily(
     (a, b) => a.file === b.file && a.game === b.game,
 );
 
-export type PracticePhase =
-    | "idle" // Not practicing
-    | "waiting" // Waiting for user to make a move
-    | "correct" // Move was correct, waiting for quality rating
-    | "incorrect"; // Move was incorrect, showing feedback
+export type PracticePhase = "idle" | "waiting" | "waiting_variation" | "correct" | "incorrect";
 
 export type PracticeState = {
     phase: PracticePhase;
     currentFen?: string;
+    currentVariation?: number[];
     answer?: string;
+    expectedUci?: string;
     playedMove?: string;
-    timeTaken?: number;
     positionIndex?: number;
+    timeTaken?: number;
 };
 
 export const practiceStateFamily = atomFamily((_tab: string) =>
@@ -513,8 +513,10 @@ export const practiceStateFamily = atomFamily((_tab: string) =>
 export const practiceStateAtom = tabValue(practiceStateFamily);
 
 export type PracticeSessionStats = {
-    mode: "anki" | "full";
+    mode: "anki" | "full" | "variations";
     remainingPositions: number[];
+    remainingVariations?: number[][];
+    color?: "white" | "black";
     correct: number;
     incorrect: number;
     streak: number;

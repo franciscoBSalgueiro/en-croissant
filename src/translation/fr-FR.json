@@ -147,6 +147,8 @@
     "Board.Practice.PracticedAll1": "Vous avez vu toutes les positions.",
     "Board.Practice.PracticedAll2": "La prochaine analyse est prête",
     "Board.Practice.PracticeFullRepertoire": "S'entraîner sur le répertoire entier",
+    "Board.Practice.PracticeVariationsBlack": "",
+    "Board.Practice.PracticeVariationsWhite": "",
     "Board.Practice.Progress": "Progression",
     "Board.Practice.Rating": "Classement",
     "Board.Practice.Reset.Description": "Êtes-vous sûr de vouloir réinitialiser les données d'ouverture pour « {{name}} » ? Toute la progression de l'apprentissage sera perdue.",

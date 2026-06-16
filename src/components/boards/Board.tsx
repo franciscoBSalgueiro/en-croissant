@@ -109,6 +109,7 @@ function Board({
   );
   const headers = useStore(store, (s) => s.headers);
   const currentNode = useStore(store, (s) => s.currentNode());
+  const position = useStore(store, (s) => s.position);
 
   const arrows = useAtomValue(
     bestMovesFamily({
@@ -170,7 +171,7 @@ function Board({
     }),
   );
 
-  const setPracticeState = useSetAtom(practiceStateAtom);
+  const [practiceState, setPracticeState] = useAtom(practiceStateAtom);
   const [sessionStats, setSessionStats] = useAtom(practiceSessionStatsAtom);
   const cardStartTime = useAtomValue(practiceCardStartTimeAtom);
 
@@ -178,24 +179,50 @@ function Board({
     if (!pos) return;
     const san = makeSan(pos, move);
     if (practicing) {
-      const c = deck.positions.find((c) => c.fen === currentNode.fen);
-      if (!c) {
-        return;
+      let expectedSan: string | null | undefined;
+      let expectedUci: string | undefined;
+      let cardIndex: number | undefined;
+      let c: (typeof deck.positions)[0] | undefined;
+
+      if (sessionStats.mode === "variations") {
+        const practicePath = sessionStats.remainingVariations?.[0];
+        const nextIndex = practicePath ? practicePath[position.length] : undefined;
+        if (nextIndex !== undefined && currentNode.children[nextIndex]) {
+          expectedSan = currentNode.children[nextIndex].san;
+          const expectedMove = currentNode.children[nextIndex].move as NormalMove;
+          if (expectedMove) {
+            expectedUci = makeSquare(expectedMove.from) + makeSquare(expectedMove.to);
+          }
+        }
+      } else {
+        c = deck.positions.find((c) => c.fen === currentNode.fen);
+        if (!c) {
+          return;
+        }
+        cardIndex = deck.positions.indexOf(c);
+        expectedSan = c.answer;
       }
 
-      const i = deck.positions.indexOf(c);
+      if (!expectedSan) return;
+
       const timeTaken = Date.now() - cardStartTime;
 
-      if (san !== c.answer) {
-        if (sessionStats.mode !== "full") {
-          updateCardPerformance(setDeck, i, c.card, 1);
+      if (san !== expectedSan) {
+        if (
+          sessionStats.mode !== "full" &&
+          sessionStats.mode !== "variations" &&
+          cardIndex !== undefined &&
+          c
+        ) {
+          updateCardPerformance(setDeck, cardIndex, c.card, 1);
         }
         setPracticeState({
           phase: "incorrect",
-          currentFen: c.fen,
-          answer: c.answer,
+          currentFen: currentNode.fen,
+          answer: expectedSan,
+          expectedUci,
           playedMove: san,
-          positionIndex: i,
+          positionIndex: cardIndex,
           timeTaken,
         });
         setSessionStats((prev) => ({
@@ -205,7 +232,7 @@ function Board({
         }));
         notifications.show({
           title: t("Common.Incorrect"),
-          message: t("Board.Practice.CorrectMoveWas", { move: c.answer }),
+          message: t("Board.Practice.CorrectMoveWas", { move: expectedSan }),
           color: "red",
         });
         await new Promise((resolve) => setTimeout(resolve, 500));
@@ -217,9 +244,9 @@ function Board({
         setPendingMove(null);
         setPracticeState({
           phase: "correct",
-          currentFen: c.fen,
-          answer: c.answer,
-          positionIndex: i,
+          currentFen: currentNode.fen,
+          answer: expectedSan,
+          positionIndex: cardIndex,
           timeTaken,
         });
       }
@@ -287,6 +314,21 @@ function Board({
           }
         }
       }
+    }
+  }
+
+  if (practicing && practiceState.phase === "incorrect" && practiceState.expectedUci) {
+    const from = practiceState.expectedUci.substring(0, 2) as SquareName;
+    const to = practiceState.expectedUci.substring(2, 4) as SquareName;
+    if (from && to && !shapes.find((s) => s.orig === from && s.dest === to)) {
+      shapes.push({
+        orig: from,
+        dest: to,
+        brush: "red",
+        modifiers: {
+          lineWidth: MEDIUM_BRUSH,
+        },
+      });
     }
   }
 

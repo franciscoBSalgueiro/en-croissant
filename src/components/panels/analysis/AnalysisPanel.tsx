@@ -21,7 +21,16 @@ import {
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
-import { memo, startTransition, useContext, useDeferredValue, useMemo, useOptimistic } from "react";
+import {
+  memo,
+  startTransition,
+  useContext,
+  useDeferredValue,
+  useMemo,
+  useOptimistic,
+  useState,
+  useEffect,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
@@ -34,6 +43,7 @@ import {
   enableAllAtom,
   engineMovesFamily,
   enginesAtom,
+  enginePanelFrozenAtom,
 } from "@/state/atoms";
 import { getVariationLine } from "@/utils/chess";
 import { getPiecesCount, hasCaptures, isOp1, positionFromFen } from "@/utils/chessops";
@@ -52,18 +62,38 @@ function AnalysisPanel() {
   const store = useContext(TreeStateContext)!;
   const rootFen = useStore(store, (s) => s.root.fen);
   const headers = useStore(store, (s) => s.headers);
-  const currentNodeFen = useStore(
+  const rawCurrentNodeFen = useStore(
     store,
     useShallow((s) => s.currentNode().fen),
   );
-  const moves = useStore(
+  const rawMoves = useStore(
     store,
     useShallow((s) => getVariationLine(s.root, s.position)),
   );
-  const currentNodeHalfMoves = useStore(
+  const rawCurrentNodeHalfMoves = useStore(
     store,
     useShallow((s) => s.currentNode().halfMoves),
   );
+
+  const isFrozen = useAtomValue(enginePanelFrozenAtom);
+
+  const [frozen, setFrozen] = useState({
+    currentNodeFen: rawCurrentNodeFen,
+    moves: rawMoves,
+    currentNodeHalfMoves: rawCurrentNodeHalfMoves,
+  });
+
+  useEffect(() => {
+    if (!isFrozen) {
+      setFrozen({
+        currentNodeFen: rawCurrentNodeFen,
+        moves: rawMoves,
+        currentNodeHalfMoves: rawCurrentNodeHalfMoves,
+      });
+    }
+  }, [isFrozen, rawCurrentNodeFen, rawMoves, rawCurrentNodeHalfMoves]);
+
+  const { currentNodeFen, moves, currentNodeHalfMoves } = frozen;
 
   const [engines, setEngines] = useAtom(enginesAtom);
   const [optimisticEngines, setOptimisticEngines] = useOptimistic<Engine[], Engine[]>(

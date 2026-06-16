@@ -10,10 +10,11 @@ import {
   Select,
   Stack,
   Text,
+  Tooltip,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import { useHotkeys } from "@mantine/hooks";
-import { IconDotsVertical } from "@tabler/icons-react";
+import { IconDotsVertical, IconMessage } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import dayjs from "dayjs";
 import { useAtom, useSetAtom } from "jotai";
@@ -151,23 +152,44 @@ function GameTable() {
                     />
                   </InputWrapper>
                 </Group>
-                <Select
-                  label="Result"
-                  value={query.outcome}
-                  onChange={(value) =>
-                    setQuery({
-                      ...query,
-                      outcome: (value as Outcome | null) ?? undefined,
-                    })
-                  }
-                  clearable
-                  placeholder="Select result"
-                  data={[
-                    { label: "White wins", value: "1-0" },
-                    { label: "Black wins", value: "0-1" },
-                    { label: "Draw", value: "1/2-1/2" },
-                  ]}
-                />
+                <Group grow>
+                  <Select
+                    label="Result"
+                    value={query.outcome}
+                    onChange={(value) =>
+                      setQuery({
+                        ...query,
+                        outcome: (value as Outcome | null) ?? undefined,
+                      })
+                    }
+                    clearable
+                    placeholder="Select result"
+                    data={[
+                      { label: "White wins", value: "1-0" },
+                      { label: "Black wins", value: "0-1" },
+                      { label: "Draw", value: "1/2-1/2" },
+                    ]}
+                  />
+                  <Select
+                    label="Time control"
+                    value={query.speed ?? "any"}
+                    onChange={(value) =>
+                      setQuery({
+                        ...query,
+                        speed: (value === "any" ? undefined : value) ?? undefined,
+                      })
+                    }
+                    data={[
+                      { value: "any", label: "Any" },
+                      { value: "ultra_bullet", label: "UltraBullet" },
+                      { value: "bullet", label: "Bullet" },
+                      { value: "blitz", label: "Blitz" },
+                      { value: "rapid", label: "Rapid" },
+                      { value: "classical", label: "Classical" },
+                      { value: "correspondence", label: "Correspondence/Daily" },
+                    ]}
+                  />
+                </Group>
                 <Group>
                   <DateInput
                     label="From"
@@ -229,6 +251,17 @@ function GameTable() {
             navigate({ to: "/" });
           }}
           columns={[
+            {
+              accessor: "annotated",
+              title: "",
+              width: 40,
+              render: ({ annotated }) =>
+                annotated ? (
+                  <Tooltip label="Annotated/Analysed">
+                    <IconMessage size="1.2rem" color="gray" />
+                  </Tooltip>
+                ) : null,
+            },
             {
               accessor: "white",
               render: ({ white, white_elo }) => (

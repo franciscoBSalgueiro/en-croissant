@@ -1,19 +1,32 @@
 import type { Key } from "@lichess-org/chessground/types";
 import { ActionIcon, Box, CopyButton, Flex, Portal, rem, Table, Tooltip } from "@mantine/core";
 import { useForceUpdate } from "@mantine/hooks";
-import { IconCheck, IconChevronDown, IconCopy } from "@tabler/icons-react";
+import {
+  IconCheck,
+  IconChevronDown,
+  IconCopy,
+  IconPlayerPause,
+  IconPlayerPlay,
+  IconX,
+} from "@tabler/icons-react";
 import { chessgroundMove } from "chessops/compat";
 import { makeFen } from "chessops/fen";
 import { parseSan } from "chessops/san";
-import { useAtom, useAtomValue } from "jotai";
-import { useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import type { Score } from "@/bindings";
 import { Chessground } from "@/chessground/Chessground";
 import MoveCell from "@/components/common/MoveCell";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
-import { moveHighlightAtom, previewBoardOnHoverAtom, scoreTypeFamily } from "@/state/atoms";
+import {
+  engineLinePlaySpeedAtom,
+  enginePanelFrozenAtom,
+  moveHighlightAtom,
+  previewBoardOnHoverAtom,
+  scoreTypeFamily,
+} from "@/state/atoms";
 import { positionFromFen } from "@/utils/chessops";
 import { formatScore } from "@/utils/score";
 import ScoreBubble from "./ScoreBubble";
@@ -71,6 +84,165 @@ function AnalysisRow({
 
   const [evalDisplay, setEvalDisplay] = useAtom(scoreTypeFamily(engine));
 
+  // --- Engine line playback state ---
+  const store = useContext(TreeStateContext)!;
+  const makeMove = useStore(store, (s) => s.makeMove);
+  const goToMove = useStore(store, (s) => s.goToMove);
+  const clearPreviews = useStore(store, (s) => s.clearPreviews);
+  const getPosition = useCallback(() => store.getState().position, [store]);
+  const playSpeed = useAtomValue(engineLinePlaySpeedAtom);
+  const setEnginePanelFrozen = useSetAtom(enginePanelFrozenAtom);
+
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
+  const playbackIndexRef = useRef(0);
+  const prePlaybackPositionRef = useRef<number[] | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hasSessionRef = useRef(false);
+
+  const cancelPlaybackSilent = useCallback(() => {
+    if (intervalRef.current !== null) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    if (prePlaybackPositionRef.current !== null) {
+      goToMove(prePlaybackPositionRef.current);
+      clearPreviews();
+      prePlaybackPositionRef.current = null;
+    }
+    setIsPlaying(false);
+    setIsPaused(false);
+    setHasSession(false);
+    playbackIndexRef.current = 0;
+    hasSessionRef.current = false;
+    setEnginePanelFrozen(false);
+  }, [goToMove, clearPreviews, setEnginePanelFrozen]);
+
+  // Listen for other rows starting playback — cancel ourselves
+  useEffect(() => {
+    const handler = () => {
+      if (hasSessionRef.current) {
+        cancelPlaybackSilent();
+      }
+    };
+    document.addEventListener("stop-engine-line-playback", handler);
+    return () => {
+      document.removeEventListener("stop-engine-line-playback", handler);
+    };
+  }, [cancelPlaybackSilent]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current !== null) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
+
+  const stopPlayback = useCallback(() => {
+    if (intervalRef.current !== null) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    setIsPlaying(false);
+    setIsPaused(false);
+    playbackIndexRef.current = 0;
+    // We intentionally DO NOT setEnginePanelFrozen(false) here!
+    // This leaves the engine panel frozen on the original line.
+  }, []);
+
+  const cancelPlayback = useCallback(() => {
+    cancelPlaybackSilent();
+  }, [cancelPlaybackSilent]);
+
+  const startPlayback = useCallback(() => {
+    if (threat || allMoves.length === 0) return;
+
+    // Mark ourselves inactive before dispatching, so our own handler won't cancel us
+    const wasSession = hasSessionRef.current;
+    hasSessionRef.current = false;
+    // Signal all other playing rows to cancel
+    document.dispatchEvent(new Event("stop-engine-line-playback"));
+    hasSessionRef.current = wasSession;
+
+    // If paused, resume from current index
+    if (isPaused) {
+      setIsPaused(false);
+      setIsPlaying(true);
+      hasSessionRef.current = true;
+      setEnginePanelFrozen(true);
+      intervalRef.current = setInterval(() => {
+        const idx = playbackIndexRef.current;
+        if (idx >= allMoves.length) {
+          stopPlayback();
+          return;
+        }
+        makeMove({ payload: allMoves[idx], changeHeaders: false, preview: true });
+        playbackIndexRef.current = idx + 1;
+      }, playSpeed * 1000);
+      return;
+    }
+
+    // If restarting from a finished session
+    if (prePlaybackPositionRef.current !== null) {
+      goToMove(prePlaybackPositionRef.current);
+    } else {
+      prePlaybackPositionRef.current = [...getPosition()];
+    }
+
+    // Fresh start: clear any prior interval
+    if (intervalRef.current !== null) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    playbackIndexRef.current = 0;
+    setIsPlaying(true);
+    setIsPaused(false);
+    setHasSession(true);
+    hasSessionRef.current = true;
+    setEnginePanelFrozen(true);
+
+    // Play first move immediately
+    makeMove({ payload: allMoves[0], changeHeaders: false, preview: true });
+    playbackIndexRef.current = 1;
+
+    if (allMoves.length > 1) {
+      intervalRef.current = setInterval(() => {
+        const idx = playbackIndexRef.current;
+        if (idx >= allMoves.length) {
+          stopPlayback();
+          return;
+        }
+        makeMove({ payload: allMoves[idx], changeHeaders: false, preview: true });
+        playbackIndexRef.current = idx + 1;
+      }, playSpeed * 1000);
+    } else {
+      // Only one move, auto-stop
+      stopPlayback();
+    }
+  }, [
+    threat,
+    allMoves,
+    isPaused,
+    playSpeed,
+    makeMove,
+    getPosition,
+    stopPlayback,
+    setEnginePanelFrozen,
+  ]);
+
+  const pausePlayback = useCallback(() => {
+    if (intervalRef.current !== null) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    setIsPaused(true);
+    setIsPlaying(false);
+  }, []);
+
   return (
     <>
       <Table.Tr style={{ verticalAlign: "top" }}>
@@ -113,7 +285,31 @@ function AnalysisRow({
           </Flex>
         </Table.Td>
         <Table.Th>
-          <Flex direction="column" align="center" gap={4}>
+          <Flex direction="row" align="center" gap={4}>
+            {!threat && allMoves.length > 0 && (
+              <Flex direction="row" align="center" gap={2}>
+                {isPlaying ? (
+                  <Tooltip label="Pause" withArrow position="right">
+                    <ActionIcon variant="subtle" color="yellow" size="sm" onClick={pausePlayback}>
+                      <IconPlayerPause size={14} />
+                    </ActionIcon>
+                  </Tooltip>
+                ) : (
+                  <Tooltip label={isPaused ? "Resume" : "Play line"} withArrow position="right">
+                    <ActionIcon variant="subtle" color="green" size="sm" onClick={startPlayback}>
+                      <IconPlayerPlay size={14} />
+                    </ActionIcon>
+                  </Tooltip>
+                )}
+                {hasSession && (
+                  <Tooltip label="Cancel" withArrow position="right">
+                    <ActionIcon variant="subtle" color="red" size="sm" onClick={cancelPlayback}>
+                      <IconX size={14} />
+                    </ActionIcon>
+                  </Tooltip>
+                )}
+              </Flex>
+            )}
             <ActionIcon
               style={{
                 transition: "transform 200ms ease",

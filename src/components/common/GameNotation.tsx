@@ -218,6 +218,7 @@ const RenderVariationTree = memo(
                 fen={variation.fen}
                 movePath={newPath}
                 showComments={showComments}
+                preview={variation.preview}
                 first
               />
               <RenderVariationTree targetRef={targetRef} nodePath={newPath} depth={depth + 2} />
@@ -239,6 +240,7 @@ const RenderVariationTree = memo(
             fen={variations[0].fen}
             movePath={mainLinePath}
             showComments={showComments}
+            preview={variations[0].preview}
             first={first}
           />
         )}
@@ -477,6 +479,7 @@ const TableNotation = memo(function TableNotation({
                             fen={variation.fen}
                             movePath={variationPath}
                             showComments={showComments}
+                            preview={variation.preview}
                             first
                           />
                           <RenderVariationTree
@@ -541,6 +544,7 @@ function RowSegment({
             fen={white.fen}
             movePath={whitePath}
             showComments={showComments}
+            preview={white.preview}
             tableLayout
             scoreText={showComments && white.score ? formatScore(white.score.value, 1) : undefined}
           />
@@ -561,6 +565,7 @@ function RowSegment({
             fen={black.fen}
             movePath={blackPath}
             showComments={showComments}
+            preview={black.preview}
             tableLayout
             scoreText={showComments && black.score ? formatScore(black.score.value, 1) : undefined}
           />

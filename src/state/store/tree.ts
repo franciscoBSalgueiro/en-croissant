@@ -47,6 +47,7 @@ export interface TreeStoreState extends TreeState {
         mainline?: boolean;
         clock?: number;
         changeHeaders?: boolean;
+        preview?: boolean;
     }) => void;
 
     appendMove: (args: { payload: Move; clock?: number }) => void;
@@ -57,6 +58,8 @@ export interface TreeStoreState extends TreeState {
     promoteToMainline: (path: number[]) => void;
     copyPgn: () => void;
     copyVariationPgn: (path: number[]) => void;
+
+    clearPreviews: () => void;
 
     setStart: (start: number[]) => void;
 
@@ -183,7 +186,7 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
                 }),
             ),
 
-        makeMove: ({ payload, changePosition, mainline, clock, changeHeaders = true }) => {
+        makeMove: ({ payload, changePosition, mainline, clock, changeHeaders = true, preview }) => {
             set(
                 produce((state) => {
                     if (typeof payload === "string") {
@@ -203,6 +206,7 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
                         changeHeaders,
                         mainline,
                         clock,
+                        preview,
                     });
                 }),
             );
@@ -412,6 +416,19 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
             });
             navigator.clipboard.writeText(pgn);
         },
+        clearPreviews: () =>
+            set(
+                produce((state) => {
+                    function clearPreviewsRecursive(node: TreeNode) {
+                        node.children = node.children.filter((c) => !c.preview);
+                        for (const child of node.children) {
+                            clearPreviewsRecursive(child);
+                        }
+                    }
+                    state.dirty = true;
+                    clearPreviewsRecursive(state.root);
+                }),
+            ),
         setStart: (start) =>
             set(
                 produce((state) => {
@@ -534,6 +551,7 @@ function makeMove({
     mainline = false,
     clock,
     sound = true,
+    preview,
 }: {
     state: TreeState;
     move: Move;
@@ -543,6 +561,7 @@ function makeMove({
     mainline?: boolean;
     clock?: number;
     sound?: boolean;
+    preview?: boolean;
 }) {
     const mainLine = Array.from(treeIteratorMainLine(state.root));
     const position = last ? mainLine[mainLine.length - 1].position : state.position;
@@ -588,6 +607,7 @@ function makeMove({
             san,
             halfMoves: moveNode.halfMoves + 1,
             clock,
+            preview,
         });
         if (mainline) {
             moveNode.children.unshift(newMoveNode);
