@@ -23,6 +23,7 @@
             ]
         },
         "dialog:default",
+        "deep-link:default",
         "os:default",
         "cli:default",
         "updater:default",
