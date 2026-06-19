@@ -1,7 +1,7 @@
 import { parseUci } from "chessops";
 import { beforeEach, expect, test } from "vitest";
 import { createTreeStore } from "@/state/store/tree";
-import { defaultTree, type TreeState } from "@/utils/treeReducer";
+import { buildTranspositionMaps, defaultTree, TreeNode, type TreeState } from "@/utils/treeReducer";
 
 const store = createTreeStore();
 
@@ -130,25 +130,42 @@ const getNewState = () => {
         report: {
             inProgress: false,
         },
+        boardStateMap: s.boardStateMap,
     };
 };
+
+// Helper to compute the expected boardStateMap for a given root and start path
+function expectedMap(root: TreeState["root"], start: number[] = []) {
+    return buildTranspositionMaps(root, start);
+}
 
 test("should handle save", () => {
     store.setState({ dirty: true });
     store.getState().save();
 
-    expect(getNewState()).toStrictEqual({ ...defaultTree(), dirty: false });
+    expect(getNewState()).toStrictEqual({
+        ...defaultTree(),
+        dirty: false,
+        boardStateMap: expectedMap(defaultTree().root),
+    });
 });
 
 test("should handle setState", () => {
-    store.getState().setState(treeE4D5());
-    expect(getNewState()).toStrictEqual(treeE4D5());
+    const state = treeE4D5();
+    store.getState().setState(state);
+    expect(getNewState()).toStrictEqual({
+        ...state,
+        boardStateMap: expectedMap(state.root),
+    });
 });
 
 test("should handle reset", () => {
     store.setState(treeE4D5());
     store.getState().reset();
-    expect(getNewState()).toStrictEqual(defaultTree());
+    expect(getNewState()).toStrictEqual({
+        ...defaultTree(),
+        boardStateMap: expectedMap(defaultTree().root),
+    });
 });
 
 test("should handle setHeaders", () => {
@@ -166,6 +183,7 @@ test("should handle setHeaders", () => {
             orientation: "black",
             start: [1],
         },
+        boardStateMap: expectedMap(defaultTree().root, [1]),
     });
 });
 
@@ -176,6 +194,7 @@ test("should handle setStart", () => {
         ...defaultTree(),
         dirty: true,
         headers: { ...defaultTree().headers, start: [1] },
+        boardStateMap: expectedMap(defaultTree().root, [1]),
     });
 });
 
@@ -204,16 +223,36 @@ test("should handle makeMove", () => {
                 },
             ],
         },
+        boardStateMap: expectedMap({
+            ...defaultTree().root,
+            children: [
+                {
+                    fen: "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+                    move: e4,
+                    san: "e4",
+                    children: [],
+                    score: null,
+                    clock: undefined,
+                    depth: null,
+                    halfMoves: 1,
+                    shapes: [],
+                    annotations: [],
+                    comment: "",
+                },
+            ],
+        }),
     });
 });
 
 test("should handle makeMoves", () => {
     store.getState().makeMoves({ payload: ["e4", "d5"] });
 
+    const expectedTree = treeE4D5();
     expect(getNewState()).toStrictEqual({
-        ...treeE4D5(),
+        ...expectedTree,
         dirty: true,
         position: [0, 0],
+        boardStateMap: expectedMap(expectedTree.root),
     });
 });
 
@@ -224,6 +263,7 @@ test("should handle goToStart", () => {
     expect(getNewState()).toStrictEqual({
         ...treeE4D5(),
         position: [],
+        boardStateMap: expectedMap(treeE4D5().root),
     });
 });
 
@@ -234,6 +274,7 @@ test("should handle goToEnd", () => {
     expect(getNewState()).toStrictEqual({
         ...treeE4D5(),
         position: [0, 0],
+        boardStateMap: expectedMap(treeE4D5().root),
     });
 });
 
@@ -244,6 +285,7 @@ test("should handle goToNext", () => {
     expect(getNewState()).toStrictEqual({
         ...treeE4D5(),
         position: [0],
+        boardStateMap: expectedMap(treeE4D5().root),
     });
 });
 
@@ -254,6 +296,7 @@ test("should handle goToPrevious", () => {
     expect(getNewState()).toStrictEqual({
         ...treeE4D5(),
         position: [],
+        boardStateMap: expectedMap(treeE4D5().root),
     });
 });
 
@@ -264,6 +307,7 @@ test("should handle goToBranchEnd", () => {
     expect(getNewState()).toStrictEqual({
         ...treeE4D5(),
         position: [0, 0],
+        boardStateMap: expectedMap(treeE4D5().root),
     });
 });
 
@@ -274,6 +318,7 @@ test("should handle goToBranchStart", () => {
     expect(getNewState()).toStrictEqual({
         ...treeE4D5(),
         position: [],
+        boardStateMap: expectedMap(treeE4D5().root),
     });
 });
 
@@ -284,6 +329,7 @@ test("should handle goToMove", () => {
     expect(getNewState()).toStrictEqual({
         ...treeE4D5(),
         position: [0],
+        boardStateMap: expectedMap(treeE4D5().root),
     });
 });
 
@@ -291,26 +337,33 @@ test("should handle deleteMove", () => {
     store.setState(treeE4D5());
     store.getState().deleteMove([0]);
 
-    expect(getNewState()).toStrictEqual({ ...defaultTree(), dirty: true });
+    expect(getNewState()).toStrictEqual({
+        ...defaultTree(),
+        dirty: true,
+        boardStateMap: expectedMap(defaultTree().root),
+    });
 });
 
 test("should handle setAnnotation", () => {
     store.setState({ ...treeE4D5(), position: [0] });
     store.getState().setAnnotation("!");
 
+    const mutatedRoot: TreeNode = {
+        ...treeE4D5().root,
+        children: [
+            {
+                ...treeE4D5().root.children[0],
+                annotations: ["!"],
+            },
+        ],
+    };
+
     expect(getNewState()).toStrictEqual({
         ...treeE4D5(),
         dirty: true,
         position: [0],
-        root: {
-            ...treeE4D5().root,
-            children: [
-                {
-                    ...treeE4D5().root.children[0],
-                    annotations: ["!"],
-                },
-            ],
-        },
+        root: mutatedRoot,
+        boardStateMap: expectedMap(mutatedRoot),
     });
 });
 
@@ -318,19 +371,22 @@ test("should handle setComment", () => {
     store.setState({ ...treeE4D5(), position: [0] });
     store.getState().setComment("test");
 
+    const mutatedRoot: TreeNode = {
+        ...treeE4D5().root,
+        children: [
+            {
+                ...treeE4D5().root.children[0],
+                comment: "test",
+            },
+        ],
+    };
+
     expect(getNewState()).toStrictEqual({
         ...treeE4D5(),
         dirty: true,
         position: [0],
-        root: {
-            ...treeE4D5().root,
-            children: [
-                {
-                    ...treeE4D5().root.children[0],
-                    comment: "test",
-                },
-            ],
-        },
+        root: mutatedRoot,
+        boardStateMap: expectedMap(mutatedRoot),
     });
 });
 
@@ -338,77 +394,67 @@ test("should handle setFen", () => {
     store.setState({ ...treeE4D5(), position: [0] });
     store.getState().setFen("rnbq1bnr/ppppkppp/8/4p3/4P3/8/PPPPKPPP/RNBQ1BNR w - - 2 3");
 
+    const newRoot = {
+        ...defaultTree().root,
+        fen: "rnbq1bnr/ppppkppp/8/4p3/4P3/8/PPPPKPPP/RNBQ1BNR w - - 2 3",
+    };
     expect(getNewState()).toStrictEqual({
         ...defaultTree(),
         dirty: true,
-        root: {
-            ...defaultTree().root,
-            fen: "rnbq1bnr/ppppkppp/8/4p3/4P3/8/PPPPKPPP/RNBQ1BNR w - - 2 3",
-        },
+        root: newRoot,
+        boardStateMap: expectedMap(newRoot),
     });
 });
 
 test("should handle setScore", () => {
     store.setState({ ...treeE4D5(), position: [0] });
     store.getState().setScore({
-        value: {
-            type: "mate",
-            value: 1,
-        },
+        value: { type: "mate" as const, value: 1 },
         wdl: null,
     });
+
+    const mutatedRoot: TreeNode = {
+        ...treeE4D5().root,
+        children: [
+            {
+                ...treeE4D5().root.children[0],
+                score: {
+                    value: { type: "mate" as const, value: 1 },
+                    wdl: null,
+                },
+            },
+        ],
+    };
 
     expect(getNewState()).toStrictEqual({
         ...treeE4D5(),
         dirty: true,
         position: [0],
-        root: {
-            ...treeE4D5().root,
-            children: [
-                {
-                    ...treeE4D5().root.children[0],
-                    score: {
-                        value: {
-                            type: "mate",
-                            value: 1,
-                        },
-                        wdl: null,
-                    },
-                },
-            ],
-        },
+        root: mutatedRoot,
+        boardStateMap: expectedMap(mutatedRoot),
     });
 });
 
 test("should handle setShapes", () => {
     store.setState({ ...treeE4D5(), position: [0] });
-    store.getState().setShapes([
-        {
-            brush: "red",
-            orig: "e4",
-            dest: "d5",
-        },
-    ]);
+    store.getState().setShapes([{ brush: "red", orig: "e4", dest: "d5" }]);
+
+    const mutatedRoot: TreeNode = {
+        ...treeE4D5().root,
+        children: [
+            {
+                ...treeE4D5().root.children[0],
+                shapes: [{ brush: "red", orig: "e4", dest: "d5" }],
+            },
+        ],
+    };
 
     expect(getNewState()).toStrictEqual({
         ...treeE4D5(),
         dirty: true,
         position: [0],
-        root: {
-            ...treeE4D5().root,
-            children: [
-                {
-                    ...treeE4D5().root.children[0],
-                    shapes: [
-                        {
-                            brush: "red",
-                            orig: "e4",
-                            dest: "d5",
-                        },
-                    ],
-                },
-            ],
-        },
+        root: mutatedRoot,
+        boardStateMap: expectedMap(mutatedRoot),
     });
 });
 
@@ -459,35 +505,30 @@ test("should handle addAnalysis", () => {
         },
     ]);
 
+    const expectedRoot: TreeNode = {
+        ...treeE4D5().root,
+        children: [
+            {
+                ...treeE4D5().root.children[0],
+                score: {
+                    value: { type: "cp" as const, value: 20 },
+                    wdl: null,
+                },
+            },
+        ],
+        score: {
+            value: { type: "cp" as const, value: 10 },
+            wdl: null,
+        },
+    };
     expect(getNewState()).toStrictEqual({
         ...treeE4D5(),
         dirty: true,
         position: [0],
-        root: {
-            ...treeE4D5().root,
-            children: [
-                {
-                    ...treeE4D5().root.children[0],
-                    score: {
-                        value: {
-                            type: "cp",
-                            value: 20,
-                        },
-                        wdl: null,
-                    },
-                },
-            ],
-            score: {
-                value: {
-                    type: "cp",
-                    value: 10,
-                },
-                wdl: null,
-            },
-        },
+        root: expectedRoot,
+        boardStateMap: expectedMap(expectedRoot),
     });
 });
-
 test("should handle promoteVariation", () => {
     store.setState(treeE4D5Nf3());
     store.getState().promoteVariation([1]);
@@ -507,5 +548,16 @@ test("should handle promoteVariation", () => {
                 },
             ],
         },
+        boardStateMap: expectedMap({
+            ...treeE4D5Nf3().root,
+            children: [
+                {
+                    ...treeE4D5Nf3().root.children[1],
+                },
+                {
+                    ...treeE4D5Nf3().root.children[0],
+                },
+            ],
+        }),
     });
 });

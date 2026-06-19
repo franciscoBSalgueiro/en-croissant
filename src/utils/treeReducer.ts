@@ -11,6 +11,7 @@ export interface TreeState {
     position: number[];
     dirty: boolean;
     report: ReportState;
+    boardStateMap: Record<string, { node: TreeNode; path: number[] }[]>;
 }
 
 export interface TreeNode {
@@ -104,6 +105,7 @@ export function defaultTree(fen?: string): TreeState {
         report: {
             inProgress: false,
         },
+        boardStateMap: {},
     };
 }
 
@@ -180,6 +182,25 @@ export const getNodeAtPath = (node: TreeNode, path: number[]): TreeNode => {
     return currentNode;
 };
 
+export function buildTranspositionMaps(
+    root: TreeNode,
+    startPath: number[] = [],
+): Record<string, { node: TreeNode; path: number[] }[]> {
+    const map: Record<string, { node: TreeNode; path: number[] }[]> = {};
+    const startNode = startPath.length > 0 ? getNodeAtPath(root, startPath) : root;
+
+    function traverse(node: TreeNode, path: number[]) {
+        const boardFen = getBoardState(node.fen);
+        if (!map[boardFen]) map[boardFen] = [];
+        map[boardFen].push({ node, path: [...path] });
+        for (let i = 0; i < node.children.length; i++) {
+            traverse(node.children[i], [...path, i]);
+        }
+    }
+    traverse(startNode, [...startPath]);
+    return map;
+}
+
 export function getTreeStructureHash(node: TreeNode): string {
     const parts: string[] = [];
     const stack: TreeNode[] = [node];
@@ -195,4 +216,8 @@ export function getTreeStructureHash(node: TreeNode): string {
 
 export interface ReportState {
     inProgress: boolean;
+}
+
+export function getBoardState(fen: string): string {
+    return fen.split(" ").slice(0, 4).join(" ");
 }
