@@ -143,11 +143,12 @@ function RepertoireInfo() {
       return;
     }
 
-    if (!dirty && !firstCoverageRun.current && referenceDb && minGames) {
+    if (!dirty && !firstCoverageRun.current) {
       return;
     }
 
     const version = ++coverageVersionRef.current;
+    firstCoverageRun.current = false;
     setCoverageLoading(true);
 
     computeTreeCoverage(root, orientation, referenceDb, minGames, startPath, startStateMoves).then(
@@ -159,11 +160,10 @@ function RepertoireInfo() {
           setDbMovesMap(result.dbMovesMap);
           setCoverageLoading(false);
           store.getState().save(); // sets dirty to false
-          firstCoverageRun.current = false;
         }
       },
     );
-  }, [root, orientation, referenceDb, minGames, startPath, startStateMoves, dirty]);
+  }, [referenceDb, minGames, orientation, dirty, root, startStateMoves]);
 
   const nodeToPath = useMemo(() => {
     const map = new Map<TreeNode, number[]>();

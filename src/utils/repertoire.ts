@@ -53,156 +53,180 @@ export async function fetchPositionMoves(
     }
 }
 
-interface BoardCoverageInput {
-    dbMoves: { move: string; games: number }[];
-    total: number;
-    minGames: number;
-    isUserTurn: boolean;
-    movesMap: Map<string, string>; // SAN → next board FEN
-    getChildCoverage: (nextFen: string) => Promise<{ coverage: number; missing: number }>;
-}
-
-async function computeBoardCoverage(
-    input: BoardCoverageInput,
-): Promise<{ coverage: number; missing: number }> {
-    const { dbMoves, total, minGames, isUserTurn, movesMap, getChildCoverage } = input;
-
-    if (total < minGames) {
-        return { coverage: 1, missing: 0 };
-    }
-
-    if (isUserTurn) {
-        if (movesMap.size === 0) {
-            return { coverage: 0, missing: total };
-        }
-        let maxCoverage = 0;
-        for (const nextFen of movesMap.values()) {
-            const { coverage } = await getChildCoverage(nextFen);
-            maxCoverage = Math.max(maxCoverage, coverage);
-        }
-        return { coverage: maxCoverage, missing: 0 };
-    }
-
-    // Opponent’s turn
-    const significant = dbMoves.filter((m) => m.games >= minGames);
-    const sigTotal = significant.reduce((sum, m) => sum + m.games, 0);
-    if (sigTotal === 0) {
-        return { coverage: 1, missing: 0 };
-    }
-
-    let weighted = 0;
-    let maxMissing = 0;
-    for (const m of significant) {
-        const freq = m.games / sigTotal;
-        if (movesMap.has(m.move)) {
-            const { coverage } = await getChildCoverage(movesMap.get(m.move)!);
-            weighted += freq * coverage;
-        } else if (m.games > maxMissing) {
-            maxMissing = m.games;
-        }
-    }
-    return { coverage: weighted, missing: maxMissing };
-}
-
-function createCoverageCalculator(
-    dbPath: string,
-    minGames: number,
-    orientation: "white" | "black",
-    stateMoves: Map<string, Map<string, string>>,
-) {
-    const dbCache = new Map<
-        string,
-        Promise<{
-            moves: { move: string; white: number; draw: number; black: number }[];
-            total: number;
-        }>
-    >();
-    const boardCache = new Map<string, Promise<{ coverage: number; missing: number }>>();
-    const computing = new Set<string>();
-
-    const getDbMoves = (
-        fen: string,
-    ): Promise<{
+type DbCache = Map<
+    string,
+    {
         moves: { move: string; white: number; draw: number; black: number }[];
         total: number;
-    }> => {
-        if (!dbCache.has(fen)) dbCache.set(fen, fetchPositionMoves(dbPath, fen));
-        return dbCache.get(fen)!;
-    };
+    }
+>;
 
-    const computeBoardStateCoverage = async (
-        boardFen: string,
-    ): Promise<{ coverage: number; missing: number }> => {
-        if (boardCache.has(boardFen)) return boardCache.get(boardFen)!;
-        if (computing.has(boardFen)) {
-            return { coverage: 1, missing: 0 };
-        }
+async function buildDbCache(root: TreeNode, startPath: number[], dbPath: string): Promise<DbCache> {
+    const startNode = startPath.length > 0 ? getNodeAtPath(root, startPath) : root;
 
-        computing.add(boardFen);
-        const promise = (async () => {
-            try {
-                const { moves: enrichedMoves, total } = await getDbMoves(boardFen);
-                const dbMoves = enrichedMoves.map((m) => ({
-                    move: m.move,
-                    games: m.white + m.draw + m.black,
-                }));
-                const sideToMove = boardFen.split(" ")[1];
-                const isUserTurn = sideToMove === orientation[0];
-                const movesMap = stateMoves.get(boardFen) ?? new Map();
+    const fenSet = new Set<string>();
+    const stack: TreeNode[] = [startNode];
+    while (stack.length > 0) {
+        const node = stack.pop()!;
+        fenSet.add(getBoardState(node.fen));
+        for (const child of node.children) stack.push(child);
+    }
+    const fenList = [...fenSet];
 
-                return computeBoardCoverage({
-                    dbMoves,
-                    total,
-                    minGames,
-                    isUserTurn,
-                    movesMap,
-                    getChildCoverage: computeBoardStateCoverage,
-                });
-            } finally {
-                computing.delete(boardFen);
-            }
-        })();
+    const cache: DbCache = new Map();
 
-        boardCache.set(boardFen, promise);
-        return promise;
-    };
+    for (let i = 0; i < fenList.length; i++) {
+        const fen = fenList[i];
+        const data = await fetchPositionMoves(dbPath, fen);
 
-    return { computeBoardStateCoverage, getDbMoves };
+        const enrichedMoves = data.moves.map((m) => ({
+            move: m.move,
+            white: m.white,
+            draw: m.draw,
+            black: m.black,
+        }));
+        const total = data.total;
+        cache.set(fen, { moves: enrichedMoves, total });
+    }
+    return cache;
 }
 
-async function populateCoverageMaps(
+/**
+ * Compute coverage and missing games for a single board FEN.
+ * Recurses into child FENs (which must already be in dbCache and stateMoves).
+ * Results are stored in a Map so each FEN is processed only once.
+ */
+function computeCoverageForFen(
+    fen: string,
+    dbCache: DbCache,
+    stateMoves: Map<string, Map<string, string>>,
+    orientation: "white" | "black",
+    minGames: number,
+    memo: Map<string, { coverage: number; missing: number }>,
+): { coverage: number; missing: number } {
+    const cached = memo.get(fen);
+    if (cached) return cached;
+
+    const dbData = dbCache.get(fen);
+    const moves = dbData?.moves ?? [];
+    const total = dbData?.total ?? 0;
+
+    if (total < minGames) {
+        const res = { coverage: 1, missing: 0 };
+        memo.set(fen, res);
+        return res;
+    }
+
+    const sideToMove = fen.split(" ")[1]; // "w" or "b"
+    const isUserTurn = sideToMove === orientation[0];
+
+    if (isUserTurn) {
+        const childFenMap = stateMoves.get(fen);
+        if (!childFenMap || childFenMap.size === 0) {
+            const res = { coverage: 0, missing: total };
+            memo.set(fen, res);
+            return res;
+        }
+        let maxCoverage = 0;
+        for (const childFen of childFenMap.values()) {
+            const child = computeCoverageForFen(
+                childFen,
+                dbCache,
+                stateMoves,
+                orientation,
+                minGames,
+                memo,
+            );
+            maxCoverage = Math.max(maxCoverage, child.coverage);
+        }
+        const res = { coverage: maxCoverage, missing: 0 };
+        memo.set(fen, res);
+        return res;
+    } else {
+        // Opponent's turn
+        const significant = moves.filter((m) => m.white + m.draw + m.black >= minGames);
+        const sigTotal = significant.reduce((sum, m) => sum + m.white + m.draw + m.black, 0);
+        if (sigTotal === 0) {
+            const res = { coverage: 1, missing: 0 };
+            memo.set(fen, res);
+            return res;
+        }
+        let weighted = 0;
+        let maxMissing = 0;
+        for (const m of significant) {
+            const freq = (m.white + m.draw + m.black) / sigTotal;
+            const childFen = stateMoves.get(fen)?.get(m.move);
+            if (childFen) {
+                const child = computeCoverageForFen(
+                    childFen,
+                    dbCache,
+                    stateMoves,
+                    orientation,
+                    minGames,
+                    memo,
+                );
+                weighted += freq * child.coverage;
+            } else {
+                if (m.white + m.draw + m.black > maxMissing) {
+                    maxMissing = m.white + m.draw + m.black;
+                }
+            }
+        }
+        const res = { coverage: weighted, missing: maxMissing };
+        memo.set(fen, res);
+        return res;
+    }
+}
+
+/**
+ * Walk the actual tree and build the path‑keyed maps needed by the UI.
+ */
+function buildPathMaps(
     root: TreeNode,
     startPath: number[],
-    calculator: ReturnType<typeof createCoverageCalculator>,
-) {
+    fenCoverageCache: Map<string, { coverage: number; missing: number }>,
+    dbCache: DbCache,
+): {
+    coverageMap: Map<string, number>;
+    gamesMap: Map<string, number>;
+    missingGamesMap: Map<string, number>;
+    dbMovesMap: Map<
+        string,
+        { moves: { move: string; white: number; draw: number; black: number }[]; total: number }
+    >;
+} {
     const coverageMap = new Map<string, number>();
     const gamesMap = new Map<string, number>();
-    const missingMap = new Map<string, number>();
+    const missingGamesMap = new Map<string, number>();
     const dbMovesMap = new Map<
         string,
         { moves: { move: string; white: number; draw: number; black: number }[]; total: number }
     >();
 
-    async function walk(node: TreeNode, path: number[]) {
+    const startNode = startPath.length > 0 ? getNodeAtPath(root, startPath) : root;
+    function walk(node: TreeNode, path: number[]) {
         const boardFen = getBoardState(node.fen);
-        const { coverage, missing } = await calculator.computeBoardStateCoverage(boardFen);
-        const { moves, total } = await calculator.getDbMoves(boardFen);
-        const key = path.join(",");
-
-        coverageMap.set(key, coverage);
-        missingMap.set(key, missing);
-        gamesMap.set(key, total);
-        dbMovesMap.set(boardFen, { moves, total });
-
+        const fenData = fenCoverageCache.get(boardFen);
+        if (fenData) {
+            const key = path.join(",");
+            coverageMap.set(key, fenData.coverage);
+            missingGamesMap.set(key, fenData.missing);
+        }
+        const dbData = dbCache.get(boardFen);
+        if (dbData) {
+            const key = path.join(",");
+            gamesMap.set(key, dbData.total);
+            if (!dbMovesMap.has(boardFen)) {
+                dbMovesMap.set(boardFen, dbData);
+            }
+        }
         for (let i = 0; i < node.children.length; i++) {
-            await walk(node.children[i], [...path, i]);
+            walk(node.children[i], [...path, i]);
         }
     }
+    walk(startNode, [...startPath]);
 
-    const startNode = getNodeAtPath(root, startPath);
-    if (startNode) await walk(startNode, startPath);
-
-    return { coverageMap, gamesMap, missingGamesMap: missingMap, dbMovesMap };
+    return { coverageMap, gamesMap, missingGamesMap, dbMovesMap };
 }
 
 export async function computeTreeCoverage(
@@ -221,8 +245,18 @@ export async function computeTreeCoverage(
         { moves: { move: string; white: number; draw: number; black: number }[]; total: number }
     >;
 }> {
-    const calculator = createCoverageCalculator(dbPath, minGames, userColor, stateMoves);
-    return populateCoverageMaps(root, startPath, calculator);
+    const dbCache = await buildDbCache(root, startPath, dbPath);
+
+    const memo = new Map<string, { coverage: number; missing: number }>();
+    let computedCount = 0;
+    for (const fen of dbCache.keys()) {
+        computeCoverageForFen(fen, dbCache, stateMoves, userColor, minGames, memo);
+        computedCount++;
+    }
+
+    const pathMaps = buildPathMaps(root, startPath, memo, dbCache);
+
+    return pathMaps;
 }
 
 export function findNextGap(
