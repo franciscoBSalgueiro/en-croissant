@@ -22,6 +22,7 @@ import {
     type TreeState,
     treeIteratorMainLine,
     buildTranspositionMaps,
+    getBoardState,
 } from "@/utils/treeReducer";
 
 export interface TreeStoreState extends TreeState {
@@ -93,6 +94,7 @@ export interface TreeStoreState extends TreeState {
 
 export type TreeStore = ReturnType<typeof createTreeStore>;
 
+// Defined as an outer function to avoid bloating git diff.
 const withTranspositionMaps =
     (config: StateCreator<TreeStoreState>): StateCreator<TreeStoreState> =>
     (set, get, api) => {
@@ -112,9 +114,11 @@ const withTranspositionMaps =
         return config(wrappedSet, get, api);
     };
 
-export const createTreeStore = (id?: string, initialTree?: TreeState) => {
+export const createTreeStore = (id?: string, initTree?: TreeState) => {
+    const initialTree = initTree ?? defaultTree();
     const stateCreator: StateCreator<TreeStoreState> = (set, get) => ({
-        ...(initialTree ?? defaultTree()),
+        ...initialTree,
+        boardStateMap: buildTranspositionMaps(initialTree.root, initialTree.headers.start ?? []),
 
         currentNode: () => getNodeAtPath(get().root, get().position),
         getNode: (path: number[]) => getNodeAtPath(get().root, path),
@@ -147,26 +151,23 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
                 }),
             ),
 
-        goToNext: () =>
+        goToNext: () => {
             set((state) => {
                 const { practicePath } = state;
                 const node = getNodeAtPath(state.root, state.position);
-                if (!node) return state;
+                if (!node) return {};
 
                 // Normal case: node has children
                 if (node.children.length > 0) {
                     if (practicePath && state.position.length >= practicePath.length) {
-                        return state;
+                        return {};
                     }
                     const childIndex = practicePath ? practicePath[state.position.length] : 0;
-                    if (!node.children[childIndex]?.move) return state;
+                    if (!node.children[childIndex]?.move) return {};
                     const san = node.children[childIndex].san;
-                    if (!san) return state;
+                    if (!san) return {};
                     playSound(san.includes("x"), san.includes("+"));
-                    return {
-                        ...state,
-                        position: [...state.position, childIndex],
-                    };
+                    return { position: [...state.position, childIndex] };
                 }
 
                 // No children — try transposition fallback
@@ -176,28 +177,25 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
 
                 if (candidates.length === 0) {
                     if (practicePath && state.position.length >= practicePath.length) {
-                        return state;
+                        return {};
                     }
-                    return state;
+                    return {};
                 }
 
-                // DFS order guarantees candidates[0] has the smallest path
                 const { node: targetNode, path: targetPath } = candidates[0];
-                if (targetNode.children.length === 0) return state;
+                if (targetNode.children.length === 0) return {};
                 const firstChild = targetNode.children[0];
-                if (!firstChild.san) return state;
+                if (!firstChild.san) return {};
                 playSound(firstChild.san.includes("x"), firstChild.san.includes("+"));
 
-                return {
-                    ...state,
-                    position: [...targetPath, 0],
-                };
-            }),
-        goToPrevious: () =>
+                return { position: [...targetPath, 0] };
+            });
+        },
+        goToPrevious: () => {
             set((state) => ({
-                ...state,
                 position: state.position.slice(0, -1),
-            })),
+            }));
+        },
 
         goToAnnotation: (annotation, color) =>
             set(
@@ -566,6 +564,14 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
                     const { boardStateMap, ...rest } = state;
                     return rest as TreeStoreState;
                 },
+                onRehydrateStorage: () => (state, error) => {
+                    if (!error && state) {
+                        state.boardStateMap = buildTranspositionMaps(
+                            state.root,
+                            state.headers.start || [],
+                        );
+                    }
+                },
             }),
         );
     }
@@ -654,10 +660,6 @@ function makeMove({
             }
         }
     }
-}
-
-export function getBoardState(fen: string): string {
-    return fen.split(" ").slice(0, 4).join(" ");
 }
 
 function isThreeFoldRepetition(state: TreeState, fen: string): boolean {

@@ -1,7 +1,7 @@
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { searchPosition } from "./db";
-import { getNodeAtPath, type TreeNode, treeIterator } from "./treeReducer";
-import { getBoardState, TreeStoreState } from "@/state/store/tree";
+import { getNodeAtPath, type TreeNode, treeIterator, getBoardState } from "./treeReducer";
+import { TreeStoreState } from "@/state/store/tree";
 import { memoize } from "proxy-memoize";
 
 export type PositionMove = {
@@ -17,10 +17,13 @@ export type PositionMove = {
     path: number[];
 };
 
-async function fetchPositionMoves(
+export async function fetchPositionMoves(
     dbPath: string,
     fen: string,
-): Promise<{ moves: { move: string; games: number }[]; total: number }> {
+): Promise<{
+    moves: { move: string; white: number; draw: number; black: number }[];
+    total: number;
+}> {
     try {
         const [openings] = await searchPosition(
             {
@@ -38,10 +41,12 @@ async function fetchPositionMoves(
             .filter((op) => op.move !== "*")
             .map((op) => ({
                 move: op.move,
-                games: op.white + op.draw + op.black,
+                white: op.white,
+                draw: op.draw,
+                black: op.black,
             }));
         const gamesEndingHere = summary ? summary.white + summary.draw + summary.black : 0;
-        const gamesContinuing = moves.reduce((acc, m) => acc + m.games, 0);
+        const gamesContinuing = moves.reduce((acc, m) => acc + m.white + m.draw + m.black, 0);
         return { moves, total: gamesEndingHere + gamesContinuing };
     } catch {
         return { moves: [], total: 0 };
@@ -107,12 +112,20 @@ function createCoverageCalculator(
 ) {
     const dbCache = new Map<
         string,
-        Promise<{ moves: { move: string; games: number }[]; total: number }>
+        Promise<{
+            moves: { move: string; white: number; draw: number; black: number }[];
+            total: number;
+        }>
     >();
     const boardCache = new Map<string, Promise<{ coverage: number; missing: number }>>();
     const computing = new Set<string>();
 
-    const getDbMoves = (fen: string) => {
+    const getDbMoves = (
+        fen: string,
+    ): Promise<{
+        moves: { move: string; white: number; draw: number; black: number }[];
+        total: number;
+    }> => {
         if (!dbCache.has(fen)) dbCache.set(fen, fetchPositionMoves(dbPath, fen));
         return dbCache.get(fen)!;
     };
@@ -128,7 +141,11 @@ function createCoverageCalculator(
         computing.add(boardFen);
         const promise = (async () => {
             try {
-                const { moves: dbMoves, total } = await getDbMoves(boardFen);
+                const { moves: enrichedMoves, total } = await getDbMoves(boardFen);
+                const dbMoves = enrichedMoves.map((m) => ({
+                    move: m.move,
+                    games: m.white + m.draw + m.black,
+                }));
                 const sideToMove = boardFen.split(" ")[1];
                 const isUserTurn = sideToMove === orientation[0];
                 const movesMap = stateMoves.get(boardFen) ?? new Map();
@@ -139,7 +156,7 @@ function createCoverageCalculator(
                     minGames,
                     isUserTurn,
                     movesMap,
-                    getChildCoverage: computeBoardStateCoverage, // recursive but cached
+                    getChildCoverage: computeBoardStateCoverage,
                 });
             } finally {
                 computing.delete(boardFen);
@@ -161,16 +178,21 @@ async function populateCoverageMaps(
     const coverageMap = new Map<string, number>();
     const gamesMap = new Map<string, number>();
     const missingMap = new Map<string, number>();
+    const dbMovesMap = new Map<
+        string,
+        { moves: { move: string; white: number; draw: number; black: number }[]; total: number }
+    >();
 
     async function walk(node: TreeNode, path: number[]) {
         const boardFen = getBoardState(node.fen);
         const { coverage, missing } = await calculator.computeBoardStateCoverage(boardFen);
-        const total = (await calculator.getDbMoves(boardFen)).total;
+        const { moves, total } = await calculator.getDbMoves(boardFen);
         const key = path.join(",");
 
         coverageMap.set(key, coverage);
         missingMap.set(key, missing);
         gamesMap.set(key, total);
+        dbMovesMap.set(boardFen, { moves, total });
 
         for (let i = 0; i < node.children.length; i++) {
             await walk(node.children[i], [...path, i]);
@@ -180,7 +202,7 @@ async function populateCoverageMaps(
     const startNode = getNodeAtPath(root, startPath);
     if (startNode) await walk(startNode, startPath);
 
-    return { coverageMap, gamesMap, missingGamesMap: missingMap };
+    return { coverageMap, gamesMap, missingGamesMap: missingMap, dbMovesMap };
 }
 
 export async function computeTreeCoverage(
@@ -194,6 +216,10 @@ export async function computeTreeCoverage(
     coverageMap: Map<string, number>;
     gamesMap: Map<string, number>;
     missingGamesMap: Map<string, number>;
+    dbMovesMap: Map<
+        string,
+        { moves: { move: string; white: number; draw: number; black: number }[]; total: number }
+    >;
 }> {
     const calculator = createCoverageCalculator(dbPath, minGames, userColor, stateMoves);
     return populateCoverageMaps(root, startPath, calculator);
@@ -288,10 +314,10 @@ export function findBiggestGap(
             if (isGap) {
                 if (missing > maxMissing) {
                     maxMissing = missing;
-                    bestPath = path;
+                    bestPath = [...path];
                 } else if (missing === maxMissing && bestPath !== null) {
                     if (path.length < bestPath.length) {
-                        bestPath = path;
+                        bestPath = [...path];
                     }
                 }
             }
