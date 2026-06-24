@@ -608,7 +608,7 @@ function MovesView({
               <Text fz="xs" c="dimmed" w={100} ta="center">
                 {t("Board.Practice.Build.Results")}
               </Text>
-              {(hasResponses || coverageLoading) && (
+              {(!isUserTurn || hasResponses || coverageLoading) && (
                 <Group gap={4} w={100} justify="center" wrap="nowrap">
                   <Text fz="xs" c="dimmed" ta="center">
                     {t("Board.Practice.Build.YourCoverage")}
