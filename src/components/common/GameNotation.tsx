@@ -37,6 +37,7 @@ import {
   currentInvisibleAtom,
   currentShowCommentsAtom,
   currentShowVariationsAtom,
+  moveNotationTypeAtom,
   tableViewAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
@@ -45,6 +46,7 @@ import { getNodeAtPath, type TreeNode } from "@/utils/treeReducer";
 import CompleteMoveCell from "./CompleteMoveCell";
 import styles from "./GameNotation.module.css";
 import OpeningName from "./OpeningName";
+import { makeLan } from "@/utils/chess";
 
 function GameNotation({ topBar, controls }: { topBar?: boolean; controls?: React.ReactNode }) {
   const store = useContext(TreeStateContext)!;
@@ -202,6 +204,7 @@ const RenderVariationTree = memo(
     const showComments = useAtomValue(currentShowCommentsAtom);
     const node = useStore(store, (s) => getNodeAtPath(s.root, nodePath));
     const variations = node.children;
+    const moveNotationType = useAtomValue(moveNotationTypeAtom);
 
     const variationNodes = showVariations
       ? variations.slice(1).map((variation, idx) => {
@@ -214,7 +217,7 @@ const RenderVariationTree = memo(
                 annotations={variation.annotations}
                 comment={variation.comment}
                 halfMoves={variation.halfMoves}
-                move={variation.san}
+                move={moveNotationType === "lan" ? makeLan(variation) : variation.san}
                 fen={variation.fen}
                 movePath={newPath}
                 showComments={showComments}
@@ -235,7 +238,7 @@ const RenderVariationTree = memo(
             annotations={variations[0].annotations}
             comment={variations[0].comment}
             halfMoves={variations[0].halfMoves}
-            move={variations[0].san}
+            move={moveNotationType === "lan" ? makeLan(variations[0]) : variations[0].san}
             fen={variations[0].fen}
             movePath={mainLinePath}
             showComments={showComments}
@@ -465,6 +468,7 @@ const TableNotation = memo(function TableNotation({
                 <td colSpan={3}>
                   <Box pl="sm" pt="xs">
                     {seg.variations.map((variation, vIdx) => {
+                      const moveNotationType = useAtomValue(moveNotationTypeAtom);
                       const variationPath = [...seg.parentPath, vIdx + 1];
                       return (
                         <Box key={variation.fen} className={styles.variationBorder} mb={4}>
@@ -473,7 +477,7 @@ const TableNotation = memo(function TableNotation({
                             annotations={variation.annotations}
                             comment={variation.comment}
                             halfMoves={variation.halfMoves}
-                            move={variation.san}
+                            move={moveNotationType === "lan" ? makeLan(variation) : variation.san}
                             fen={variation.fen}
                             movePath={variationPath}
                             showComments={showComments}
@@ -527,6 +531,7 @@ function RowSegment({
   const white = useStore(store, (s) => s.getNode(whitePath));
   const blackPath = blackPathStr ? blackPathStr.split(",").map(Number) : [];
   const black = useStore(store, (s) => s.getNode(blackPath));
+  const moveNotationType = useAtomValue(moveNotationTypeAtom);
   return (
     <Table.Tr>
       <Table.Td className={styles.moveTableMoveNumber}>{moveNumber}</Table.Td>
@@ -537,7 +542,7 @@ function RowSegment({
             annotations={white.annotations}
             comment={white.comment}
             halfMoves={white.halfMoves}
-            move={white.san}
+            move={moveNotationType === "lan" ? makeLan(white) : white.san}
             fen={white.fen}
             movePath={whitePath}
             showComments={showComments}
@@ -557,7 +562,7 @@ function RowSegment({
             annotations={black.annotations}
             comment={black.comment}
             halfMoves={black.halfMoves}
-            move={black.san}
+            move={moveNotationType === "lan" ? makeLan(black) : black.san}
             fen={black.fen}
             movePath={blackPath}
             showComments={showComments}

@@ -13,10 +13,17 @@ import type { Score } from "@/bindings";
 import { Chessground } from "@/chessground/Chessground";
 import MoveCell from "@/components/common/MoveCell";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
-import { moveHighlightAtom, previewBoardOnHoverAtom, scoreTypeFamily } from "@/state/atoms";
 import { positionFromFen } from "@/utils/chessops";
 import { formatScore } from "@/utils/score";
 import ScoreBubble from "./ScoreBubble";
+import {
+  moveHighlightAtom,
+  moveNotationTypeAtom,
+  previewBoardOnHoverAtom,
+  scoreTypeFamily,
+} from "@/state/atoms";
+import { makeLan } from "@/utils/chess";
+import type { Move } from "chessops";
 
 function AnalysisRow({
   engine,
@@ -54,7 +61,7 @@ function AnalysisRow({
       const fen = makeFen(pos.toSetup());
       const lastMove = chessgroundMove(move);
       const isCheck = pos.isCheck();
-      moveInfo.push({ fen, san, lastMove, isCheck });
+      moveInfo.push({ fen, san, move, lastMove, isCheck });
     }
   }
 
@@ -92,7 +99,7 @@ function AnalysisRow({
               alignItems: "center",
             }}
           >
-            {moveInfo.map(({ san, fen, lastMove, isCheck }, index) => (
+            {moveInfo.map(({ san, fen, move, lastMove, isCheck }, index) => (
               <BoardPopover
                 position={{
                   left: ref.current?.getClientRects()[0]?.left ?? 0,
@@ -100,6 +107,7 @@ function AnalysisRow({
                 }}
                 key={index}
                 san={san}
+                move={move}
                 index={index}
                 moves={allMoves}
                 halfMoves={halfMoves}
@@ -157,6 +165,7 @@ function AnalysisRow({
 
 function BoardPopover({
   san,
+  move,
   lastMove,
   isCheck,
   index,
@@ -168,6 +177,7 @@ function BoardPopover({
   position,
 }: {
   san: string;
+  move: Move;
   lastMove: Key[];
   isCheck: boolean;
   index: number;
@@ -185,15 +195,18 @@ function BoardPopover({
   const makeMoves = useStore(store, (s) => s.makeMoves);
   const preview = useAtomValue(previewBoardOnHoverAtom);
   const moveHighlight = useAtomValue(moveHighlightAtom);
+  const moveNotationType = useAtomValue(moveNotationTypeAtom);
 
   const [hovering, setHovering] = useState(false);
+  const displayMove =
+    moveNotationType === "lan" ? makeLan({ move, san } as Parameters<typeof makeLan>[0]) : san;
 
   return (
     <>
       <Box onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}>
         {(index === 0 || is_white) && `${move_number.toString()}${is_white ? "." : "..."}`}
         <MoveCell
-          move={san}
+          move={displayMove}
           isCurrentVariation={false}
           annotations={[]}
           onContextMenu={() => undefined}
