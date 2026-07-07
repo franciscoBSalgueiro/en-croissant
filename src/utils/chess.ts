@@ -178,6 +178,9 @@ export function headersToPGN(game: GameHeaders): string {
 [Black "${game.black || "?"}"]
 [Result "${game.result}"]
 `;
+    if (game.time) {
+        headers += `[UTCTime "${game.time}"]\n`;
+    }
     if (game.white_elo !== undefined && game.white_elo !== null) {
         headers += `[WhiteElo "${game.white_elo === 0 ? "-" : game.white_elo}"]\n`;
     }
