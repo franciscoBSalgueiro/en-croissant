@@ -1,5 +1,5 @@
 import { fetch } from "@tauri-apps/plugin-http";
-import type { Platform } from "@tauri-apps/plugin-os";
+import { type Arch, arch, type Platform } from "@tauri-apps/plugin-os";
 import useSWR from "swr";
 import { z } from "zod";
 import { type BestMoves, commands, type EngineOptions, type GoMode } from "@/bindings";
@@ -95,14 +95,23 @@ export function getBestMoves(
 export function useDefaultEngines(os: Platform | undefined, opened: boolean) {
     const { data, error, isLoading } = useSWR(opened ? os : null, async (os: Platform) => {
         const bmi2: boolean = await commands.isBmi2Compatible();
-        const data = await fetch(`https://www.encroissant.org/engines?os=${os}&bmi2=${bmi2}`, {
-            method: "GET",
-        });
+        const currentArch: Arch = arch();
+        const data = await fetch(
+            `https://www.encroissant.org/engines?os=${os}&bmi2=${bmi2}&arch=${currentArch}`,
+            {
+                method: "GET",
+            },
+        );
         if (!data.ok) {
             throw new Error("Failed to fetch engines");
         }
         return (await data.json()).filter(
-            (e: { os: Platform; bmi2: boolean }) => e.os === os && e.bmi2 === bmi2,
+            // `arch` is only set on entries where the platform ships more than one
+            // build (macOS x86_64 vs aarch64). Entries without it stay unconstrained,
+            // so platforms that rely on emulation — Windows on ARM running the x86
+            // builds — keep seeing them instead of an empty list.
+            (e: { os: Platform; bmi2: boolean; arch?: Arch }) =>
+                e.os === os && e.bmi2 === bmi2 && (e.arch === undefined || e.arch === currentArch),
         );
     });
     return {
