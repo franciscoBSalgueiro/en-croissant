@@ -36,8 +36,11 @@ import { useStore } from "zustand";
 import { commands, type PuzzleDatabaseInfo } from "@/bindings";
 import {
   activeTabAtom,
+  currentAnalysisTabAtom,
   currentPuzzleAtom,
   currentPuzzleTimerAtom,
+  enableAllAtom,
+  enginesAtom,
   hidePuzzleRatingAtom,
   jumpToNextPuzzleAtom,
   progressivePuzzlesAtom,
@@ -58,6 +61,8 @@ import ConfirmModal from "../common/ConfirmModal";
 import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
 import { TreeStateContext } from "../common/TreeStateContext";
+import EvalListener from "../boards/EvalListener";
+import AnalysisPanel from "../panels/analysis/AnalysisPanel";
 import AddPuzzle from "./AddPuzzle";
 import PuzzleBoard from "./PuzzleBoard";
 
@@ -80,6 +85,17 @@ function Puzzles({ id }: { id: string }) {
   const [selectedDb, setSelectedDb] = useAtom(selectedPuzzleDbAtom);
 
   const [settingsOpened, setSettingsOpened] = useState(false);
+  const [reviewMode, setReviewMode] = useState(false);
+  const [engines] = useAtom(enginesAtom);
+  const [, enableEngines] = useAtom(enableAllAtom);
+  const [, setAnalysisTab] = useAtom(currentAnalysisTabAtom);
+
+  useEffect(() => {
+    enableEngines(reviewMode);
+    if (reviewMode) {
+      setAnalysisTab("engines");
+    }
+  }, [enableEngines, engines, reviewMode, setAnalysisTab]);
 
   useEffect(() => {
     getPuzzleDatabases().then((databases) => {
@@ -146,6 +162,7 @@ function Puzzles({ id }: { id: string }) {
   const solutionAbortRef = useRef<AbortController | null>(null);
 
   async function generatePuzzle(db: string, force: boolean = false) {
+    setReviewMode(false);
     let nextIndex = puzzles.findIndex((p, i) => i > currentPuzzle && p.completion === "incomplete");
     if (nextIndex === -1) {
       nextIndex = puzzles.findIndex((p, i) => i < currentPuzzle && p.completion === "incomplete");
@@ -300,14 +317,18 @@ function Puzzles({ id }: { id: string }) {
           changeCompletion={changeCompletion}
           generatePuzzle={generatePuzzle}
           db={selectedDb}
+          reviewMode={reviewMode}
+          enterReviewMode={() => setReviewMode(true)}
         />
       </Portal>
+      {reviewMode && <EvalListener />}
       <Portal target="#topRight" style={{ height: "100%" }}>
         <Paper
           h="100%"
           withBorder
           p="md"
           style={{
+            display: reviewMode ? "none" : undefined,
             overflow: "hidden",
           }}
         >
@@ -331,6 +352,7 @@ function Puzzles({ id }: { id: string }) {
                 reset();
                 setTimerStart(null);
                 setIsPlayingSolution(false);
+                setReviewMode(false);
               }
               setDeleteModalOpened(false);
             }}
@@ -577,6 +599,7 @@ function Puzzles({ id }: { id: string }) {
                     reset();
                     setTimerStart(null);
                     setIsPlayingSolution(false);
+                    setReviewMode(false);
                   }}
                 >
                   <IconX />
@@ -666,6 +689,26 @@ function Puzzles({ id }: { id: string }) {
             </Button>
           </Group>
         </Paper>
+        {reviewMode && (
+          <Paper h="100%" withBorder p="md" style={{ overflow: "hidden" }}>
+            <Stack h="100%" gap="sm">
+              <Group justify="space-between">
+                <Text fw={600}>{t("Puzzle.PuzzleComplete")}</Text>
+                <Button
+                  disabled={!selectedDb}
+                  onClick={async () => {
+                    if (!selectedDb) return;
+                    enableEngines(false);
+                    await generatePuzzle(selectedDb);
+                  }}
+                >
+                  {t("Puzzle.ContinueTraining")}
+                </Button>
+              </Group>
+              <AnalysisPanel />
+            </Stack>
+          </Paper>
+        )}
       </Portal>
       <Portal target="#bottomRight" style={{ height: "100%" }}>
         <Stack h="100%" gap="xs">
@@ -681,6 +724,7 @@ function Puzzles({ id }: { id: string }) {
                   if (i === currentPuzzle) return;
                   solutionAbortRef.current?.abort();
                   setIsPlayingSolution(false);
+                  setReviewMode(false);
                   setCurrentPuzzle(i);
                   setPuzzle(puzzles[i]);
                   if (puzzles[i].completion === "incomplete") {
