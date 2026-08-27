@@ -39,12 +39,12 @@ import {
   currentAnalysisTabAtom,
   currentPuzzleAtom,
   currentPuzzleTimerAtom,
-  enableSingleEngineAtom,
+  enableEnginesAtom,
   enginesAtom,
   hidePuzzleRatingAtom,
   jumpToNextPuzzleAtom,
   progressivePuzzlesAtom,
-  puzzleReviewEngineAtom,
+  puzzleReviewEnginesAtom,
   puzzleRatingRangeAtom,
   puzzleThemeAtom,
   selectedPuzzleDbAtom,
@@ -88,16 +88,16 @@ function Puzzles({ id }: { id: string }) {
   const [settingsOpened, setSettingsOpened] = useState(false);
   const [reviewMode, setReviewMode] = useState(false);
   const [engines] = useAtom(enginesAtom);
-  const [, enableSingleEngine] = useAtom(enableSingleEngineAtom);
-  const [puzzleReviewEngine, setPuzzleReviewEngine] = useAtom(puzzleReviewEngineAtom);
+  const [, enableEngines] = useAtom(enableEnginesAtom);
+  const [puzzleReviewEngines, setPuzzleReviewEngines] = useAtom(puzzleReviewEnginesAtom);
   const [, setAnalysisTab] = useAtom(currentAnalysisTabAtom);
 
   useEffect(() => {
-    enableSingleEngine(reviewMode ? puzzleReviewEngine : null);
+    enableEngines(reviewMode ? puzzleReviewEngines : []);
     if (reviewMode) {
       setAnalysisTab("engines");
     }
-  }, [enableSingleEngine, engines, puzzleReviewEngine, reviewMode, setAnalysisTab]);
+  }, [enableEngines, engines, puzzleReviewEngines, reviewMode, setAnalysisTab]);
 
   useEffect(() => {
     getPuzzleDatabases().then((databases) => {
@@ -703,7 +703,7 @@ function Puzzles({ id }: { id: string }) {
                   disabled={!selectedDb}
                   onClick={async () => {
                     if (!selectedDb) return;
-                    enableSingleEngine(null);
+                    enableEngines([]);
                     await generatePuzzle(selectedDb);
                   }}
                 >
@@ -712,12 +712,11 @@ function Puzzles({ id }: { id: string }) {
               </Group>
               <AnalysisPanel
                 onEngineToggle={(engineId, enabled) => {
-                  if (enabled) {
-                    setPuzzleReviewEngine(engineId);
-                    enableSingleEngine(engineId);
-                  } else {
-                    enableSingleEngine(null);
-                  }
+                  const nextEngines = enabled
+                    ? [...new Set([...puzzleReviewEngines, engineId])]
+                    : puzzleReviewEngines.filter((id) => id !== engineId);
+                  setPuzzleReviewEngines(nextEngines);
+                  enableEngines(nextEngines);
                 }}
               />
             </Stack>
