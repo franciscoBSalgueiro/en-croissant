@@ -40,11 +40,12 @@ import {
   currentAnalysisTabAtom,
   currentPuzzleAtom,
   currentPuzzleTimerAtom,
-  enableAllAtom,
+  enableSingleEngineAtom,
   enginesAtom,
   hidePuzzleRatingAtom,
   jumpToNextPuzzleAtom,
   progressivePuzzlesAtom,
+  puzzleReviewEngineAtom,
   puzzleRatingRangeAtom,
   puzzleThemeAtom,
   selectedPuzzleDbAtom,
@@ -88,15 +89,16 @@ function Puzzles({ id }: { id: string }) {
   const [settingsOpened, setSettingsOpened] = useState(false);
   const [reviewMode, setReviewMode] = useState(false);
   const [engines] = useAtom(enginesAtom);
-  const [, enableEngines] = useAtom(enableAllAtom);
+  const [, enableSingleEngine] = useAtom(enableSingleEngineAtom);
+  const [puzzleReviewEngine, setPuzzleReviewEngine] = useAtom(puzzleReviewEngineAtom);
   const [, setAnalysisTab] = useAtom(currentAnalysisTabAtom);
 
   useEffect(() => {
-    enableEngines(reviewMode);
+    enableSingleEngine(reviewMode ? puzzleReviewEngine : null);
     if (reviewMode) {
       setAnalysisTab("engines");
     }
-  }, [enableEngines, engines, reviewMode, setAnalysisTab]);
+  }, [enableSingleEngine, engines, puzzleReviewEngine, reviewMode, setAnalysisTab]);
 
   useEffect(() => {
     getPuzzleDatabases().then((databases) => {
@@ -699,6 +701,9 @@ function Puzzles({ id }: { id: string }) {
                   await new Promise((r) => setTimeout(r, 500));
                 }
                 setIsPlayingSolution(false);
+                if (!abortController.signal.aborted) {
+                  setReviewMode(true);
+                }
               }}
               disabled={puzzles.length === 0}
             >
@@ -715,14 +720,23 @@ function Puzzles({ id }: { id: string }) {
                   disabled={!selectedDb}
                   onClick={async () => {
                     if (!selectedDb) return;
-                    enableEngines(false);
+                    enableSingleEngine(null);
                     await generatePuzzle(selectedDb);
                   }}
                 >
                   {t("Puzzle.ContinueTraining")}
                 </Button>
               </Group>
-              <AnalysisPanel />
+              <AnalysisPanel
+                onEngineToggle={(engineId, enabled) => {
+                  if (enabled) {
+                    setPuzzleReviewEngine(engineId);
+                    enableSingleEngine(engineId);
+                  } else {
+                    enableSingleEngine(null);
+                  }
+                }}
+              />
             </Stack>
           </Paper>
         )}
