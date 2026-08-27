@@ -176,10 +176,7 @@ export const moveHighlightAtom = atomWithStorage<boolean>("move-highlight", true
 export const snapArrowsAtom = atomWithStorage<boolean>("snap-dests", true);
 export const showArrowsAtom = atomWithStorage<boolean>("show-arrows", true);
 export const showConsecutiveArrowsAtom = atomWithStorage<boolean>("show-consecutive-arrows", false);
-export const puzzleReviewEnginesAtom = atomWithStorage<string[]>(
-    "puzzle-review-engines",
-    [],
-);
+export const puzzleReviewEnginesAtom = atomWithStorage<string[]>("puzzle-review-engines", []);
 export const showVariationArrowsAtom = atomWithStorage<boolean>("show-variation-arrows", false);
 export const eraseDrawablesOnClickAtom = atomWithStorage<boolean>(
     "erase-drawables-on-click",
