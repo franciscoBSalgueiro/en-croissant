@@ -109,7 +109,9 @@ async function getDatabase(name: string): Promise<DatabaseInfo> {
     }
     return {
         type: "error",
-        filename: path,
+        // Must stay the bare file name like the success case, otherwise callers
+        // that look a database up by filename silently stop finding it.
+        filename: name,
         file: path,
         error: res.error,
         indexed: false,

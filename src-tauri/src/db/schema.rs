@@ -81,6 +81,8 @@ diesel::table! {
         moves -> Binary,
         #[sql_name = "PawnHome"]
         pawn_home -> Integer,
+        #[sql_name = "SourceID"]
+        source_id -> Nullable<Text>,
     }
 }
 
