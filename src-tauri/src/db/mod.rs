@@ -863,6 +863,32 @@ pub struct QueryOptions<SortT> {
     pub direction: SortDirection,
 }
 
+const MAX_PAGE_SIZE: i32 = 1000;
+
+fn pagination_limit_offset(
+    page: Option<i32>,
+    page_size: Option<i32>,
+) -> Result<(Option<i64>, Option<i64>), Error> {
+    if let Some(page_size) = page_size {
+        if !(1..=MAX_PAGE_SIZE).contains(&page_size) {
+            return Err(Error::InvalidInput(format!(
+                "page size must be between 1 and {MAX_PAGE_SIZE}"
+            )));
+        }
+    }
+
+    if let Some(page) = page {
+        if page < 1 {
+            return Err(Error::InvalidInput("page must be at least 1".into()));
+        }
+    }
+
+    let limit = page_size.map(i64::from);
+    let offset = page.map(|page| (i64::from(page) - 1) * page_size.map(i64::from).unwrap_or(10));
+
+    Ok((limit, offset))
+}
+
 #[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq, Hash, Type)]
 pub struct GameQuery {
     #[specta(optional)]
@@ -953,12 +979,12 @@ pub async fn get_games(
         count_query = count_query.filter(games::event_id.eq(tournament_id));
     }
 
-    if let Some(limit) = query_options.page_size {
-        sql_query = sql_query.limit(limit as i64);
+    let (limit, offset) = pagination_limit_offset(query_options.page, query_options.page_size)?;
+    if let Some(limit) = limit {
+        sql_query = sql_query.limit(limit);
     }
-
-    if let Some(page) = query_options.page {
-        sql_query = sql_query.offset(((page - 1) * query_options.page_size.unwrap_or(10)) as i64);
+    if let Some(offset) = offset {
+        sql_query = sql_query.offset(offset);
     }
 
     match query.sides {
@@ -1220,12 +1246,12 @@ pub async fn get_players(
         count = Some(count_query.count().get_result(db)?);
     }
 
-    if let Some(limit) = query.options.page_size {
-        sql_query = sql_query.limit(limit as i64);
+    let (limit, offset) = pagination_limit_offset(query.options.page, query.options.page_size)?;
+    if let Some(limit) = limit {
+        sql_query = sql_query.limit(limit);
     }
-
-    if let Some(page) = query.options.page {
-        sql_query = sql_query.offset(((page - 1) * query.options.page_size.unwrap_or(10)) as i64);
+    if let Some(offset) = offset {
+        sql_query = sql_query.offset(offset);
     }
 
     sql_query = match query.options.sort {
@@ -1289,12 +1315,12 @@ pub async fn get_tournaments(
         count = Some(count_query.count().get_result(db)?);
     }
 
-    if let Some(limit) = query.options.page_size {
-        sql_query = sql_query.limit(limit as i64);
+    let (limit, offset) = pagination_limit_offset(query.options.page, query.options.page_size)?;
+    if let Some(limit) = limit {
+        sql_query = sql_query.limit(limit);
     }
-
-    if let Some(page) = query.options.page {
-        sql_query = sql_query.offset(((page - 1) * query.options.page_size.unwrap_or(10)) as i64);
+    if let Some(offset) = offset {
+        sql_query = sql_query.offset(offset);
     }
 
     sql_query = match query.options.sort {
@@ -2000,6 +2026,31 @@ mod tests {
         assert_eq!(games.len(), 1);
         let movetext = decode_game_to_movetext(&games[0].moves, Fen::default()).unwrap();
         assert_eq!(movetext, "1. e4! (1. d4?) 1... e5!");
+    }
+
+    #[test]
+    fn pagination_limit_offset_validates_and_uses_i64_arithmetic() {
+        let cases: [(Option<i32>, Option<i32>, bool); 7] = [
+            (None, Some(-1), false),
+            (Some(0), None, false),
+            (None, Some(0), false),
+            (None, Some(1001), false),
+            (Some(1), Some(1), true),
+            (None, Some(1000), true),
+            (Some(2), None, true),
+        ];
+        for (page, page_size, ok) in cases {
+            let actual = pagination_limit_offset(page, page_size);
+            assert_eq!(
+                actual.is_ok(),
+                ok,
+                "page={page:?} page_size={page_size:?} -> {actual:?}"
+            );
+        }
+
+        let (limit, offset) = pagination_limit_offset(Some(3), Some(25)).unwrap();
+        assert_eq!(limit, Some(25));
+        assert_eq!(offset, Some(50));
     }
 
     fn setup_test_db() -> SqliteConnection {
