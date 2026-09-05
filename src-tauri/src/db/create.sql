@@ -39,6 +39,7 @@ CREATE TABLE Games (
     FEN TEXT,
     Moves BLOB,
     PawnHome BLOB,
+    SourceID TEXT,
     FOREIGN KEY(EventID) REFERENCES Events,
     FOREIGN KEY(SiteID) REFERENCES Sites,
     FOREIGN KEY(WhiteID) REFERENCES Players,

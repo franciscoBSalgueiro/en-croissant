@@ -157,21 +157,38 @@ export function AccountCard({
   const percentage =
     effectiveTotal === 0 ? "0.00" : ((downloadedGames / effectiveTotal) * 100).toFixed(2);
 
+  // Everything that keeps a download incremental hangs off this cursor: when it
+  // comes back null the whole archive is fetched and re-imported. So look past
+  // the newest row if its date is missing or unparseable ("????.??.??"), and
+  // fall back to the start of the day when only the time is missing.
   async function getLastGameDate({ database }: { database: DatabaseInfo }) {
     const games = await query_games(database.file, {
       options: {
         page: 1,
-        pageSize: 1,
+        pageSize: 20,
         sort: "date",
         direction: "desc",
-        skipCount: false,
+        skipCount: true,
       },
     });
-    if (games.count! > 0 && games.data[0].date && games.data[0].time) {
-      const [year, month, day] = games.data[0].date.split(".").map(Number);
-      const [hour, minute, second] = games.data[0].time.split(":").map(Number);
-      const d = Date.UTC(year, month - 1, day, hour, minute, second);
-      return d;
+    for (const game of games.data) {
+      if (!game.date) continue;
+      const [year, month, day] = game.date.split(".").map(Number);
+      if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+        continue;
+      }
+      const [hour, minute, second] = (game.time ?? "00:00:00").split(":").map(Number);
+      const d = Date.UTC(
+        year,
+        month - 1,
+        day,
+        Number.isFinite(hour) ? hour : 0,
+        Number.isFinite(minute) ? minute : 0,
+        Number.isFinite(second) ? second : 0,
+      );
+      if (Number.isFinite(d)) {
+        return d;
+      }
     }
     return null;
   }
@@ -211,20 +228,20 @@ export function AccountCard({
                 disabled={loading}
                 onClick={async () => {
                   setLoading(true);
-                  const lastGameDate = database ? await getLastGameDate({ database }) : null;
-                  if (type === "lichess") {
-                    await downloadLichess(
-                      title,
-                      lastGameDate,
-                      total - downloadedGames,
-                      setProgress,
-                      token,
-                    );
-                  } else {
-                    await downloadChessCom(title, lastGameDate);
-                  }
-                  const p = await resolve(databaseDir, `${title}_${type}.pgn`);
                   try {
+                    const lastGameDate = database ? await getLastGameDate({ database }) : null;
+                    if (type === "lichess") {
+                      await downloadLichess(
+                        title,
+                        lastGameDate,
+                        total - downloadedGames,
+                        setProgress,
+                        token,
+                      );
+                    } else {
+                      await downloadChessCom(title, lastGameDate);
+                    }
+                    const p = await resolve(databaseDir, `${title}_${type}.pgn`);
                     await convert(p, lastGameDate);
                     const dbPath = p.replace(".pgn", ".db3");
                     await commands.deleteEmptyGames(dbPath);
@@ -240,8 +257,8 @@ export function AccountCard({
                       targetDatabaseTitle: null,
                       sourceFileName: null,
                     }));
+                    setLoading(false);
                   }
-                  setLoading(false);
                 }}
               >
                 <IconDownload size="1rem" />

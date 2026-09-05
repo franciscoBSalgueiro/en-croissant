@@ -62,6 +62,7 @@ pub struct Game {
     pub fen: Option<String>,
     pub moves: Vec<u8>,
     pub pawn_home: i32,
+    pub source_id: Option<String>,
 }
 
 #[derive(Insertable, Debug)]
@@ -85,6 +86,7 @@ pub struct NewGame<'a> {
     pub fen: Option<&'a str>,
     pub moves: &'a [u8],
     pub pawn_home: i32,
+    pub source_id: Option<&'a str>,
 }
 
 #[derive(Default, Debug, Queryable, Serialize, Deserialize, Identifiable, Clone)]

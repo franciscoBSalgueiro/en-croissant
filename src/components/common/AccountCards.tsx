@@ -19,6 +19,20 @@ import type { Session } from "@/utils/session";
 import { AccountCard } from "../home/AccountCard";
 import { EmptyAccounts } from "../home/EmptyAccounts";
 
+// The database file keeps whatever casing the account had when it was first
+// downloaded, and on case-insensitive filesystems later downloads keep writing
+// to it. Matching case-sensitively would make the card think nothing has been
+// downloaded yet and re-import the whole archive on every download.
+function findAccountDatabase(
+  databases: DatabaseInfo[],
+  username: string | undefined,
+  type: "lichess" | "chesscom",
+) {
+  if (!username) return null;
+  const expected = `${username}_${type}.db3`.toLowerCase();
+  return databases.find((db) => db.filename.toLowerCase() === expected) ?? null;
+}
+
 function AccountCards({
   databases,
   setDatabases,
@@ -216,7 +230,7 @@ function LichessOrChessCom({
         key={account.id}
         token={lichessSession.accessToken}
         type="lichess"
-        database={databases.find((db) => db.filename === `${account.username}_lichess.db3`) ?? null}
+        database={findAccountDatabase(databases, account.username, "lichess")}
         title={account.username}
         updatedAt={session.updatedAt}
         total={totalGames}
@@ -262,10 +276,7 @@ function LichessOrChessCom({
         key={session.chessCom.username}
         type="chesscom"
         title={session.chessCom.username}
-        database={
-          databases.find((db) => db.filename === `${session.chessCom?.username}_chesscom.db3`) ??
-          null
-        }
+        database={findAccountDatabase(databases, session.chessCom.username, "chesscom")}
         updatedAt={session.updatedAt}
         total={totalGames}
         stats={getStats(session.chessCom.stats)}

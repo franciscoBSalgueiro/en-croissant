@@ -105,7 +105,7 @@ export async function downloadChessCom(player: string, timestamp: number | null)
   const archives = await getGameArchives(player);
   const file = await resolve(await getDatabasesDir(), `${player}_chesscom.pgn`);
   info(`Found ${archives.archives.length} archives for ${player}`);
-  writeTextFile(file, "", {
+  await writeTextFile(file, "", {
     append: false,
   });
   const filteredArchives = archives.archives.filter((archive) => {
@@ -133,7 +133,7 @@ export async function downloadChessCom(player: string, timestamp: number | null)
       return;
     }
 
-    writeTextFile(file, games.data.games.map((g) => g.pgn).join("\n"), {
+    await writeTextFile(file, games.data.games.map((g) => g.pgn).join("\n"), {
       append: true,
     });
     events.progressEvent.emit({

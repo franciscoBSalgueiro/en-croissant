@@ -60,14 +60,17 @@ pub fn create_site(conn: &mut SqliteConnection, name: &str) -> Result<Site, dies
     }
 }
 
-/// Creates a new game in the database, and returns the game's ID.
+/// Creates a new game in the database, and returns it.
+/// Returns `None` if the game was skipped because another game with the same
+/// `SourceID` is already stored.
 pub fn create_game(
     conn: &mut SqliteConnection,
     game: NewGame,
-) -> Result<Game, diesel::result::Error> {
+) -> Result<Option<Game>, diesel::result::Error> {
     use crate::db::schema::games;
 
     diesel::insert_or_ignore_into(games::table)
         .values(&game)
         .get_result(conn)
+        .optional()
 }

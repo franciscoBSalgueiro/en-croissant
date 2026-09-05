@@ -61,7 +61,13 @@ pub use self::schema::puzzles;
 pub use self::schema::themes;
 pub use self::search::{is_position_in_db, search_position, PositionQueryJs, PositionStats};
 
-const DATABASE_VERSION: &str = "1.0.0";
+const DATABASE_VERSION: &str = "1.1.0";
+
+/// Unique index backing the duplicate-game check. It is partial so that games
+/// imported from PGNs without a usable game id (`SourceID` is NULL) are never
+/// rejected. Unlike `INDEXES_SQL` this is a correctness constraint, so it is
+/// created for every database and never dropped by `delete_indexes`.
+const SOURCE_ID_INDEX_SQL: &str = "CREATE UNIQUE INDEX IF NOT EXISTS games_source_id_idx ON Games(SourceID) WHERE SourceID IS NOT NULL;";
 
 const INDEXES_SQL: &str = include_str!("indexes.sql");
 
@@ -160,6 +166,10 @@ fn get_db_or_create(
                 .max_size(16)
                 .connection_customizer(Box::new(options))
                 .build(ConnectionManager::<SqliteConnection>::new(db_path))?;
+            // Migrate once, when the database is first opened: the schema
+            // declares columns that files written by older versions do not have
+            // yet, so even a plain read would fail against them.
+            migrate_db(&mut *pool.get()?)?;
             state
                 .connection_pool
                 .insert(db_path.to_string(), pool.clone());
@@ -217,6 +227,16 @@ pub struct TempGame {
     pub moves: Vec<u8>,
     pub position: Chess,
     pub material_count: MaterialColor,
+    /// Canonical URL of the game on the site it came from, when the PGN carries
+    /// one. Used to recognize games that are already in the database.
+    pub source_id: Option<String>,
+}
+
+/// Whether a `Site` header points at a single game instead of naming a venue.
+/// Lichess exports put the game URL there; chess.com uses the `Link` header.
+fn is_game_url(site: &str) -> bool {
+    site.strip_prefix("https://lichess.org/")
+        .is_some_and(|rest| !rest.is_empty())
 }
 
 impl TempGame {
@@ -271,6 +291,7 @@ impl TempGame {
             result: self.result.as_deref(),
             moves: self.moves.as_slice(),
             pawn_home: pawn_home as i32,
+            source_id: self.source_id.as_deref(),
         };
 
         create_game(db, new_game)?;
@@ -347,7 +368,15 @@ impl Visitor for Importer {
         } else if key == b"UTCTime" {
             self.game.time = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
         } else if key == b"Site" {
-            self.game.site_name = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
+            let site = String::from_utf8_lossy(value.as_bytes()).to_string();
+            if is_game_url(&site) {
+                self.game.source_id = Some(site.clone());
+            }
+            self.game.site_name = Some(site);
+        } else if key == b"Link" {
+            // chess.com puts the canonical game URL here, and it is more
+            // reliable than Site, so let it win.
+            self.game.source_id = Some(value.decode_utf8_lossy().into_owned());
         } else if key == b"Event" {
             self.game.event_name = Some(String::from_utf8_lossy(value.as_bytes()).to_string());
         } else if key == b"Result" {
@@ -531,6 +560,10 @@ pub async fn convert_pgn(
         )?;
     }
 
+    // Databases written by older versions have no SourceID column, so they
+    // cannot detect duplicates until they are migrated.
+    migrate_db(db)?;
+
     // start counting time
     let start = Instant::now();
 
@@ -705,16 +738,45 @@ pub struct DatabaseInfo {
     indexed: bool,
 }
 
+/// A single `name` column, as returned by `pragma_index_list` /
+/// `pragma_table_info`.
 #[derive(QueryableByName, Debug, Serialize)]
-struct IndexInfo {
+struct NameRow {
     #[diesel(sql_type = Text, column_name = "name")]
-    _name: String,
+    name: String,
 }
 
 fn check_index_exists(conn: &mut SqliteConnection) -> Result<bool, Error> {
+    // Only the indexes from `indexes.sql` count here: `games_source_id_idx` is
+    // always present and would otherwise report every database as indexed.
     let query = sql_query("SELECT name FROM pragma_index_list('Games');");
-    let indexes: Vec<IndexInfo> = query.load(conn)?;
-    Ok(!indexes.is_empty())
+    let indexes: Vec<NameRow> = query.load(conn)?;
+    Ok(indexes.iter().any(|i| i.name == "games_date_idx"))
+}
+
+/// Brings a database up to `DATABASE_VERSION`, and makes sure the unique index
+/// used for duplicate detection exists. Idempotent, and a no-op for files that
+/// hold no games (puzzle databases, and game databases before their tables are
+/// created), so it is safe to run whenever a database is opened.
+fn migrate_db(db: &mut SqliteConnection) -> Result<(), Error> {
+    let columns: Vec<NameRow> =
+        sql_query("SELECT name FROM pragma_table_info('Games');").load(db)?;
+    if columns.is_empty() {
+        return Ok(());
+    }
+    if !columns.iter().any(|c| c.name == "SourceID") {
+        db.batch_execute("ALTER TABLE Games ADD COLUMN SourceID TEXT;")?;
+    }
+    db.batch_execute(SOURCE_ID_INDEX_SQL)?;
+
+    insert_into(info::table)
+        .values((info::name.eq("Version"), info::value.eq(DATABASE_VERSION)))
+        .on_conflict(info::name)
+        .do_update()
+        .set(info::value.eq(DATABASE_VERSION))
+        .execute(db)?;
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -2006,7 +2068,129 @@ mod tests {
         let mut conn = SqliteConnection::establish(":memory:").unwrap();
         conn.batch_execute("PRAGMA foreign_keys = ON;").unwrap();
         conn.batch_execute(CREATE_TABLES_SQL).unwrap();
+        migrate_db(&mut conn).unwrap();
         conn
+    }
+
+    #[test]
+    fn importer_reads_the_game_url_as_source_id() {
+        let pgn = r#"[Event "Live Chess"]
+[Site "Chess.com"]
+[Date "2026.02.27"]
+[White "W"]
+[Black "B"]
+[Result "*"]
+[Link "https://www.chess.com/game/live/1234"]
+
+1. e4 *
+
+[Event "Rated blitz game"]
+[Site "https://lichess.org/abcd1234"]
+[Date "2026.02.27"]
+[White "W"]
+[Black "B"]
+[Result "*"]
+
+1. e4 *
+
+[Event "Wijk aan Zee"]
+[Site "Wijk aan Zee NED"]
+[Date "2026.02.27"]
+[White "W"]
+[Black "B"]
+[Result "*"]
+
+1. e4 *
+"#;
+
+        let mut importer = Importer::new(None);
+        let games: Vec<TempGame> = BufferedReader::new(pgn.as_bytes())
+            .into_iter(&mut importer)
+            .flatten()
+            .flatten()
+            .collect();
+
+        assert_eq!(games.len(), 3);
+        assert_eq!(
+            games[0].source_id.as_deref(),
+            Some("https://www.chess.com/game/live/1234")
+        );
+        assert_eq!(
+            games[1].source_id.as_deref(),
+            Some("https://lichess.org/abcd1234")
+        );
+        // A venue name is not a game id, so this one stays eligible for import.
+        assert_eq!(games[2].source_id, None);
+    }
+
+    #[test]
+    fn reimporting_the_same_game_does_not_duplicate_it() {
+        let db = &mut setup_test_db();
+
+        let game = TempGame {
+            white_name: Some("Magnus".to_string()),
+            black_name: Some("Hikaru".to_string()),
+            date: Some("2026.02.27".to_string()),
+            time: Some("12:00:00".to_string()),
+            source_id: Some("https://lichess.org/abcd1234".to_string()),
+            ..Default::default()
+        };
+
+        game.insert_to_db(db).unwrap();
+        game.insert_to_db(db).unwrap();
+
+        let count: i64 = games::table.count().get_result(db).unwrap();
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn games_without_a_source_id_are_still_imported() {
+        let db = &mut setup_test_db();
+
+        let game = TempGame {
+            white_name: Some("Magnus".to_string()),
+            black_name: Some("Hikaru".to_string()),
+            date: Some("2026.02.27".to_string()),
+            ..Default::default()
+        };
+
+        game.insert_to_db(db).unwrap();
+        game.insert_to_db(db).unwrap();
+
+        let count: i64 = games::table.count().get_result(db).unwrap();
+        assert_eq!(count, 2);
+    }
+
+    #[test]
+    fn migrate_db_adds_the_source_id_column_to_old_databases() {
+        let mut conn = SqliteConnection::establish(":memory:").unwrap();
+        // Schema as it was before SourceID existed.
+        conn.batch_execute(&CREATE_TABLES_SQL.replace("SourceID TEXT,", ""))
+            .unwrap();
+
+        migrate_db(&mut conn).unwrap();
+
+        let columns: Vec<NameRow> = sql_query("SELECT name FROM pragma_table_info('Games');")
+            .load(&mut conn)
+            .unwrap();
+        assert!(columns.iter().any(|c| c.name == "SourceID"));
+
+        // Every column the schema declares must now be readable, otherwise
+        // browsing a database written by an older version fails.
+        games::table.load::<Game>(&mut conn).unwrap();
+
+        // Running it again on an already migrated database is a no-op.
+        migrate_db(&mut conn).unwrap();
+    }
+
+    #[test]
+    fn migrate_db_ignores_databases_without_games() {
+        // Puzzle databases go through the same connection pool.
+        let mut conn = SqliteConnection::establish(":memory:").unwrap();
+        conn.batch_execute("CREATE TABLE Puzzles (ID INTEGER PRIMARY KEY);")
+            .unwrap();
+
+        migrate_db(&mut conn).unwrap();
     }
 
     #[test]
@@ -2041,8 +2225,10 @@ mod tests {
                 fen: None,
                 moves: &[],
                 pawn_home: 0,
+                source_id: None,
             },
         )
+        .unwrap()
         .unwrap();
 
         // Verify everything exists: 3 players (Unknown + 2), 2 events, 2 sites
@@ -2140,8 +2326,10 @@ mod tests {
                     fen: None,
                     moves: &[],
                     pawn_home: 0,
+                    source_id: None,
                 },
             )
+            .unwrap()
             .unwrap()
         };
 
