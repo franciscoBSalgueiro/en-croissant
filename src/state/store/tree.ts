@@ -18,10 +18,18 @@ import {
     defaultTree,
     type GameHeaders,
     getNodeAtPath,
+    getNodeAtPathOrNull,
     type TreeNode,
     type TreeState,
     treeIteratorMainLine,
 } from "@/utils/treeReducer";
+
+function setNodeScore(state: Draft<TreeStoreState>, path: number[], score: Score) {
+    const node = getNodeAtPathOrNull(state.root, path);
+    if (!node) return;
+    state.dirty = true;
+    node.score = score;
+}
 
 export interface TreeStoreState extends TreeState {
     currentNode: () => TreeNode;
@@ -66,6 +74,7 @@ export interface TreeStoreState extends TreeState {
     setResult: (payload: Outcome) => void;
     setShapes: (shapes: DrawShape[]) => void;
     setScore: (score: Score) => void;
+    setScoreAtPath: (path: number[], score: Score) => void;
 
     clearShapes: () => void;
 
@@ -478,11 +487,13 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
         setScore: (score) =>
             set(
                 produce((state) => {
-                    state.dirty = true;
-                    const node = getNodeAtPath(state.root, state.position);
-                    if (node) {
-                        node.score = score;
-                    }
+                    setNodeScore(state, state.position, score);
+                }),
+            ),
+        setScoreAtPath: (path, score) =>
+            set(
+                produce((state) => {
+                    setNodeScore(state, path, score);
                 }),
             ),
         addAnalysis: (analysis, options) =>
