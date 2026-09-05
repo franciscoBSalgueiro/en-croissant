@@ -670,3 +670,20 @@ export function hasMorePriority(position1: number[], position2: number[]): boole
 
     return position1[i] < position2[i];
 }
+
+export function makeLan(node: Pick<TreeNode, "move" | "san">): string {
+    const { move, san } = node;
+    if (!move || !san) return san ?? "";
+    if (san.startsWith("O-O")) return san; // castling notation is the same in LAN
+
+    if (!("from" in move)) return san; // drops (variants) — fall back
+
+    const from = makeSquare(move.from);
+    const to = makeSquare(move.to);
+    const isCapture = san.includes("x");
+    const pieceLetter = san.match(/^[NBRQK]/)?.[0] ?? "";
+    const promotion = move.promotion ? `=${move.promotion.charAt(0).toUpperCase()}` : "";
+    const suffix = san.endsWith("#") ? "#" : san.endsWith("+") ? "+" : "";
+
+    return `${pieceLetter}${from}${isCapture ? "x" : "-"}${to}${promotion}${suffix}`;
+}

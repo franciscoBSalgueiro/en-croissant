@@ -227,10 +227,11 @@ export default function Page() {
             data={[
               { label: t("Settings.MoveNotation.Letters"), value: "letters" },
               { label: t("Settings.MoveNotation.Symbols"), value: "symbols" },
+              { label: "LAN (Large Algebraic Notation)", value: "lan" },
             ]}
             allowDeselect={false}
             value={moveNotationType}
-            onChange={(val) => setMoveNotationType(val as "letters" | "symbols")}
+            onChange={(val) => setMoveNotationType(val as "letters" | "symbols" | "lan")}
           />
         ),
       },
