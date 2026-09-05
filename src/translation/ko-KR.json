@@ -239,7 +239,7 @@
     "Databases.Empty.AddHint": "시작하려면 데이터베이스를 추가하세요",
     "Databases.Empty.NoInstalled": "설치된 데이터베이스 없음",
     "Databases.FIDE.Blitz": "블리츠",
-    "Databases.FIDE.Born": "출생",
+    "Databases.FIDE.Born": "출생 {{year}}",
     "Databases.FIDE.ClosestMatchTo": "가장 유사한 검색 결과",
     "Databases.FIDE.Info": "FIDE 정보",
     "Databases.FIDE.NotRated": "비레이팅",
