@@ -1,5 +1,5 @@
 import { fetch } from "@tauri-apps/plugin-http";
-import type { Platform } from "@tauri-apps/plugin-os";
+import { type Arch, arch, type Platform } from "@tauri-apps/plugin-os";
 import useSWR from "swr";
 import { z } from "zod";
 import { type BestMoves, commands, type EngineOptions, type GoMode } from "@/bindings";
@@ -95,14 +95,29 @@ export function getBestMoves(
 export function useDefaultEngines(os: Platform | undefined, opened: boolean) {
     const { data, error, isLoading } = useSWR(opened ? os : null, async (os: Platform) => {
         const bmi2: boolean = await commands.isBmi2Compatible();
-        const data = await fetch(`https://www.encroissant.org/engines?os=${os}&bmi2=${bmi2}`, {
-            method: "GET",
-        });
+        const currentArch: Arch = arch();
+        const data = await fetch(
+            `https://www.encroissant.org/engines?os=${os}&bmi2=${bmi2}&arch=${currentArch}`,
+            {
+                method: "GET",
+            },
+        );
         if (!data.ok) {
             throw new Error("Failed to fetch engines");
         }
         return (await data.json()).filter(
-            (e: { os: Platform; bmi2: boolean }) => e.os === os && e.bmi2 === bmi2,
+            // Both `arch` and `bmi2` are optional, and an absent key means "applies
+            // to every value" rather than "false".
+            //
+            // `bmi2` is an x86 instruction set, so aarch64 entries simply omit it
+            // instead of being duplicated once for each boolean. `arch` is only set
+            // where a platform actually ships more than one build, so engines with
+            // no ARM build stay visible to Windows-on-ARM users, who run them under
+            // emulation, rather than leaving them with an empty list.
+            (e: { os: Platform; bmi2?: boolean; arch?: Arch }) =>
+                e.os === os &&
+                (e.bmi2 === undefined || e.bmi2 === bmi2) &&
+                (e.arch === undefined || e.arch === currentArch),
         );
     });
     return {
