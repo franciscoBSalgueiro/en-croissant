@@ -209,7 +209,7 @@ function EngineCard({
       setInProgress(true);
       const enginesDir = await getEnginesDir();
       let path = await resolve(enginesDir, `${url.slice(url.lastIndexOf("/") + 1)}`);
-      if (url.endsWith(".zip") || url.endsWith(".tar")) {
+      if (/\.(?:zip|tar|tar\.gz)(?:[?#]|$)/.test(url)) {
         path = enginesDir;
       }
       await commands.downloadFile(`engine_${id}`, url, path, null, null, null);
