@@ -45,7 +45,7 @@
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420"
   },
-  "productName": "en-croissant",
+  "productName": "En Croissant",
   "mainBinaryName": "en-croissant",
   "identifier": "org.encroissant.app",
   "plugins": {
