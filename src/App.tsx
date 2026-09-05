@@ -8,7 +8,7 @@ import {
   Textarea,
   TextInput,
 } from "@mantine/core";
-import { Notifications } from "@mantine/notifications";
+import { Notifications, notifications } from "@mantine/notifications";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { getMatches } from "@tauri-apps/plugin-cli";
 import { listen } from "@tauri-apps/api/event";
@@ -17,6 +17,8 @@ import { getDefaultStore, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { ContextMenuProvider } from "mantine-contextmenu";
 import posthog from "posthog-js";
 import { useEffect, useRef } from "react";
+import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link";
+import type { Tab } from "@/utils/tabs";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import {
@@ -51,6 +53,10 @@ import "@/styles/global.css";
 
 import { commands } from "./bindings";
 import { openFile } from "./utils/files";
+import { getGameFromUrl } from "./utils/import";
+import { createTab } from "./utils/tabs";
+import { parsePGN } from "./utils/chess";
+import { getGameName } from "./utils/treeReducer";
 
 const colorSchemeManager = localStorageColorSchemeManager({
   key: "mantine-color-scheme",
@@ -143,6 +149,80 @@ const preloadReferenceDb = async (store: ReturnType<typeof getDefaultStore>) => 
   }
 };
 
+const handleDeepLink = async (
+  urlStr: string,
+  setTabs: React.Dispatch<React.SetStateAction<Tab[]>>,
+  setActiveTab: React.Dispatch<React.SetStateAction<string | null>>,
+) => {
+  let notificationShown = false;
+  try {
+    const url = new URL(urlStr);
+    if (url.protocol !== "encroissant:") return;
+
+    if (url.host === "import") {
+      const gameUrl = url.searchParams.get("url");
+      if (!gameUrl) {
+        throw new Error("No URL parameter provided in encroissant://import");
+      }
+
+      notifications.show({
+        title: "Importing game",
+        message: `Loading game from ${gameUrl}...`,
+        loading: true,
+        autoClose: false,
+        id: "importing-game-link",
+      });
+      notificationShown = true;
+
+      const pgn = await getGameFromUrl(gameUrl);
+      if (!pgn) {
+        throw new Error("No PGN data found");
+      }
+
+      const tree = await parsePGN(pgn);
+      const name = getGameName(tree.headers);
+
+      await createTab({
+        tab: {
+          name,
+          type: "analysis",
+        },
+        setTabs,
+        setActiveTab,
+        pgn,
+      });
+
+      notifications.update({
+        id: "importing-game-link",
+        title: "Import successful",
+        message: "Game imported successfully",
+        color: "green",
+        autoClose: 3000,
+        loading: false,
+      });
+    }
+  } catch (e) {
+    error(`Failed to handle deep link URL: ${urlStr} - ${e}`);
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    if (notificationShown) {
+      notifications.update({
+        id: "importing-game-link",
+        title: "Import failed",
+        message: errorMessage,
+        color: "red",
+        autoClose: 5000,
+        loading: false,
+      });
+    } else {
+      notifications.show({
+        title: "Import error",
+        message: errorMessage,
+        color: "red",
+      });
+    }
+  }
+};
+
 function useAppStartup() {
   const initialized = useRef(false);
   const [, setTabs] = useAtom(tabsAtom);
@@ -190,7 +270,28 @@ function useAppStartup() {
 
       await preloadReferenceDb(store);
 
-      return detach;
+      let unlistenDeepLink: (() => void) | undefined;
+      try {
+        const initialUrls = await getCurrent();
+        if (initialUrls && initialUrls.length > 0) {
+          for (const url of initialUrls) {
+            void handleDeepLink(url, setTabs, setActiveTab);
+          }
+        }
+
+        unlistenDeepLink = await onOpenUrl((urls) => {
+          for (const url of urls) {
+            void handleDeepLink(url, setTabs, setActiveTab);
+          }
+        });
+      } catch (e) {
+        warn(`Failed to setup deep links: ${e}`);
+      }
+
+      return () => {
+        if (detach) detach();
+        if (unlistenDeepLink) unlistenDeepLink();
+      };
     };
 
     let detachFn: (() => void) | undefined;
