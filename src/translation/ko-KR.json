@@ -290,6 +290,7 @@
     "Engines.Add.Name": "이름",
     "Engines.Add.Name.Autodetect": "자동 감지",
     "Engines.Add.Title": "엔진 추가",
+    "Engines.Add.UseStockfish": "",
     "Engines.Empty.AddHint": "시작하려면 엔진을 추가하세요",
     "Engines.Empty.NoInstalled": "설치된 엔진 없음",
     "Engines.Remove.Message": "정말로 En Croissant에서 이 엔진을 제거하시겠습니까?",

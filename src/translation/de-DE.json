@@ -292,6 +292,7 @@
     "Engines.Add.Name": "Name",
     "Engines.Add.Name.Autodetect": "Automatisch erkennen",
     "Engines.Add.Title": "Engine hinzufügen",
+    "Engines.Add.UseStockfish": "",
     "Engines.Empty.AddHint": "",
     "Engines.Empty.NoInstalled": "Nicht installiert",
     "Engines.Remove.Message": "Bist du sicher, dass du diese Engine aus En Croissant entfernen möchtest?",

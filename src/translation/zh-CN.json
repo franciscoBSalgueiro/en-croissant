@@ -292,6 +292,7 @@
     "Engines.Add.Name": "名称",
     "Engines.Add.Name.Autodetect": "自动检测",
     "Engines.Add.Title": "添加引擎",
+    "Engines.Add.UseStockfish": "",
     "Engines.Empty.AddHint": "添加引擎以开始使用",
     "Engines.Empty.NoInstalled": "未安装任何引擎",
     "Engines.Remove.Message": "您确定要从 En Croissant 中移除此引擎吗？",

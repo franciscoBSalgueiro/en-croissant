@@ -296,6 +296,7 @@
     "Engines.Add.Name": "Nazwa",
     "Engines.Add.Name.Autodetect": "Autodetekcja",
     "Engines.Add.Title": "Dodaj silnik",
+    "Engines.Add.UseStockfish": "",
     "Engines.Empty.AddHint": "",
     "Engines.Empty.NoInstalled": "",
     "Engines.Remove.Message": "Czy na pewno chcesz usunąć ten silnik z En Croissant?",

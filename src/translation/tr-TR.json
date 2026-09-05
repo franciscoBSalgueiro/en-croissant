@@ -292,6 +292,7 @@
     "Engines.Add.Name": "İsim",
     "Engines.Add.Name.Autodetect": "Otomatik bul",
     "Engines.Add.Title": "Motor Ekle",
+    "Engines.Add.UseStockfish": "",
     "Engines.Empty.AddHint": "",
     "Engines.Empty.NoInstalled": "",
     "Engines.Remove.Message": "Bu motoru En Croissant'tan kaldırmak istediğinize emin misiniz?",
