@@ -28,17 +28,17 @@ import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { coverageMinGamesAtom, currentTabAtom, referenceDbAtom } from "@/state/atoms";
-import { searchPosition } from "@/utils/db";
 import { roundKeepSum } from "@/utils/format";
 import { isPrefix } from "@/utils/misc";
 import {
   computeTreeCoverage,
+  fetchPositionMoves,
   findBiggestGap,
   findNextGap,
   getStats,
   type PositionMove,
 } from "@/utils/repertoire";
-import { getNodeAtPath, getTreeStructureHash, type TreeNode } from "@/utils/treeReducer";
+import { getBoardState, getNodeAtPath, type TreeNode } from "@/utils/treeReducer";
 import classes from "./RepertoireInfo.module.css";
 
 function formatMoveNotation(halfMoves: number, san: string): string {
@@ -50,6 +50,7 @@ function formatMoveNotation(halfMoves: number, san: string): string {
 function RepertoireInfo() {
   const { t } = useTranslation();
   const store = useContext(TreeStateContext)!;
+  const dirty = useStore(store, (s) => s.dirty);
   const root = useStore(store, (s) => s.root);
   const headers = useStore(store, (s) => s.headers);
   const position = useStore(store, (s) => s.position);
@@ -58,155 +59,206 @@ function RepertoireInfo() {
   const makeMove = useStore(store, (s) => s.makeMove);
   const makeMoves = useStore(store, (s) => s.makeMoves);
   const setStart = useStore(store, (s) => s.setStart);
+  const boardStateMap = useStore(store, (s) => s.boardStateMap);
 
   const referenceDb = useAtomValue(referenceDbAtom);
   const currentTab = useAtomValue(currentTabAtom);
   const minGames = useAtomValue(coverageMinGamesAtom);
 
-  const orientation = headers.orientation || "white";
+  const orientation = useMemo(() => headers.orientation || "white", [headers.orientation]);
 
   const stats = useStore(store, getStats);
 
-  const rootStructureHash = useMemo(() => getTreeStructureHash(root), [root]);
-
-  const [rawOpenings, setRawOpenings] = useState<
-    { move: string; white: number; draw: number; black: number }[]
-  >([]);
-  const [loading, setLoading] = useState(false);
-
-  const currentFenRef = useRef(currentNode.fen);
-  currentFenRef.current = currentNode.fen;
-
-  useEffect(() => {
-    if (!referenceDb) {
-      setRawOpenings([]);
-      return;
-    }
-
-    const queryFen = currentNode.fen;
-    setLoading(true);
-
-    searchPosition(
-      {
-        path: referenceDb,
-        type: "exact",
-        fen: queryFen,
-        color: "white",
-        player: null,
-        result: "any",
-      },
-      "build-tab",
-    )
-      .then(([openings]) => {
-        if (queryFen !== currentFenRef.current) return;
-        setRawOpenings(openings.filter((op) => op.move !== "*"));
-        setLoading(false);
-      })
-      .catch(() => {
-        if (queryFen !== currentFenRef.current) return;
-        setRawOpenings([]);
-        setLoading(false);
-      });
-  }, [currentNode.fen, referenceDb]);
-
   const [coverageMap, setCoverageMap] = useState<Map<string, number>>(new Map());
+  const [dbMovesMap, setDbMovesMap] = useState<
+    Map<
+      string,
+      { moves: { move: string; white: number; draw: number; black: number }[]; total: number }
+    >
+  >(new Map());
   const [gamesMap, setGamesMap] = useState<Map<string, number>>(new Map());
   const [missingGamesMap, setMissingGamesMap] = useState<Map<string, number>>(new Map());
+  const [currentPosLoading, setCurrentPosLoading] = useState(false);
   const [coverageLoading, setCoverageLoading] = useState(false);
   const coverageVersionRef = useRef(0);
+  const firstCoverageRun = useRef(true);
 
-  const startPath = headers.start || [];
-  const startPathKey = startPath.join(",");
+  const startPath = useMemo(() => headers.start || [], [headers.start]);
   const hasStart = headers.start != null && headers.start.length > 0;
   const isBeforeStart =
     hasStart && position.length < startPath.length && isPrefix(position, startPath);
   const isEmptyTree = root.children.length === 0;
+
+  const startNode = useMemo(() => getNodeAtPath(root, startPath), [root, startPath]);
+
+  const startStateMoves = useMemo(() => {
+    const movesMap = new Map<string, Map<string, string>>();
+    if (!startNode) return movesMap;
+
+    for (const [fen, entries] of Object.entries(boardStateMap)) {
+      const perFenMap = new Map<string, string>();
+      for (const { node, path } of entries) {
+        if (isPrefix(startPath, path)) {
+          for (const child of node.children) {
+            if (child.san) {
+              perFenMap.set(child.san, getBoardState(child.fen));
+            }
+          }
+        }
+      }
+      if (perFenMap.size > 0) {
+        movesMap.set(fen, perFenMap);
+      }
+    }
+    return movesMap;
+  }, [boardStateMap, startNode, startPath]);
+
+  useEffect(() => {
+    if (!referenceDb) return;
+    const boardFen = getBoardState(currentNode.fen);
+    if (dbMovesMap.has(boardFen)) return;
+
+    setCurrentPosLoading(true);
+    fetchPositionMoves(referenceDb, boardFen)
+      .then((data) => {
+        setDbMovesMap((prev) => {
+          if (prev.has(boardFen)) return prev; // may have been filled by coverage meanwhile
+          const next = new Map(prev);
+          next.set(boardFen, data);
+          return next;
+        });
+        setCurrentPosLoading(false);
+      })
+      .catch(() => setCurrentPosLoading(false));
+  }, [currentNode.fen, referenceDb, dbMovesMap]);
 
   useEffect(() => {
     if (!referenceDb) {
       setCoverageMap(new Map());
       setGamesMap(new Map());
       setMissingGamesMap(new Map());
+      setDbMovesMap(new Map());
       setCoverageLoading(false);
+      firstCoverageRun.current = true;
       return;
     }
+
+    if (!dirty && !firstCoverageRun.current) {
+      return;
+    }
+
     const version = ++coverageVersionRef.current;
+    firstCoverageRun.current = false;
     setCoverageLoading(true);
-    computeTreeCoverage(root, orientation, referenceDb, minGames, startPath).then((result) => {
-      if (version === coverageVersionRef.current) {
-        setCoverageMap(result.coverageMap);
-        setGamesMap(result.gamesMap);
-        setMissingGamesMap(result.missingGamesMap);
-        setCoverageLoading(false);
+
+    computeTreeCoverage(root, orientation, referenceDb, minGames, startPath, startStateMoves).then(
+      (result) => {
+        if (version === coverageVersionRef.current) {
+          setCoverageMap(result.coverageMap);
+          setGamesMap(result.gamesMap);
+          setMissingGamesMap(result.missingGamesMap);
+          setDbMovesMap(result.dbMovesMap);
+          setCoverageLoading(false);
+          store.getState().save(); // sets dirty to false
+        }
+      },
+    );
+  }, [referenceDb, minGames, orientation, dirty, root, startStateMoves]);
+
+  const nodeToPath = useMemo(() => {
+    const map = new Map<TreeNode, number[]>();
+    for (const entries of Object.values(boardStateMap)) {
+      for (const { node, path } of entries) {
+        map.set(node, path);
       }
-    });
-  }, [rootStructureHash, orientation, referenceDb, startPathKey, minGames]);
+    }
+    return map;
+  }, [boardStateMap]);
+
+  const transpositionMoves = useMemo(() => {
+    const boardFen = getBoardState(currentNode.fen);
+    const entries = boardStateMap[boardFen] || [];
+    const moveMap = new Map<string, number[]>();
+    for (const { node, path } of entries) {
+      if (!isPrefix(startPath, path)) continue;
+      for (const child of node.children) {
+        if (child.san && !moveMap.has(child.san)) {
+          const childPath = nodeToPath.get(child);
+          if (childPath && isPrefix(startPath, childPath)) {
+            moveMap.set(child.san, childPath);
+          }
+        }
+      }
+    }
+    return moveMap;
+  }, [currentNode.fen, boardStateMap, nodeToPath, startPath]);
 
   const positionMoves = useMemo(() => {
-    const total = rawOpenings.reduce((acc, op) => acc + op.white + op.black + op.draw, 0);
+    const boardFen = getBoardState(currentNode.fen);
+    const dbData = dbMovesMap.get(boardFen);
+    const movesFromDb = dbData?.moves ?? [];
+    const total = dbData?.total ?? 0;
 
-    const fromDb: PositionMove[] = rawOpenings
-      .map((op) => {
-        const games = op.white + op.black + op.draw;
-        const childIndex = currentNode.children.findIndex((c) => c.san === op.move);
-        const inRepertoire = childIndex !== -1;
-        const coveragePath = [...position, childIndex].join(",");
-        const coverage = inRepertoire ? (coverageMap.get(coveragePath) ?? 0) : 0;
+    const dbMoveMap = new Map(movesFromDb.map((m) => [m.move, m]));
 
-        return {
-          san: op.move,
+    const allMoves: PositionMove[] = [];
+    const seenSans = new Set<string>();
+
+    // Prepared moves (always available)
+    for (const [san, targetPath] of transpositionMoves) {
+      const dbMove = dbMoveMap.get(san);
+      const games = dbMove ? dbMove.white + dbMove.draw + dbMove.black : 0;
+      const coveragePath = targetPath.join(",");
+      const coverage = coverageMap.get(coveragePath) ?? 0;
+      seenSans.add(san);
+      allMoves.push({
+        san,
+        games,
+        totalGames: total,
+        frequency: total > 0 ? games / total : 0,
+        white: dbMove ? (games > 0 ? dbMove.white / games : 0) : 0,
+        draw: dbMove ? (games > 0 ? dbMove.draw / games : 0) : 0,
+        black: dbMove ? (games > 0 ? dbMove.black / games : 0) : 0,
+        inRepertoire: true,
+        coverage,
+        path: targetPath,
+      });
+    }
+
+    // DB moves not in repertoire
+    for (const dbMove of movesFromDb) {
+      if (!seenSans.has(dbMove.move)) {
+        const games = dbMove.white + dbMove.draw + dbMove.black;
+        allMoves.push({
+          san: dbMove.move,
           games,
           totalGames: total,
           frequency: total > 0 ? games / total : 0,
-          white: games > 0 ? op.white / games : 0,
-          draw: games > 0 ? op.draw / games : 0,
-          black: games > 0 ? op.black / games : 0,
-          inRepertoire,
-          coverage,
-          childIndex,
-        };
-      })
-      .sort((a, b) => b.frequency - a.frequency);
+          white: games > 0 ? dbMove.white / games : 0,
+          draw: games > 0 ? dbMove.draw / games : 0,
+          black: games > 0 ? dbMove.black / games : 0,
+          inRepertoire: false,
+          coverage: 0,
+          path: [],
+        });
+      }
+    }
 
-    // Include repertoire children not found in the DB
-    const dbSans = new Set(rawOpenings.map((op) => op.move));
-    const fromTree: PositionMove[] = currentNode.children
-      .map((child, idx) => ({ child, idx }))
-      .filter(
-        (entry): entry is { child: TreeNode & { san: string }; idx: number } =>
-          entry.child.san !== null && !dbSans.has(entry.child.san),
-      )
-      .map(({ child, idx }) => {
-        const coveragePath = [...position, idx].join(",");
-        return {
-          san: child.san,
-          games: 0,
-          totalGames: total,
-          frequency: 0,
-          white: 0,
-          draw: 0,
-          black: 0,
-          inRepertoire: true,
-          coverage: coverageMap.get(coveragePath) ?? 0,
-          childIndex: idx,
-        };
-      });
-
-    return [...fromDb, ...fromTree];
-  }, [rawOpenings, currentNode.children, position, coverageMap]);
+    return allMoves.sort((a, b) => b.frequency - a.frequency);
+  }, [currentNode.fen, dbMovesMap, transpositionMoves, coverageMap]);
 
   const isUserTurn =
     orientation === "white" ? currentNode.halfMoves % 2 === 0 : currentNode.halfMoves % 2 === 1;
 
   const handleMoveClick = useCallback(
     (move: PositionMove) => {
-      if (move.inRepertoire) {
-        goToMove([...position, move.childIndex]);
+      if (move.inRepertoire && move.path.length > 0) {
+        goToMove(move.path);
       } else {
         makeMove({ payload: move.san });
       }
     },
-    [position, goToMove, makeMove],
+    [goToMove, makeMove],
   );
 
   const nextGap = useMemo(
@@ -326,30 +378,25 @@ function RepertoireInfo() {
         </Paper>
       )}
 
-      {loading ? (
-        <Stack align="center" justify="center" style={{ flex: 1 }} py="xl">
-          <Loader size="sm" />
-          <Text fz="sm" c="dimmed">
-            {t("Board.Practice.Build.Loading")}
-          </Text>
-        </Stack>
-      ) : (
-        <MovesView
-          isUserTurn={isUserTurn}
-          currentNode={currentNode}
-          position={position}
-          positionMoves={positionMoves}
-          coverageMap={coverageMap}
-          coverageLoading={coverageLoading}
-          root={root}
-          nextGap={nextGap}
-          biggestGap={biggestGap}
-          goToMove={goToMove}
-          onMoveClick={handleMoveClick}
-          t={t}
-          minGames={minGames}
-        />
-      )}
+      <MovesView
+        isUserTurn={isUserTurn}
+        currentNode={currentNode}
+        positionMoves={positionMoves}
+        coverageMap={coverageMap}
+        coverageLoading={coverageLoading}
+        currentPosLoading={currentPosLoading}
+        root={root}
+        nextGap={nextGap}
+        biggestGap={biggestGap}
+        goToMove={goToMove}
+        onMoveClick={handleMoveClick}
+        t={t}
+        minGames={minGames}
+        boardStateMap={boardStateMap}
+        nodeToPath={nodeToPath}
+        startPath={startPath}
+      />
+
       <Divider pb="sm" />
       <TreeStatsBar stats={stats} t={t} />
     </Stack>
@@ -378,10 +425,21 @@ function TreeStatsBar({
   );
 }
 
+type TResponse = {
+  san: string;
+  halfMoves: number;
+  childPath: number[];
+  coverage: number;
+  dbGames: number;
+  dbFrequency: number;
+  white: number;
+  draw: number;
+  black: number;
+};
+
 function MovesView({
   isUserTurn,
   currentNode,
-  position,
   positionMoves,
   coverageMap,
   coverageLoading,
@@ -392,13 +450,16 @@ function MovesView({
   onMoveClick,
   t,
   minGames,
+  boardStateMap,
+  nodeToPath,
+  startPath,
 }: {
   isUserTurn: boolean;
   currentNode: TreeNode;
-  position: number[];
   positionMoves: PositionMove[];
   coverageMap: Map<string, number>;
   coverageLoading: boolean;
+  currentPosLoading: boolean;
   root: TreeNode;
   nextGap: number[] | null;
   biggestGap: number[] | null;
@@ -406,34 +467,61 @@ function MovesView({
   onMoveClick: (move: PositionMove) => void;
   t: ReturnType<typeof useTranslation>["t"];
   minGames: number;
+  boardStateMap: Record<string, { node: TreeNode; path: number[] }[]>;
+  nodeToPath: Map<TreeNode, number[]>;
+  startPath: number[];
 }) {
-  const hasResponses = currentNode.children.length > 0;
-  const [showRare, setShowRare] = useState(false);
+  const unifiedUserResponses: TResponse[] = useMemo(() => {
+    if (!isUserTurn) return [];
+    const boardFen = getBoardState(currentNode.fen);
+    const entries = boardStateMap[boardFen] || [];
+    const seenSans = new Set<string>();
+    const responses: TResponse[] = [];
 
-  const responsesWithStats = useMemo(() => {
-    if (!isUserTurn || !hasResponses) return [];
-    return currentNode.children.map((child, idx) => {
-      const dbEntry = positionMoves.find((pm) => pm.san === child.san);
-      const coveragePath = [...position, idx].join(",");
-      const coverage = coverageMap.get(coveragePath) ?? 0;
-      return {
-        san: child.san || "",
-        halfMoves: child.halfMoves,
-        dbGames: dbEntry?.games ?? 0,
-        dbFrequency: dbEntry?.frequency ?? 0,
-        white: dbEntry?.white ?? 0,
-        draw: dbEntry?.draw ?? 0,
-        black: dbEntry?.black ?? 0,
-        coverage,
-        childPath: [...position, idx],
-      };
-    });
-  }, [isUserTurn, hasResponses, currentNode.children, positionMoves, position, coverageMap]);
+    for (const { node, path } of entries) {
+      if (!isPrefix(startPath, path)) continue;
+      for (const child of node.children) {
+        if (child.san && !seenSans.has(child.san)) {
+          const childPath = nodeToPath.get(child);
+          if (childPath && isPrefix(startPath, childPath)) {
+            seenSans.add(child.san);
+            const coveragePath = childPath.join(",");
+            const coverage = coverageMap.get(coveragePath) ?? 0;
+            const dbEntry = positionMoves.find((pm) => pm.san === child.san);
+            responses.push({
+              san: child.san,
+              halfMoves: child.halfMoves,
+              childPath,
+              coverage,
+              dbGames: dbEntry?.games ?? 0,
+              dbFrequency: dbEntry?.frequency ?? 0,
+              white: dbEntry?.white ?? 0,
+              draw: dbEntry?.draw ?? 0,
+              black: dbEntry?.black ?? 0,
+            });
+          }
+        }
+      }
+    }
+    return responses;
+  }, [
+    isUserTurn,
+    currentNode.fen,
+    boardStateMap,
+    nodeToPath,
+    coverageMap,
+    positionMoves,
+    startPath,
+  ]);
+
+  const hasResponses = unifiedUserResponses.length > 0;
+  const [showRare, setShowRare] = useState(false);
 
   const relevantMoves = useMemo(
     () => (isUserTurn ? [] : positionMoves.filter((m) => m.games >= minGames)),
     [isUserTurn, positionMoves, minGames],
   );
+
   const rareMoves = useMemo(
     () => (isUserTurn ? [] : positionMoves.filter((m) => m.games < minGames)),
     [isUserTurn, positionMoves, minGames],
@@ -520,7 +608,7 @@ function MovesView({
               <Text fz="xs" c="dimmed" w={100} ta="center">
                 {t("Board.Practice.Build.Results")}
               </Text>
-              {hasResponses && (
+              {(!isUserTurn || hasResponses || coverageLoading) && (
                 <Group gap={4} w={100} justify="center" wrap="nowrap">
                   <Text fz="xs" c="dimmed" ta="center">
                     {t("Board.Practice.Build.YourCoverage")}
@@ -533,7 +621,7 @@ function MovesView({
 
           {isUserTurn &&
             hasResponses &&
-            responsesWithStats.map((response) => (
+            unifiedUserResponses.map((response) => (
               <MoveRow
                 key={response.san}
                 move={{
@@ -546,7 +634,7 @@ function MovesView({
                   black: response.black,
                   inRepertoire: true,
                   coverage: response.coverage,
-                  childIndex: 0,
+                  path: response.childPath,
                 }}
                 halfMoves={response.halfMoves}
                 onClick={() => goToMove(response.childPath)}
@@ -620,7 +708,7 @@ function MovesView({
             ))}
         </Stack>
 
-        {coverageLoading ? (
+        {coverageLoading && (
           <>
             <Divider />
             <Group justify="center" py="sm" gap="xs">
@@ -630,7 +718,9 @@ function MovesView({
               </Text>
             </Group>
           </>
-        ) : (
+        )}
+
+        {!coverageLoading && (
           <>
             {(nextGap || biggestGap) && (
               <>
