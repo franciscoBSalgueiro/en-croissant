@@ -484,6 +484,8 @@
     "Settings.Anarchy.ForcedEnCroissant": "Примусовий En Croissant",
     "Settings.Anarchy.ForcedEnCroissant.Desc": "Змушує робити хід En Croissant, якщо це легальний хід.",
     "Settings.Appearance": "Зовнішній вигляд",
+    "Settings.Appearance.3DMode": "",
+    "Settings.Appearance.3DMode.Desc": "",
     "Settings.Appearance.AccentColor": "Основний колір",
     "Settings.Appearance.AccentColor.Desc": "Основний колір програми",
     "Settings.Appearance.BoardImage": "Зображення дошки",

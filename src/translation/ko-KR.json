@@ -490,6 +490,8 @@
     "Settings.Anarchy.ForcedEnCroissant": "강제 En Croissant",
     "Settings.Anarchy.ForcedEnCroissant.Desc": "En Croissant이 가능하다면 강제로 수행합니다",
     "Settings.Appearance": "시각",
+    "Settings.Appearance.3DMode": "",
+    "Settings.Appearance.3DMode.Desc": "",
     "Settings.Appearance.AccentColor": "강조 색상",
     "Settings.Appearance.AccentColor.Desc": "앱의 주요 색상",
     "Settings.Appearance.BoardImage": "보드 이미지",

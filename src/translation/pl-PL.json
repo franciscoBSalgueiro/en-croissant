@@ -484,6 +484,8 @@
     "Settings.Anarchy.ForcedEnCroissant": "Wymuszony En Croissant",
     "Settings.Anarchy.ForcedEnCroissant.Desc": "Zmusi cię do zagrania En Croissant, jeśli jest to legalny ruch.",
     "Settings.Appearance": "Wygląd",
+    "Settings.Appearance.3DMode": "",
+    "Settings.Appearance.3DMode.Desc": "",
     "Settings.Appearance.AccentColor": "Kolor akcentu",
     "Settings.Appearance.AccentColor.Desc": "Główny kolor aplikacji",
     "Settings.Appearance.BoardImage": "Obraz szachownicy",

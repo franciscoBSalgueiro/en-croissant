@@ -478,6 +478,8 @@
     "Settings.Anarchy.ForcedEnCroissant": "Erzwungene En Croissant",
     "Settings.Anarchy.ForcedEnCroissant.Desc": "Erzwingt das Spielen von En Croissant, wenn es ein legaler Zug ist.",
     "Settings.Appearance": "Erscheinungsbild",
+    "Settings.Appearance.3DMode": "",
+    "Settings.Appearance.3DMode.Desc": "",
     "Settings.Appearance.AccentColor": "Akzentfarbe",
     "Settings.Appearance.AccentColor.Desc": "Hauptfarbe der App",
     "Settings.Appearance.BoardImage": "Brettbild",

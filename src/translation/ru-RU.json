@@ -498,6 +498,8 @@
     "Settings.Anarchy.ForcedEnCroissant": "Принудительный En Croissant",
     "Settings.Anarchy.ForcedEnCroissant.Desc": "Заставляет делать ход En Croissant, если это легальный ход.",
     "Settings.Appearance": "Внешний вид",
+    "Settings.Appearance.3DMode": "",
+    "Settings.Appearance.3DMode.Desc": "",
     "Settings.Appearance.AccentColor": "Основной цвет",
     "Settings.Appearance.AccentColor.Desc": "Основной цвет приложения",
     "Settings.Appearance.BoardImage": "Изображение доски",

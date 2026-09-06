@@ -492,6 +492,8 @@
     "Settings.Anarchy.ForcedEnCroissant": "Forced En Croissant",
     "Settings.Anarchy.ForcedEnCroissant.Desc": "Forces you to play En Croissant, if it's a legal move.",
     "Settings.Appearance": "Appearance",
+    "Settings.Appearance.3DMode": "",
+    "Settings.Appearance.3DMode.Desc": "",
     "Settings.Appearance.AccentColor": "Accent Colour",
     "Settings.Appearance.AccentColor.Desc": "Main colour of the app",
     "Settings.Appearance.BoardImage": "Board Image",

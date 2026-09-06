@@ -481,6 +481,8 @@
     "Settings.Anarchy.ForcedEnCroissant": "Forzar En Croissant",
     "Settings.Anarchy.ForcedEnCroissant.Desc": "Forzar a jugar En Croissant, si es un movimiento legal.",
     "Settings.Appearance": "Apariencia",
+    "Settings.Appearance.3DMode": "",
+    "Settings.Appearance.3DMode.Desc": "",
     "Settings.Appearance.AccentColor": "Color principal",
     "Settings.Appearance.AccentColor.Desc": "Color principal de la aplicación",
     "Settings.Appearance.BoardImage": "Imagen del tablero",

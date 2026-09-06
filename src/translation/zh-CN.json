@@ -492,6 +492,8 @@
     "Settings.Anarchy.ForcedEnCroissant": "强制 En Croissant",
     "Settings.Anarchy.ForcedEnCroissant.Desc": "如果 En Croissant 是合法着法，则强制您走这一步",
     "Settings.Appearance": "外观",
+    "Settings.Appearance.3DMode": "",
+    "Settings.Appearance.3DMode.Desc": "",
     "Settings.Appearance.AccentColor": "强调色",
     "Settings.Appearance.AccentColor.Desc": "应用的主色调",
     "Settings.Appearance.BoardImage": "棋盘背景图",

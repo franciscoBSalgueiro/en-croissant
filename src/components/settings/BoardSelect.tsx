@@ -9,10 +9,11 @@ import {
   useCombobox,
 } from "@mantine/core";
 import { useAtom } from "jotai";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { boardImageAtom } from "@/state/atoms";
+import { boardImageAtom, is3dAtom } from "@/state/atoms";
 
-const boardImages: string[] = [
+const boardImages2d: string[] = [
   "blue.png",
   "blue2.jpg",
   "blue3.jpg",
@@ -41,11 +42,35 @@ const boardImages: string[] = [
   "gray.svg",
 ];
 
-function SelectOption({ label }: { label: string }) {
+const boardImages3d = [
+  "Black-White-Aluminium.png",
+  "Brushed-Aluminium.png",
+  "China-Blue.png",
+  "China-Green.png",
+  "China-Grey.png",
+  "China-Scarlet.png",
+  "China-Yellow.png",
+  "Classic-Blue.png",
+  "Glass.png",
+  "Gold-Silver.png",
+  "Green-Glass.png",
+  "Jade.png",
+  "Light-Wood.png",
+  "Marble.png",
+  "Power-Coated.png",
+  "Purple-Black.png",
+  "Rosewood.png",
+  "Wax.png",
+  "Wood-Glass.png",
+  "Woodi.png",
+];
+
+function SelectOption({ label, is3d }: { label: string; is3d: boolean }) {
   let image = label;
   if (!label.endsWith(".svg")) {
     image = label.replace(".", ".thumbnail.");
   }
+  const boardPath = is3d ? "/board-3d" : "/board";
 
   return (
     <Group wrap="nowrap">
@@ -53,7 +78,7 @@ function SelectOption({ label }: { label: string }) {
         style={{
           width: "64px",
           height: "32px",
-          backgroundImage: `url(/board/${image})`,
+          backgroundImage: `url(${boardPath}/${image})`,
           flexShrink: 0,
           backgroundSize: label.endsWith(".svg") ? "256px" : undefined,
         }}
@@ -72,14 +97,24 @@ export default function BoardSelect() {
   });
 
   const [board, setBoard] = useAtom(boardImageAtom);
+  const [is3d] = useAtom(is3dAtom);
+
+  const boardImages = is3d ? boardImages3d : boardImages2d;
 
   const options = boardImages.map((item) => (
     <Combobox.Option value={item} key={item}>
-      <SelectOption label={item} />
+      <SelectOption label={item} is3d={is3d} />
     </Combobox.Option>
   ));
 
   const selected = boardImages.find((p) => p === board);
+
+  // Reset to default when switching modes if current value doesn't exist
+  useEffect(() => {
+    if (!selected && board) {
+      setBoard(boardImages[0]);
+    }
+  }, [is3d, selected, board, boardImages, setBoard]);
 
   return (
     <Combobox
@@ -100,7 +135,7 @@ export default function BoardSelect() {
           w="12rem"
         >
           {selected ? (
-            <SelectOption label={selected} />
+            <SelectOption label={selected} is3d={is3d} />
           ) : (
             <Input.Placeholder>{t("Common.PickValue")}</Input.Placeholder>
           )}

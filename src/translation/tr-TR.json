@@ -478,6 +478,8 @@
     "Settings.Anarchy.ForcedEnCroissant": "Zorunlu En Croissant",
     "Settings.Anarchy.ForcedEnCroissant.Desc": "Eğer oynayabiliyorsan En Croissant oynamak zorundasın",
     "Settings.Appearance": "Görünüş",
+    "Settings.Appearance.3DMode": "",
+    "Settings.Appearance.3DMode.Desc": "",
     "Settings.Appearance.AccentColor": "Baskın Renk",
     "Settings.Appearance.AccentColor.Desc": "Uygulamanın ana rengi",
     "Settings.Appearance.BoardImage": "Tahta Görseli",
