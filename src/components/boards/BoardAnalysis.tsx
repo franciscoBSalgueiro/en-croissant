@@ -192,7 +192,7 @@ function BoardAnalysis() {
             w="100%"
             h="100%"
             value={currentTabSelected}
-            onChange={(v) => setCurrentTabSelected(v || "info")}
+            onChange={(v) => setCurrentTabSelected(v || "analysis")}
             keepMounted={false}
             activateTabWithKeyboard={false}
             style={{
