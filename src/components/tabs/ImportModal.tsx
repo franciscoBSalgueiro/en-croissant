@@ -23,10 +23,9 @@ import { match } from "ts-pattern";
 import { commands } from "@/bindings";
 import { addRecentFileAtom, currentTabAtom } from "@/state/atoms";
 import { parsePGN } from "@/utils/chess";
-import { getChesscomGame } from "@/utils/chess.com/api";
 import { chessopsError } from "@/utils/chessops";
 import { createFile, openFile } from "@/utils/files";
-import { getLichessGame } from "@/utils/lichess/api";
+import { getGameFromUrl } from "@/utils/import";
 import { isInTempDir, type Tab } from "@/utils/tabs";
 import { defaultTree, getGameName } from "@/utils/treeReducer";
 import { unwrap } from "@/utils/unwrap";
@@ -141,23 +140,11 @@ export default function ImportModal({
         return;
       }
       let pgn = "";
-      if (link.includes("chess.com")) {
-        const res = await getChesscomGame(link);
-        if (res === null) {
-          setLoading(false);
-          return;
-        }
-        pgn = res;
-      } else if (link.includes("lichess")) {
-        const excludedPathParts = ["game", "export", "white", "black"];
-        const gameId = new URL(link).pathname
-          .split("/")
-          .find((x) => x && !excludedPathParts.includes(x));
-        if (!gameId) {
-          setLoading(false);
-          return;
-        }
-        pgn = await getLichessGame(gameId);
+      try {
+        pgn = await getGameFromUrl(link);
+      } catch (e) {
+        setLoading(false);
+        return;
       }
 
       const tree = await parsePGN(pgn);
