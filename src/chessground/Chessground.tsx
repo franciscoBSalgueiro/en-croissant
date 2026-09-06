@@ -10,6 +10,7 @@ const BOARD_COORDINATE_COLORS: Record<string, { white: string; black: string }> 
   blue: { white: "#dee3e6", black: "#788a94" },
   blue2: { white: "#97b2c7", black: "#546f82" },
   blue3: { white: "#d9e0e6", black: "#315991" },
+  blue4: { white: "#e9e9d1", black: "#4e7293" },
   "blue-marble": { white: "#eae6dd", black: "#7c7f87" },
   canvas2: { white: "#d7daeb", black: "#547388" },
   wood: { white: "#d8a45b", black: "#9b4d0f" },
