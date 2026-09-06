@@ -521,6 +521,8 @@
     "Settings.AutoPromition.Desc": "Promotion en Dame automatique lorsqu'un pion est éligible",
     "Settings.AutoSave": "Sauvegarde automatique",
     "Settings.AutoSave.Desc": "Sauvegarde la partie automatiquement après chaque coup",
+    "Settings.AutoStartEngineOnBoardEnter": "",
+    "Settings.AutoStartEngineOnBoardEnter.Desc": "",
     "Settings.Board": "Échiquier",
     "Settings.Board.Desc": "Personnaliser l'échiquier d'analyse et les contrôles",
     "Settings.ConsecutiveArrows": "Flèches successives",

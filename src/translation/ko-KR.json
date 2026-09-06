@@ -516,6 +516,8 @@
     "Settings.AutoPromition.Desc": "폰이 마지막 랭크에 도달했을 때 퀸으로 자동 승진합니다",
     "Settings.AutoSave": "자동 저장",
     "Settings.AutoSave.Desc": "수를 두고 나면 파일로 자동 저장합니다",
+    "Settings.AutoStartEngineOnBoardEnter": "분석 보드 진입 시 엔진 자동 실행",
+    "Settings.AutoStartEngineOnBoardEnter.Desc": "분석 보드에 들어갈 때 로드된 모든 엔진을 자동으로 시작합니다",
     "Settings.Board": "보드",
     "Settings.Board.Desc": "분석 보드와 조작 방식을 설정합니다",
     "Settings.ConsecutiveArrows": "연속 화살표",

@@ -34,6 +34,7 @@ import posthog from "posthog-js";
 import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  autoStartAnalysisEnginesAtom,
   autoPromoteAtom,
   autoSaveAtom,
   enableBoardScrollAtom,
@@ -311,6 +312,14 @@ export default function Page() {
         description: t("Settings.AutoSave.Desc"),
         keywords: ["save", "auto"],
         render: () => <SettingsSwitch atom={autoSaveAtom} />,
+      },
+      {
+        id: "auto-start-engine-on-board-enter",
+        category: "board",
+        title: t("Settings.AutoStartEngineOnBoardEnter"),
+        description: t("Settings.AutoStartEngineOnBoardEnter.Desc"),
+        keywords: ["engine", "analysis", "auto", "start", "board", "enter"],
+        render: () => <SettingsSwitch atom={autoStartAnalysisEnginesAtom} />,
       },
       {
         id: "preview-board",

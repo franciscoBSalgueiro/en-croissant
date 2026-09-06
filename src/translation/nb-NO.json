@@ -504,6 +504,8 @@
     "Settings.AutoPromition.Desc": "Bonden blir til en dronning når den kommer til siste rad.",
     "Settings.AutoSave": "Lagre automatisk",
     "Settings.AutoSave.Desc": "Lagre til filen etter hvert trekk",
+    "Settings.AutoStartEngineOnBoardEnter": "",
+    "Settings.AutoStartEngineOnBoardEnter.Desc": "",
     "Settings.Board": "Brett",
     "Settings.Board.Desc": "Tilpass analysebrett",
     "Settings.ConsecutiveArrows": "Konskutive Piler",

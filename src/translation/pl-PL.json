@@ -510,6 +510,8 @@
     "Settings.AutoPromition.Desc": "Automatycznie promuj na hetmana, gdy pionek dotrze do ostatniego rzędu",
     "Settings.AutoSave": "Automatyczne zapisywanie",
     "Settings.AutoSave.Desc": "Automatycznie zapisuj do pliku po każdym ruchu",
+    "Settings.AutoStartEngineOnBoardEnter": "",
+    "Settings.AutoStartEngineOnBoardEnter.Desc": "",
     "Settings.Board": "Szachownica",
     "Settings.Board.Desc": "Dostosuj tablicę analizy i sterowanie grą",
     "Settings.ConsecutiveArrows": "Kolejne strzałki",

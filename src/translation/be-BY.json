@@ -510,6 +510,8 @@
     "Settings.AutoPromition.Desc": "Аўтаматычна павышаць да каралевы",
     "Settings.AutoSave": "Аўтазахаванне",
     "Settings.AutoSave.Desc": "Аўтаматычна захоўваць пасля кожнага ходу",
+    "Settings.AutoStartEngineOnBoardEnter": "",
+    "Settings.AutoStartEngineOnBoardEnter.Desc": "",
     "Settings.Board": "Дошка",
     "Settings.Board.Desc": "Наладзіць дошку аналізу і элементы кіравання гульнёй",
     "Settings.ConsecutiveArrows": "Паслядоўныя стрэлкі",

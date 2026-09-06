@@ -524,6 +524,8 @@
     "Settings.AutoPromition.Desc": "Автоматически продвигать до ферзя",
     "Settings.AutoSave": "Автосохранение",
     "Settings.AutoSave.Desc": "Автоматически сохранять после каждого хода",
+    "Settings.AutoStartEngineOnBoardEnter": "",
+    "Settings.AutoStartEngineOnBoardEnter.Desc": "",
     "Settings.Board": "Доска",
     "Settings.Board.Desc": "Настроить доску анализа и игровые элементы управления",
     "Settings.ConsecutiveArrows": "Последовательные стрелки",
