@@ -176,6 +176,7 @@ export const moveHighlightAtom = atomWithStorage<boolean>("move-highlight", true
 export const snapArrowsAtom = atomWithStorage<boolean>("snap-dests", true);
 export const showArrowsAtom = atomWithStorage<boolean>("show-arrows", true);
 export const showConsecutiveArrowsAtom = atomWithStorage<boolean>("show-consecutive-arrows", false);
+export const puzzleReviewEnginesAtom = atomWithStorage<string[]>("puzzle-review-engines", []);
 export const showVariationArrowsAtom = atomWithStorage<boolean>("show-variation-arrows", false);
 export const eraseDrawablesOnClickAtom = atomWithStorage<boolean>(
     "erase-drawables-on-click",
@@ -691,5 +692,21 @@ export const enableAllAtom = atom(null, (get, set, value: boolean) => {
             defaultGo: engine.go ?? undefined,
         });
         set(atom, { ...get(atom), enabled: value });
+    }
+});
+
+export const enableEnginesAtom = atom(null, (get, set, engineIds: string[]) => {
+    const engines = get(enginesAtom);
+    if (!engines) return;
+    const enabledEngineIds = new Set(engineIds);
+
+    for (const engine of engines.filter((e) => e.loaded)) {
+        const settingsAtom = tabEngineSettingsFamily({
+            tab: get(activeTabAtom)!,
+            engineId: engine.id,
+            defaultSettings: engine.type === "local" ? engine.settings || [] : undefined,
+            defaultGo: engine.go ?? undefined,
+        });
+        set(settingsAtom, { ...get(settingsAtom), enabled: enabledEngineIds.has(engine.id) });
     }
 });

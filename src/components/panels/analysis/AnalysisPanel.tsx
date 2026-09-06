@@ -46,7 +46,11 @@ import ReportPanel from "./ReportPanel";
 import ScoreBubble from "./ScoreBubble";
 import TablebaseInfo from "./TablebaseInfo";
 
-function AnalysisPanel() {
+function AnalysisPanel({
+  onEngineToggle,
+}: {
+  onEngineToggle?: (engineId: string, enabled: boolean) => void;
+} = {}) {
   const { t } = useTranslation();
 
   const store = useContext(TreeStateContext)!;
@@ -128,7 +132,7 @@ function AnalysisPanel() {
                   <Space h="sm" />
                 </>
               )}
-            {loadedEngines.length > 1 && (
+            {loadedEngines.length > 1 && !onEngineToggle && (
               <Paper withBorder p="xs" flex={1}>
                 <Group w="100%" gap="xs" wrap="nowrap">
                   <ActionIcon size="lg" variant="default" onClick={() => enable(!allEnabled)}>
@@ -205,6 +209,7 @@ function AnalysisPanel() {
                                       halfMoves={currentNodeHalfMoves}
                                       dragHandleProps={provided.dragHandleProps}
                                       orientation={headers.orientation || "white"}
+                                      onEnabledChange={onEngineToggle}
                                     />
                                   </Accordion.Item>
                                 </div>

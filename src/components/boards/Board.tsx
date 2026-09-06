@@ -55,17 +55,15 @@ import ShowMaterial from "../common/ShowMaterial";
 import { TreeStateContext } from "../common/TreeStateContext";
 import FideInfo from "../databases/FideInfo";
 import { updateCardPerformance } from "../files/opening";
-import { arrowColors } from "../panels/analysis/BestMoves";
 import AnnotationHint from "./AnnotationHint";
 import { BoardBar } from "./BoardBar";
 import Clock from "./Clock";
 import EvalBar from "./EvalBar";
+import { getEngineArrowShapes } from "./engineArrowShapes";
 import MoveInput from "./MoveInput";
 import PromotionModal from "./PromotionModal";
 
-const LARGE_BRUSH = 11;
 const MEDIUM_BRUSH = 7.5;
-const SMALL_BRUSH = 4;
 const BAR_HEIGHT = "1.9rem";
 
 interface ChessboardProps {
@@ -238,56 +236,7 @@ function Board({
 
   let shapes: DrawShape[] = [];
   if (showArrows && evalOpen && arrows.size > 0 && pos) {
-    const entries = Array.from(arrows.entries()).sort((a, b) => a[0] - b[0]);
-    for (const [i, moves] of entries) {
-      if (i < 4) {
-        const bestWinChance = moves[0].winChance;
-        for (const [j, { pv, winChance }] of moves.entries()) {
-          const posClone = pos.clone();
-          let prevSquare = null;
-          for (const [ii, uci] of pv.entries()) {
-            const m = parseUci(uci)! as NormalMove;
-
-            posClone.play(m);
-            const from = makeSquare(m.from)!;
-            const to = makeSquare(m.to)!;
-            if (prevSquare === null) {
-              prevSquare = from;
-            }
-            const brushSize = match(bestWinChance - winChance)
-              .when(
-                (d) => d < 2.5,
-                () => LARGE_BRUSH,
-              )
-              .when(
-                (d) => d < 5,
-                () => MEDIUM_BRUSH,
-              )
-              .otherwise(() => SMALL_BRUSH);
-
-            if (ii === 0 || (showConsecutiveArrows && j === 0 && ii % 2 === 0)) {
-              if (
-                ii < 5 && // max 3 arrows
-                !shapes.find((s) => s.orig === from && s.dest === to) &&
-                prevSquare === from
-              ) {
-                shapes.push({
-                  orig: from,
-                  dest: to,
-                  brush: j === 0 ? arrowColors[i].strong : arrowColors[i].pale,
-                  modifiers: {
-                    lineWidth: brushSize,
-                  },
-                });
-                prevSquare = to;
-              } else {
-                break;
-              }
-            }
-          }
-        }
-      }
-    }
+    shapes = getEngineArrowShapes({ arrows, pos, showConsecutiveArrows });
   }
 
   // Variation arrows: show all children moves when there are alternatives
