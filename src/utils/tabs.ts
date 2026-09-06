@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { StoreApi } from "zustand";
 import { commands } from "@/bindings";
 import { type FileMetadata, fileMetadataSchema } from "@/components/files/file";
+import { serializeStorageValue } from "@/state/store/debouncedStorage";
 import type { TreeStoreState } from "@/state/store/tree";
 import { getPGN, parsePGN } from "./chess";
 import { type GameHeaders, getGameName } from "./treeReducer";
@@ -120,7 +121,14 @@ export async function createTab({
                 tree.position = position;
             }
         }
-        sessionStorage.setItem(id, JSON.stringify({ version: 0, state: tree }));
+        try {
+            sessionStorage.setItem(id, serializeStorageValue({ version: 0, state: tree }));
+        } catch (e) {
+            throw new Error(
+                "Could not open the game: the browser's session storage is full. Close some open tabs and try again.",
+                { cause: e },
+            );
+        }
     }
 
     setTabs((prev) => {
