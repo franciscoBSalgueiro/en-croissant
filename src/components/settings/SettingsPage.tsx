@@ -280,8 +280,8 @@ export default function Page() {
       {
         id: "auto-promote",
         category: "board",
-        title: t("Settings.AutoPromition"),
-        description: t("Settings.AutoPromition.Desc"),
+        title: t("Settings.AutoPromotion"),
+        description: t("Settings.AutoPromotion.Desc"),
         keywords: ["promote", "queen", "pawn"],
         render: () => <SettingsSwitch atom={autoPromoteAtom} />,
       },
