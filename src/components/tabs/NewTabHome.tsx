@@ -137,7 +137,12 @@ export default function NewTabHome({ id }: { id: string }) {
 
   const openRecentFile = useCallback(
     async (file: RecentFile) => {
-      const pgn = unwrap(await commands.readGames(file.path, 0, 0));
+      const [pgnResult, countResult] = await Promise.all([
+        commands.readGames(file.path, 0, 0),
+        commands.countPgnGames(file.path),
+      ]);
+      const pgn = unwrap(pgnResult);
+      const numGames = unwrap(countResult);
       const tabId = await createTab({
         tab: {
           name: file.name,
@@ -153,7 +158,7 @@ export default function NewTabHome({ id }: { id: string }) {
             type: "file",
             name: file.name,
             path: file.path,
-            numGames: 1,
+            numGames,
             metadata: { type: file.type, tags: [] },
             lastModified: Math.floor(Date.now() / 1000),
           },
