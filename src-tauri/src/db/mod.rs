@@ -175,11 +175,19 @@ fn update_info_count(
     name: &str,
     value: i64,
 ) -> Result<(), diesel::result::Error> {
+    set_info_value(db, name, &value.to_string())
+}
+
+fn set_info_value(
+    db: &mut SqliteConnection,
+    name: &str,
+    value: &str,
+) -> Result<(), diesel::result::Error> {
     diesel::insert_into(info::table)
-        .values((info::name.eq(name), info::value.eq(value.to_string())))
+        .values((info::name.eq(name), info::value.eq(value)))
         .on_conflict(info::name)
         .do_update()
-        .set(info::value.eq(value.to_string()))
+        .set(info::value.eq(value))
         .execute(db)?;
     Ok(())
 }
@@ -521,14 +529,9 @@ pub async fn convert_pgn(
 
     if !db_exists {
         db.batch_execute(CREATE_TABLES_SQL)?;
-        db.batch_execute(
-            format!(
-                "INSERT INTO Info (Name, Value) VALUES (\"Version\", \"{DATABASE_VERSION}\");
-                INSERT INTO Info (Name, Value) VALUES (\"Title\", \"{title}\");
-                INSERT INTO Info (Name, Value) VALUES (\"Description\", \"{description}\");"
-            )
-            .as_str(),
-        )?;
+        set_info_value(db, "Version", DATABASE_VERSION)?;
+        set_info_value(db, "Title", &title)?;
+        set_info_value(db, "Description", &description)?;
     }
 
     // start counting time
@@ -2007,6 +2010,18 @@ mod tests {
         conn.batch_execute("PRAGMA foreign_keys = ON;").unwrap();
         conn.batch_execute(CREATE_TABLES_SQL).unwrap();
         conn
+    }
+
+    #[test]
+    fn set_info_value_stores_title_containing_quotes() {
+        let db = &mut setup_test_db();
+        set_info_value(db, "Title", r#"A "quoted" title"#).unwrap();
+        let stored: Option<String> = info::table
+            .filter(info::name.eq("Title"))
+            .select(info::value)
+            .first(db)
+            .unwrap();
+        assert_eq!(stored.as_deref(), Some(r#"A "quoted" title"#));
     }
 
     #[test]
