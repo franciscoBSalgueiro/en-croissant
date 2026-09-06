@@ -44,6 +44,7 @@ import {
   showDestsAtom,
   showVariationArrowsAtom,
   snapArrowsAtom,
+  zenModeAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import classes from "@/styles/Chessboard.module.css";
@@ -140,6 +141,7 @@ function Board({
   const forcedEP = useAtomValue(forcedEnPassantAtom);
   const showCoordinates = useAtomValue(showCoordinatesAtom);
   const materialDisplay = useAtomValue(materialDisplayAtom);
+  const zenMode = useAtomValue(zenModeAtom);
 
   let dests: Map<SquareName, SquareName[]> = pos ? chessgroundDests(pos) : new Map();
   if (forcedEP && pos) {
@@ -379,7 +381,11 @@ function Board({
 
   return (
     <>
-      <Box w="100%" h="100%">
+      <Box
+        w="100%"
+        h="100%"
+        style={zenMode ? { display: "flex", justifyContent: "center" } : undefined}
+      >
         <Box
           style={{
             display: "flex",
@@ -389,9 +395,10 @@ function Board({
             gap: "0.5rem",
             flexWrap: "nowrap",
             overflow: "hidden",
-            maxWidth:
-              //            topbar   bottompadding                tabs                                  bottomb    topbar   evalbar                                gaps    ???
-              `calc(100vh - 2.25rem - var(--mantine-spacing-sm) - 2.5rem - var(--mantine-spacing-sm) - ${BAR_HEIGHT} - ${BAR_HEIGHT} + 1.563rem + var(--mantine-spacing-md) - 1rem  - 0.2rem)`,
+            maxWidth: zenMode
+              ? `calc(100vh - ${BAR_HEIGHT} - ${BAR_HEIGHT} - 0.5rem)`
+              : //            topbar   bottompadding                tabs                                  bottomb    topbar   evalbar                                gaps    ???
+                `calc(100vh - 2.25rem - var(--mantine-spacing-sm) - 2.5rem - var(--mantine-spacing-sm) - ${BAR_HEIGHT} - ${BAR_HEIGHT} + 1.563rem + var(--mantine-spacing-md) - 1rem  - 0.2rem)`,
           }}
         >
           <BoardBar

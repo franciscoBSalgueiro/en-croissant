@@ -1,4 +1,4 @@
-import { AppShell } from "@mantine/core";
+import { AppShell, Tooltip } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { createRootRouteWithContext, Outlet, useNavigate } from "@tanstack/react-router";
 import { TauriEvent } from "@tauri-apps/api/event";
@@ -20,7 +20,7 @@ import type { Dirs } from "@/App";
 import AboutModal from "@/components/About";
 import { SideBar } from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
-import { activeTabAtom, nativeBarAtom, tabsAtom } from "@/state/atoms";
+import { activeTabAtom, nativeBarAtom, tabsAtom, zenModeAtom } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { openFile } from "@/utils/files";
 import { createTab } from "@/utils/tabs";
@@ -141,8 +141,13 @@ function RootLayout() {
 
   const [keyMap] = useAtom(keyMapAtom);
 
+  const [zenMode, setZenMode] = useAtom(zenModeAtom);
   useHotkeys(keyMap.NEW_TAB.keys, createNewTab);
   useHotkeys(keyMap.OPEN_FILE.keys, openNewFile);
+  useHotkeys(keyMap.ZEN_MODE.keys, () => setZenMode((v) => !v));
+  useHotkeys("Escape", () => {
+    if (zenMode) setZenMode(false);
+  });
   const [opened, setOpened] = useState(false);
 
   const isMacOS = platform() === "macos";
@@ -356,6 +361,7 @@ function RootLayout() {
       navbar={{
         width: "3rem",
         breakpoint: 0,
+        collapsed: { desktop: zenMode, mobile: zenMode },
       }}
       header={
         isNative ||
@@ -363,6 +369,7 @@ function RootLayout() {
           ? undefined
           : {
               height: "2.25rem",
+              collapsed: zenMode,
             }
       }
       styles={{
@@ -385,6 +392,26 @@ function RootLayout() {
       </AppShell.Navbar>
       <AppShell.Main>
         <Outlet />
+        {zenMode && (
+          <Tooltip
+            label="Zen Mode active — Shift+Z to toggle, Esc to exit"
+            position="right"
+            openDelay={1000}
+          >
+            <div
+              style={{
+                position: "fixed",
+                left: 0,
+                top: 0,
+                width: "6px",
+                height: "100vh",
+                zIndex: 1000,
+                cursor: "pointer",
+              }}
+              onClick={() => setZenMode(false)}
+            />
+          </Tooltip>
+        )}
       </AppShell.Main>
     </AppShell>
   );

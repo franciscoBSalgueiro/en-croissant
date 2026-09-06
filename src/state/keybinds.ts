@@ -52,6 +52,7 @@ const keys: KeyMap = {
     ANNOTATION_BLUNDER: { name: "Toggle blunder move annotation", keys: "6" },
     TOGGLE_ALL_ENGINES: { name: "Toggle all engines", keys: "ctrl+a" },
     TOGGLE_BLUR: { name: "Toggle blur", keys: "ctrl+b" },
+    ZEN_MODE: { name: "Toggle Zen Mode", keys: "shift+z" },
     GENERATE_REPORT: { name: "Generate game report", keys: "f12" },
     PREVIOUS_GAME: { name: "Previous game", keys: "pageup" },
     NEXT_GAME: { name: "Next game", keys: "pagedown" },

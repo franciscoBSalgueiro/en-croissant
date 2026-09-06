@@ -60,6 +60,7 @@ import {
   storedEnginesDirAtom,
   storedPuzzlesDirAtom,
   telemetryEnabledAtom,
+  zenModeAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import FileInput from "../common/FileInput";
@@ -184,6 +185,14 @@ export default function Page() {
   const settings: SettingItem[] = useMemo(
     () => [
       // Board settings
+      {
+        id: "zen-mode",
+        category: "board",
+        title: "Zen Mode",
+        description: "Hide UI panels and maximize the board (Shift+Z)",
+        keywords: ["zen", "focus", "distraction", "fullscreen", "minimal", "hide"],
+        render: () => <SettingsSwitch atom={zenModeAtom} />,
+      },
       {
         id: "piece-dest",
         category: "board",

@@ -13,3 +13,7 @@
 .mosaic-split:hover .mosaic-split-line {
   box-shadow: 0 0 0 1px var(--mantine-primary-color-filled) !important;
 }
+
+.zen-mode .mosaic-split {
+  display: none;
+}
