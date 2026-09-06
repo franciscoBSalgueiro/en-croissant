@@ -55,8 +55,8 @@ use crate::lexer::lex_pgn;
 use crate::oauth::authenticate;
 use crate::pgn::{count_pgn_games, delete_game, read_games, write_game};
 use crate::puzzle::{
-    delete_puzzle_database, get_puzzle, get_puzzle_db_info, get_puzzle_themes,
-    get_themes_for_puzzle,
+    delete_puzzle_database, get_puzzle, get_puzzle_db_info, get_puzzle_sessions,
+    get_puzzle_themes, get_themes_for_puzzle, set_puzzle_sessions,
 };
 use crate::sound::get_sound_server_port;
 use crate::{
@@ -158,6 +158,8 @@ fn main() {
             get_puzzle_themes,
             get_themes_for_puzzle,
             delete_puzzle_database,
+            get_puzzle_sessions,
+            set_puzzle_sessions,
             start_game,
             get_game_state,
             make_game_move,

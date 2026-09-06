@@ -382,6 +382,22 @@ async deletePuzzleDatabase(file: string) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async getPuzzleSessions() : Promise<Result<SavedPuzzleSession[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_puzzle_sessions") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async setPuzzleSessions(sessions: SavedPuzzleSession[]) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_puzzle_sessions", { sessions }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async startGame(gameId: string, config: GameConfig) : Promise<Result<GameState, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("start_game", { gameId, config }) };
@@ -531,6 +547,7 @@ export type Puzzle = { id: number; fen: string; moves: string; rating: number; r
 export type PuzzleDatabaseInfo = { title: string; description: string; puzzleCount: number; storageSize: bigint; path: string }
 export type QueryOptions<SortT> = { skipCount: boolean; page?: number | null; pageSize?: number | null; sort: SortT; direction: SortDirection }
 export type QueryResponse<T> = { data: T; count: number | null }
+export type SavedPuzzleSession = { id: string; name: string; savedAt: number; puzzles: SessionPuzzle[]; currentPuzzle: number; dbPath: string | null }
 export type Score = { value: ScoreValue; 
 /**
  * The probability of each result (win, draw, loss).
@@ -545,6 +562,11 @@ export type ScoreValue =
  * Mate coming up in this many moves. Negative value means the engine is getting mated.
  */
 { type: "mate"; value: number }
+/**
+ * A puzzle enriched with session state (completion, time, themes).
+ * Stored in `puzzle-sessions.json` in the app data directory.
+ */
+export type SessionPuzzle = { id: number; fen: string; moves: string[]; rating: number; ratingDeviation: number; popularity: number; nbPlays: number; completion: string; timeSpent: number | null; themes: string[] | null }
 export type Sides = "BlackWhite" | "WhiteBlack" | "Any"
 export type SiteStatsData = { site: string; player: string; data: StatsData[] }
 export type SortDirection = "asc" | "desc"

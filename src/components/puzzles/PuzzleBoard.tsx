@@ -76,13 +76,17 @@ function PuzzleBoard({
     if (!pos) return;
     if (!puzzle) return;
 
+    // Replaying a puzzle that was already solved correctly: allow moves but do
+    // not alter its completion status or mark it incorrect on a wrong move.
+    const isReplay = puzzle.completion === "correct";
+
     const newPos = pos.clone();
     const uci = makeUci(move);
     newPos.play(move);
 
     if (puzzle.moves[currentMove] === uci || newPos.isCheckmate()) {
       if (currentMove === puzzle.moves.length - 1) {
-        if (puzzle.completion !== "incorrect") {
+        if (!isReplay && puzzle.completion !== "incorrect") {
           await changeCompletion("correct");
         }
         setEnded(false);
@@ -105,7 +109,7 @@ function PuzzleBoard({
         changePosition: false,
         changeHeaders: false,
       });
-      if (!ended) {
+      if (!ended && !isReplay) {
         await changeCompletion("incorrect");
       }
       setEnded(true);
@@ -149,12 +153,7 @@ function PuzzleBoard({
           }}
           movable={{
             free: false,
-            color:
-              puzzle &&
-              equal(position, Array(currentMove).fill(0)) &&
-              (puzzle.completion === "incomplete" || puzzle.completion === "incorrect")
-                ? turn
-                : undefined,
+            color: puzzle && equal(position, Array(currentMove).fill(0)) ? turn : undefined,
             dests: dests,
             events: {
               after: (orig, dest) => {
