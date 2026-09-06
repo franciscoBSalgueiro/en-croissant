@@ -1109,6 +1109,33 @@ pub async fn get_games(
     })
 }
 
+fn get_latest_game_timestamp_in_db(db: &mut SqliteConnection) -> Result<Option<i64>, Error> {
+    let timestamps = games::table
+        .select((games::date, games::time))
+        .filter(games::date.is_not_null())
+        .filter(games::time.is_not_null())
+        .load::<(Option<String>, Option<String>)>(db)?;
+
+    Ok(timestamps
+        .into_iter()
+        .filter_map(|(date, time)| {
+            let date = NaiveDate::parse_from_str(date?.as_str(), "%Y.%m.%d").ok()?;
+            let time = NaiveTime::parse_from_str(time?.as_str(), "%H:%M:%S").ok()?;
+            Some(date.and_time(time).and_utc().timestamp_millis())
+        })
+        .max())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn get_latest_game_timestamp(
+    file: PathBuf,
+    state: tauri::State<'_, AppState>,
+) -> Result<Option<f64>, Error> {
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+    Ok(get_latest_game_timestamp_in_db(db)?.map(|timestamp| timestamp as f64))
+}
+
 fn normalize_games(games: Vec<(Game, Player, Player, Event, Site)>) -> Vec<NormalizedGame> {
     games
         .into_iter()
@@ -1619,6 +1646,7 @@ struct PgnGame {
     event: Option<String>,
     site: Option<String>,
     date: Option<String>,
+    time: Option<String>,
     round: Option<String>,
     white: Option<String>,
     black: Option<String>,
@@ -1641,6 +1669,11 @@ impl PgnGame {
         )?;
         writeln!(writer, "[Site \"{}\"]", self.site.as_deref().unwrap_or(""))?;
         writeln!(writer, "[Date \"{}\"]", self.date.as_deref().unwrap_or(""))?;
+        if let Some(time) = self.time.as_deref() {
+            if !time.is_empty() {
+                writeln!(writer, "[UTCTime \"{}\"]", time)?;
+            }
+        }
         writeln!(
             writer,
             "[Round \"{}\"]",
@@ -1735,6 +1768,7 @@ pub async fn export_to_pgn(
                 event: event.name,
                 site: site.name,
                 date: game.date,
+                time: game.time,
                 round: game.round,
                 white: white.name,
                 black: black.name,
@@ -1798,6 +1832,13 @@ pub async fn write_db_game(
         .flatten()
         .flatten();
     let temp_game = parsed.next().ok_or(Error::NoMovesFound)?;
+    let existing_time = games::table
+        .filter(games::id.eq(game_id))
+        .select(games::time)
+        .first::<Option<String>>(db)
+        .optional()?
+        .flatten();
+    let game_time = temp_game.time.clone().or(existing_time);
 
     let white_id = if let Some(name) = temp_game.white_name.as_deref() {
         create_player(db, name)?.id
@@ -1831,7 +1872,7 @@ pub async fn write_db_game(
             games::event_id.eq(event_id),
             games::site_id.eq(site_id),
             games::date.eq(temp_game.date),
-            games::time.eq(temp_game.time),
+            games::time.eq(game_time),
             games::round.eq(temp_game.round),
             games::white_id.eq(white_id),
             games::white_elo.eq(temp_game.white_elo),
