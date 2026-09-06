@@ -299,6 +299,7 @@
     "Engines.Remove.Message": "Êtes-vous sûr de vouloir supprimer le moteur ?",
     "Engines.Remove.Title": "Supprimer le moteur",
     "Engines.Selection.None": "Aucun moteur n'est installé. Veuillez d'abord <addEngineLink>ajouter un moteur</addEngineLink>.",
+    "Engines.Settings.AdjustRating": "",
     "Engines.Settings.AdvancedSettings": "Paramètres avancés",
     "Engines.Settings.EditJSON": "Editer JSON",
     "Engines.Settings.NoEngine": "Aucun moteur sélectionné",
