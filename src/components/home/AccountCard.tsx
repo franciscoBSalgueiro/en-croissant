@@ -29,7 +29,7 @@ import type { DatabaseInfo } from "@/bindings";
 import { commands, events } from "@/bindings";
 import { databaseConversionStateAtom, storedDatabasesDirAtom } from "@/state/atoms";
 import { downloadChessCom } from "@/utils/chess.com/api";
-import { getDatabases, query_games } from "@/utils/db";
+import { getDatabases } from "@/utils/db";
 import { capitalize } from "@/utils/format";
 import { downloadLichess } from "@/utils/lichess/api";
 import { unwrap } from "@/utils/unwrap";
@@ -158,22 +158,7 @@ export function AccountCard({
     effectiveTotal === 0 ? "0.00" : ((downloadedGames / effectiveTotal) * 100).toFixed(2);
 
   async function getLastGameDate({ database }: { database: DatabaseInfo }) {
-    const games = await query_games(database.file, {
-      options: {
-        page: 1,
-        pageSize: 1,
-        sort: "date",
-        direction: "desc",
-        skipCount: false,
-      },
-    });
-    if (games.count! > 0 && games.data[0].date && games.data[0].time) {
-      const [year, month, day] = games.data[0].date.split(".").map(Number);
-      const [hour, minute, second] = games.data[0].time.split(":").map(Number);
-      const d = Date.UTC(year, month - 1, day, hour, minute, second);
-      return d;
-    }
-    return null;
+    return unwrap(await commands.getLatestGameTimestamp(database.file));
   }
 
   return (
