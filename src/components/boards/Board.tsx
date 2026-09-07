@@ -291,7 +291,7 @@ function Board({
   }
 
   // Variation arrows: show all children moves when there are alternatives
-  if (showVariationArrows && currentNode.children.length > 1) {
+  if (showVariationArrows && !practicing && currentNode.children.length > 1) {
     for (const child of currentNode.children) {
       if (child.move) {
         const m = child.move as NormalMove;
