@@ -63,6 +63,7 @@ interface BestMovesProps {
   halfMoves: number;
   dragHandleProps: any;
   orientation: "white" | "black";
+  onEnabledChange?: (engineId: string, enabled: boolean) => void;
 }
 
 function BestMovesComponent({
@@ -73,6 +74,7 @@ function BestMovesComponent({
   halfMoves,
   dragHandleProps,
   orientation,
+  onEnabledChange,
 }: BestMovesProps) {
   const { t } = useTranslation();
 
@@ -166,7 +168,11 @@ function BestMovesComponent({
             variant={settings.enabled ? "filled" : "transparent"}
             color={id < 4 ? arrowColors[id].strong : theme.primaryColor}
             onClick={() => {
-              setSettings((prev) => ({ ...prev, enabled: !prev.enabled }));
+              if (onEnabledChange) {
+                onEnabledChange(engine.id, !settings.enabled);
+              } else {
+                setSettings((prev) => ({ ...prev, enabled: !prev.enabled }));
+              }
             }}
             ml={12}
           >
