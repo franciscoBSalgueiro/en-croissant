@@ -21,6 +21,8 @@ import {
     type TreeNode,
     type TreeState,
     treeIteratorMainLine,
+    buildTranspositionMaps,
+    getBoardState,
 } from "@/utils/treeReducer";
 
 export interface TreeStoreState extends TreeState {
@@ -92,9 +94,31 @@ export interface TreeStoreState extends TreeState {
 
 export type TreeStore = ReturnType<typeof createTreeStore>;
 
-export const createTreeStore = (id?: string, initialTree?: TreeState) => {
+// Defined as an outer function to avoid bloating git diff.
+const withTranspositionMaps =
+    (config: StateCreator<TreeStoreState>): StateCreator<TreeStoreState> =>
+    (set, get, api) => {
+        const wrappedSet: typeof set = (partial, _replace) => {
+            set(
+                produce((state: Draft<TreeStoreState>) => {
+                    const updates = typeof partial === "function" ? partial(state) : partial;
+                    Object.assign(state, updates);
+                    if (updates.root !== undefined || updates.headers?.start !== undefined) {
+                        const startPath = state.headers.start || [];
+                        state.boardStateMap = buildTranspositionMaps(state.root, startPath);
+                    }
+                }),
+                false,
+            );
+        };
+        return config(wrappedSet, get, api);
+    };
+
+export const createTreeStore = (id?: string, initTree?: TreeState) => {
+    const initialTree = initTree ?? defaultTree();
     const stateCreator: StateCreator<TreeStoreState> = (set, get) => ({
-        ...(initialTree ?? defaultTree()),
+        ...initialTree,
+        boardStateMap: buildTranspositionMaps(initialTree.root, initialTree.headers.start ?? []),
 
         currentNode: () => getNodeAtPath(get().root, get().position),
         getNode: (path: number[]) => getNodeAtPath(get().root, path),
@@ -127,33 +151,51 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
                 }),
             ),
 
-        goToNext: () =>
+        goToNext: () => {
             set((state) => {
                 const { practicePath } = state;
+                const node = getNodeAtPath(state.root, state.position);
+                if (!node) return {};
 
-                // In practice mode, block navigation past the drill position
-                if (practicePath && state.position.length >= practicePath.length) {
-                    return state;
+                // Normal case: node has children
+                if (node.children.length > 0) {
+                    if (practicePath && state.position.length >= practicePath.length) {
+                        return {};
+                    }
+                    const childIndex = practicePath ? practicePath[state.position.length] : 0;
+                    if (!node.children[childIndex]?.move) return {};
+                    const san = node.children[childIndex].san;
+                    if (!san) return {};
+                    playSound(san.includes("x"), san.includes("+"));
+                    return { position: [...state.position, childIndex] };
                 }
 
-                // In practice mode, follow the drill path; otherwise take first child
-                const childIndex = practicePath ? practicePath[state.position.length] : 0;
+                // No children — try transposition fallback
+                const currentFen = getBoardState(node.fen);
+                const entries = state.boardStateMap[currentFen] || [];
+                const candidates = entries.filter((e) => e.node !== node);
 
-                const node = getNodeAtPath(state.root, state.position);
-                if (!node || !node.children[childIndex]?.move) return state;
-                const san = node.children[childIndex].san;
-                if (!san) return state;
-                playSound(san.includes("x"), san.includes("+"));
-                return {
-                    ...state,
-                    position: [...state.position, childIndex],
-                };
-            }),
-        goToPrevious: () =>
+                if (candidates.length === 0) {
+                    if (practicePath && state.position.length >= practicePath.length) {
+                        return {};
+                    }
+                    return {};
+                }
+
+                const { node: targetNode, path: targetPath } = candidates[0];
+                if (targetNode.children.length === 0) return {};
+                const firstChild = targetNode.children[0];
+                if (!firstChild.san) return {};
+                playSound(firstChild.san.includes("x"), firstChild.san.includes("+"));
+
+                return { position: [...targetPath, 0] };
+            });
+        },
+        goToPrevious: () => {
             set((state) => ({
-                ...state,
                 position: state.position.slice(0, -1),
-            })),
+            }));
+        },
 
         goToAnnotation: (annotation, color) =>
             set(
@@ -515,14 +557,26 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
 
     if (id) {
         return createStore<TreeStoreState>()(
-            persist(stateCreator, {
+            persist(withTranspositionMaps(stateCreator), {
                 name: id,
                 storage: createDebouncedSessionStorage<TreeStoreState>(),
+                partialize: (state) => {
+                    const { boardStateMap, ...rest } = state;
+                    return rest as TreeStoreState;
+                },
+                onRehydrateStorage: () => (state, error) => {
+                    if (!error && state) {
+                        state.boardStateMap = buildTranspositionMaps(
+                            state.root,
+                            state.headers.start || [],
+                        );
+                    }
+                },
             }),
         );
     }
 
-    return createStore<TreeStoreState>()(stateCreator);
+    return createStore<TreeStoreState>()(withTranspositionMaps(stateCreator));
 };
 
 function makeMove({
@@ -606,10 +660,6 @@ function makeMove({
             }
         }
     }
-}
-
-function getBoardState(fen: string): string {
-    return fen.split(" ").slice(0, 4).join(" ");
 }
 
 function isThreeFoldRepetition(state: TreeState, fen: string): boolean {
