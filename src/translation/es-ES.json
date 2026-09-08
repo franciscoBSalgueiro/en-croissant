@@ -294,6 +294,7 @@
     "Engines.Add.Name": "Nombre",
     "Engines.Add.Name.Autodetect": "Autodetectar",
     "Engines.Add.Title": "Agregar motor",
+    "Engines.Add.UseStockfish": "",
     "Engines.Empty.AddHint": "",
     "Engines.Empty.NoInstalled": "",
     "Engines.Remove.Message": "¿Está seguro de que desea eliminar este motor de En Croissant?",

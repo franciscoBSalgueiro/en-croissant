@@ -296,6 +296,7 @@
     "Engines.Add.Name": "Імя",
     "Engines.Add.Name.Autodetect": "Аўтавызначэнне",
     "Engines.Add.Title": "Дадаць рухавік",
+    "Engines.Add.UseStockfish": "",
     "Engines.Empty.AddHint": "",
     "Engines.Empty.NoInstalled": "",
     "Engines.Remove.Message": "Вы ўпэўнены, што хочаце выдаліць гэты рухавік з En Croissant?",

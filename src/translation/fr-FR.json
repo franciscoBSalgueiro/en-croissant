@@ -294,6 +294,7 @@
     "Engines.Add.Name": "Nom",
     "Engines.Add.Name.Autodetect": "Détection automatique",
     "Engines.Add.Title": "Ajouter un moteur",
+    "Engines.Add.UseStockfish": "",
     "Engines.Empty.AddHint": "Ajoutez un moteur pour commencer",
     "Engines.Empty.NoInstalled": "Aucun moteur n'est installé",
     "Engines.Remove.Message": "Êtes-vous sûr de vouloir supprimer le moteur ?",

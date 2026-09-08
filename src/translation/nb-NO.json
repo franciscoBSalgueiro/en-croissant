@@ -292,6 +292,7 @@
     "Engines.Add.Name": "Navn",
     "Engines.Add.Name.Autodetect": "Automatisk",
     "Engines.Add.Title": "Legg til computer",
+    "Engines.Add.UseStockfish": "",
     "Engines.Empty.AddHint": "",
     "Engines.Empty.NoInstalled": "",
     "Engines.Remove.Message": "Er du sikker på at du vil fjerne denne computeren fra En Croissant?",

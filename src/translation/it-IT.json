@@ -294,6 +294,7 @@
     "Engines.Add.Name": "Nome",
     "Engines.Add.Name.Autodetect": "Rilevamento automatico",
     "Engines.Add.Title": "Aggiungi motore",
+    "Engines.Add.UseStockfish": "",
     "Engines.Empty.AddHint": "Aggiungi un motore per iniziare",
     "Engines.Empty.NoInstalled": "Nessun motore installato",
     "Engines.Remove.Message": "Sei sicuro di voler rimuovere questo motore da En Croissant?",
