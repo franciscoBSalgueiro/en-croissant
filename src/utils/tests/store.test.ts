@@ -380,6 +380,51 @@ test("should handle setScore", () => {
     });
 });
 
+test("should handle setScoreAtPath", () => {
+    store.setState(treeE4D5());
+    store.getState().setScoreAtPath([0], {
+        value: {
+            type: "cp",
+            value: 42,
+        },
+        wdl: null,
+    });
+
+    expect(getNewState()).toStrictEqual({
+        ...treeE4D5(),
+        dirty: true,
+        position: [0, 0],
+        root: {
+            ...treeE4D5().root,
+            children: [
+                {
+                    ...treeE4D5().root.children[0],
+                    score: {
+                        value: {
+                            type: "cp",
+                            value: 42,
+                        },
+                        wdl: null,
+                    },
+                },
+            ],
+        },
+    });
+});
+
+test("should ignore invalid setScoreAtPath", () => {
+    store.setState(treeE4D5());
+    store.getState().setScoreAtPath([1], {
+        value: {
+            type: "cp",
+            value: 42,
+        },
+        wdl: null,
+    });
+
+    expect(getNewState()).toStrictEqual(treeE4D5());
+});
+
 test("should handle setShapes", () => {
     store.setState({ ...treeE4D5(), position: [0] });
     store.getState().setShapes([
