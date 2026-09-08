@@ -34,6 +34,7 @@ function PuzzleBoard({
   const position = useStore(store, (s) => s.position);
   const moveHighlight = useAtomValue(moveHighlightAtom);
   const boardShapes = useStore(store, (s) => s.currentNode().shapes);
+  const setShapes = useStore(store, (s) => s.setShapes);
   const makeMove = useStore(store, (s) => s.makeMove);
   const makeMoves = useStore(store, (s) => s.makeMoves);
   const reset = useForceUpdate();
@@ -146,6 +147,9 @@ function PuzzleBoard({
             enabled: true,
             visible: true,
             autoShapes: boardShapes,
+            onChange: (shapes) => {
+              setShapes(shapes);
+            },
           }}
           movable={{
             free: false,
