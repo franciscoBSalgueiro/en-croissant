@@ -1,3 +1,4 @@
+use crate::ctx::{AppCtx, AppStateRef};
 use std::{
     fs::create_dir_all,
     io::Cursor,
@@ -16,16 +17,16 @@ use futures_util::StreamExt;
 
 use crate::error::Error;
 use crate::progress::update_progress;
-use crate::AppState;
 
-#[tauri::command]
-#[specta::specta]
+#[cfg(feature = "tauri")]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn download_file(
     id: String,
     url: String,
     path: PathBuf,
-    app: tauri::AppHandle,
-    state: tauri::State<'_, AppState>,
+    app: AppCtx,
+    state: AppStateRef<'_>,
     token: Option<String>,
     finalize: Option<bool>,
     total_size: Option<u32>,
@@ -144,8 +145,9 @@ pub async fn unzip_file(path: &Path, file: Vec<u8>) -> Result<(), Error> {
     Ok(())
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg(feature = "tauri")]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn set_file_as_executable(_path: String) -> Result<(), Error> {
     #[cfg(unix)]
     {
@@ -158,8 +160,8 @@ pub async fn set_file_as_executable(_path: String) -> Result<(), Error> {
     Ok(())
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn file_exists(path: String) -> Result<bool, Error> {
     Ok(Path::new(&path).exists())
 }
@@ -169,8 +171,8 @@ pub struct FileMetadata {
     pub last_modified: u32,
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn get_file_metadata(path: String) -> Result<FileMetadata, Error> {
     let metadata = std::fs::metadata(path)?;
     let last_modified = metadata

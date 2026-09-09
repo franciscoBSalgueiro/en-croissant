@@ -1,3 +1,4 @@
+use crate::ctx::{AppCtx, AppStateRef};
 use dashmap::DashMap;
 use diesel::prelude::*;
 use log::info;
@@ -17,6 +18,7 @@ use std::{
     },
     time::Instant,
 };
+#[cfg(feature = "tauri")]
 use tauri::Emitter;
 
 use crate::{
@@ -30,7 +32,6 @@ use crate::{
         ConnectionOptions, MaterialCount,
     },
     error::Error,
-    AppState,
 };
 
 use super::GameQuery;
@@ -232,14 +233,14 @@ pub struct ProgressPayload {
     pub finished: bool,
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn search_position(
     file: PathBuf,
     query: GameQuery,
-    app: tauri::AppHandle,
+    app: AppCtx,
     tab_id: String,
-    state: tauri::State<'_, AppState>,
+    state: AppStateRef<'_>,
 ) -> Result<(Vec<PositionStats>, Vec<NormalizedGame>), Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
@@ -464,7 +465,7 @@ pub async fn search_position(
 pub async fn is_position_in_db(
     file: PathBuf,
     query: GameQuery,
-    state: tauri::State<'_, AppState>,
+    state: AppStateRef<'_>,
 ) -> Result<bool, Error> {
     let collision_lock = {
         let entry = state

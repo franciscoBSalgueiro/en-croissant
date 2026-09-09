@@ -63,8 +63,8 @@ impl Visitor for Lexer {
     }
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn lex_pgn(pgn: String) -> Result<Vec<Token>, Error> {
     let mut reader = BufferedReader::new(pgn.as_bytes());
 

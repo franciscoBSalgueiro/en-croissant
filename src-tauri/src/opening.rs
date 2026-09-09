@@ -45,15 +45,15 @@ struct FischerRandomRecord {
     fen: String,
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub fn get_opening_from_fen(fen: &str) -> Result<String, Error> {
     let fen: Fen = fen.parse()?;
     get_opening_from_setup(fen.into_setup())
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub fn get_opening_from_name(name: &str) -> Result<String, Error> {
     OPENINGS
         .iter()
@@ -62,8 +62,8 @@ pub fn get_opening_from_name(name: &str) -> Result<String, Error> {
         .ok_or_else(|| Error::NoOpeningFound)
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub fn get_opening_from_fens(fens: Vec<String>) -> Result<String, Error> {
     for fen in fens.into_iter().rev() {
         if let Ok(opening) = get_opening_from_fen(&fen) {
@@ -81,8 +81,8 @@ pub fn get_opening_from_setup(setup: Setup) -> Result<String, Error> {
         .ok_or_else(|| Error::NoOpeningFound)
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn search_opening_name(query: String) -> Result<Vec<OutOpening>, Error> {
     let lower_query = query.to_lowercase();
     let scores = OPENINGS

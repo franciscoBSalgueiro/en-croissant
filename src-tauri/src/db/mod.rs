@@ -5,6 +5,7 @@ mod schema;
 pub mod search;
 mod search_index;
 
+use crate::ctx::{AppCtx, AppStateRef};
 use crate::{
     db::{
         encoding::{decode_game_to_movetext, decode_move, iter_mainline_move_bytes},
@@ -14,7 +15,6 @@ use crate::{
     },
     error::Error,
     opening::get_opening_from_setup,
-    AppState,
 };
 use chrono::{NaiveDate, NaiveTime};
 use dashmap::DashMap;
@@ -44,9 +44,13 @@ use std::{
     io::{BufWriter, Write},
     str::FromStr,
 };
-use tauri::{Emitter, State};
+#[cfg(feature = "tauri")]
+use tauri::Emitter;
 
+#[cfg(feature = "server")]
+use crate::ctx::WebEvent as _;
 use log::info;
+#[cfg(feature = "tauri")]
 use tauri_specta::Event as _;
 
 use self::encoding::{
@@ -146,7 +150,7 @@ impl diesel::r2d2::CustomizeConnection<SqliteConnection, diesel::r2d2::Error>
 }
 
 fn get_db_or_create(
-    state: &State<AppState>,
+    state: &AppStateRef<'_>,
     db_path: &str,
     options: ConnectionOptions,
 ) -> Result<
@@ -497,16 +501,16 @@ impl Visitor for Importer {
     }
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn convert_pgn(
     files: Vec<PathBuf>,
     db_path: PathBuf,
     timestamp: Option<i32>,
-    app: tauri::AppHandle,
+    app: AppCtx,
     title: String,
     description: Option<String>,
-    state: tauri::State<'_, AppState>,
+    state: AppStateRef<'_>,
 ) -> Result<(), Error> {
     if files.is_empty() {
         return Ok(());
@@ -614,10 +618,7 @@ pub async fn convert_pgn(
     Ok(())
 }
 
-pub fn generate_search_index(
-    db_path: &Path,
-    state: &tauri::State<'_, AppState>,
-) -> Result<(), Error> {
+pub fn generate_search_index(db_path: &Path, state: &AppStateRef<'_>) -> Result<(), Error> {
     let db = &mut get_db_or_create(
         state,
         db_path.to_str().unwrap(),
@@ -720,12 +721,9 @@ fn check_index_exists(conn: &mut SqliteConnection) -> Result<bool, Error> {
     Ok(!indexes.is_empty())
 }
 
-#[tauri::command]
-#[specta::specta]
-pub async fn get_db_info(
-    file: PathBuf,
-    state: tauri::State<'_, AppState>,
-) -> Result<DatabaseInfo, Error> {
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
+pub async fn get_db_info(file: PathBuf, state: AppStateRef<'_>) -> Result<DatabaseInfo, Error> {
     info!("get_db_info {:?}", file);
 
     let path = file;
@@ -769,9 +767,9 @@ pub async fn get_db_info(
     })
 }
 
-#[tauri::command]
-#[specta::specta]
-pub async fn create_indexes(file: PathBuf, state: tauri::State<'_, AppState>) -> Result<(), Error> {
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
+pub async fn create_indexes(file: PathBuf, state: AppStateRef<'_>) -> Result<(), Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     db.batch_execute(INDEXES_SQL)?;
@@ -779,9 +777,9 @@ pub async fn create_indexes(file: PathBuf, state: tauri::State<'_, AppState>) ->
     Ok(())
 }
 
-#[tauri::command]
-#[specta::specta]
-pub async fn delete_indexes(file: PathBuf, state: tauri::State<'_, AppState>) -> Result<(), Error> {
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
+pub async fn delete_indexes(file: PathBuf, state: AppStateRef<'_>) -> Result<(), Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     db.batch_execute(DELETE_INDEXES_SQL)?;
@@ -789,13 +787,13 @@ pub async fn delete_indexes(file: PathBuf, state: tauri::State<'_, AppState>) ->
     Ok(())
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn edit_db_info(
     file: PathBuf,
     title: Option<String>,
     description: Option<String>,
-    state: tauri::State<'_, AppState>,
+    state: AppStateRef<'_>,
 ) -> Result<(), Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
@@ -910,12 +908,12 @@ pub struct QueryResponse<T> {
     pub count: Option<i32>,
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn get_games(
     file: PathBuf,
     query: GameQuery,
-    state: tauri::State<'_, AppState>,
+    state: AppStateRef<'_>,
 ) -> Result<QueryResponse<Vec<NormalizedGame>>, Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
@@ -1179,12 +1177,12 @@ pub enum PlayerSort {
     Elo,
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn get_player(
     file: PathBuf,
     id: i32,
-    state: tauri::State<'_, AppState>,
+    state: AppStateRef<'_>,
 ) -> Result<Option<Player>, Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let player = players::table
@@ -1194,12 +1192,12 @@ pub async fn get_player(
     Ok(player)
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn get_players(
     file: PathBuf,
     query: PlayerQuery,
-    state: tauri::State<'_, AppState>,
+    state: AppStateRef<'_>,
 ) -> Result<QueryResponse<Vec<Player>>, Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let mut count: Option<i64> = None;
@@ -1268,12 +1266,12 @@ pub struct TournamentQuery {
     pub name: Option<String>,
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn get_tournaments(
     file: PathBuf,
     query: TournamentQuery,
-    state: tauri::State<'_, AppState>,
+    state: AppStateRef<'_>,
 ) -> Result<QueryResponse<Vec<Event>>, Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let mut count: Option<i64> = None;
@@ -1369,19 +1367,21 @@ pub struct StatsData {
     pub opening: String,
 }
 
-#[derive(Serialize, Debug, Clone, Type, tauri_specta::Event)]
+#[derive(Serialize, Debug, Clone, Type)]
+#[cfg_attr(feature = "tauri", derive(tauri_specta::Event))]
 pub struct DatabaseProgress {
     pub id: String,
     pub progress: f64,
 }
+crate::web_event!(DatabaseProgress, "database-progress");
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn get_players_game_info(
     file: PathBuf,
     id: i32,
-    state: tauri::State<'_, AppState>,
-    app: tauri::AppHandle,
+    state: AppStateRef<'_>,
+    app: AppCtx,
 ) -> Result<PlayerGameInfo, Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
     let timer = Instant::now();
@@ -1528,12 +1528,9 @@ pub async fn get_players_game_info(
     Ok(game_info)
 }
 
-#[tauri::command]
-#[specta::specta]
-pub async fn delete_database(
-    file: PathBuf,
-    state: tauri::State<'_, AppState>,
-) -> Result<(), Error> {
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
+pub async fn delete_database(file: PathBuf, state: AppStateRef<'_>) -> Result<(), Error> {
     let pool = &state.connection_pool;
     let path_str = file.to_str().unwrap();
     pool.remove(path_str);
@@ -1571,12 +1568,9 @@ fn delete_orphaned_data(db: &mut SqliteConnection) -> Result<(), Error> {
     Ok(())
 }
 
-#[tauri::command]
-#[specta::specta]
-pub async fn delete_duplicated_games(
-    file: PathBuf,
-    state: tauri::State<'_, AppState>,
-) -> Result<(), Error> {
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
+pub async fn delete_duplicated_games(file: PathBuf, state: AppStateRef<'_>) -> Result<(), Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     db.batch_execute(
@@ -1601,12 +1595,9 @@ pub async fn delete_duplicated_games(
     Ok(())
 }
 
-#[tauri::command]
-#[specta::specta]
-pub async fn delete_empty_games(
-    file: PathBuf,
-    state: tauri::State<'_, AppState>,
-) -> Result<(), Error> {
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
+pub async fn delete_empty_games(file: PathBuf, state: AppStateRef<'_>) -> Result<(), Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
     diesel::delete(games::table.filter(games::ply_count.eq(0))).execute(db)?;
@@ -1708,12 +1699,12 @@ impl PgnGame {
     }
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn export_to_pgn(
     file: PathBuf,
     dest_file: PathBuf,
-    state: tauri::State<'_, AppState>,
+    state: AppStateRef<'_>,
 ) -> Result<(), Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
@@ -1767,12 +1758,12 @@ pub async fn export_to_pgn(
     Ok(())
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn delete_db_game(
     file: PathBuf,
     game_id: i32,
-    state: tauri::State<'_, AppState>,
+    state: AppStateRef<'_>,
 ) -> Result<(), Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
@@ -1785,13 +1776,13 @@ pub async fn delete_db_game(
     Ok(())
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn write_db_game(
     file: PathBuf,
     game_id: i32,
     pgn: String,
-    state: tauri::State<'_, AppState>,
+    state: AppStateRef<'_>,
 ) -> Result<(), Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
@@ -1859,13 +1850,13 @@ pub async fn write_db_game(
     Ok(())
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn merge_players(
     file: PathBuf,
     player1: i32,
     player2: i32,
-    state: tauri::State<'_, AppState>,
+    state: AppStateRef<'_>,
 ) -> Result<(), Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
@@ -1896,19 +1887,16 @@ pub async fn merge_players(
     Ok(())
 }
 
-#[tauri::command]
-#[specta::specta]
-pub fn clear_games(state: tauri::State<'_, AppState>) {
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
+pub fn clear_games(state: AppStateRef<'_>) {
     let mut state = state.db_cache.lock().unwrap();
     *state = None;
 }
 
-#[tauri::command]
-#[specta::specta]
-pub async fn preload_reference_db(
-    file: PathBuf,
-    state: tauri::State<'_, AppState>,
-) -> Result<(), Error> {
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
+pub async fn preload_reference_db(file: PathBuf, state: AppStateRef<'_>) -> Result<(), Error> {
     let index_path = get_index_path(&file);
 
     if !MmapSearchIndex::is_valid(&index_path) {

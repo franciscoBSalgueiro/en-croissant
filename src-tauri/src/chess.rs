@@ -1,3 +1,4 @@
+use crate::ctx::{AppCtx, AppStateRef};
 use std::{
     fmt::Display,
     path::PathBuf,
@@ -8,6 +9,8 @@ use std::{
     time::Instant,
 };
 
+#[cfg(feature = "server")]
+use crate::ctx::WebEvent as _;
 use derivative::Derivative;
 use governor::{Quota, RateLimiter};
 use log::{info, warn};
@@ -18,6 +21,7 @@ use shakmaty::{
     Position, Role,
 };
 use specta::Type;
+#[cfg(feature = "tauri")]
 use tauri_specta::Event;
 use tokio::sync::Mutex;
 use vampirc_uci::{
@@ -33,7 +37,6 @@ use crate::{
     },
     error::Error,
     progress::update_progress,
-    AppState,
 };
 
 pub struct EngineProcess {
@@ -166,7 +169,8 @@ pub struct BestMoves {
     nps: u32,
 }
 
-#[derive(Serialize, Debug, Clone, Type, Event)]
+#[derive(Serialize, Debug, Clone, Type)]
+#[cfg_attr(feature = "tauri", derive(tauri_specta::Event))]
 #[serde(rename_all = "camelCase")]
 pub struct BestMovesPayload {
     pub best_lines: Vec<BestMoves>,
@@ -176,6 +180,7 @@ pub struct BestMovesPayload {
     pub moves: Vec<String>,
     pub progress: f64,
 }
+crate::web_event!(BestMovesPayload, "best-moves-payload");
 
 fn invert_score(score: Score) -> Score {
     let new_value = match score.value {
@@ -250,9 +255,9 @@ pub struct EngineOptions {
     pub extra_options: Vec<EngineOption>,
 }
 
-#[tauri::command]
-#[specta::specta]
-pub async fn kill_engines(tab: String, state: tauri::State<'_, AppState>) -> Result<(), Error> {
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
+pub async fn kill_engines(tab: String, state: AppStateRef<'_>) -> Result<(), Error> {
     let keys: Vec<_> = state
         .engine_processes
         .iter()
@@ -271,13 +276,9 @@ pub async fn kill_engines(tab: String, state: tauri::State<'_, AppState>) -> Res
     Ok(())
 }
 
-#[tauri::command]
-#[specta::specta]
-pub async fn kill_engine(
-    engine: String,
-    tab: String,
-    state: tauri::State<'_, AppState>,
-) -> Result<(), Error> {
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
+pub async fn kill_engine(engine: String, tab: String, state: AppStateRef<'_>) -> Result<(), Error> {
     let key = (tab, engine);
     if let Some(process) = state.engine_processes.get(&key) {
         let mut process = process.lock().await;
@@ -285,13 +286,9 @@ pub async fn kill_engine(
     }
     Ok(())
 }
-#[tauri::command]
-#[specta::specta]
-pub async fn stop_engine(
-    engine: String,
-    tab: String,
-    state: tauri::State<'_, AppState>,
-) -> Result<(), Error> {
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
+pub async fn stop_engine(engine: String, tab: String, state: AppStateRef<'_>) -> Result<(), Error> {
     let key = (tab, engine);
     if let Some(process) = state.engine_processes.get(&key) {
         let mut process = process.lock().await;
@@ -300,12 +297,12 @@ pub async fn stop_engine(
     Ok(())
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn get_engine_logs(
     engine: String,
     tab: String,
-    state: tauri::State<'_, AppState>,
+    state: AppStateRef<'_>,
 ) -> Result<Vec<EngineLog>, Error> {
     let key = (tab, engine);
     if let Some(process) = state.engine_processes.get(&key) {
@@ -316,16 +313,16 @@ pub async fn get_engine_logs(
     }
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn get_best_moves(
     id: String,
     engine: String,
     tab: String,
     go_mode: GoMode,
     options: EngineOptions,
-    app: tauri::AppHandle,
-    state: tauri::State<'_, AppState>,
+    app: AppCtx,
+    state: AppStateRef<'_>,
 ) -> Result<Option<(f32, Vec<BestMoves>)>, Error> {
     let path = PathBuf::from(&engine);
 
@@ -462,25 +459,25 @@ pub struct AnalysisOptions {
     pub reversed: bool,
 }
 
-#[tauri::command]
-#[specta::specta]
-pub async fn cancel_analysis(id: String, state: tauri::State<'_, AppState>) -> Result<(), Error> {
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
+pub async fn cancel_analysis(id: String, state: AppStateRef<'_>) -> Result<(), Error> {
     if let Some(flag) = state.analysis_cancel_flags.get(&id) {
         flag.store(true, Ordering::SeqCst);
     }
     Ok(())
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn analyze_game(
     id: String,
     engine: String,
     go_mode: GoMode,
     options: AnalysisOptions,
     uci_options: Vec<EngineOption>,
-    state: tauri::State<'_, AppState>,
-    app: tauri::AppHandle,
+    state: AppStateRef<'_>,
+    app: AppCtx,
 ) -> Result<Vec<MoveAnalysis>, Error> {
     let cancel_flag = Arc::new(AtomicBool::new(false));
     state
@@ -778,8 +775,8 @@ pub struct EngineConfig {
     pub options: Vec<UciOptionConfig>,
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn get_engine_config(path: PathBuf) -> Result<EngineConfig, Error> {
     let mut base = BaseEngine::spawn(path).await?;
 

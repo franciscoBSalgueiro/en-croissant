@@ -1,3 +1,4 @@
+use crate::ctx::{AppCtx, AppStateRef};
 use std::{
     collections::HashMap,
     fs::File,
@@ -598,7 +599,7 @@ impl GameManager {
         &self,
         game_id: GameId,
         config: GameConfig,
-        app: AppHandle,
+        app: AppCtx,
     ) -> Result<GameState, Error> {
         if let Some((_, old_game)) = self.games.remove(&game_id) {
             let mut game = old_game.write().await;
@@ -1221,7 +1222,7 @@ async fn game_loop(
     controller: Arc<RwLock<GameController>>,
     mut shutdown_rx: watch::Receiver<bool>,
     mut move_notify_rx: tokio::sync::mpsc::Receiver<()>,
-    app: AppHandle,
+    app: AppCtx,
 ) {
     let mut clock_interval = interval(Duration::from_millis(100));
     let mut engine_task: Option<tokio::task::JoinHandle<Result<(), Error>>> = None;
@@ -1518,45 +1519,42 @@ async fn request_engine_move(
     Ok(())
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn start_game(
     game_id: String,
     config: GameConfig,
-    app: AppHandle,
-    state: tauri::State<'_, crate::AppState>,
+    app: AppCtx,
+    state: AppStateRef<'_>,
 ) -> Result<GameState, Error> {
     info!("Starting game with ID {}", game_id);
     state.game_manager.start_game(game_id, config, app).await
 }
 
-#[tauri::command]
-#[specta::specta]
-pub async fn get_game_state(
-    game_id: String,
-    state: tauri::State<'_, crate::AppState>,
-) -> Result<GameState, Error> {
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
+pub async fn get_game_state(game_id: String, state: AppStateRef<'_>) -> Result<GameState, Error> {
     state.game_manager.get_game_state(&game_id).await
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn make_game_move(
     game_id: String,
     uci: String,
-    app: AppHandle,
-    state: tauri::State<'_, crate::AppState>,
+    app: AppCtx,
+    state: AppStateRef<'_>,
 ) -> Result<GameState, Error> {
     state.game_manager.make_move(&game_id, &uci, &app).await
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn take_back_game_move(
     game_id: String,
     ply: Option<u32>,
-    app: AppHandle,
-    state: tauri::State<'_, crate::AppState>,
+    app: AppCtx,
+    state: AppStateRef<'_>,
 ) -> Result<GameState, Error> {
     state
         .game_manager
@@ -1564,32 +1562,29 @@ pub async fn take_back_game_move(
         .await
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn resign_game(
     game_id: String,
     color: String,
-    app: AppHandle,
-    state: tauri::State<'_, crate::AppState>,
+    app: AppCtx,
+    state: AppStateRef<'_>,
 ) -> Result<GameState, Error> {
     state.game_manager.resign(&game_id, &color, &app).await
 }
 
-#[tauri::command]
-#[specta::specta]
-pub async fn abort_game(
-    game_id: String,
-    state: tauri::State<'_, crate::AppState>,
-) -> Result<(), Error> {
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
+pub async fn abort_game(game_id: String, state: AppStateRef<'_>) -> Result<(), Error> {
     state.game_manager.abort_game(&game_id).await
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn get_game_engine_logs(
     game_id: String,
     color: String,
-    state: tauri::State<'_, crate::AppState>,
+    state: AppStateRef<'_>,
 ) -> Result<Vec<EngineLog>, Error> {
     state.game_manager.get_engine_logs(&game_id, &color).await
 }

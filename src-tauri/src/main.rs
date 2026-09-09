@@ -17,8 +17,8 @@ use sysinfo::SystemExt;
 use tauri::{Emitter, Manager, Window};
 use tauri_plugin_log::{Target, TargetKind};
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 async fn close_splashscreen(window: Window) -> Result<(), String> {
     window
         .get_webview_window("main")
@@ -210,8 +210,8 @@ fn main() {
         });
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 fn is_bmi2_compatible() -> bool {
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     if is_x86_feature_detected!("bmi2") {
@@ -220,8 +220,8 @@ fn is_bmi2_compatible() -> bool {
     false
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 fn memory_size() -> u32 {
     let total_bytes = sysinfo::System::new_all().total_memory();
     (total_bytes / 1024 / 1024) as u32

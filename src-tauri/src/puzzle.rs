@@ -86,8 +86,8 @@ impl PuzzleCache {
     }
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub fn get_puzzle(
     file: String,
     min_rating: u16,
@@ -111,8 +111,8 @@ pub struct PuzzleDatabaseInfo {
     path: String,
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn get_puzzle_db_info(file: PathBuf) -> Result<PuzzleDatabaseInfo, Error> {
     let path = file;
 
@@ -133,15 +133,15 @@ pub async fn get_puzzle_db_info(file: PathBuf) -> Result<PuzzleDatabaseInfo, Err
     })
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub fn delete_puzzle_database(file: String) -> Result<(), Error> {
     remove_file(&file)?;
     Ok(())
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub fn get_puzzle_themes(file: String) -> Result<Vec<String>, Error> {
     let mut db = diesel::SqliteConnection::establish(&file).expect("open database");
     let result: Vec<String> = themes::table
@@ -151,8 +151,8 @@ pub fn get_puzzle_themes(file: String) -> Result<Vec<String>, Error> {
     Ok(result)
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub fn get_themes_for_puzzle(file: String, puzzle_id: i32) -> Result<Vec<String>, Error> {
     let mut db = diesel::SqliteConnection::establish(&file).expect("open database");
     let result: Vec<String> = themes::table

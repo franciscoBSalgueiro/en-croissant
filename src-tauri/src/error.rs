@@ -12,11 +12,16 @@ pub enum Error {
     #[error(transparent)]
     ParseInt(Box<std::num::ParseIntError>),
 
+    #[cfg(feature = "tauri")]
     #[error(transparent)]
     Tauri(Box<tauri::Error>),
 
+    #[cfg(feature = "tauri")]
     #[error(transparent)]
     TauriOpener(Box<tauri_plugin_opener::Error>),
+
+    #[error(transparent)]
+    SerdeJson(Box<serde_json::Error>),
 
     #[error(transparent)]
     Reqwest(Box<reqwest::Error>),
@@ -112,15 +117,23 @@ impl From<std::num::ParseIntError> for Error {
     }
 }
 
+#[cfg(feature = "tauri")]
 impl From<tauri::Error> for Error {
     fn from(value: tauri::Error) -> Self {
         Self::Tauri(Box::new(value))
     }
 }
 
+#[cfg(feature = "tauri")]
 impl From<tauri_plugin_opener::Error> for Error {
     fn from(value: tauri_plugin_opener::Error) -> Self {
         Self::TauriOpener(Box::new(value))
+    }
+}
+
+impl From<serde_json::Error> for Error {
+    fn from(value: serde_json::Error) -> Self {
+        Self::SerdeJson(Box::new(value))
     }
 }
 

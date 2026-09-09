@@ -1,3 +1,4 @@
+use crate::ctx::{AppCtx, AppStateRef};
 use axum::{extract::Query, response::IntoResponse, routing::get, Extension, Router};
 use log::info;
 use oauth2::{
@@ -56,12 +57,12 @@ impl Default for AuthState {
     }
 }
 
-#[tauri::command]
-#[specta::specta]
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
 pub async fn authenticate(
     username: String,
-    state: tauri::State<'_, AppState>,
-    app: tauri::AppHandle,
+    state: AppStateRef<'_>,
+    app: AppCtx,
 ) -> Result<(), Error> {
     info!("Authenticating user {}", username);
     let (auth_url, _) = state

@@ -1,6 +1,10 @@
+#[cfg(feature = "server")]
+use crate::ctx::WebEvent as _;
+use crate::ctx::{AppCtx, AppStateRef};
 use dashmap::DashMap;
 use serde::Serialize;
 use specta::Type;
+#[cfg(feature = "tauri")]
 use tauri_specta::Event;
 
 use crate::error::Error;
@@ -12,18 +16,20 @@ pub struct ProgressItem {
     pub finished: bool,
 }
 
-#[derive(Clone, Debug, Serialize, Type, Event)]
+#[derive(Clone, Debug, Serialize, Type)]
+#[cfg_attr(feature = "tauri", derive(tauri_specta::Event))]
 pub struct ProgressEvent {
     pub id: String,
     pub progress: f32,
     pub finished: bool,
 }
+crate::web_event!(ProgressEvent, "progress-event");
 
 pub type ProgressStore = DashMap<String, ProgressItem>;
 
 pub fn update_progress(
     store: &ProgressStore,
-    app: &tauri::AppHandle,
+    app: &AppCtx,
     id: String,
     progress: f32,
     finished: bool,
@@ -46,14 +52,14 @@ pub fn update_progress(
     Ok(())
 }
 
-#[tauri::command]
-#[specta::specta]
-pub fn get_progress(id: String, state: tauri::State<'_, crate::AppState>) -> Option<ProgressItem> {
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
+pub fn get_progress(id: String, state: AppStateRef<'_>) -> Option<ProgressItem> {
     state.progress_state.get(&id).map(|v| v.clone())
 }
 
-#[tauri::command]
-#[specta::specta]
-pub fn clear_progress(id: String, state: tauri::State<'_, crate::AppState>) {
+#[cfg_attr(feature = "tauri", tauri::command)]
+#[cfg_attr(feature = "tauri", specta::specta)]
+pub fn clear_progress(id: String, state: AppStateRef<'_>) {
     state.progress_state.remove(&id);
 }
