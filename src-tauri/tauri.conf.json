@@ -43,7 +43,10 @@
     "beforeDevCommand": "pnpm start-vite",
     "beforeBuildCommand": "pnpm build-vite",
     "frontendDist": "../dist",
-    "devUrl": "http://localhost:1420"
+    "devUrl": "http://localhost:1420",
+    "features": [
+      "tauri"
+    ]
   },
   "productName": "en-croissant",
   "mainBinaryName": "en-croissant",

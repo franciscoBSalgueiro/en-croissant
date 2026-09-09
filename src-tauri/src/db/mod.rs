@@ -2,7 +2,7 @@ mod encoding;
 mod models;
 mod ops;
 mod schema;
-mod search;
+pub mod search;
 mod search_index;
 
 use crate::{
