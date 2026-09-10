@@ -2,13 +2,19 @@ import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import { ActionIcon, ScrollArea, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { type ReactNode, startTransition, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Mosaic, type MosaicNode } from "react-mosaic-component";
 import { match } from "ts-pattern";
 import { commands } from "@/bindings";
-import { activeTabAtom, tabsAtom } from "@/state/atoms";
+import {
+  activeTabAtom,
+  autoStartAnalysisEnginesAtom,
+  enableAllAtom,
+  enginesAtom,
+  tabsAtom,
+} from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { createTab, genID, isPersistentGameOrigin, type Tab } from "@/utils/tabs";
 import { unwrap } from "@/utils/unwrap";
@@ -288,6 +294,23 @@ const windowsStateAtom = atomWithStorage<WindowsState>("windowsState", {
   },
 });
 
+function AutoStartAnalysisEngines() {
+  const autoStartAnalysisEngines = useAtomValue(autoStartAnalysisEnginesAtom);
+  const engines = useAtomValue(enginesAtom);
+  const enableAll = useSetAtom(enableAllAtom);
+  const loadedEngineCount = (engines ?? []).filter((engine) => engine.loaded).length;
+
+  useEffect(() => {
+    if (!autoStartAnalysisEngines || loadedEngineCount === 0) {
+      return;
+    }
+
+    enableAll(true);
+  }, [autoStartAnalysisEngines, loadedEngineCount, enableAll]);
+
+  return null;
+}
+
 function TabSwitch({
   tab,
   saveModalOpened,
@@ -324,6 +347,7 @@ function TabSwitch({
           onChange={(currentNode) => setWindowsState({ currentNode })}
           resize={{ minimumPaneSizePercentage: 0 }}
         />
+        <AutoStartAnalysisEngines />
         <BoardAnalysis />
         <ConfirmChangesModal
           opened={saveModalOpened}
