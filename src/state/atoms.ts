@@ -15,6 +15,7 @@ import type {
 import type { ReviewLog } from "ts-fsrs";
 import { z } from "zod";
 import type { BestMoves, GoMode } from "@/bindings";
+import { puzzleSchema, type Puzzle } from "@/utils/puzzles";
 import { DEFAULT_TIME_CONTROL, type OpponentSettings } from "@/components/boards/OpponentForm";
 import { type Position, positionSchema } from "@/components/files/opening";
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
@@ -344,6 +345,21 @@ export const coverageMinGamesAtom = atomWithStorage<number>("coverage-min-games"
 
 export const puzzleTimerFamily = atomFamily((_tab: string) => atom<number | null>(null));
 export const currentPuzzleTimerAtom = tabValue(puzzleTimerFamily);
+
+// Persistent puzzle session (survives app restarts)
+export const puzzleSessionListAtom = atomWithStorage<Puzzle[]>(
+    "puzzle-session-list",
+    [],
+    createZodStorage(z.array(puzzleSchema), localStorage),
+    { getOnInit: true },
+);
+
+export const puzzleSessionIndexAtom = atomWithStorage<number>(
+    "puzzle-session-index",
+    0,
+    undefined,
+    { getOnInit: true },
+);
 
 // CP / WDL
 
