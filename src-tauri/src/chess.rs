@@ -341,17 +341,20 @@ pub async fn get_best_moves(
                     process.last_best_moves.clone(),
                 )));
             }
-            process.stop().await?;
+            // the engine may already be dead (killed/crashed); ignore stop errors and
+            // let the existence check below respawn a fresh process
+            let _ = process.stop().await;
         }
         // give time for engine to stop and process previous lines
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-        {
-            let process = state.engine_processes.get_mut(&key).unwrap();
+        // the reader task removes the entry when the process exits; if that happened
+        // during the stop window, fall through and spawn a fresh engine instead of panicking
+        if let Some(process) = state.engine_processes.get_mut(&key) {
             let mut process = process.lock().await;
             process.set_options(options.clone()).await?;
             process.go(&go_mode).await?;
+            return Ok(None);
         }
-        return Ok(None);
     }
 
     let (mut process, mut reader) = EngineProcess::new(path).await?;
