@@ -59,3 +59,16 @@ export async function getPuzzlesDir(): Promise<string> {
 
     return ensureDirectory(await resolve(await appDataDir(), "puzzles"));
 }
+
+/**
+ * Directory holding user piece sets. It lives inside the user visible document
+ * directory so piece sets can also be dropped in there by hand.
+ */
+export async function getPiecesDir(): Promise<string> {
+    const customDir = getStoredDirectory("pieces-dir");
+    if (customDir) {
+        return ensureDirectory(customDir);
+    }
+
+    return ensureDirectory(await resolve(await getDocumentDir(), "pieces"));
+}

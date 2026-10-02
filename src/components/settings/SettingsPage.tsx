@@ -28,7 +28,7 @@ import {
 } from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
 import { open } from "@tauri-apps/plugin-dialog";
-import { useAtom } from "jotai";
+import { getDefaultStore, useAtom } from "jotai";
 import { RESET } from "jotai/utils";
 import posthog from "posthog-js";
 import { useMemo, useRef, useState } from "react";
@@ -36,6 +36,7 @@ import { useTranslation } from "react-i18next";
 import {
   autoPromoteAtom,
   autoSaveAtom,
+  customPieceSetsRevisionAtom,
   enableBoardScrollAtom,
   eraseDrawablesOnClickAtom,
   forcedEnPassantAtom,
@@ -45,6 +46,7 @@ import {
   moveMethodAtom,
   moveNotationTypeAtom,
   nativeBarAtom,
+  pieceSetAtom,
   practiceAutoDifficultyAtom,
   previewBoardOnHoverAtom,
   flipBoardAfterMoveAtom,
@@ -58,10 +60,13 @@ import {
   storedDatabasesDirAtom,
   storedDocumentDirAtom,
   storedEnginesDirAtom,
+  storedPiecesDirAtom,
   storedPuzzlesDirAtom,
   telemetryEnabledAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
+import { invalidateCustomPieceSets, listCustomPieceSets } from "@/utils/customPieceSets";
+import { DEFAULT_PIECE_SET, isCustomPieceSetId } from "@/utils/pieceSets";
 import FileInput from "../common/FileInput";
 import BoardSelect from "./BoardSelect";
 import ColorControl from "./ColorControl";
@@ -150,6 +155,25 @@ function TelemetrySwitch() {
   );
 }
 
+/**
+ * Piece sets are plain stylesheets inside the pieces directory, so pointing the
+ * app at another directory invalidates the cache and re-reads the theme that is
+ * currently applied. A custom piece set that does not exist in the new
+ * directory falls back to the default piece set.
+ */
+async function changePiecesDirectory(dir: string) {
+  const store = getDefaultStore();
+  store.set(storedPiecesDirAtom, dir);
+  invalidateCustomPieceSets();
+  store.set(customPieceSetsRevisionAtom, (revision) => revision + 1);
+
+  const selected = store.get(pieceSetAtom);
+  const sets = await listCustomPieceSets();
+  if (isCustomPieceSetId(selected) && !sets.some((set) => set.id === selected)) {
+    store.set(pieceSetAtom, DEFAULT_PIECE_SET);
+  }
+}
+
 export default function Page() {
   const { t, i18n } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
@@ -162,6 +186,7 @@ export default function Page() {
       documentDir,
       databasesDir: defaultDatabasesDir,
       enginesDir: defaultEnginesDir,
+      piecesDir: defaultPiecesDir,
       puzzlesDir: defaultPuzzlesDir,
     },
     version,
@@ -172,6 +197,8 @@ export default function Page() {
   databasesDirectory = databasesDirectory || defaultDatabasesDir;
   let [enginesDirectory, setEnginesDirectory] = useAtom(storedEnginesDirAtom);
   enginesDirectory = enginesDirectory || defaultEnginesDir;
+  let [piecesDirectory] = useAtom(storedPiecesDirAtom);
+  piecesDirectory = piecesDirectory || defaultPiecesDir;
   let [puzzlesDirectory, setPuzzlesDirectory] = useAtom(storedPuzzlesDirAtom);
   puzzlesDirectory = puzzlesDirectory || defaultPuzzlesDir;
 
@@ -556,6 +583,26 @@ export default function Page() {
         ),
       },
       {
+        id: "pieces-directory",
+        category: "directories",
+        title: t("Settings.Directories.Pieces"),
+        description: t("Settings.Directories.Pieces.Desc"),
+        keywords: ["pieces", "piece set", "theme", "directory", "folder", "path"],
+        render: () => (
+          <FileInput
+            onClick={async () => {
+              const selected = await open({
+                multiple: false,
+                directory: true,
+              });
+              if (!selected || typeof selected !== "string") return;
+              await changePiecesDirectory(selected);
+            }}
+            filename={piecesDirectory || null}
+          />
+        ),
+      },
+      {
         id: "databases-directory",
         category: "directories",
         title: t("Settings.Directories.Databases"),
@@ -636,6 +683,7 @@ export default function Page() {
       filesDirectory,
       databasesDirectory,
       enginesDirectory,
+      piecesDirectory,
       puzzlesDirectory,
       setMoveNotationType,
       setMoveMethod,

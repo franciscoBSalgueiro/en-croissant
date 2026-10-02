@@ -23,13 +23,13 @@ import {
   activeTabAtom,
   databaseConversionStateAtom,
   fontSizeAtom,
-  pieceSetAtom,
   primaryColorAtom,
   referenceDbAtom,
   spellCheckAtom,
   storedDatabasesDirAtom,
   storedDocumentDirAtom,
   storedEnginesDirAtom,
+  storedPiecesDirAtom,
   storedPuzzlesDirAtom,
   tabsAtom,
   telemetryEnabledAtom,
@@ -61,7 +61,14 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check } from "@tauri-apps/plugin-updater";
 import ErrorComponent from "@/components/ErrorComponent";
-import { getDatabasesDir, getDocumentDir, getEnginesDir, getPuzzlesDir } from "@/utils/directories";
+import PieceSetStyles from "@/components/common/PieceSetStyles";
+import {
+  getDatabasesDir,
+  getDocumentDir,
+  getEnginesDir,
+  getPiecesDir,
+  getPuzzlesDir,
+} from "@/utils/directories";
 import { initUserAgent } from "@/utils/http";
 import { routeTree } from "./routeTree.gen";
 
@@ -69,6 +76,7 @@ export type Dirs = {
   documentDir: string;
   databasesDir: string;
   enginesDir: string;
+  piecesDir: string;
   puzzlesDir: string;
 };
 
@@ -82,6 +90,7 @@ const router = createRouter({
       const documentDir = await getDocumentDir();
       const databasesDir = await getDatabasesDir();
       const enginesDir = await getEnginesDir();
+      const piecesDir = await getPiecesDir();
       const puzzlesDir = await getPuzzlesDir();
 
       if (!store.get(storedDocumentDirAtom)) {
@@ -96,6 +105,10 @@ const router = createRouter({
         store.set(storedEnginesDirAtom, enginesDir);
       }
 
+      if (!store.get(storedPiecesDirAtom)) {
+        store.set(storedPiecesDirAtom, piecesDir);
+      }
+
       if (!store.get(storedPuzzlesDirAtom)) {
         store.set(storedPuzzlesDirAtom, puzzlesDir);
       }
@@ -104,6 +117,7 @@ const router = createRouter({
         documentDir,
         databasesDir,
         enginesDir,
+        piecesDir,
         puzzlesDir,
       } as Dirs;
     },
@@ -206,7 +220,6 @@ function useAppStartup() {
 
 export default function App() {
   const primaryColor = useAtomValue(primaryColorAtom);
-  const pieceSet = useAtomValue(pieceSetAtom);
   const fontSize = useAtomValue(fontSizeAtom);
   const spellCheck = useAtomValue(spellCheckAtom);
   const setDatabaseConversionState = useSetAtom(databaseConversionStateAtom);
@@ -275,8 +288,6 @@ export default function App() {
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <link rel="stylesheet" href={`/pieces/${pieceSet}.css`} />
-
       <MantineProvider
         colorSchemeManager={colorSchemeManager}
         defaultColorScheme="dark"
@@ -284,6 +295,7 @@ export default function App() {
       >
         <ContextMenuProvider>
           <Notifications />
+          <PieceSetStyles />
           <RouterProvider router={router} />
         </ContextMenuProvider>
       </MantineProvider>
