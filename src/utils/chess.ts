@@ -178,6 +178,9 @@ export function headersToPGN(game: GameHeaders): string {
 [Black "${game.black || "?"}"]
 [Result "${game.result}"]
 `;
+    if (game.time) {
+        headers += `[UTCTime "${game.time}"]\n`;
+    }
     if (game.white_elo !== undefined && game.white_elo !== null) {
         headers += `[WhiteElo "${game.white_elo === 0 ? "-" : game.white_elo}"]\n`;
     }
@@ -493,6 +496,7 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
         BlackElo,
         WhiteElo,
         Date,
+        UTCTime,
         Site,
         Event,
         Result,
@@ -523,6 +527,7 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
         black_elo: BlackElo === "-" ? 0 : BlackElo ? Number.parseInt(BlackElo) : undefined,
         white_elo: WhiteElo === "-" ? 0 : WhiteElo ? Number.parseInt(WhiteElo) : undefined,
         date: Date ?? "",
+        time: UTCTime,
         site: Site ?? "",
         event: Event ?? "",
         start: JSON.parse(Start ?? "[]"),
