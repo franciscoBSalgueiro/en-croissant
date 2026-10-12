@@ -16,6 +16,7 @@ const boardImages: string[] = [
   "blue.png",
   "blue2.jpg",
   "blue3.jpg",
+  "blue4.svg",
   "blue-marble.jpg",
   "canvas2.jpg",
   "wood.jpg",
