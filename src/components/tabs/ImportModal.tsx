@@ -22,6 +22,7 @@ import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 import { commands } from "@/bindings";
 import { addRecentFileAtom, currentTabAtom } from "@/state/atoms";
+import { serializeStorageValue } from "@/state/store/debouncedStorage";
 import { parsePGN } from "@/utils/chess";
 import { getChesscomGame } from "@/utils/chess.com/api";
 import { chessopsError } from "@/utils/chessops";
@@ -68,134 +69,144 @@ export default function ImportModal({
   const [save, setSave] = useState(false);
   const [filename, setFilename] = useState("");
   const [error, setError] = useState("");
+  const [submitError, setSubmitError] = useState("");
   const { documentDir } = useLoaderData({ from: "/" });
   const store = useStore();
 
   async function handleSubmit() {
     setLoading(true);
-    if (importType === "PGN") {
-      if (file || pgn) {
-        if (file) {
-          let fileInfo: FileMetadata | undefined;
-          const count = unwrap(await commands.countPgnGames(file));
-          const fileContent = await readTextFile(file);
-          const input = unwrap(await commands.readGames(file, 0, 0))[0];
-          if (save) {
-            const newFile = await createFile({
-              filename,
-              filetype,
-              pgn: fileContent,
-              dir: documentDir,
-            });
-            if (newFile.isErr) {
-              setError(newFile.error.message);
-              setLoading(false);
-              return;
+    setSubmitError("");
+    try {
+      if (importType === "PGN") {
+        if (file || pgn) {
+          if (file) {
+            let fileInfo: FileMetadata | undefined;
+            const count = unwrap(await commands.countPgnGames(file));
+            const fileContent = await readTextFile(file);
+            const input = unwrap(await commands.readGames(file, 0, 0))[0];
+            if (save) {
+              const newFile = await createFile({
+                filename,
+                filetype,
+                pgn: fileContent,
+                dir: documentDir,
+              });
+              if (newFile.isErr) {
+                setError(newFile.error.message);
+                setLoading(false);
+                return;
+              }
+              fileInfo = newFile.value;
+            } else {
+              fileInfo = {
+                type: "file",
+                path: file,
+                numGames: count,
+                name: filename,
+                lastModified: Date.now(),
+                metadata: {
+                  type: "game",
+                  tags: [],
+                },
+              };
             }
-            fileInfo = newFile.value;
-          } else {
-            fileInfo = {
-              type: "file",
-              path: file,
-              numGames: count,
-              name: filename,
-              lastModified: Date.now(),
-              metadata: {
-                type: "game",
-                tags: [],
-              },
-            };
-          }
-          const tree = await parsePGN(input);
-          const originKind = (await isInTempDir(fileInfo.path)) ? "temp_file" : "file";
-          setCurrentTab((prev) => {
-            sessionStorage.setItem(prev.value, JSON.stringify({ version: 0, state: tree }));
-            return {
-              ...prev,
-              name: getGameName(tree.headers),
-              gameOrigin: {
-                kind: originKind,
-                file: fileInfo,
-                gameNumber: 0,
-              },
-              type: "analysis",
-            };
-          });
-
-          if (fileInfo?.path) {
-            store.set(addRecentFileAtom, {
-              name: fileInfo.name,
-              path: fileInfo.path,
-              type: fileInfo.metadata.type,
+            const tree = await parsePGN(input);
+            const originKind = (await isInTempDir(fileInfo.path)) ? "temp_file" : "file";
+            setCurrentTab((prev) => {
+              sessionStorage.setItem(
+                prev.value,
+                serializeStorageValue({ version: 0, state: tree }),
+              );
+              return {
+                ...prev,
+                name: getGameName(tree.headers),
+                gameOrigin: {
+                  kind: originKind,
+                  file: fileInfo,
+                  gameNumber: 0,
+                },
+                type: "analysis",
+              };
             });
-          }
-        } else {
-          const tempFile = await resolve(await tempDir(), `import_${Date.now()}.pgn`);
-          await writeTextFile(tempFile, pgn);
-          await openFile(tempFile, setTabs, setActiveTab);
-        }
-      }
-    } else if (importType === "Link") {
-      if (!link) {
-        setLoading(false);
-        return;
-      }
-      let pgn = "";
-      if (link.includes("chess.com")) {
-        const res = await getChesscomGame(link);
-        if (res === null) {
-          setLoading(false);
-          return;
-        }
-        pgn = res;
-      } else if (link.includes("lichess")) {
-        const excludedPathParts = ["game", "export", "white", "black"];
-        const gameId = new URL(link).pathname
-          .split("/")
-          .find((x) => x && !excludedPathParts.includes(x));
-        if (!gameId) {
-          setLoading(false);
-          return;
-        }
-        pgn = await getLichessGame(gameId);
-      }
 
-      const tree = await parsePGN(pgn);
-      setCurrentTab((prev) => {
-        sessionStorage.setItem(prev.value, JSON.stringify({ version: 0, state: tree }));
-        return {
-          ...prev,
-          name: getGameName(tree.headers),
-          gameOrigin: {
-            kind: "none",
-          },
-          type: "analysis",
-        };
-      });
-    } else if (importType === "FEN") {
-      const res = parseFen(fen.trim());
-      if (res.isErr) {
-        setFenError(chessopsError(res.error));
-        setLoading(false);
-        return;
+            if (fileInfo?.path) {
+              store.set(addRecentFileAtom, {
+                name: fileInfo.name,
+                path: fileInfo.path,
+                type: fileInfo.metadata.type,
+              });
+            }
+          } else {
+            const tempFile = await resolve(await tempDir(), `import_${Date.now()}.pgn`);
+            await writeTextFile(tempFile, pgn);
+            await openFile(tempFile, setTabs, setActiveTab);
+          }
+        }
+      } else if (importType === "Link") {
+        if (!link) {
+          setLoading(false);
+          return;
+        }
+        let pgn = "";
+        if (link.includes("chess.com")) {
+          const res = await getChesscomGame(link);
+          if (res === null) {
+            setLoading(false);
+            return;
+          }
+          pgn = res;
+        } else if (link.includes("lichess")) {
+          const excludedPathParts = ["game", "export", "white", "black"];
+          const gameId = new URL(link).pathname
+            .split("/")
+            .find((x) => x && !excludedPathParts.includes(x));
+          if (!gameId) {
+            setLoading(false);
+            return;
+          }
+          pgn = await getLichessGame(gameId);
+        }
+
+        const tree = await parsePGN(pgn);
+        setCurrentTab((prev) => {
+          sessionStorage.setItem(prev.value, serializeStorageValue({ version: 0, state: tree }));
+          return {
+            ...prev,
+            name: getGameName(tree.headers),
+            gameOrigin: {
+              kind: "none",
+            },
+            type: "analysis",
+          };
+        });
+      } else if (importType === "FEN") {
+        const res = parseFen(fen.trim());
+        if (res.isErr) {
+          setFenError(chessopsError(res.error));
+          setLoading(false);
+          return;
+        }
+        setFenError("");
+        const parsedFen = makeFen(res.value);
+        setCurrentTab((prev) => {
+          const tree = defaultTree(parsedFen);
+          tree.headers.fen = parsedFen;
+          sessionStorage.setItem(prev.value, serializeStorageValue({ version: 0, state: tree }));
+          return {
+            ...prev,
+            name: t("Home.Card.AnalysisBoard.Title"),
+            gameOrigin: {
+              kind: "none",
+            },
+            type: "analysis",
+          };
+        });
       }
-      setFenError("");
-      const parsedFen = makeFen(res.value);
-      setCurrentTab((prev) => {
-        const tree = defaultTree(parsedFen);
-        tree.headers.fen = parsedFen;
-        sessionStorage.setItem(prev.value, JSON.stringify({ version: 0, state: tree }));
-        return {
-          ...prev,
-          name: t("Home.Card.AnalysisBoard.Title"),
-          gameOrigin: {
-            kind: "none",
-          },
-          type: "analysis",
-        };
-      });
+    } catch (e) {
+      setSubmitError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   const Input = match(importType)
@@ -352,6 +363,12 @@ export default function ImportModal({
       >
         {loading ? t("Import.Importing") : t("Home.Card.ImportGame.Button")}
       </Button>
+
+      {submitError && (
+        <Text c="red" size="sm" mt="xs">
+          {submitError}
+        </Text>
+      )}
     </Modal>
   );
 }

@@ -10,6 +10,7 @@ import { match } from "ts-pattern";
 import { commands } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
+import { deserializeStorageValue } from "@/state/store/debouncedStorage";
 import { createTab, genID, isPersistentGameOrigin, type Tab } from "@/utils/tabs";
 import { unwrap } from "@/utils/unwrap";
 import BoardAnalysis from "../boards/BoardAnalysis";
@@ -48,8 +49,12 @@ export default function BoardsPage() {
     async (value: string | null, forced?: boolean) => {
       if (value !== null) {
         const closedTab = tabs.find((tab) => tab.value === value);
-        const tabState = JSON.parse(sessionStorage.getItem(value) || "{}");
-        if (tabState && isPersistentGameOrigin(closedTab) && tabState.state.dirty && !forced) {
+        const raw = sessionStorage.getItem(value);
+        // Persisted tree state is LZ-compressed; decode it with the same reader the store uses.
+        const tabState = raw
+          ? deserializeStorageValue<{ version: number; state: { dirty: boolean } }>(raw)
+          : null;
+        if (tabState && isPersistentGameOrigin(closedTab) && tabState.state?.dirty && !forced) {
           toggleSaveModal();
           return;
         }

@@ -62,6 +62,7 @@
     "i18next-browser-languagedetector": "^8.2.1",
     "immer": "^11.1.4",
     "jotai": "^2.18.1",
+    "lz-string": "^1.5.0",
     "mantine-contextmenu": "^8.3.13",
     "mantine-datatable": "^8.3.13",
     "mantine-flagpack": "^4.1.1",
