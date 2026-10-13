@@ -7,6 +7,8 @@ use crate::{db::models::*, error::Error, AppState};
 
 use super::{get_duckdb_pool, GameQuery, Sides};
 
+const INITIAL_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
 #[derive(Debug, Clone, Deserialize, Type, PartialEq, Eq, Hash)]
 pub struct PositionQueryJs {
     pub fen: String,
@@ -181,8 +183,9 @@ fn build_position_where_clauses(query: &GameQuery, full_fen: &str) -> Vec<String
 
     if full_fen.split_whitespace().count() >= 2 && Fen::from_ascii(full_fen.as_bytes()).is_ok() {
         clauses.push(format!(
-            "matches_fen(movedata, {}, fen)",
-            sql_literal(full_fen)
+            "matches_fen(movedata, {}, COALESCE(fen, {}))",
+            sql_literal(full_fen),
+            sql_literal(INITIAL_FEN)
         ));
     }
 
@@ -232,14 +235,14 @@ pub async fn search_position(
 
     let sql = format!(
         "WITH matching_positions AS (
-            SELECT movedata, result, fen, matches_fen_ply(movedata, {full_fen}, fen) AS ply
+            SELECT movedata, result, COALESCE(fen, {initial_fen}) AS fen,
+                matches_fen_ply(movedata, {full_fen}, COALESCE(fen, {initial_fen})) AS ply
             FROM games
             {where_clause}
         )
         SELECT
             CASE
-                WHEN move_details_at(movedata, ply::SMALLINT, fen).\"from\" IS NULL
-                    OR move_details_at(movedata, ply::SMALLINT, fen).\"to\" IS NULL
+                WHEN move_details_at(movedata, ply::SMALLINT, fen) IS NULL
                 THEN '*'
                 ELSE
                     move_details_at(movedata, ply::SMALLINT, fen).\"from\" ||
@@ -255,6 +258,7 @@ pub async fn search_position(
         GROUP BY next_move
         ORDER BY total_games DESC;",
         full_fen = sql_literal(&position_query.fen),
+        initial_fen = sql_literal(INITIAL_FEN),
         where_clause = where_sql,
     );
 

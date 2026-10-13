@@ -167,7 +167,8 @@ impl Visitor for SingleGameProcessor {
         ControlFlow::Continue(())
     }
 
-    fn end_game(&mut self, movetext: Self::Movetext) -> Self::Output {
+    fn end_game(&mut self, mut movetext: Self::Movetext) -> Self::Output {
+        movetext.close_variations();
         movetext.encoder.finish().into_bytes()
     }
 }
@@ -180,16 +181,23 @@ pub struct GameInProcessing<'a> {
     clocks_black: Vec<(u16, u16)>,
     pos: Chess,
     ply: u16,
-    /// Stack of (saved_position, saved_ply) for variation support.
+    /// Saved state for each variation, including the branch point for siblings.
     /// When entering a variation, we push the current position onto the stack
     /// and restore the position to before the last mainline move.
-    position_stack: Vec<(Chess, u16)>,
+    position_stack: Vec<VariationState>,
     /// The position before the last move was played, needed to branch variations.
     pos_before_last_move: Option<Chess>,
     /// The ply before the last move, for restoring ply in variations.
     ply_before_last_move: u16,
     /// Whether this encoder supports variations (only Low compression).
     supports_variations: bool,
+}
+
+struct VariationState {
+    pos: Chess,
+    ply: u16,
+    pos_before_last_move: Option<Chess>,
+    ply_before_last_move: u16,
 }
 
 impl GameInProcessing<'_> {
@@ -292,7 +300,12 @@ impl GameInProcessing<'_> {
         }
 
         self.encoder.encode_start_variation();
-        self.position_stack.push((self.pos.clone(), self.ply));
+        self.position_stack.push(VariationState {
+            pos: self.pos.clone(),
+            ply: self.ply,
+            pos_before_last_move: self.pos_before_last_move.clone(),
+            ply_before_last_move: self.ply_before_last_move,
+        });
 
         if let Some(ref saved_pos) = self.pos_before_last_move {
             self.pos = saved_pos.clone();
@@ -303,11 +316,20 @@ impl GameInProcessing<'_> {
     }
 
     fn end_variation(&mut self) {
-        self.encoder.encode_end_variation();
+        if let Some(saved) = self.position_stack.pop() {
+            self.encoder.encode_end_variation();
+            self.pos = saved.pos;
+            self.ply = saved.ply;
+            self.pos_before_last_move = saved.pos_before_last_move;
+            self.ply_before_last_move = saved.ply_before_last_move;
+        }
+    }
 
-        if let Some((saved_pos, saved_ply)) = self.position_stack.pop() {
-            self.pos = saved_pos;
-            self.ply = saved_ply;
+    fn close_variations(&mut self) {
+        // Import may stop on an invalid move inside a variation. Keep the
+        // retained prefix decodable by closing every variation before storing it.
+        while !self.position_stack.is_empty() {
+            self.end_variation();
         }
     }
 }
@@ -436,8 +458,9 @@ fn apply_comment(movetext: &mut GameInProcessing<'_>, comment: RawComment<'_>) {
 impl<'a> PgnProcessor<'a> {
     fn end_game_inner(
         &mut self,
-        movetext: <Self as Visitor>::Movetext,
+        mut movetext: <Self as Visitor>::Movetext,
     ) -> <Self as Visitor>::Output {
+        movetext.close_variations();
         let clocks_w = movetext.finalize_clocks(true);
         let clocks_b = movetext.finalize_clocks(false);
         let evals = movetext.finalize_evals();
