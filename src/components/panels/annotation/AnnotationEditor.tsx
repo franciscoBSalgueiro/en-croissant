@@ -1,5 +1,6 @@
-import { SegmentedControl, Stack, Textarea } from "@mantine/core";
+import { Box, Textarea } from "@mantine/core";
 import { RichTextEditor } from "@mantine/tiptap";
+import { IconMarkdown } from "@tabler/icons-react";
 import Placeholder from "@tiptap/extension-placeholder";
 import { Markdown } from "@tiptap/markdown";
 import { useEditor } from "@tiptap/react";
@@ -16,21 +17,22 @@ type EditorMode = "rich" | "source";
 
 const annotationEditorModeAtom = atom<EditorMode>("rich");
 
-function RichAnnotationEditor({
-  comment,
-  spellCheck,
-  setComment,
-  position,
-}: {
-  comment: string;
-  spellCheck: boolean;
-  setComment: (value: string) => void;
-  position: number[];
-}) {
+function AnnotationEditor() {
   const { t } = useTranslation();
+  const [editorMode, setEditorMode] = useAtom(annotationEditorModeAtom);
+  const isSourceMode = editorMode === "source";
+  const store = useContext(TreeStateContext)!;
+  const root = useStore(store, (s) => s.root);
+  const position = useStore(store, (s) => s.position);
+  const setComment = useStore(store, (s) => s.setComment);
+  const currentNode = getNodeAtPath(root, position);
+  const spellCheck = useAtomValue(spellCheckAtom);
+  const sourceLabel = t("RichText.Source", { defaultValue: "Toggle Markdown source" });
+
   const editor = useEditor(
     {
-      autofocus: "end",
+      autofocus: isSourceMode ? false : "end",
+      editable: !isSourceMode,
       extensions: [
         StarterKit.configure({
           link: {
@@ -41,13 +43,13 @@ function RichAnnotationEditor({
         Markdown,
         Placeholder.configure({ placeholder: t("Board.Annotate.WriteHere") }),
       ],
-      content: comment || null,
+      content: currentNode.comment || null,
       contentType: "markdown",
       onUpdate: ({ editor }) => {
         setComment(editor.getMarkdown());
       },
     },
-    [position.join(",")],
+    [position.join(","), editorMode],
   );
 
   return (
@@ -74,103 +76,80 @@ function RichAnnotationEditor({
     >
       <RichTextEditor.Toolbar>
         <RichTextEditor.ControlsGroup>
-          <RichTextEditor.Bold />
-          <RichTextEditor.Italic />
-          <RichTextEditor.Underline />
-          <RichTextEditor.Strikethrough />
-          <RichTextEditor.ClearFormatting />
+          <RichTextEditor.Bold disabled={isSourceMode} />
+          <RichTextEditor.Italic disabled={isSourceMode} />
+          <RichTextEditor.Underline disabled={isSourceMode} />
+          <RichTextEditor.Strikethrough disabled={isSourceMode} />
+          <RichTextEditor.ClearFormatting disabled={isSourceMode} />
         </RichTextEditor.ControlsGroup>
 
         <RichTextEditor.ControlsGroup>
-          <RichTextEditor.H1 />
-          <RichTextEditor.H2 />
-          <RichTextEditor.H3 />
-          <RichTextEditor.H4 />
+          <RichTextEditor.H1 disabled={isSourceMode} />
+          <RichTextEditor.H2 disabled={isSourceMode} />
+          <RichTextEditor.H3 disabled={isSourceMode} />
+          <RichTextEditor.H4 disabled={isSourceMode} />
         </RichTextEditor.ControlsGroup>
 
         <RichTextEditor.ControlsGroup>
-          <RichTextEditor.Blockquote />
-          <RichTextEditor.Hr />
-          <RichTextEditor.BulletList />
-          <RichTextEditor.OrderedList />
+          <RichTextEditor.Blockquote disabled={isSourceMode} />
+          <RichTextEditor.Hr disabled={isSourceMode} />
+          <RichTextEditor.BulletList disabled={isSourceMode} />
+          <RichTextEditor.OrderedList disabled={isSourceMode} />
         </RichTextEditor.ControlsGroup>
         <RichTextEditor.ControlsGroup>
-          <RichTextEditor.Link />
-          <RichTextEditor.Unlink />
+          <RichTextEditor.Link disabled={isSourceMode} />
+          <RichTextEditor.Unlink disabled={isSourceMode} />
+        </RichTextEditor.ControlsGroup>
+        <RichTextEditor.ControlsGroup>
+          <RichTextEditor.Control
+            active={isSourceMode}
+            aria-pressed={isSourceMode}
+            aria-label={sourceLabel}
+            title={sourceLabel}
+            onClick={() => setEditorMode(isSourceMode ? "rich" : "source")}
+          >
+            <IconMarkdown size="1rem" />
+          </RichTextEditor.Control>
         </RichTextEditor.ControlsGroup>
       </RichTextEditor.Toolbar>
 
-      <RichTextEditor.Content />
+      <Box display="grid">
+        <RichTextEditor.Content
+          style={{ gridArea: "1 / 1", visibility: isSourceMode ? "hidden" : undefined }}
+          inert={isSourceMode}
+        />
+        {isSourceMode && (
+          <Textarea
+            value={currentNode.comment}
+            onChange={(event) => setComment(event.currentTarget.value)}
+            autoFocus
+            autosize
+            minRows={1}
+            resize="none"
+            size="md"
+            spellCheck={spellCheck}
+            aria-label={t("Board.Annotate.WriteHere")}
+            placeholder={t("Board.Annotate.WriteHere")}
+            styles={{
+              root: {
+                gridArea: "1 / 1",
+                minWidth: 0,
+                backgroundColor: "var(--mantine-color-body)",
+                borderRadius: "0 0 var(--mantine-radius-default) var(--mantine-radius-default)",
+              },
+              input: {
+                padding: "var(--mantine-spacing-md)",
+                lineHeight: "var(--mantine-line-height)",
+                fontFamily: "var(--mantine-font-family-monospace)",
+                border: 0,
+                borderRadius: "0 0 var(--mantine-radius-default) var(--mantine-radius-default)",
+                backgroundColor: "var(--mantine-color-body)",
+              },
+            }}
+          />
+        )}
+      </Box>
     </RichTextEditor>
-  );
-}
-
-function SourceAnnotationEditor({
-  comment,
-  spellCheck,
-  setComment,
-}: {
-  comment: string;
-  spellCheck: boolean;
-  setComment: (value: string) => void;
-}) {
-  const { t } = useTranslation();
-
-  return (
-    <Textarea
-      value={comment}
-      onChange={(event) => setComment(event.currentTarget.value)}
-      autosize
-      minRows={12}
-      spellCheck={spellCheck}
-      placeholder={t("Board.Annotate.WriteHere")}
-      styles={{
-        input: {
-          fontFamily: "monospace",
-        },
-      }}
-    />
-  );
-}
-
-function AnnotationEditor() {
-  const [editorMode, setEditorMode] = useAtom(annotationEditorModeAtom);
-
-  // these variables are used across both rich and source editors
-  const store = useContext(TreeStateContext)!;
-  const root = useStore(store, (s) => s.root);
-  const position = useStore(store, (s) => s.position);
-  const setComment = useStore(store, (s) => s.setComment);
-
-  const currentNode = getNodeAtPath(root, position);
-  const spellCheck = useAtomValue(spellCheckAtom);
-
-  return (
-    <Stack gap="xs">
-      <SegmentedControl
-        size="xs"
-        value={editorMode}
-        onChange={(mode) => setEditorMode(mode as EditorMode)}
-        data={[
-          { value: "rich", label: "Rich text" },
-          { value: "source", label: "Source" },
-        ]}
-      />
-      {editorMode === "source" ? (
-        <SourceAnnotationEditor
-          comment={currentNode.comment}
-          spellCheck={spellCheck}
-          setComment={setComment}
-        />
-      ) : (
-        <RichAnnotationEditor
-          comment={currentNode.comment}
-          spellCheck={spellCheck}
-          setComment={setComment}
-          position={position}
-        />
-      )}
-    </Stack>
   );
 }
 
