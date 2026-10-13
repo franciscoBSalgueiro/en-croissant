@@ -104,19 +104,6 @@ pub fn remove_duckdb_pool(state: &AppState, path: &Path) {
     state.duckdb_connection_pool.remove(&key);
 }
 
-#[tauri::command]
-#[specta::specta]
-pub async fn preload_reference_db(
-    file: PathBuf,
-    state: tauri::State<'_, AppState>,
-) -> Result<(), Error> {
-    // DuckDB searches the database directly; warm its pool instead of an SQLite index.
-    let pool = get_duckdb_pool(&state, &file)?;
-    pool.get()?
-        .query_row("SELECT COUNT(*) FROM games", [], |_| Ok(()))?;
-    Ok(())
-}
-
 pub fn load_aixchess_extension(
     connection: &Connection,
     extension_path: &Path,

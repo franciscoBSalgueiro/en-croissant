@@ -42,7 +42,7 @@ use crate::chess::{
 };
 use crate::db::{
     delete_database, delete_db_game, delete_empty_games, export_to_pgn, get_player,
-    get_players_game_info, get_tournaments, preload_reference_db, search_position,
+    get_players_game_info, get_tournaments, search_position,
 };
 use crate::game::{
     abort_game, get_game_engine_logs, get_game_state, make_game_move, resign_game, start_game,
@@ -137,7 +137,6 @@ fn main() {
             get_opening_from_fens,
             get_opening_from_name,
             get_players_game_info,
-            preload_reference_db,
             get_engine_config,
             file_exists,
             get_file_metadata,
