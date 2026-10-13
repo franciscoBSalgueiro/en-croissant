@@ -33,7 +33,8 @@ function GameInfo({
   const [player, setPlayer] = useState<"white" | "black" | null>(null);
   const event = detail(headers.event);
   const site = detail(headers.site);
-  const round = detail(headers.round);
+  const roundValue = detail(headers.round?.trim());
+  const round = /^[-–—]+$/.test(roundValue) ? "" : roundValue;
   const date = detail(headers.date);
   const parsedDate =
     date && dayjs(date, "YYYY.MM.DD").isValid() ? dayjs(date, "YYYY.MM.DD").toDate() : null;
@@ -59,7 +60,7 @@ function GameInfo({
     />
   );
 
-  const roundField = (!disabled || round) && (
+  const roundField = round && (
     <span className={classes.round}>
       <span>Round</span>
       {disabled ? (
@@ -170,7 +171,7 @@ function GameInfo({
           ) : (
             <Select
               size="xs"
-              w="5rem"
+              w="4rem"
               comboboxProps={{ width: 128, position: "bottom", offset: 4 }}
               checkIconPosition="right"
               allowDeselect={false}
@@ -181,8 +182,13 @@ function GameInfo({
                 { value: "*", label: "*" },
               ]}
               value={headers.result}
-              variant="filled"
-              classNames={{ input: classes.resultInput, option: classes.resultOption }}
+              variant="unstyled"
+              rightSection={null}
+              rightSectionWidth={0}
+              classNames={{
+                input: cx(classes.input, classes.resultInput),
+                option: classes.resultOption,
+              }}
               onChange={(result) => setHeaders({ ...headers, result: result as Outcome })}
             />
           )}

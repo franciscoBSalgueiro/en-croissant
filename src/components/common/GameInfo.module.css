@@ -156,9 +156,13 @@
   min-width: 2ch;
 }
 
-.resultInput {
+.input.resultInput {
+  height: auto;
+  min-height: 0;
   text-align: center;
+  font-size: var(--mantine-font-size-sm);
   font-weight: 500;
+  cursor: pointer;
 }
 
 .resultOption {
