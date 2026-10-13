@@ -258,12 +258,13 @@ pub async fn kill_engines(tab: String, state: tauri::State<'_, AppState>) -> Res
         .iter()
         .map(|x| x.key().clone())
         .collect();
-    for key in keys.clone() {
+    for key in keys {
         if key.0.starts_with(&tab) {
-            {
-                let process = state.engine_processes.get_mut(&key).unwrap();
-                let mut process = process.lock().await;
-                process.kill().await?;
+            // clone the handle out before awaiting: holding a dashmap guard
+            // across .await blocks reader tasks of engines in the same shard
+            let process = state.engine_processes.get(&key).map(|p| p.clone());
+            if let Some(process) = process {
+                process.lock().await.kill().await?;
             }
             state.engine_processes.remove(&key);
         }
@@ -279,7 +280,7 @@ pub async fn kill_engine(
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
     let key = (tab, engine);
-    if let Some(process) = state.engine_processes.get(&key) {
+    if let Some(process) = state.engine_processes.get(&key).map(|p| p.clone()) {
         let mut process = process.lock().await;
         process.kill().await?;
     }
@@ -293,7 +294,7 @@ pub async fn stop_engine(
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
     let key = (tab, engine);
-    if let Some(process) = state.engine_processes.get(&key) {
+    if let Some(process) = state.engine_processes.get(&key).map(|p| p.clone()) {
         let mut process = process.lock().await;
         process.stop().await?;
     }
@@ -308,7 +309,7 @@ pub async fn get_engine_logs(
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<EngineLog>, Error> {
     let key = (tab, engine);
-    if let Some(process) = state.engine_processes.get(&key) {
+    if let Some(process) = state.engine_processes.get(&key).map(|p| p.clone()) {
         let process = process.lock().await;
         Ok(process.base.get_logs())
     } else {
@@ -331,27 +332,28 @@ pub async fn get_best_moves(
 
     let key = (tab.clone(), id.clone());
 
-    if state.engine_processes.contains_key(&key) {
-        {
-            let process = state.engine_processes.get_mut(&key).unwrap();
-            let mut process = process.lock().await;
-            if options == process.options && go_mode == process.go_mode && process.running {
-                return Ok(Some((
-                    process.last_progress,
-                    process.last_best_moves.clone(),
-                )));
-            }
-            process.stop().await?;
+    if let Some(process) = state.engine_processes.get(&key).map(|p| p.clone()) {
+        let mut process = process.lock().await;
+        if options == process.options && go_mode == process.go_mode && process.running {
+            return Ok(Some((
+                process.last_progress,
+                process.last_best_moves.clone(),
+            )));
         }
+        // the engine may already be dead (killed/crashed); ignore stop errors and
+        // let the existence check below respawn a fresh process
+        let _ = process.stop().await;
+        drop(process);
         // give time for engine to stop and process previous lines
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-        {
-            let process = state.engine_processes.get_mut(&key).unwrap();
+        // the reader task removes the entry when the process exits; if that happened
+        // during the stop window, fall through and spawn a fresh engine instead of panicking
+        if let Some(process) = state.engine_processes.get(&key).map(|p| p.clone()) {
             let mut process = process.lock().await;
             process.set_options(options.clone()).await?;
             process.go(&go_mode).await?;
+            return Ok(None);
         }
-        return Ok(None);
     }
 
     let (mut process, mut reader) = EngineProcess::new(path).await?;

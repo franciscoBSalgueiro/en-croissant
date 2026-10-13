@@ -37,6 +37,15 @@ impl BaseEngine {
     pub async fn spawn(path: PathBuf) -> Result<Self, Error> {
         let mut command = Command::new(&path);
         command.current_dir(path.parent().unwrap_or(&path));
+        // maia3 seeds its sampler with a fixed default (42) on every launch, so
+        // each new game would replay identical replies at any temperature
+        if path.to_string_lossy().to_lowercase().contains("maia") {
+            let nanos = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.subsec_nanos())
+                .unwrap_or(0);
+            command.arg("--seed").arg((nanos ^ std::process::id()).to_string());
+        }
         command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
