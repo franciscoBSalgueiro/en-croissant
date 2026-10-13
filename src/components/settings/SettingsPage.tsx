@@ -65,6 +65,7 @@ import { keyMapAtom } from "@/state/keybinds";
 import FileInput from "../common/FileInput";
 import BoardSelect from "./BoardSelect";
 import ColorControl from "./ColorControl";
+import DimensionToggle from "./DimensionToggle";
 import FontSizeSlider from "./FontSizeSlider";
 import KeybindInput from "./KeybindInput";
 import PiecesSelect from "./PiecesSelect";
@@ -474,6 +475,14 @@ export default function Page() {
         description: t("Settings.Appearance.BoardImage.Desc"),
         keywords: ["board", "image", "texture"],
         render: () => <BoardSelect />,
+      },
+      {
+        id: "3d-mode",
+        category: "appearance",
+        title: t("Settings.Appearance.3DMode"),
+        description: t("Settings.Appearance.3DMode.Desc"),
+        keywords: ["3d", "3d mode", "dimension"],
+        render: () => <DimensionToggle />,
       },
       {
         id: "accent-color",

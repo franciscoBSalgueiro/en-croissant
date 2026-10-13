@@ -1,7 +1,5 @@
 cg-board {
   background-image: var(--board-image, url("/board/gray.svg"));
-  border-radius: var(--mantine-radius-default);
-  overflow: hidden;
 }
 
 /** Interactive board square colors */
