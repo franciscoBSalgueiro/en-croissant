@@ -406,9 +406,9 @@ async makeGameMove(gameId: string, uci: string) : Promise<Result<GameState, stri
     else return { status: "error", error: e  as any };
 }
 },
-async takeBackGameMove(gameId: string) : Promise<Result<GameState, string>> {
+async takeBackGameMove(gameId: string, ply: number | null) : Promise<Result<GameState, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("take_back_game_move", { gameId }) };
+    return { status: "ok", data: await TAURI_INVOKE("take_back_game_move", { gameId, ply }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
