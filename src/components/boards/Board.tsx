@@ -15,7 +15,7 @@ import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeFen, parseFen } from "chessops/fen";
 import { makeSan } from "chessops/san";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { memo, useCallback, useContext, useMemo, useState } from "react";
+import { memo, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
@@ -103,12 +103,22 @@ function Board({
 
   const root = useStore(store, (s) => s.root);
   const rootFen = useStore(store, (s) => s.root.fen);
+  const position = useStore(store, (s) => s.position);
   const moves = useStore(
     store,
     useShallow((s) => getVariationLine(s.root, s.position)),
   );
   const headers = useStore(store, (s) => s.headers);
   const currentNode = useStore(store, (s) => s.currentNode());
+  const [displayedScore, setDisplayedScore] = useState(currentNode.score || null);
+
+  useEffect(() => {
+    if (currentNode.score) {
+      setDisplayedScore(currentNode.score);
+    } else if (position.length === 0) {
+      setDisplayedScore(null);
+    }
+  }, [currentNode.score, position.length]);
 
   const arrows = useAtomValue(
     bestMovesFamily({
@@ -461,7 +471,7 @@ function Board({
                   </ActionIcon>
                 </Center>
               )}
-              {evalOpen && <EvalBar score={currentNode.score || null} orientation={orientation} />}
+              {evalOpen && <EvalBar score={displayedScore} orientation={orientation} />}
             </Box>
             <Box
               style={
