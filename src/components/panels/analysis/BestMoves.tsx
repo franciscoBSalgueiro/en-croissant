@@ -86,6 +86,7 @@ function BestMovesComponent({
       defaultSettings: engine.settings ?? undefined,
       defaultGo: engine.go ?? undefined,
       tab: activeTab!,
+      enabled: !!engine.enabled,
     }),
   );
 
@@ -95,6 +96,7 @@ function BestMovesComponent({
         ...prev,
         go: engine.go || prev.go,
         settings: engine.settings || prev.settings,
+        enabled: engine.enabled || prev.enabled,
       }));
     }
   }, [engine.settings, engine.go, settings.synced, setSettings2]);
@@ -106,7 +108,14 @@ function BestMovesComponent({
       if (newSettings.synced) {
         setEngines(async (prev) =>
           (await prev).map((o) =>
-            o.id === engine.id ? { ...o, settings: newSettings.settings, go: newSettings.go } : o,
+            o.id === engine.id
+              ? {
+                  ...o,
+                  settings: newSettings.settings,
+                  go: newSettings.go,
+                  enabled: newSettings.enabled,
+                }
+              : o,
           ),
         );
       }

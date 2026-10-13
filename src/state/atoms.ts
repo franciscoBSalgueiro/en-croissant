@@ -371,7 +371,7 @@ export const currentShowCommentsAtom = tabValue(showCommentsFamily);
 const showVariationsFamily = atomFamily((_tab: string) => atom(true));
 export const currentShowVariationsAtom = tabValue(showVariationsFamily);
 
-export const tabFamily = atomFamily((_tab: string) => atom("info"));
+export const tabFamily = atomFamily((_tab: string) => atom("analysis"));
 export const currentTabSelectedAtom = tabValue(tabFamily);
 
 const reportModalOpenFamily = atomFamily((_tab: string) => atom(false));
@@ -639,11 +639,13 @@ export const tabEngineSettingsFamily = atomFamily(
         engineId: _engineId,
         defaultSettings,
         defaultGo,
+        enabled,
     }: {
         tab: string;
         engineId: string;
         defaultSettings?: EngineSettings;
         defaultGo?: GoMode;
+        enabled?: boolean;
     }) => {
         return atom<{
             enabled: boolean;
@@ -651,7 +653,7 @@ export const tabEngineSettingsFamily = atomFamily(
             go: GoMode;
             synced: boolean;
         }>({
-            enabled: false,
+            enabled: !!enabled,
             settings: defaultSettings || [],
             go: defaultGo || { t: "Infinite" },
             synced: true,
@@ -672,6 +674,7 @@ export const allEnabledAtom = atom((get) => {
                 engineId: engine.id,
                 defaultSettings: engine.type === "local" ? engine.settings || [] : undefined,
                 defaultGo: engine.go ?? undefined,
+                enabled: !!engine.enabled,
             });
             return get(atom).enabled;
         });
@@ -692,4 +695,5 @@ export const enableAllAtom = atom(null, (get, set, value: boolean) => {
         });
         set(atom, { ...get(atom), enabled: value });
     }
+    set(enginesAtom, async (prev) => (await prev).map((o) => ({ ...o, enabled: value })));
 });
