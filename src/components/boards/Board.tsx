@@ -520,7 +520,7 @@ function Board({
                       : disableVariations && currentNode.children.length > 0
                         ? undefined
                         : dests,
-                  showDests,
+                  showDests: showDests,
                   events: {
                     after(orig, dest, metadata) {
                       if (!editingMode) {
