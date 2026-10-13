@@ -1,3 +1,4 @@
+import type { DraggableProvidedDragHandleProps } from "@hello-pangea/dnd";
 import {
   ActionIcon,
   Box,
@@ -11,7 +12,13 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconChevronDown, IconChevronUp, IconPlus, IconTrash } from "@tabler/icons-react";
+import {
+  IconChevronDown,
+  IconChevronUp,
+  IconGripVertical,
+  IconPlus,
+  IconTrash,
+} from "@tabler/icons-react";
 import type { ConditionRule, ConditionRuleType, ScoutfishCondition } from "./scoutfishQuery";
 import {
   ALL_RULE_TYPES,
@@ -21,7 +28,6 @@ import {
   RULE_DESCRIPTIONS,
   RULE_LABELS,
   SELECT_RULES,
-  SINGLE_VALUE_RULES,
   STM_OPTIONS,
 } from "./scoutfishQuery";
 import { SubFenEditor } from "./SubFenEditor";
@@ -32,6 +38,7 @@ interface ConditionCardProps {
   index: number;
   isSequenceMode: boolean;
   canRemove: boolean;
+  dragHandleProps: DraggableProvidedDragHandleProps | null;
   onChange: (updated: ScoutfishCondition) => void;
   onRemove: () => void;
 }
@@ -222,6 +229,7 @@ export function ConditionCard({
   index,
   isSequenceMode,
   canRemove,
+  dragHandleProps,
   onChange,
   onRemove,
 }: ConditionCardProps) {
@@ -261,6 +269,18 @@ export function ConditionCard({
     >
       <Group justify="space-between" mb={collapsed ? 0 : "xs"}>
         <Group gap="xs">
+          {dragHandleProps && (
+            <Tooltip label="Drag to reorder step">
+              <Box
+                {...dragHandleProps}
+                aria-label={`Reorder step ${index + 1}`}
+                c="dimmed"
+                style={{ display: "flex", cursor: "grab" }}
+              >
+                <IconGripVertical size="1rem" />
+              </Box>
+            </Tooltip>
+          )}
           {isSequenceMode && (
             <Text
               size="xs"

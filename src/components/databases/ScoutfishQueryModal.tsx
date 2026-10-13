@@ -1,3 +1,4 @@
+import { DragDropContext, Draggable, Droppable, type DropResult } from "@hello-pangea/dnd";
 import {
   Badge,
   Box,
@@ -54,6 +55,17 @@ export function ScoutfishQueryModal({ opened, onClose, onApply }: ScoutfishQuery
     }));
   };
 
+  const moveCondition = ({ source, destination }: DropResult) => {
+    if (!destination || source.index === destination.index) return;
+
+    setState((prev) => {
+      const conditions = [...prev.conditions];
+      const [condition] = conditions.splice(source.index, 1);
+      conditions.splice(destination.index, 0, condition);
+      return { ...prev, conditions };
+    });
+  };
+
   const addCondition = () => {
     setState((prev) => ({
       ...prev,
@@ -85,6 +97,8 @@ export function ScoutfishQueryModal({ opened, onClose, onApply }: ScoutfishQuery
       }
       size="80%"
       centered
+      // Transform-based transitions offset the fixed-position draggable cards.
+      transitionProps={{ transition: "fade" }}
       styles={{
         content: {
           display: "flex",
@@ -156,21 +170,37 @@ export function ScoutfishQueryModal({ opened, onClose, onApply }: ScoutfishQuery
           offsetScrollbars
           scrollbars="y"
         >
-          <Stack gap="md">
-            <Stack gap="sm">
-              {state.conditions.map((condition, idx) => (
-                <ConditionCard
-                  key={condition.id}
-                  condition={condition}
-                  index={idx}
-                  isSequenceMode={isSequenceMode}
-                  canRemove={state.conditions.length > 1}
-                  onChange={(updated) => updateCondition(idx, updated)}
-                  onRemove={() => removeCondition(idx)}
-                />
-              ))}
-            </Stack>
-          </Stack>
+          <DragDropContext onDragEnd={moveCondition}>
+            <Droppable droppableId="scoutfish-steps" isDropDisabled={!isSequenceMode}>
+              {(provided) => (
+                <Stack gap="sm" ref={provided.innerRef} {...provided.droppableProps}>
+                  {state.conditions.map((condition, idx) => (
+                    <Draggable
+                      key={condition.id}
+                      draggableId={condition.id}
+                      index={idx}
+                      isDragDisabled={!isSequenceMode || state.conditions.length < 2}
+                    >
+                      {(provided) => (
+                        <div ref={provided.innerRef} {...provided.draggableProps}>
+                          <ConditionCard
+                            condition={condition}
+                            index={idx}
+                            isSequenceMode={isSequenceMode}
+                            canRemove={state.conditions.length > 1}
+                            dragHandleProps={provided.dragHandleProps}
+                            onChange={(updated) => updateCondition(idx, updated)}
+                            onRemove={() => removeCondition(idx)}
+                          />
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </Stack>
+              )}
+            </Droppable>
+          </DragDropContext>
         </ScrollArea>
         <Button
           variant="light"
