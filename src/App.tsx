@@ -8,7 +8,7 @@ import {
   Textarea,
   TextInput,
 } from "@mantine/core";
-import { Notifications, notifications } from "@mantine/notifications";
+import { Notifications } from "@mantine/notifications";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { getMatches } from "@tauri-apps/plugin-cli";
 import { listen } from "@tauri-apps/api/event";
@@ -18,7 +18,7 @@ import { ContextMenuProvider } from "mantine-contextmenu";
 import posthog from "posthog-js";
 import { useEffect, useRef } from "react";
 import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link";
-import type { Tab } from "@/utils/tabs";
+
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import {
@@ -52,11 +52,7 @@ import "mantine-datatable/styles.css";
 import "@/styles/global.css";
 
 import { commands } from "./bindings";
-import { openFile } from "./utils/files";
-import { getGameFromUrl } from "./utils/import";
-import { createTab } from "./utils/tabs";
-import { parsePGN } from "./utils/chess";
-import { getGameName } from "./utils/treeReducer";
+import { handleDeepLink, openCommandLineFile } from "./utils/launch";
 
 const colorSchemeManager = localStorageColorSchemeManager({
   key: "mantine-color-scheme",
@@ -149,79 +145,7 @@ const preloadReferenceDb = async (store: ReturnType<typeof getDefaultStore>) => 
   }
 };
 
-const handleDeepLink = async (
-  urlStr: string,
-  setTabs: React.Dispatch<React.SetStateAction<Tab[]>>,
-  setActiveTab: React.Dispatch<React.SetStateAction<string | null>>,
-) => {
-  let notificationShown = false;
-  try {
-    const url = new URL(urlStr);
-    if (url.protocol !== "encroissant:") return;
-
-    if (url.host === "import") {
-      const gameUrl = url.searchParams.get("url");
-      if (!gameUrl) {
-        throw new Error("No URL parameter provided in encroissant://import");
-      }
-
-      notifications.show({
-        title: "Importing game",
-        message: `Loading game from ${gameUrl}...`,
-        loading: true,
-        autoClose: false,
-        id: "importing-game-link",
-      });
-      notificationShown = true;
-
-      const pgn = await getGameFromUrl(gameUrl);
-      if (!pgn) {
-        throw new Error("No PGN data found");
-      }
-
-      const tree = await parsePGN(pgn);
-      const name = getGameName(tree.headers);
-
-      await createTab({
-        tab: {
-          name,
-          type: "analysis",
-        },
-        setTabs,
-        setActiveTab,
-        pgn,
-      });
-
-      notifications.update({
-        id: "importing-game-link",
-        title: "Import successful",
-        message: "Game imported successfully",
-        color: "green",
-        autoClose: 3000,
-        loading: false,
-      });
-    }
-  } catch (e) {
-    error(`Failed to handle deep link URL: ${urlStr} - ${e}`);
-    const errorMessage = e instanceof Error ? e.message : String(e);
-    if (notificationShown) {
-      notifications.update({
-        id: "importing-game-link",
-        title: "Import failed",
-        message: errorMessage,
-        color: "red",
-        autoClose: 5000,
-        loading: false,
-      });
-    } else {
-      notifications.show({
-        title: "Import error",
-        message: errorMessage,
-        color: "red",
-      });
-    }
-  }
-};
+const navigateToBoard = () => router.navigate({ to: "/" });
 
 function useAppStartup() {
   const initialized = useRef(false);
@@ -255,13 +179,17 @@ function useAppStartup() {
       if (telemetryEnabled) {
         posthog.capture("app_started", { version: await getVersion() });
       }
+      const unlistenFile = await listen<string>("open-cli-file", ({ payload }) => {
+        void openCommandLineFile(payload, setTabs, setActiveTab, navigateToBoard);
+      });
+
       try {
         const matches = await getMatches();
         if (matches.args.file.occurrences > 0) {
           info(`Opening file from command line: ${matches.args.file.value}`);
           if (typeof matches.args.file.value === "string") {
             const file = matches.args.file.value;
-            openFile(file, setTabs, setActiveTab);
+            await openCommandLineFile(file, setTabs, setActiveTab, navigateToBoard);
           }
         }
       } catch (e) {
@@ -275,13 +203,13 @@ function useAppStartup() {
         const initialUrls = await getCurrent();
         if (initialUrls && initialUrls.length > 0) {
           for (const url of initialUrls) {
-            void handleDeepLink(url, setTabs, setActiveTab);
+            void handleDeepLink(url, setTabs, setActiveTab, navigateToBoard);
           }
         }
 
         unlistenDeepLink = await onOpenUrl((urls) => {
           for (const url of urls) {
-            void handleDeepLink(url, setTabs, setActiveTab);
+            void handleDeepLink(url, setTabs, setActiveTab, navigateToBoard);
           }
         });
       } catch (e) {
@@ -289,6 +217,7 @@ function useAppStartup() {
       }
 
       return () => {
+        unlistenFile();
         if (detach) detach();
         if (unlistenDeepLink) unlistenDeepLink();
       };
