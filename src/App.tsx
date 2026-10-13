@@ -17,6 +17,8 @@ import { getDefaultStore, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { ContextMenuProvider } from "mantine-contextmenu";
 import posthog from "posthog-js";
 import { useEffect, useRef } from "react";
+import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link";
+
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import {
@@ -50,7 +52,7 @@ import "mantine-datatable/styles.css";
 import "@/styles/global.css";
 
 import { commands } from "./bindings";
-import { openFile } from "./utils/files";
+import { handleDeepLink, openCommandLineFile } from "./utils/launch";
 
 const colorSchemeManager = localStorageColorSchemeManager({
   key: "mantine-color-scheme",
@@ -143,6 +145,8 @@ const preloadReferenceDb = async (store: ReturnType<typeof getDefaultStore>) => 
   }
 };
 
+const navigateToBoard = () => router.navigate({ to: "/" });
+
 function useAppStartup() {
   const initialized = useRef(false);
   const [, setTabs] = useAtom(tabsAtom);
@@ -175,13 +179,17 @@ function useAppStartup() {
       if (telemetryEnabled) {
         posthog.capture("app_started", { version: await getVersion() });
       }
+      const unlistenFile = await listen<string>("open-cli-file", ({ payload }) => {
+        void openCommandLineFile(payload, setTabs, setActiveTab, navigateToBoard);
+      });
+
       try {
         const matches = await getMatches();
         if (matches.args.file.occurrences > 0) {
           info(`Opening file from command line: ${matches.args.file.value}`);
           if (typeof matches.args.file.value === "string") {
             const file = matches.args.file.value;
-            openFile(file, setTabs, setActiveTab);
+            await openCommandLineFile(file, setTabs, setActiveTab, navigateToBoard);
           }
         }
       } catch (e) {
@@ -190,7 +198,29 @@ function useAppStartup() {
 
       await preloadReferenceDb(store);
 
-      return detach;
+      let unlistenDeepLink: (() => void) | undefined;
+      try {
+        const initialUrls = await getCurrent();
+        if (initialUrls && initialUrls.length > 0) {
+          for (const url of initialUrls) {
+            void handleDeepLink(url, setTabs, setActiveTab, navigateToBoard);
+          }
+        }
+
+        unlistenDeepLink = await onOpenUrl((urls) => {
+          for (const url of urls) {
+            void handleDeepLink(url, setTabs, setActiveTab, navigateToBoard);
+          }
+        });
+      } catch (e) {
+        warn(`Failed to setup deep links: ${e}`);
+      }
+
+      return () => {
+        unlistenFile();
+        if (detach) detach();
+        if (unlistenDeepLink) unlistenDeepLink();
+      };
     };
 
     let detachFn: (() => void) | undefined;
