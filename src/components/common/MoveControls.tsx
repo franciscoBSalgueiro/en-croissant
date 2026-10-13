@@ -6,7 +6,7 @@ import {
   IconChevronsRight,
 } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
-import { memo, useContext } from "react";
+import { memo, useCallback, useContext } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useStore } from "zustand";
 import { keyMapAtom } from "@/state/keybinds";
@@ -25,29 +25,74 @@ function MoveControls({ readOnly }: { readOnly?: boolean }) {
   const previousBranch = useStore(store, (s) => s.previousBranch);
   const nextBranching = useStore(store, (s) => s.nextBranching);
   const previousBranching = useStore(store, (s) => s.previousBranching);
+  const currentNode = useStore(store, (s) => s.currentNode());
+  const practicePath = useStore(store, (s) => s.practicePath);
+  const variationMenuOpened = useStore(store, (s) => s.variationMenuOpened);
+  const openVariationMenu = useStore(store, (s) => s.openVariationMenu);
+  const closeVariationMenu = useStore(store, (s) => s.closeVariationMenu);
+  const moveVariationHighlight = useStore(store, (s) => s.moveVariationHighlight);
+  const confirmVariationChoice = useStore(store, (s) => s.confirmVariationChoice);
+
+  const hasVariations = currentNode.children.length > 1 && !practicePath;
+
+  const handleNext = useCallback(() => {
+    if (variationMenuOpened) {
+      moveVariationHighlight(1);
+    } else if (hasVariations) {
+      openVariationMenu();
+    } else {
+      next();
+    }
+  }, [variationMenuOpened, hasVariations, moveVariationHighlight, openVariationMenu, next]);
+
+  const handlePrevious = useCallback(() => {
+    if (variationMenuOpened) {
+      moveVariationHighlight(-1);
+    } else {
+      previous();
+    }
+  }, [variationMenuOpened, moveVariationHighlight, previous]);
+
+  const handleBranchEnd = useCallback(() => {
+    if (variationMenuOpened) {
+      moveVariationHighlight(1);
+    } else {
+      endBranch();
+    }
+  }, [variationMenuOpened, moveVariationHighlight, endBranch]);
+
+  const handleBranchStart = useCallback(() => {
+    if (variationMenuOpened) {
+      moveVariationHighlight(-1);
+    } else {
+      startBranch();
+    }
+  }, [variationMenuOpened, moveVariationHighlight, startBranch]);
 
   const keyMap = useAtomValue(keyMapAtom);
-  useHotkeys(keyMap.PREVIOUS_MOVE.keys, previous);
-  useHotkeys(keyMap.NEXT_MOVE.keys, next);
+  useHotkeys(keyMap.PREVIOUS_MOVE.keys, handlePrevious);
+  useHotkeys(keyMap.NEXT_MOVE.keys, handleNext);
   useHotkeys(keyMap.GO_TO_START.keys, start);
   useHotkeys(keyMap.GO_TO_END.keys, end);
   useHotkeys(keyMap.DELETE_MOVE.keys, readOnly ? () => {} : () => deleteMove());
-  useHotkeys(keyMap.GO_TO_BRANCH_START.keys, startBranch);
-  useHotkeys(keyMap.GO_TO_BRANCH_END.keys, endBranch);
+  useHotkeys(keyMap.GO_TO_BRANCH_START.keys, handleBranchStart);
+  useHotkeys(keyMap.GO_TO_BRANCH_END.keys, handleBranchEnd);
   useHotkeys(keyMap.NEXT_BRANCH.keys, nextBranch);
   useHotkeys(keyMap.PREVIOUS_BRANCH.keys, previousBranch);
   useHotkeys(keyMap.NEXT_BRANCHING.keys, nextBranching);
   useHotkeys(keyMap.PREVIOUS_BRANCHING.keys, previousBranching);
+  useHotkeys("enter", () => variationMenuOpened && confirmVariationChoice());
+  useHotkeys("escape", () => variationMenuOpened && closeVariationMenu());
 
   return (
     <Group grow gap="xs">
       <ActionIcon variant="default" size="lg" onClick={start}>
         <IconChevronsLeft />
       </ActionIcon>
-      <ActionIcon variant="default" size="lg" onClick={previous}>
+      <ActionIcon variant="default" size="lg" onClick={handlePrevious}>
         <IconChevronLeft />
       </ActionIcon>
-      <ActionIcon variant="default" size="lg" onClick={next}>
+      <ActionIcon variant="default" size="lg" onClick={handleNext}>
         <IconChevronRight />
       </ActionIcon>
       <ActionIcon variant="default" size="lg" onClick={end}>

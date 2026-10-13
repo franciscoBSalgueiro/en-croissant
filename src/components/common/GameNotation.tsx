@@ -10,8 +10,9 @@ import {
   Table,
   Text,
   Tooltip,
+  UnstyledButton,
 } from "@mantine/core";
-import { useColorScheme } from "@mantine/hooks";
+import { useClickOutside, useColorScheme } from "@mantine/hooks";
 import {
   IconArrowRight,
   IconArrowsSplit,
@@ -87,6 +88,7 @@ function GameNotation({ topBar, controls }: { topBar?: boolean; controls?: React
 
   return (
     <Paper withBorder flex={1} style={{ position: "relative", overflow: "hidden" }}>
+      <VariationChoiceOverlay />
       <Group h="100%" wrap="nowrap" align="stretch" gap={0}>
         {controls && (
           <>
@@ -142,6 +144,66 @@ function GameNotation({ topBar, controls }: { topBar?: boolean; controls?: React
         </Stack>
       </Group>
     </Paper>
+  );
+}
+
+function VariationChoiceOverlay() {
+  const store = useContext(TreeStateContext)!;
+  const { t } = useTranslation();
+  const opened = useStore(store, (s) => s.variationMenuOpened);
+  const node = useStore(store, (s) => s.currentNode());
+  const position = useStore(store, (s) => s.position);
+  const highlightedIndex = useStore(store, (s) => s.highlightedVariationIndex);
+  const goToMove = useStore(store, (s) => s.goToMove);
+  const closeVariationMenu = useStore(store, (s) => s.closeVariationMenu);
+  const cardRef = useClickOutside(() => closeVariationMenu());
+
+  if (!opened) {
+    return null;
+  }
+
+  return (
+    <>
+      <Overlay backgroundOpacity={0.35} blur={1} zIndex={20} onClick={closeVariationMenu} />
+      <Paper
+        ref={cardRef}
+        withBorder
+        shadow="xl"
+        p="md"
+        radius="md"
+        w={280}
+        style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          zIndex: 21,
+        }}
+      >
+        <Text fw={600} size="sm" mb="sm">
+          {t("Menu.ChooseNextMove")}
+        </Text>
+        <Stack gap={4}>
+          {node.children.map((child, i) => (
+            <UnstyledButton
+              key={`${child.san}-${i}`}
+              onClick={() => goToMove([...position, i])}
+              px="sm"
+              py={8}
+              style={{
+                borderRadius: 6,
+                backgroundColor:
+                  i === highlightedIndex ? "var(--mantine-color-blue-light)" : undefined,
+              }}
+            >
+              <Text size="sm" fw={i === highlightedIndex ? 600 : 400}>
+                {child.san}
+              </Text>
+            </UnstyledButton>
+          ))}
+        </Stack>
+      </Paper>
+    </>
   );
 }
 
