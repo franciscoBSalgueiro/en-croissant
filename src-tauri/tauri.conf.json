@@ -50,6 +50,13 @@
   "mainBinaryName": "en-croissant",
   "identifier": "org.encroissant.app",
   "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "encroissant"
+        ]
+      }
+    },
     "cli": {
       "args": [
         {

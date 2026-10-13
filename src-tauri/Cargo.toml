@@ -1,6 +1,6 @@
 [package]
 name = "en-croissant"
-version = "0.15.0"
+version = "0.15.1"
 description = "A Modern Chess Database"
 authors = ["Francisco Salgueiro <fgcdbs@gmail.com>"]
 license = "GPL-3.0-only"
@@ -19,6 +19,7 @@ tauri = { version = "2.10.2", features = ["protocol-asset"] }
 zip = "2.1.6"
 tokio = { version = "1.33", features = ["full"] }
 futures-util = "0.3.24"
+flate2 = "1"
 reqwest = { version = "0.12.5", features = ["stream", "blocking", "json"] }
 shakmaty = "0.30.0"
 pgn-reader = "0.29.0"
@@ -63,6 +64,8 @@ tauri-plugin-process = "2.3.1"
 tauri-plugin-log = "2.8.0"
 tauri-plugin-window-state = "2.4.1"
 tauri-plugin-opener = "2"
+tauri-plugin-deep-link = "2.0.0"
+tauri-plugin-single-instance = { version = "2.0.0", features = ["deep-link"] }
 polyglot-book-rs = "0.1.0"
 duckdb = { version = "1.10501.0", features = ["bundled", "r2d2", "chrono"] }
 r2d2 = "0.8.10"

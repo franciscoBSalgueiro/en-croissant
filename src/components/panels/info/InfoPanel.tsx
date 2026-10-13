@@ -57,7 +57,7 @@ function InfoPanel({ addGame }: { addGame?: () => void }) {
       <GameSelectorAccordion games={games} setGames={setGames} addGame={addGame} />
       <ScrollArea pb="sm">
         <FileInfo setGames={setGames} />
-        <Stack px="sm">
+        <Stack px="sm" gap="xs">
           <GameInfo
             headers={headers}
             simplified={isReportoire}

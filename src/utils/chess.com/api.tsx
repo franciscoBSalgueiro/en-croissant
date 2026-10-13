@@ -157,7 +157,7 @@ const chessComGameSchema = z.object({
 });
 
 export async function getChesscomGame(gameURL: string) {
-  const regex = /.*\/game\/(live|daily)\/(\d+)/;
+  const regex = /.*\/game\/(?:(live|daily)\/)?(\d+)/;
   const match = gameURL.match(regex);
 
   if (!match) {
@@ -183,7 +183,7 @@ export async function getChesscomGame(gameURL: string) {
     return null;
   }
 
-  const gameType = match[1];
+  const gameType = match[1] || "live";
   const gameId = match[2];
 
   const response = await fetch(`https://www.chess.com/callback/${gameType}/game/${gameId}`, {

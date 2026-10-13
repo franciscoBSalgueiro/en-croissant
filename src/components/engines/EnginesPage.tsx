@@ -27,11 +27,13 @@ import {
   IconCloud,
   IconCopy,
   IconCpu,
+  IconFolder,
   IconPhotoPlus,
   IconPlus,
   IconSearch,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
+import { platform } from "@tauri-apps/plugin-os";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useAtom } from "jotai";
 import { useEffect, useMemo, useState } from "react";
@@ -356,6 +358,7 @@ function EngineSettings({
 
   const [deleteModal, toggleDeleteModal] = useToggle();
   const [jsonModal, toggleJSONModal] = useToggle();
+  const syzygyPathSeparator = platform() === "windows" ? ";" : ":";
 
   return (
     <ScrollArea h="100%" offsetScrollbars>
@@ -456,6 +459,35 @@ function EngineSettings({
                   );
                 })
                 .with({ type: "string", value: P.select() }, (v: any) => {
+                  if (v.name.toLowerCase() === "syzygypath") {
+                    return (
+                      <Group key={v.name} align="end" wrap="nowrap">
+                        <TextInput
+                          flex={1}
+                          label={v.name}
+                          placeholder={`/path/to/tb${syzygyPathSeparator}/path/to/tb2`}
+                          value={v.value || ""}
+                          onChange={(e) => setSetting(v.name, e.currentTarget.value, v.default)}
+                        />
+                        <Button
+                          variant="default"
+                          leftSection={<IconFolder size="1rem" />}
+                          onClick={async () => {
+                            const selected = await open({
+                              multiple: true,
+                              directory: true,
+                            });
+                            if (!selected) return;
+
+                            const directories = Array.isArray(selected) ? selected : [selected];
+                            setSetting(v.name, directories.join(syzygyPathSeparator), v.default);
+                          }}
+                        >
+                          {t("Common.Open")}
+                        </Button>
+                      </Group>
+                    );
+                  }
                   if (v.name.toLowerCase().includes("file")) {
                     const file = v.value ? new File([v.value], v.value) : null;
                     return (

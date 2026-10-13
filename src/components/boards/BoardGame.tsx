@@ -42,6 +42,7 @@ import {
 import type { ChessgroundRef } from "@/chessground/Chessground";
 import {
   activeTabAtom,
+  flipBoardAfterMoveAtom,
   currentGameIdAtom,
   currentGameStateAtom,
   currentPlayersAtom,
@@ -127,6 +128,7 @@ function BoardGame() {
   const resetTree = useStore(store, (s) => s.reset);
 
   const [, setTabs] = useAtom(tabsAtom);
+  const autoFlipBoard = useAtomValue(flipBoardAfterMoveAtom);
 
   const boardRef = useRef(null);
   const cgRef = useRef<ChessgroundRef>(null);
@@ -149,6 +151,8 @@ function BoardGame() {
   const isPlayerVsEngine =
     (players.white.type === "human" && players.black.type === "engine") ||
     (players.black.type === "human" && players.white.type === "engine");
+
+  const isHumanVsHuman = players.white.type === "human" && players.black.type === "human";
 
   const fetchEngineLogs = useCallback(async () => {
     if (!gameId || !hasEngine) return;
@@ -235,6 +239,15 @@ function BoardGame() {
     }
     return positionFromFen(node.fen);
   }, [root]);
+
+  useEffect(() => {
+    if (gameState !== "playing" || !isHumanVsHuman || !autoFlipBoard || !pos) return;
+
+    const { headers, setHeaders } = store.getState();
+    if (headers.orientation !== pos.turn) {
+      setHeaders({ ...headers, orientation: pos.turn });
+    }
+  }, [gameState, isHumanVsHuman, autoFlipBoard, pos, headers.orientation, store]);
 
   function toPlayerConfig(settings: OpponentSettings): PlayerConfig {
     if (settings.type === "human") {
@@ -372,6 +385,14 @@ function BoardGame() {
         newHeaders.black_time_control = blackTimeControl;
       }
 
+      if (playerSettings.white.type === "engine") {
+        newHeaders.white_elo = playerSettings.white.engine?.elo ?? undefined;
+      }
+
+      if (playerSettings.black.type === "engine") {
+        newHeaders.black_elo = playerSettings.black.engine?.elo ?? undefined;
+      }
+
       setHeaders({
         ...headers,
         ...newHeaders,
@@ -393,9 +414,8 @@ function BoardGame() {
   const handleHumanMove = useCallback(
     async (uci: string) => {
       if (!gameId || gameState !== "playing") return;
-
       try {
-        const result = await commands.makeGameMove(gameId, uci);
+        await commands.makeGameMove(gameId, uci);
       } catch (err) {
         console.error("Failed to make move:", err);
       }
@@ -439,7 +459,7 @@ function BoardGame() {
 
   const onTakeBack = useCallback(async () => {
     if (!gameId || gameState !== "playing") return;
-    const result = await commands.takeBackGameMove(gameId);
+    const result = await commands.takeBackGameMove(gameId, null);
   }, [gameId, gameState]);
 
   useEffect(() => {

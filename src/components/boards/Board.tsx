@@ -32,6 +32,7 @@ import {
   enableBoardScrollAtom,
   eraseDrawablesOnClickAtom,
   forcedEnPassantAtom,
+  is3dAtom,
   materialDisplayAtom,
   moveHighlightAtom,
   moveInputAtom,
@@ -98,6 +99,8 @@ function Board({
   enablePremoves = false,
 }: ChessboardProps) {
   const { t } = useTranslation();
+
+  const is3d = useAtomValue(is3dAtom);
 
   const store = useContext(TreeStateContext)!;
 
@@ -291,7 +294,7 @@ function Board({
   }
 
   // Variation arrows: show all children moves when there are alternatives
-  if (showVariationArrows && currentNode.children.length > 1) {
+  if (showVariationArrows && !practicing && currentNode.children.length > 1) {
     for (const child of currentNode.children) {
       if (child.move) {
         const m = child.move as NormalMove;
@@ -472,7 +475,7 @@ function Board({
                     }
                   : undefined
               }
-              className={classes.chessboard}
+              className={`${classes.chessboard} ${is3d ? "is3d" : ""}`}
               ref={boardRef}
               onClick={() => {
                 eraseDrawablesOnClick && clearShapes();

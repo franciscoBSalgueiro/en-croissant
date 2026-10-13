@@ -120,6 +120,14 @@ async getPlayersGameInfo(file: string, player: string) : Promise<Result<PlayerGa
     else return { status: "error", error: e  as any };
 }
 },
+async preloadReferenceDb(file: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("preload_reference_db", { file }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getEngineConfig(path: string) : Promise<Result<EngineConfig, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_engine_config", { path }) };
@@ -387,9 +395,9 @@ async makeGameMove(gameId: string, uci: string) : Promise<Result<GameState, stri
     else return { status: "error", error: e  as any };
 }
 },
-async takeBackGameMove(gameId: string) : Promise<Result<GameState, string>> {
+async takeBackGameMove(gameId: string, ply: number | null) : Promise<Result<GameState, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("take_back_game_move", { gameId }) };
+    return { status: "ok", data: await TAURI_INVOKE("take_back_game_move", { gameId, ply }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -521,7 +529,7 @@ export type ScoreValue =
 export type Sides = "BlackWhite" | "WhiteBlack" | "Any"
 export type SiteStatsData = { site: string; player: string; data: StatsData[] }
 export type SortDirection = "asc" | "desc"
-export type StatsData = { date: string; is_player_white: boolean; player_elo: number; result: GameOutcome; time_control: string }
+export type StatsData = { date: string; is_player_white: boolean; player_elo: number; result: GameOutcome; time_control: string; opening: string }
 export type TimeControl = { initialTime: bigint; increment: bigint }
 export type Token = { type: "ParenOpen" } | { type: "ParenClose" } | { type: "Comment"; value: string } | { type: "San"; value: string } | { type: "Header"; value: { tag: string; value: string } } | { type: "Nag"; value: string } | { type: "Outcome"; value: string }
 export type TournamentQuery = { options: QueryOptions<TournamentSort>; name: string | null }
