@@ -525,6 +525,7 @@
     "RichText.NumberedList": "Ordered list",
     "RichText.Quote": "Blockquote",
     "RichText.RemoveLink": "Remove link",
+    "RichText.Source": "",
     "RichText.Strike": "Strikethrough",
     "RichText.Underline": "Underline",
     "Settings.Anarchy": "Anarchy",
