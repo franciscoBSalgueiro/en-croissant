@@ -8,7 +8,12 @@ import { useAtom, useAtomValue } from "jotai";
 import { useContext, useState } from "react";
 import { useStore } from "zustand";
 import { Chessground } from "@/chessground/Chessground";
-import { jumpToNextPuzzleAtom, moveHighlightAtom, showCoordinatesAtom } from "@/state/atoms";
+import {
+  eraseDrawablesOnClickAtom,
+  jumpToNextPuzzleAtom,
+  moveHighlightAtom,
+  showCoordinatesAtom,
+} from "@/state/atoms";
 import classes from "@/styles/Chessboard.module.css";
 import { positionFromFen } from "@/utils/chessops";
 import type { Completion, Puzzle } from "@/utils/puzzles";
@@ -35,6 +40,8 @@ function PuzzleBoard({
   const moveHighlight = useAtomValue(moveHighlightAtom);
   const boardShapes = useStore(store, (s) => s.currentNode().shapes);
   const setShapes = useStore(store, (s) => s.setShapes);
+  const clearShapes = useStore(store, (s) => s.clearShapes);
+  const eraseDrawablesOnClick = useAtomValue(eraseDrawablesOnClickAtom);
   const makeMove = useStore(store, (s) => s.makeMove);
   const makeMoves = useStore(store, (s) => s.makeMoves);
   const reset = useForceUpdate();
@@ -120,6 +127,9 @@ function PuzzleBoard({
     <Box w="100%" h="100%" ref={parentRef}>
       <Box
         className={classes.chessboard}
+        onClick={() => {
+          eraseDrawablesOnClick && clearShapes();
+        }}
         style={{
           maxWidth: parentHeight,
         }}
