@@ -150,11 +150,23 @@ const enginesFileStorage: AsyncStringStorage = {
     },
 };
 
+const enginesSchema = zodArray(engineSchema).transform((engines) => {
+    const ids = new Set<string>();
+
+    return engines.map((engine) => {
+        if (ids.has(engine.id)) {
+            return { ...engine, id: crypto.randomUUID() };
+        }
+        ids.add(engine.id);
+        return engine;
+    });
+});
+
 export const enginesAtom = unwrap(
     atomWithStorage<Engine[]>(
         "engines/engines.json",
         [],
-        createAsyncZodStorage(zodArray(engineSchema), enginesFileStorage) as AsyncStorage<Engine[]>,
+        createAsyncZodStorage(enginesSchema, enginesFileStorage) as AsyncStorage<Engine[]>,
     ),
 );
 
