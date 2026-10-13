@@ -203,40 +203,51 @@ function EngineCard({
   const { t } = useTranslation();
 
   const [inProgress, setInProgress] = useState<boolean>(false);
+  const [progressButtonKey, setProgressButtonKey] = useState(0);
   const [, setEngines] = useAtom(enginesAtom);
   const downloadEngine = useCallback(
     async (id: number, url: string) => {
       setInProgress(true);
-      const enginesDir = await getEnginesDir();
-      let path = await resolve(enginesDir, `${url.slice(url.lastIndexOf("/") + 1)}`);
-      if (/\.(?:zip|tar|tar\.gz)(?:[?#]|$)/.test(url)) {
-        path = enginesDir;
+      try {
+        const enginesDir = await getEnginesDir();
+        let path = await resolve(enginesDir, `${url.slice(url.lastIndexOf("/") + 1)}`);
+        if (/\.(?:zip|tar|tar\.gz)(?:[?#]|$)/.test(url)) {
+          path = enginesDir;
+        }
+        unwrap(await commands.downloadFile(`engine_${id}`, url, path, null, false, null));
+        let enginesDirPath = enginesDir;
+        if (enginesDirPath.endsWith("/") || enginesDirPath.endsWith("\\")) {
+          enginesDirPath = enginesDirPath.slice(0, -1);
+        }
+        const enginePath = await join(enginesDirPath, ...engine.path.split("/"));
+        unwrap(await commands.setFileAsExecutable(enginePath));
+        const config = unwrap(await commands.getEngineConfig(enginePath));
+        setEngines(async (prev) => [
+          ...(await prev),
+          {
+            ...engine,
+            id: crypto.randomUUID(),
+            type: "local",
+            path: enginePath,
+            loaded: true,
+            settings: config.options
+              .filter((o) => requiredEngineSettings.includes(o.value.name))
+              .map((o) => ({
+                name: o.value.name,
+                // @ts-expect-error
+                value: o.value.default,
+              })),
+          },
+        ]);
+      } finally {
+        try {
+          await commands.clearProgress(`engine_${id}`);
+        } finally {
+          setInProgress(false);
+          // Remount to discard the button’s cached progress after each attempt.
+          setProgressButtonKey((key) => key + 1);
+        }
       }
-      await commands.downloadFile(`engine_${id}`, url, path, null, null, null);
-      let enginesDirPath = enginesDir;
-      if (enginesDirPath.endsWith("/") || enginesDirPath.endsWith("\\")) {
-        enginesDirPath = enginesDirPath.slice(0, -1);
-      }
-      const enginePath = await join(enginesDirPath, ...engine.path.split("/"));
-      await commands.setFileAsExecutable(enginePath);
-      const config = unwrap(await commands.getEngineConfig(enginePath));
-      setEngines(async (prev) => [
-        ...(await prev),
-        {
-          ...engine,
-          id: crypto.randomUUID(),
-          type: "local",
-          path: enginePath,
-          loaded: true,
-          settings: config.options
-            .filter((o) => requiredEngineSettings.includes(o.value.name))
-            .map((o) => ({
-              name: o.value.name,
-              // @ts-expect-error
-              value: o.value.default,
-            })),
-        },
-      ]);
     },
     [engine, setEngines],
   );
@@ -265,6 +276,7 @@ function EngineCard({
             <Text size="xs">{formatBytes(engine.downloadSize ?? 0)}</Text>
           </Group>
           <ProgressButton
+            key={progressButtonKey}
             id={`engine_${engineId}`}
             initInstalled={initInstalled}
             labels={{
