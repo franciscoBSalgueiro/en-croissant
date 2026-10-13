@@ -24,12 +24,9 @@ function GamePreviewWrapper({
   showOpening?: boolean;
   startAtEnd?: boolean;
 }) {
-  const { data: parsedGame } = useSWRImmutable(
-    [pgn, headers?.fen],
-    async ([pgn, fen]) => {
-      return await parsePGN(pgn, fen);
-    },
-  );
+  const { data: parsedGame } = useSWRImmutable([pgn, headers?.fen], async ([pgn, fen]) => {
+    return await parsePGN(pgn, fen);
+  });
 
   return (
     <>
