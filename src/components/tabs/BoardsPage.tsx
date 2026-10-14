@@ -1,13 +1,14 @@
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import { ActionIcon, ScrollArea, Tabs } from "@mantine/core";
-import { useHotkeys, useToggle } from "@mantine/hooks";
+import { useElementSize, useHotkeys, useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
-import { type ReactNode, startTransition, useCallback, useEffect } from "react";
+import { type ReactNode, startTransition, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Mosaic, type MosaicNode } from "react-mosaic-component";
 import { match } from "ts-pattern";
 import { commands } from "@/bindings";
+import { compactBoardLayout, resizeCompactPanels } from "@/utils/boardLayout";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { createTab, genID, isPersistentGameOrigin, type Tab } from "@/utils/tabs";
@@ -288,6 +289,155 @@ const windowsStateAtom = atomWithStorage<WindowsState>("windowsState", {
   },
 });
 
+// Keep compact resizing separate so widening the window restores the saved layout.
+function ResponsiveBoardLayout() {
+  const [windowsState, setWindowsState] = useAtom(windowsStateAtom);
+  const { ref, width } = useElementSize<HTMLDivElement>();
+  const compact = width > 0 && width < 900;
+  const [manualPanelHeights, setManualPanelHeights] = useState<{
+    topRight: number;
+    bottomRight: number;
+  }>();
+  const [measuredBoardHeight, setMeasuredBoardHeight] = useState(0);
+  const [panelHeights, setPanelHeights] = useState({ topRight: 340, bottomRight: 340 });
+
+  useEffect(() => {
+    if (!compact || !ref.current) return;
+    const container = ref.current;
+    let frame = 0;
+    const measure = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const board = container.querySelector<HTMLElement>("[data-board-frame]");
+        if (board) {
+          // Mosaic leaves a 3px gutter on each edge of a tile.
+          setMeasuredBoardHeight(Math.ceil(board.getBoundingClientRect().height) + 6);
+        }
+        // Manual resizing redistributes a fixed amount of space. Do not feed
+        // the resulting scroll overflow back into automatic pane sizing.
+        if (manualPanelHeights) return;
+        const requiredHeights = { topRight: 0, bottomRight: 0 };
+        for (const id of ["topRight", "bottomRight"] as const) {
+          const panel = container.querySelector<HTMLElement>(`#${id}`);
+          const tile = panel?.closest<HTMLElement>(".mosaic-tile");
+          if (!panel || !tile) continue;
+          let overflow = 0;
+          for (const element of panel.querySelectorAll<HTMLElement>("*")) {
+            if (!element.getClientRects().length || element.clientHeight === 0) continue;
+            // Fixed-size controls (charts, selectors and virtualized lists) do
+            // not grow with the pane, so their overflow must not inflate it.
+            let fixedSize = false;
+            for (
+              let parent: HTMLElement | null = element;
+              parent && parent !== panel;
+              parent = parent.parentElement
+            ) {
+              const height = parent.style.height;
+              const maxHeight = getComputedStyle(parent).maxHeight;
+              if (
+                (height && height !== "auto" && !height.includes("%")) ||
+                (maxHeight !== "none" && !maxHeight.includes("%"))
+              ) {
+                fixedSize = true;
+                break;
+              }
+            }
+            if (fixedSize) continue;
+            const overflowY = getComputedStyle(element).overflowY;
+            if (["auto", "scroll", "hidden"].includes(overflowY)) {
+              overflow = Math.max(overflow, element.scrollHeight - element.clientHeight);
+            }
+          }
+          if (overflow > 2) {
+            requiredHeights[id] = Math.ceil(tile.getBoundingClientRect().height + overflow + 8);
+          }
+        }
+        setPanelHeights((previous) => {
+          const next = {
+            topRight: Math.max(previous.topRight, requiredHeights.topRight),
+            bottomRight: Math.max(previous.bottomRight, requiredHeights.bottomRight),
+          };
+          return next.topRight === previous.topRight && next.bottomRight === previous.bottomRight
+            ? previous
+            : next;
+        });
+      });
+    };
+    const resizeObserver = new ResizeObserver(measure);
+    const observeContent = () => {
+      resizeObserver.disconnect();
+      for (const element of container.querySelectorAll(
+        "[data-board-frame], #topRight, #bottomRight, #topRight *, #bottomRight *",
+      )) {
+        resizeObserver.observe(element);
+      }
+      measure();
+    };
+    const mutationObserver = new MutationObserver(observeContent);
+    mutationObserver.observe(container, { childList: true, characterData: true, subtree: true });
+    observeContent();
+    return () => {
+      cancelAnimationFrame(frame);
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
+    };
+  }, [compact, ref, manualPanelHeights]);
+
+  const boardHeight = measuredBoardHeight || width + 80;
+  const sizes = manualPanelHeights ?? panelHeights;
+  const {
+    height: compactHeight,
+    boardPercentage,
+    panelPercentage,
+    panelsHeight,
+  } = compactBoardLayout(boardHeight, sizes);
+  const node = windowsState.currentNode;
+  const value =
+    compact && node && typeof node !== "string"
+      ? {
+          ...node,
+          direction: "column" as const,
+          second:
+            typeof node.second === "string"
+              ? node.second
+              : { ...node.second, splitPercentage: panelPercentage },
+          splitPercentage: boardPercentage,
+        }
+      : node;
+
+  return (
+    <div ref={ref} className={classes.boardLayout} data-compact={compact}>
+      <div
+        className={classes.boardLayoutContent}
+        style={compact ? { height: compactHeight } : undefined}
+      >
+        <Mosaic<ViewId>
+          renderTile={(id) => fullLayout[id]}
+          value={value}
+          onChange={(currentNode) => {
+            if (compact) {
+              if (currentNode && typeof currentNode !== "string") {
+                if (
+                  typeof currentNode.second !== "string" &&
+                  currentNode.second.splitPercentage !== undefined &&
+                  currentNode.second.splitPercentage !== panelPercentage
+                ) {
+                  setManualPanelHeights(
+                    resizeCompactPanels(panelsHeight, currentNode.second.splitPercentage),
+                  );
+                }
+              }
+            } else {
+              setWindowsState({ currentNode });
+            }
+          }}
+          resize={{ minimumPaneSizePercentage: compact ? (100 / panelsHeight) * 100 : 0 }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function TabSwitch({
   tab,
   saveModalOpened,
@@ -301,29 +451,17 @@ function TabSwitch({
   closeTab: (value: string | null, forced?: boolean) => void;
   activeTab: string | null;
 }) {
-  const [windowsState, setWindowsState] = useAtom(windowsStateAtom);
-
   return match(tab.type)
     .with("new", () => <NewTabHome id={tab.value} />)
     .with("play", () => (
       <TreeStateProvider id={tab.value}>
-        <Mosaic<ViewId>
-          renderTile={(id) => fullLayout[id]}
-          value={windowsState.currentNode}
-          onChange={(currentNode) => setWindowsState({ currentNode })}
-          resize={{ minimumPaneSizePercentage: 0 }}
-        />
+        <ResponsiveBoardLayout />
         <BoardGame />
       </TreeStateProvider>
     ))
     .with("analysis", () => (
       <TreeStateProvider id={tab.value}>
-        <Mosaic<ViewId>
-          renderTile={(id) => fullLayout[id]}
-          value={windowsState.currentNode}
-          onChange={(currentNode) => setWindowsState({ currentNode })}
-          resize={{ minimumPaneSizePercentage: 0 }}
-        />
+        <ResponsiveBoardLayout />
         <BoardAnalysis />
         <ConfirmChangesModal
           opened={saveModalOpened}
@@ -334,12 +472,7 @@ function TabSwitch({
     ))
     .with("puzzles", () => (
       <TreeStateProvider id={tab.value}>
-        <Mosaic<ViewId>
-          renderTile={(id) => fullLayout[id]}
-          value={windowsState.currentNode}
-          onChange={(currentNode) => setWindowsState({ currentNode })}
-          resize={{ minimumPaneSizePercentage: 0 }}
-        />
+        <ResponsiveBoardLayout />
         <Puzzles id={tab.value} />
       </TreeStateProvider>
     ))

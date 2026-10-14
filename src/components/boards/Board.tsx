@@ -384,6 +384,8 @@ function Board({
     <>
       <Box w="100%" h="100%">
         <Box
+          data-board-frame
+          className={classes.boardFrame}
           style={{
             display: "flex",
             flexDirection: "column",
