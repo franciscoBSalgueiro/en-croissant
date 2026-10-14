@@ -44,3 +44,7 @@
   > :global(square.current-premove) {
   background-color: rgba(20, 30, 85, 0.5) !important;
 }
+
+:global([data-compact="true"]) .boardFrame {
+  height: auto !important;
+}

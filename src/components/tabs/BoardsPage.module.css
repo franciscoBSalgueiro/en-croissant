@@ -53,3 +53,20 @@
 [data-mantine-color-scheme="dark"] .tabsFiller {
   border-bottom: 1px solid var(--mantine-color-dark-4);
 }
+
+.boardLayout {
+  height: 100%;
+  width: 100%;
+  overflow: auto;
+}
+
+.boardLayoutContent {
+  position: relative;
+  height: 100%;
+}
+
+/* The board follows its intrinsic height; only the two lower panes resize. */
+.boardLayout[data-compact="true"] :global(.mosaic-root > .mosaic-split:nth-child(2)) {
+  pointer-events: none;
+  cursor: default;
+}
