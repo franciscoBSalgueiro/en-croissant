@@ -53,7 +53,7 @@ fn uci_to_san(uci_move: &str, position: &Chess) -> String {
     SanPlus::from_move(position.clone(), chess_move).to_string()
 }
 
-fn build_position_where_clauses(query: &GameQuery, full_fen: &str) -> Vec<String> {
+fn build_position_where_clauses(query: &GameQuery, full_fen: Option<&str>) -> Vec<String> {
     let mut clauses = Vec::new();
 
     if let Some(outcome) = query.outcome.as_deref() {
@@ -181,7 +181,9 @@ fn build_position_where_clauses(query: &GameQuery, full_fen: &str) -> Vec<String
         }
     }
 
-    if full_fen.split_whitespace().count() >= 2 && Fen::from_ascii(full_fen.as_bytes()).is_ok() {
+    if let Some(full_fen) = full_fen.filter(|fen| {
+        fen.split_whitespace().count() >= 2 && Fen::from_ascii(fen.as_bytes()).is_ok()
+    }) {
         clauses.push(format!(
             "matches_fen(movedata, {}, COALESCE(fen, {}))",
             sql_literal(full_fen),
@@ -225,7 +227,7 @@ pub async fn search_position(
     let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
 
-    let where_clauses = build_position_where_clauses(&query, &position_query.fen);
+    let where_clauses = build_position_where_clauses(&query, None);
 
     let where_sql = if where_clauses.is_empty() {
         String::new()
@@ -233,21 +235,27 @@ pub async fn search_position(
         format!("WHERE {}", where_clauses.join(" AND "))
     };
 
+    let move_details = "(CASE WHEN fen IS NULL
+        THEN move_details_at(movedata, ply::SMALLINT)
+        ELSE move_details_at(movedata, ply::SMALLINT, fen) END)";
     let sql = format!(
         "WITH matching_positions AS (
-            SELECT movedata, result, COALESCE(fen, {initial_fen}) AS fen,
-                matches_fen_ply(movedata, {full_fen}, COALESCE(fen, {initial_fen})) AS ply
+            SELECT movedata, result, fen,
+                CASE WHEN fen IS NULL
+                    THEN matches_fen_ply(movedata, {full_fen})
+                    ELSE matches_fen_ply(movedata, {full_fen}, fen)
+                END AS ply
             FROM games
             {where_clause}
         )
         SELECT
             CASE
-                WHEN move_details_at(movedata, ply::SMALLINT, fen) IS NULL
+                WHEN {move_details} IS NULL
                 THEN '*'
                 ELSE
-                    move_details_at(movedata, ply::SMALLINT, fen).\"from\" ||
-                    move_details_at(movedata, ply::SMALLINT, fen).\"to\" ||
-                    COALESCE(move_details_at(movedata, ply::SMALLINT, fen).promotion, '')
+                    {move_details}.\"from\" ||
+                    {move_details}.\"to\" ||
+                    COALESCE({move_details}.promotion, '')
             END AS next_move,
             COUNT(*) AS total_games,
             SUM(CASE WHEN result = '1-0' THEN 1 ELSE 0 END) AS white_wins,
@@ -258,11 +266,8 @@ pub async fn search_position(
         GROUP BY next_move
         ORDER BY total_games DESC;",
         full_fen = sql_literal(&position_query.fen),
-        initial_fen = sql_literal(INITIAL_FEN),
         where_clause = where_sql,
     );
-
-    // println!("Executing SQL:\n{sql}");
 
     let openings = db
         .prepare(&sql)?
@@ -301,7 +306,7 @@ pub async fn is_position_in_db(
     let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
 
-    let where_clauses = build_position_where_clauses(&query, &position_query.fen);
+    let where_clauses = build_position_where_clauses(&query, Some(&position_query.fen));
 
     let where_sql = if where_clauses.is_empty() {
         String::new()
