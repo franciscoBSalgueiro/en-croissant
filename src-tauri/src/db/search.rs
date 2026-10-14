@@ -235,34 +235,20 @@ pub async fn search_position(
         format!("WHERE {}", where_clauses.join(" AND "))
     };
 
-    let move_details = "(CASE WHEN fen IS NULL
-        THEN move_details_at(movedata, ply::SMALLINT)
-        ELSE move_details_at(movedata, ply::SMALLINT, fen) END)";
     let sql = format!(
         "WITH matching_positions AS (
-            SELECT movedata, result, fen,
-                CASE WHEN fen IS NULL
-                    THEN matches_fen_ply(movedata, {full_fen})
-                    ELSE matches_fen_ply(movedata, {full_fen}, fen)
-                END AS ply
+            SELECT result, next_move_at_fen(movedata, {full_fen}, fen) AS next_move
             FROM games
             {where_clause}
         )
         SELECT
-            CASE
-                WHEN {move_details} IS NULL
-                THEN '*'
-                ELSE
-                    {move_details}.\"from\" ||
-                    {move_details}.\"to\" ||
-                    COALESCE({move_details}.promotion, '')
-            END AS next_move,
+            next_move,
             COUNT(*) AS total_games,
             SUM(CASE WHEN result = '1-0' THEN 1 ELSE 0 END) AS white_wins,
             SUM(CASE WHEN result = '0-1' THEN 1 ELSE 0 END) AS black_wins,
             SUM(CASE WHEN result = '1/2-1/2' THEN 1 ELSE 0 END) AS draws
         FROM matching_positions
-        WHERE ply IS NOT NULL
+        WHERE next_move IS NOT NULL
         GROUP BY next_move
         ORDER BY total_games DESC;",
         full_fen = sql_literal(&position_query.fen),
