@@ -45,8 +45,8 @@ export function createEmptyCondition(): ScoutfishCondition {
     };
 }
 
-export function createEmptyRule(): ConditionRule {
-    return { type: "material", values: [] };
+export function createEmptyRule(type: ConditionRuleType = "material"): ConditionRule {
+    return { type, values: [] };
 }
 
 export function getDefaultQueryState(): ScoutfishQueryState {
@@ -96,6 +96,30 @@ export const STM_OPTIONS = [
     { value: "black", label: "Black" },
 ];
 
+export function getAvailableRuleTypes(rules: ConditionRule[]): ConditionRuleType[] {
+    return (Object.keys(RULE_LABELS) as ConditionRuleType[]).filter(
+        (type) => !rules.some((rule) => rule.type === type),
+    );
+}
+
+export function getDuplicateRuleTypes(rules: ConditionRule[]): ConditionRuleType[] {
+    const seen = new Set<ConditionRuleType>();
+    const duplicates = new Set<ConditionRuleType>();
+    for (const rule of rules) {
+        if (seen.has(rule.type)) duplicates.add(rule.type);
+        seen.add(rule.type);
+    }
+    return [...duplicates];
+}
+
+export function hasDuplicateRules(state: ScoutfishQueryState): boolean {
+    const groups =
+        state.mode === "simple"
+            ? [state.conditions.flatMap((condition) => condition.rules)]
+            : state.conditions.map((condition) => condition.rules);
+    return groups.some((rules) => getDuplicateRuleTypes(rules).length > 0);
+}
+
 // ---------------------------------------------------------------------------
 // JSON builder
 // ---------------------------------------------------------------------------
@@ -129,12 +153,17 @@ function ruleToJson(rule: ConditionRule): Record<string, unknown> | null {
 }
 
 function conditionToJson(condition: ScoutfishCondition): Record<string, unknown> | null {
+    return combineRules(
+        condition.rules
+            .map(ruleToJson)
+            .filter((rule): rule is Record<string, unknown> => rule !== null),
+    );
+}
+
+function combineRules(rules: Record<string, unknown>[]): Record<string, unknown> | null {
     const merged: Record<string, unknown> = {};
-    for (const rule of condition.rules) {
-        const obj = ruleToJson(rule);
-        if (obj) {
-            Object.assign(merged, obj);
-        }
+    for (const rule of rules) {
+        Object.assign(merged, rule);
     }
     return Object.keys(merged).length > 0 ? merged : null;
 }
@@ -144,6 +173,7 @@ function conditionToJson(condition: ScoutfishCondition): Record<string, unknown>
  * Returns `null` if the query is empty / invalid.
  */
 export function buildScoutfishJson(state: ScoutfishQueryState): Record<string, unknown> | null {
+    if (hasDuplicateRules(state)) return null;
     const jsonConditions = state.conditions
         .map(conditionToJson)
         .filter((c): c is Record<string, unknown> => c !== null);
@@ -152,9 +182,7 @@ export function buildScoutfishJson(state: ScoutfishQueryState): Record<string, u
 
     switch (state.mode) {
         case "simple":
-            // Simple mode: merge all conditions into one object
-            if (jsonConditions.length === 1) return jsonConditions[0];
-            return Object.assign({}, ...jsonConditions);
+            return combineRules(jsonConditions);
         case "sequence":
             return { sequence: jsonConditions };
         case "streak":

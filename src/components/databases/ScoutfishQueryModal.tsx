@@ -24,6 +24,7 @@ import {
   changeQueryMode,
   createEmptyCondition,
   getDefaultQueryState,
+  hasDuplicateRules,
 } from "./scoutfishQuery";
 import classes from "./ScoutfishQueryModal.module.css";
 
@@ -40,6 +41,7 @@ export function ScoutfishQueryModal({ opened, onClose, onApply }: ScoutfishQuery
   const queryJson = buildScoutfishJson(state);
   const isValid = queryJson !== null;
   const isOrderedMode = state.mode !== "simple";
+  const hasDuplicates = hasDuplicateRules(state);
 
   const updateCondition = (index: number, updated: ScoutfishCondition) => {
     setState((prev) => ({
@@ -164,6 +166,13 @@ export function ScoutfishQueryModal({ opened, onClose, onApply }: ScoutfishQuery
 
         <Divider />
 
+        {hasDuplicates && (
+          <Text size="xs" c="red">
+            Each rule type can appear only once {isOrderedMode ? "per step" : "in Simple mode"}.{" "}
+            Remove or change the highlighted duplicates to apply the search.
+          </Text>
+        )}
+
         <ScrollArea
           className={classes.queryScrollArea}
           scrollbarSize={8}
@@ -234,13 +243,17 @@ export function ScoutfishQueryModal({ opened, onClose, onApply }: ScoutfishQuery
                   Valid
                 </Badge>
               ) : (
-                <Badge color="gray" size="xs" variant="light">
-                  Empty
+                <Badge color={hasDuplicates ? "red" : "gray"} size="xs" variant="light">
+                  {hasDuplicates ? "Duplicates" : "Empty"}
                 </Badge>
               )}
             </Group>
             <Code block className={classes.jsonPreview}>
-              {queryJson ? JSON.stringify(queryJson, null, 2) : "// Empty query — add rules above"}
+              {queryJson
+                ? JSON.stringify(queryJson, null, 2)
+                : hasDuplicates
+                  ? "// Resolve duplicate rule types above"
+                  : "// Empty query — add rules above"}
             </Code>
           </Box>
         )}

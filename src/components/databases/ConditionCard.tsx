@@ -21,7 +21,13 @@ import {
   IconTrash,
 } from "@tabler/icons-react";
 import type { ConditionRule, ConditionRuleType, ScoutfishCondition } from "./scoutfishQuery";
-import { createEmptyRule, RULE_LABELS, STM_OPTIONS } from "./scoutfishQuery";
+import {
+  createEmptyRule,
+  getAvailableRuleTypes,
+  getDuplicateRuleTypes,
+  RULE_LABELS,
+  STM_OPTIONS,
+} from "./scoutfishQuery";
 import { SubFenEditor } from "./SubFenEditor";
 import { PieceCountEditor, PieceToggleBar } from "./PieceInput";
 import classes from "./ScoutfishQueryModal.module.css";
@@ -38,10 +44,14 @@ interface ConditionCardProps {
 
 function RuleEditor({
   rule,
+  availableTypes,
+  duplicate,
   onChange,
   onRemove,
 }: {
   rule: ConditionRule;
+  availableTypes: ConditionRuleType[];
+  duplicate: boolean;
   onChange: (updated: ConditionRule) => void;
   onRemove?: () => void;
 }) {
@@ -128,7 +138,13 @@ function RuleEditor({
       data-count-rule={rule.type === "material" || rule.type === "imbalance" || undefined}
     >
       <Select
-        data={RULE_OPTIONS}
+        data={RULE_OPTIONS.map((option) => ({
+          ...option,
+          disabled:
+            option.value !== rule.type &&
+            !availableTypes.includes(option.value as ConditionRuleType),
+        }))}
+        error={duplicate}
         value={rule.type}
         onChange={(value) => {
           if (value) {
@@ -173,6 +189,8 @@ export function ConditionCard({
   const [collapseRequested, { toggle }] = useDisclosure(false);
   const isStep = index !== undefined;
   const collapsed = isStep && collapseRequested;
+  const availableTypes = getAvailableRuleTypes(condition.rules);
+  const duplicateTypes = getDuplicateRuleTypes(condition.rules);
 
   const updateRule = (ruleIndex: number, updated: ConditionRule) => {
     const newRules = [...condition.rules];
@@ -186,9 +204,11 @@ export function ConditionCard({
   };
 
   const addRule = () => {
+    const type = availableTypes[0];
+    if (!type) return;
     onChange({
       ...condition,
-      rules: [...condition.rules, createEmptyRule()],
+      rules: [...condition.rules, createEmptyRule(type)],
     });
   };
 
@@ -242,16 +262,15 @@ export function ConditionCard({
         </Group>
         <Group gap={4} wrap="nowrap">
           {!collapsed && (
-            <Tooltip label="Combine another rule with AND in this condition">
-              <Button
-                variant="subtle"
-                size="compact-xs"
-                leftSection={<IconPlus size="0.875rem" />}
-                onClick={addRule}
-              >
-                Add rule
-              </Button>
-            </Tooltip>
+            <Button
+              variant="subtle"
+              size="compact-xs"
+              leftSection={<IconPlus size="0.875rem" />}
+              onClick={addRule}
+              disabled={availableTypes.length === 0}
+            >
+              Add rule
+            </Button>
           )}
           {isStep && (
             <Tooltip label={collapsed ? "Expand" : "Collapse"}>
@@ -280,6 +299,8 @@ export function ConditionCard({
             <RuleEditor
               key={`${condition.id}-rule-${ruleIdx}`}
               rule={rule}
+              availableTypes={availableTypes}
+              duplicate={duplicateTypes.includes(rule.type)}
               onChange={(updated) => updateRule(ruleIdx, updated)}
               onRemove={condition.rules.length > 1 ? () => removeRule(ruleIdx) : undefined}
             />
