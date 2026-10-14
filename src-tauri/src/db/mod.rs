@@ -407,6 +407,8 @@ pub enum GameSort {
     WhiteElo,
     #[serde(rename = "blackElo")]
     BlackElo,
+    #[serde(rename = "averageElo")]
+    AverageElo,
     #[serde(rename = "ply_count")]
     PlyCount,
 }
@@ -607,6 +609,11 @@ fn build_game_order_clause(query_options: &QueryOptions<GameSort>) -> String {
         GameSort::Date => "utc_timestamp",
         GameSort::WhiteElo => "white_rating",
         GameSort::BlackElo => "black_rating",
+        GameSort::AverageElo => {
+            return format!(
+                "ORDER BY (COALESCE(white_rating::INTEGER, 0) + COALESCE(black_rating::INTEGER, 0)) / 2.0 {dir}, rowid DESC"
+            );
+        }
         GameSort::PlyCount => "ply_count",
     };
 

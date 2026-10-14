@@ -11,7 +11,7 @@ import {
 import { useDebouncedValue } from "@mantine/hooks";
 import { Link } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
-import { memo, useContext, useEffect } from "react";
+import { memo, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr/immutable";
 import { match } from "ts-pattern";
@@ -27,7 +27,7 @@ import {
   referenceDbAtom,
   sessionsAtom,
 } from "@/state/atoms";
-import { getDatabases, type Opening, searchPosition } from "@/utils/db";
+import { getDatabases, type Opening, query_games, searchPosition } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 import { convertToNormalized, getLichessGames, getMasterGames } from "@/utils/lichess/api";
 import type { LichessGamesOptions, MasterGamesOptions } from "@/utils/lichess/explorer";
@@ -158,6 +158,24 @@ function DatabasePanel() {
 
   const tab = useAtomValue(currentTabAtom);
   const [tabType, setTabType] = useAtom(currentDbTabAtom);
+  const [gamesPagination, setGamesPagination] = useState({ key: "", page: 1 });
+  const localGamesKey = JSON.stringify(localOptions);
+  const gamesPage = gamesPagination.key === localGamesKey ? gamesPagination.page : 1;
+  const {
+    data: localGames,
+    isLoading: gamesLoading,
+    error: gamesError,
+  } = useSWR(
+    db === "local" && tabType === "games" && localOptions.path && localOptions.position?.fen
+      ? (["position-games", localOptions, gamesPage] as const)
+      : null,
+    ([, options, page]) =>
+      query_games(options.path!, {
+        ...options,
+        sides: options.sides ?? "WhiteBlack",
+        options: { page, pageSize: 20, skipCount: false, sort: "averageElo", direction: "desc" },
+      }),
+  );
 
   const {
     data: openingData,
@@ -165,8 +183,9 @@ function DatabasePanel() {
     error,
   } = useSWR(
     tabType !== "options" &&
+      (db !== "local" || tabType === "stats") &&
       !missingExplorerToken &&
-      (dbType.type !== "local" || Boolean(dbType.options.position?.fen))
+      (dbType.type !== "local" || Boolean(dbType.options.path && dbType.options.position?.fen))
       ? dbType
       : null,
     async (dbType: DBType) => {
@@ -212,12 +231,16 @@ function DatabasePanel() {
         {tabType !== "options" && (
           <Text style={{ whiteSpace: "nowrap" }}>
             {t("Board.Database.Matches", {
-              matches: formatNumber(Math.max(grandTotal || 0, openingData?.games.length || 0)),
+              matches: formatNumber(
+                db === "local" && tabType === "games"
+                  ? (localGames?.count ?? 0)
+                  : Math.max(grandTotal || 0, openingData?.games.length || 0),
+              ),
             })}
           </Text>
         )}
       </Group>
-      <DatabaseLoader isLoading={isLoading} tab={tab?.value ?? null} />
+      <DatabaseLoader isLoading={isLoading || gamesLoading} tab={tab?.value ?? null} />
     </>
   );
 
@@ -250,15 +273,24 @@ function DatabasePanel() {
         </PanelWithError>
         <PanelWithError
           value="games"
-          error={error}
+          error={db === "local" ? gamesError : error}
           type={db}
           header={header}
           missingExplorerToken={missingExplorerToken}
         >
           <GamesTable
-            games={openingData?.games || []}
-            loading={isLoading}
+            games={db === "local" ? localGames?.data || [] : openingData?.games || []}
+            loading={db === "local" ? gamesLoading : isLoading}
             databasePath={dbType.type === "local" ? dbType.options.path : null}
+            pagination={
+              db === "local"
+                ? {
+                    page: gamesPage,
+                    totalRecords: localGames?.count ?? 0,
+                    onPageChange: (page) => setGamesPagination({ key: localGamesKey, page }),
+                  }
+                : undefined
+            }
           />
         </PanelWithError>
         <PanelWithError
@@ -303,7 +335,7 @@ function PanelWithError(props: {
       </Alert>
     );
   }
-  if (props.error && props.type !== "local") {
+  if (props.error) {
     children = <Alert color="red">{props.error.toString()}</Alert>;
   }
 
