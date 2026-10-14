@@ -1,26 +1,13 @@
-import { Box, Group, ActionIcon, Text, Tooltip, Stack } from "@mantine/core";
-import { IconTrash } from "@tabler/icons-react";
-import { makeFen, parseFen } from "chessops/fen";
+import { Box, Button, Group, Text } from "@mantine/core";
+import { INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
 import { parseSquare, type Piece, type SquareName } from "chessops";
-import { useState, useCallback, useMemo } from "react";
+import { useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Chessground } from "@/chessground/Chessground";
+import PiecesGrid from "../boards/PiecesGrid";
+import classes from "./SubFenEditor.module.css";
 
-const PIECE_PALETTE: { piece: Piece; label: string; symbol: string }[] = [
-  { piece: { role: "king", color: "white" }, label: "White King", symbol: "♔" },
-  { piece: { role: "queen", color: "white" }, label: "White Queen", symbol: "♕" },
-  { piece: { role: "rook", color: "white" }, label: "White Rook", symbol: "♖" },
-  { piece: { role: "bishop", color: "white" }, label: "White Bishop", symbol: "♗" },
-  { piece: { role: "knight", color: "white" }, label: "White Knight", symbol: "♘" },
-  { piece: { role: "pawn", color: "white" }, label: "White Pawn", symbol: "♙" },
-  { piece: { role: "king", color: "black" }, label: "Black King", symbol: "♚" },
-  { piece: { role: "queen", color: "black" }, label: "Black Queen", symbol: "♛" },
-  { piece: { role: "rook", color: "black" }, label: "Black Rook", symbol: "♜" },
-  { piece: { role: "bishop", color: "black" }, label: "Black Bishop", symbol: "♝" },
-  { piece: { role: "knight", color: "black" }, label: "Black Knight", symbol: "♞" },
-  { piece: { role: "pawn", color: "black" }, label: "Black Pawn", symbol: "♟" },
-];
-
-const EMPTY_BOARD_FEN = "8/8/8/8/8/8/8/8 w - - 0 1";
+const EMPTY_BOARD = "8/8/8/8/8/8/8/8";
 
 interface SubFenEditorProps {
   value: string;
@@ -28,145 +15,87 @@ interface SubFenEditorProps {
 }
 
 export function SubFenEditor({ value, onChange }: SubFenEditorProps) {
-  const [selectedPiece, setSelectedPiece] = useState<Piece | null>(PIECE_PALETTE[0].piece);
-  const [eraseMode, setEraseMode] = useState(false);
+  const { t } = useTranslation();
+  const boardRef = useRef<HTMLDivElement>(null);
+  const [selectedPiece, setSelectedPiece] = useState<Piece | null>(null);
+  const inputFen = `${value.split(" ")[0] || EMPTY_BOARD} w - - 0 1`;
+  const valid = parseFen(inputFen).isOk;
+  const fullFen = valid ? inputFen : `${EMPTY_BOARD} w - - 0 1`;
 
-  // If value is a sub-fen (board part only), expand it to a full FEN for Chessground
-  const fullFen = useMemo(() => {
-    if (!value) return EMPTY_BOARD_FEN;
-    // If it already has at least the turn part, use it as-is
-    if (value.includes(" ")) return value;
-    // Otherwise treat as board-only sub-fen, append defaults
-    return `${value} w - - 0 1`;
-  }, [value]);
-
-  // Extract just the board part (first segment) for output
-  const extractBoardFen = useCallback((fen: string): string => {
-    return fen.split(" ")[0];
-  }, []);
-
-  const handleBoardChange = useCallback(
-    (newFen: string) => {
-      onChange(extractBoardFen(newFen));
-    },
-    [onChange, extractBoardFen],
-  );
+  const handleBoardChange = useCallback((fen: string) => onChange(fen.split(" ")[0]), [onChange]);
 
   const handleSquareClick = useCallback(
     (key: SquareName) => {
+      if (!selectedPiece) return;
       const setup = parseFen(fullFen);
-      if (setup.isErr) return;
-
-      const s = setup.value;
       const square = parseSquare(key);
-      if (square === undefined) return;
-
-      if (eraseMode) {
-        s.board.take(square);
-      } else if (selectedPiece) {
-        // If there's already the same piece, remove it (toggle)
-        const existing = s.board.get(square);
-        if (
-          existing &&
-          existing.role === selectedPiece.role &&
-          existing.color === selectedPiece.color
-        ) {
-          s.board.take(square);
-        } else {
-          s.board.set(square, selectedPiece);
-        }
-      }
-
-      onChange(extractBoardFen(makeFen(s)));
+      if (setup.isErr || square === undefined) return;
+      if (setup.value.board.has(square)) return;
+      setup.value.board.set(square, selectedPiece);
+      handleBoardChange(makeFen(setup.value));
     },
-    [fullFen, selectedPiece, eraseMode, onChange, extractBoardFen],
+    [fullFen, selectedPiece, handleBoardChange],
   );
 
   return (
-    <Stack gap="xs">
-      <Group gap="xs" wrap="wrap">
-        {PIECE_PALETTE.map((p) => {
-          const isActive =
-            !eraseMode &&
-            selectedPiece?.role === p.piece.role &&
-            selectedPiece?.color === p.piece.color;
-          return (
-            <Tooltip key={p.label} label={p.label}>
-              <ActionIcon
-                variant={isActive ? "filled" : "default"}
-                size="lg"
-                onClick={() => {
-                  setSelectedPiece(p.piece);
-                  setEraseMode(false);
-                }}
-                style={{
-                  fontSize: "1.25rem",
-                  fontFamily: "serif",
-                }}
-              >
-                {p.symbol}
-              </ActionIcon>
-            </Tooltip>
-          );
-        })}
-        <Tooltip label="Erase pieces">
-          <ActionIcon
-            variant={eraseMode ? "filled" : "default"}
-            color="red"
-            size="lg"
-            onClick={() => {
-              setEraseMode(true);
-              setSelectedPiece(null);
-            }}
-          >
-            <IconTrash size="1rem" />
-          </ActionIcon>
-        </Tooltip>
-        <Tooltip label="Clear board">
-          <ActionIcon
-            variant="default"
-            size="lg"
-            onClick={() => {
-              onChange("8/8/8/8/8/8/8/8");
-            }}
-          >
-            <Text size="xs" fw={700}>
-              CLR
-            </Text>
-          </ActionIcon>
-        </Tooltip>
-      </Group>
-
-      <Box style={{ maxWidth: 320 }}>
+    <Box className={classes.editor}>
+      <Box ref={boardRef} className={classes.board}>
         <Chessground
           fen={fullFen}
-          coordinates={true}
-          viewOnly={false}
+          orientation="white"
+          coordinates={false}
+          animation={{ enabled: false }}
           movable={{
             free: true,
             color: "both",
-            events: {
-              after: () => {
-                // Moves handled via setBoardFen
-              },
-            },
+            showDests: false,
           }}
-          draggable={{
-            enabled: true,
-            deleteOnDropOff: true,
-          }}
-          events={{
-            select: (key) => {
-              handleSquareClick(key as SquareName);
-            },
-          }}
+          draggable={{ enabled: true, deleteOnDropOff: true }}
+          selectable={{ enabled: true }}
+          drawable={{ enabled: false, visible: false }}
+          events={{ select: (key) => handleSquareClick(key as SquareName) }}
           setBoardFen={handleBoardChange}
         />
       </Box>
-
-      <Text size="xs" c="dimmed" style={{ fontFamily: "monospace", wordBreak: "break-all" }}>
-        {value || "8/8/8/8/8/8/8/8"}
-      </Text>
-    </Stack>
+      <Box className={classes.controls}>
+        <PiecesGrid
+          fen={fullFen}
+          boardRef={boardRef}
+          onPut={(fen) => {
+            handleBoardChange(fen);
+            setSelectedPiece(null);
+          }}
+          selectedPiece={selectedPiece}
+          onSelectPiece={setSelectedPiece}
+        />
+        <Group gap={6}>
+          <Button
+            size="compact-xs"
+            variant="default"
+            onClick={() => {
+              setSelectedPiece(null);
+              handleBoardChange(INITIAL_FEN);
+            }}
+          >
+            {t("Fen.Start")}
+          </Button>
+          <Button
+            size="compact-xs"
+            variant="default"
+            onClick={() => {
+              setSelectedPiece(null);
+              onChange(EMPTY_BOARD);
+            }}
+          >
+            {t("Fen.Empty")}
+          </Button>
+        </Group>
+        {!valid && (
+          <Text size="xs" c="red">
+            Invalid board pattern. Editing starts from an empty board.
+          </Text>
+        )}
+      </Box>
+    </Box>
   );
 }

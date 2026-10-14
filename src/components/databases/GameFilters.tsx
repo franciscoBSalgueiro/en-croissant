@@ -178,15 +178,25 @@ export function GameFilters({
           {!hidePositionSearch && (
             <>
               {hasScoutfishQuery && (
-                <Badge
-                  color="blue"
-                  variant="light"
-                  size="lg"
-                  style={{ cursor: "pointer" }}
-                  onClick={openAdvancedSearch}
-                >
-                  {t("Databases.Game.Filters.ScoutfishActive")}
-                </Badge>
+                <Group justify="space-between" gap="xs">
+                  <Badge
+                    color="blue"
+                    variant="light"
+                    size="lg"
+                    style={{ cursor: "pointer" }}
+                    onClick={openAdvancedSearch}
+                  >
+                    {t("Databases.Game.Filters.ScoutfishActive")}
+                  </Badge>
+                  <Button
+                    size="compact-xs"
+                    variant="subtle"
+                    color="gray"
+                    onClick={() => setQuery({ ...query, position: undefined })}
+                  >
+                    {t("Common.Remove")}
+                  </Button>
+                </Group>
               )}
 
               <Button

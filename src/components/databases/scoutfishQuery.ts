@@ -1,21 +1,3 @@
-/**
- * Scoutfish query builder types and JSON serialization helpers.
- *
- * A scoutfish query is either:
- * - A single condition (object with rule keys)
- * - A sequence of conditions (ordered, matched progressively through the game)
- * - A streak of conditions (consecutive half-moves)
- *
- * Each "condition" can combine multiple rules via AND (e.g. sub-fen + material).
- *
- * Note: Aix's scoutfish_query() does NOT support `result` or `result-type` —
- * use the SQL `result` column and existing game table filters instead.
- */
-
-// ---------------------------------------------------------------------------
-// Condition rule types
-// ---------------------------------------------------------------------------
-
 export type ConditionRuleType =
     | "material"
     | "imbalance"
@@ -29,11 +11,9 @@ export type ConditionRuleType =
 
 export interface ConditionRule {
     type: ConditionRuleType;
-    /** For list-capable rules this is string[]; for single-value rules it's string */
     values: string[];
 }
 
-/** A single condition card: one or more rules combined via AND */
 export interface ScoutfishCondition {
     id: string;
     rules: ConditionRule[];
@@ -45,6 +25,8 @@ export type QueryMode = "simple" | "sequence" | "streak";
 export interface ScoutfishQueryState {
     mode: QueryMode;
     conditions: ScoutfishCondition[];
+    /** Ordered steps retained while Simple displays a flattened rule list. */
+    orderedConditions?: ScoutfishCondition[];
 }
 
 // ---------------------------------------------------------------------------
@@ -52,14 +34,14 @@ export interface ScoutfishQueryState {
 // ---------------------------------------------------------------------------
 
 let nextId = 1;
-export function generateId(): string {
+function generateId(): string {
     return `cond-${nextId++}-${Date.now()}`;
 }
 
 export function createEmptyCondition(): ScoutfishCondition {
     return {
         id: generateId(),
-        rules: [{ type: "material", values: [] }],
+        rules: [createEmptyRule()],
     };
 }
 
@@ -74,23 +56,28 @@ export function getDefaultQueryState(): ScoutfishQueryState {
     };
 }
 
-/** Rules that support a list of values (rendered as TagsInput) */
-export const LIST_RULES: ConditionRuleType[] = [
-    "material",
-    "imbalance",
-    "sub-fen",
-    "white-move",
-    "black-move",
-];
-
-/** Rules that take a single free-text value */
-export const SINGLE_VALUE_RULES: ConditionRuleType[] = ["moved", "captured"];
-
-/** Rules rendered as a select dropdown */
-export const SELECT_RULES: ConditionRuleType[] = ["stm"];
-
-/** Rules with no value */
-export const NO_VALUE_RULES: ConditionRuleType[] = ["pass"];
+export function changeQueryMode(state: ScoutfishQueryState, mode: QueryMode): ScoutfishQueryState {
+    if (mode === "simple" && state.mode !== "simple") {
+        return {
+            ...state,
+            mode,
+            orderedConditions: state.conditions,
+            conditions:
+                state.conditions.length > 1
+                    ? [
+                          {
+                              ...state.conditions[0],
+                              rules: state.conditions.flatMap((condition) => condition.rules),
+                          },
+                      ]
+                    : state.conditions,
+        };
+    }
+    if (mode !== "simple" && state.mode === "simple" && state.orderedConditions) {
+        return { mode, conditions: state.orderedConditions };
+    }
+    return { ...state, mode };
+}
 
 export const RULE_LABELS: Record<ConditionRuleType, string> = {
     material: "Material",
@@ -103,34 +90,6 @@ export const RULE_LABELS: Record<ConditionRuleType, string> = {
     stm: "Side to Move",
     pass: "Pass (any)",
 };
-
-export const RULE_DESCRIPTIONS: Record<ConditionRuleType, string> = {
-    material:
-        "Match material distribution. Capital = white, lowercase for black after K. E.g. KBNKNN, KBNPKNN",
-    imbalance:
-        "Match material imbalance. E.g. PPPv = 3 pawn advantage for white, PPvN = 2 pawns up but down a knight",
-    "sub-fen":
-        "Match a sub-FEN board pattern. Use the board editor to place pieces. 1-8 = empty squares",
-    "white-move": "Match a specific white move in SAN notation. E.g. e8=Q, O-O, Nf3",
-    "black-move": "Match a specific black move in SAN notation. E.g. O-O-O, Rac1, dxe5",
-    moved: "Match specific piece types that moved. E.g. KP = king or pawn. Listed in a single string",
-    captured:
-        "Match specific piece types captured. E.g. Q = queen captured. Empty string = quiet move",
-    stm: "Side to move at the matched position",
-    pass: "Matches any position. Useful as a placeholder in sequences/streaks",
-};
-
-export const ALL_RULE_TYPES: ConditionRuleType[] = [
-    "material",
-    "imbalance",
-    "sub-fen",
-    "white-move",
-    "black-move",
-    "moved",
-    "captured",
-    "stm",
-    "pass",
-];
 
 export const STM_OPTIONS = [
     { value: "white", label: "White" },
@@ -203,13 +162,4 @@ export function buildScoutfishJson(state: ScoutfishQueryState): Record<string, u
         default:
             return null;
     }
-}
-
-/**
- * Pretty-print the JSON for preview.
- */
-export function formatScoutfishJson(state: ScoutfishQueryState): string {
-    const json = buildScoutfishJson(state);
-    if (!json) return "// Empty query — add conditions above";
-    return JSON.stringify(json, null, 2);
 }

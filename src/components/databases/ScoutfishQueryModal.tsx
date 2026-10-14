@@ -19,9 +19,10 @@ import { ConditionCard } from "./ConditionCard";
 import {
   type QueryMode,
   type ScoutfishQueryState,
+  type ScoutfishCondition,
   buildScoutfishJson,
+  changeQueryMode,
   createEmptyCondition,
-  formatScoutfishJson,
   getDefaultQueryState,
 } from "./scoutfishQuery";
 import classes from "./ScoutfishQueryModal.module.css";
@@ -36,12 +37,11 @@ export function ScoutfishQueryModal({ opened, onClose, onApply }: ScoutfishQuery
   const [state, setState] = useState<ScoutfishQueryState>(() => getDefaultQueryState());
   const [showJsonPreview, setShowJsonPreview] = useState(false);
 
-  const jsonPreview = formatScoutfishJson(state);
   const queryJson = buildScoutfishJson(state);
   const isValid = queryJson !== null;
-  const isSequenceMode = state.mode === "sequence" || state.mode === "streak";
+  const isOrderedMode = state.mode !== "simple";
 
-  const updateCondition = (index: number, updated: ScoutfishQueryState["conditions"][0]) => {
+  const updateCondition = (index: number, updated: ScoutfishCondition) => {
     setState((prev) => ({
       ...prev,
       conditions: prev.conditions.map((c, i) => (i === index ? updated : c)),
@@ -97,7 +97,6 @@ export function ScoutfishQueryModal({ opened, onClose, onApply }: ScoutfishQuery
       }
       size="80%"
       centered
-      // Transform-based transitions offset the fixed-position draggable cards.
       transitionProps={{ transition: "fade" }}
       styles={{
         content: {
@@ -113,48 +112,49 @@ export function ScoutfishQueryModal({ opened, onClose, onApply }: ScoutfishQuery
         },
       }}
     >
-      <Stack gap="md" className={classes.content}>
+      <Stack gap="xs" className={classes.content}>
         <Box>
-          <Text size="sm" fw={500} mb={4}>
-            Query Mode
-          </Text>
-          <SegmentedControl
-            data={[
-              {
-                value: "simple",
-                label: (
-                  <Tooltip label="All rules combined into one condition" withArrow>
-                    <Text size="sm">Simple</Text>
-                  </Tooltip>
-                ),
-              },
-              {
-                value: "sequence",
-                label: (
-                  <Tooltip
-                    label="Conditions matched in order at any later point in the game"
-                    withArrow
-                  >
-                    <Text size="sm">Sequence</Text>
-                  </Tooltip>
-                ),
-              },
-              {
-                value: "streak",
-                label: (
-                  <Tooltip label="Conditions must match on consecutive half-moves" withArrow>
-                    <Text size="sm">Streak</Text>
-                  </Tooltip>
-                ),
-              },
-            ]}
-            value={state.mode}
-            onChange={(value) => setState((prev) => ({ ...prev, mode: value as QueryMode }))}
-            fullWidth
-          />
+          <Group gap="sm">
+            <Text size="sm" fw={500}>
+              Query Mode
+            </Text>
+            <SegmentedControl
+              data={[
+                {
+                  value: "simple",
+                  label: (
+                    <Tooltip label="All rules combined into one condition" withArrow>
+                      <Text size="sm">Simple</Text>
+                    </Tooltip>
+                  ),
+                },
+                {
+                  value: "sequence",
+                  label: (
+                    <Tooltip
+                      label="Conditions matched in order at any later point in the game"
+                      withArrow
+                    >
+                      <Text size="sm">Sequence</Text>
+                    </Tooltip>
+                  ),
+                },
+                {
+                  value: "streak",
+                  label: (
+                    <Tooltip label="Conditions must match on consecutive half-moves" withArrow>
+                      <Text size="sm">Streak</Text>
+                    </Tooltip>
+                  ),
+                },
+              ]}
+              value={state.mode}
+              onChange={(value) => setState((prev) => changeQueryMode(prev, value as QueryMode))}
+              size="xs"
+            />
+          </Group>
           <Text size="xs" c="dimmed" mt={4}>
-            {state.mode === "simple" &&
-              "All rules are combined into a single condition with AND logic."}
+            {state.mode === "simple" && "All rules must match the same position."}
             {state.mode === "sequence" &&
               "Each step must match in order, but can occur at any later point in the game. Useful for finding piece paths and maneuvers."}
             {state.mode === "streak" &&
@@ -170,46 +170,56 @@ export function ScoutfishQueryModal({ opened, onClose, onApply }: ScoutfishQuery
           offsetScrollbars
           scrollbars="y"
         >
-          <DragDropContext onDragEnd={moveCondition}>
-            <Droppable droppableId="scoutfish-steps" isDropDisabled={!isSequenceMode}>
-              {(provided) => (
-                <Stack gap="sm" ref={provided.innerRef} {...provided.droppableProps}>
-                  {state.conditions.map((condition, idx) => (
-                    <Draggable
-                      key={condition.id}
-                      draggableId={condition.id}
-                      index={idx}
-                      isDragDisabled={!isSequenceMode || state.conditions.length < 2}
-                    >
-                      {(provided) => (
-                        <div ref={provided.innerRef} {...provided.draggableProps}>
-                          <ConditionCard
-                            condition={condition}
-                            index={idx}
-                            isSequenceMode={isSequenceMode}
-                            canRemove={state.conditions.length > 1}
-                            dragHandleProps={provided.dragHandleProps}
-                            onChange={(updated) => updateCondition(idx, updated)}
-                            onRemove={() => removeCondition(idx)}
-                          />
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                </Stack>
-              )}
-            </Droppable>
-          </DragDropContext>
+          {isOrderedMode ? (
+            <DragDropContext onDragEnd={moveCondition}>
+              <Droppable droppableId="scoutfish-steps">
+                {(provided) => (
+                  <Stack gap={6} ref={provided.innerRef} {...provided.droppableProps}>
+                    {state.conditions.map((condition, idx) => (
+                      <Draggable
+                        key={condition.id}
+                        draggableId={condition.id}
+                        index={idx}
+                        isDragDisabled={state.conditions.length < 2}
+                      >
+                        {(provided) => (
+                          <div ref={provided.innerRef} {...provided.draggableProps}>
+                            <ConditionCard
+                              condition={condition}
+                              index={idx}
+                              dragHandleProps={provided.dragHandleProps}
+                              onChange={(updated) => updateCondition(idx, updated)}
+                              onRemove={
+                                state.conditions.length > 1 ? () => removeCondition(idx) : undefined
+                              }
+                            />
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </Stack>
+                )}
+              </Droppable>
+            </DragDropContext>
+          ) : (
+            <ConditionCard
+              condition={state.conditions[0]}
+              onChange={(updated) => updateCondition(0, updated)}
+            />
+          )}
         </ScrollArea>
-        <Button
-          variant="light"
-          leftSection={<IconPlus size="1rem" />}
-          onClick={addCondition}
-          size="sm"
-        >
-          {isSequenceMode ? "Add Step" : "Add Condition"}
-        </Button>
+        {isOrderedMode && (
+          <Button
+            variant="light"
+            leftSection={<IconPlus size="1rem" />}
+            onClick={addCondition}
+            size="compact-sm"
+            className={classes.addCondition}
+          >
+            Add Step
+          </Button>
+        )}
 
         <Divider />
 
@@ -230,12 +240,11 @@ export function ScoutfishQueryModal({ opened, onClose, onApply }: ScoutfishQuery
               )}
             </Group>
             <Code block className={classes.jsonPreview}>
-              {jsonPreview}
+              {queryJson ? JSON.stringify(queryJson, null, 2) : "// Empty query — add rules above"}
             </Code>
           </Box>
         )}
 
-        {/* Action Buttons */}
         <Group justify="space-between" className={classes.footer}>
           <Group>
             <Button

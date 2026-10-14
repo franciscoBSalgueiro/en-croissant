@@ -2,6 +2,7 @@ import type { DraggableProvidedDragHandleProps } from "@hello-pangea/dnd";
 import {
   ActionIcon,
   Box,
+  Button,
   Collapse,
   Group,
   Paper,
@@ -20,49 +21,34 @@ import {
   IconTrash,
 } from "@tabler/icons-react";
 import type { ConditionRule, ConditionRuleType, ScoutfishCondition } from "./scoutfishQuery";
-import {
-  ALL_RULE_TYPES,
-  createEmptyRule,
-  LIST_RULES,
-  NO_VALUE_RULES,
-  RULE_DESCRIPTIONS,
-  RULE_LABELS,
-  SELECT_RULES,
-  STM_OPTIONS,
-} from "./scoutfishQuery";
+import { createEmptyRule, RULE_LABELS, STM_OPTIONS } from "./scoutfishQuery";
 import { SubFenEditor } from "./SubFenEditor";
-import { ImbalanceInput, MaterialInput, PieceToggleBar } from "./PieceInput";
+import { PieceCountEditor, PieceToggleBar } from "./PieceInput";
+import classes from "./ScoutfishQueryModal.module.css";
+
+const RULE_OPTIONS = Object.entries(RULE_LABELS).map(([value, label]) => ({ value, label }));
 
 interface ConditionCardProps {
   condition: ScoutfishCondition;
-  index: number;
-  isSequenceMode: boolean;
-  canRemove: boolean;
-  dragHandleProps: DraggableProvidedDragHandleProps | null;
+  index?: number;
+  dragHandleProps?: DraggableProvidedDragHandleProps | null;
   onChange: (updated: ScoutfishCondition) => void;
-  onRemove: () => void;
+  onRemove?: () => void;
 }
 
 function RuleEditor({
   rule,
   onChange,
   onRemove,
-  canRemove,
 }: {
   rule: ConditionRule;
   onChange: (updated: ConditionRule) => void;
-  onRemove: () => void;
-  canRemove: boolean;
+  onRemove?: () => void;
 }) {
   const [boardOpen, { toggle: toggleBoard }] = useDisclosure(false);
 
-  const ruleOptions = ALL_RULE_TYPES.map((t) => ({
-    value: t,
-    label: RULE_LABELS[t],
-  }));
-
   const renderValueEditor = () => {
-    if (NO_VALUE_RULES.includes(rule.type)) {
+    if (rule.type === "pass") {
       return (
         <Text size="sm" c="dimmed" fs="italic">
           Matches any position
@@ -72,108 +58,62 @@ function RuleEditor({
 
     if (rule.type === "sub-fen") {
       return (
-        <Stack gap="xs">
+        <Group gap="xs" wrap="nowrap">
           <TagsInput
             placeholder="Type a sub-FEN pattern and press Enter"
             value={rule.values}
             onChange={(values) => onChange({ ...rule, values })}
-            size="sm"
+            size="xs"
+            style={{ flex: 1, minWidth: 0 }}
           />
-          <Box>
-            <Text
-              size="xs"
-              c="blue"
-              style={{ cursor: "pointer", userSelect: "none" }}
-              onClick={toggleBoard}
-            >
-              {boardOpen ? "▾ Hide board editor" : "▸ Open board editor"}
-            </Text>
-            <Collapse in={boardOpen}>
-              <Box mt="xs">
-                <SubFenEditor
-                  value={rule.values[0] ?? ""}
-                  onChange={(fen) => {
-                    const newVals = [...rule.values];
-                    if (newVals.length === 0) {
-                      newVals.push(fen);
-                    } else {
-                      newVals[0] = fen;
-                    }
-                    onChange({ ...rule, values: newVals });
-                  }}
-                />
-              </Box>
-            </Collapse>
-          </Box>
-        </Stack>
+          <Button size="compact-xs" variant="default" onClick={toggleBoard}>
+            {boardOpen ? "Hide board" : "Edit board"}
+          </Button>
+        </Group>
       );
     }
 
-    if (rule.type === "material") {
+    if (rule.type === "material" || rule.type === "imbalance") {
       return (
-        <MaterialInput
+        <PieceCountEditor
+          type={rule.type}
           value={rule.values[0] ?? ""}
-          onChange={(v) => onChange({ ...rule, values: v ? [v] : [] })}
+          onChange={(value) => onChange({ ...rule, values: value ? [value] : [] })}
         />
       );
     }
-
-    if (rule.type === "imbalance") {
-      return (
-        <ImbalanceInput
-          value={rule.values[0] ?? ""}
-          onChange={(v) => onChange({ ...rule, values: v ? [v] : [] })}
-        />
-      );
-    }
-
-    if (rule.type === "moved") {
+    if (rule.type === "moved" || rule.type === "captured") {
       return (
         <PieceToggleBar
           value={rule.values[0] ?? ""}
-          onChange={(v) => onChange({ ...rule, values: v ? [v] : [] })}
-          description="Select piece types that moved. Multiple piece types = OR match."
-          allowMultiple={false}
+          onChange={(value) => onChange({ ...rule, values: [value] })}
+          excludeKing={rule.type === "captured"}
         />
       );
     }
-
-    if (rule.type === "captured") {
-      return (
-        <PieceToggleBar
-          value={rule.values[0] ?? ""}
-          onChange={(v) => onChange({ ...rule, values: [v] })}
-          description="Select piece types captured. Leave empty for quiet (non-capture) moves."
-          allowMultiple={false}
-          excludeKing={true}
-        />
-      );
-    }
-
-    if (LIST_RULES.includes(rule.type)) {
-      const placeholders: Record<string, string> = {
-        "white-move": "e.g. e8=Q, O-O — press Enter to add",
-        "black-move": "e.g. O-O-O, Rac1 — press Enter to add",
-      };
+    if (rule.type === "white-move" || rule.type === "black-move") {
       return (
         <TagsInput
-          placeholder={placeholders[rule.type] ?? "Type and press Enter"}
+          placeholder={
+            rule.type === "white-move"
+              ? "e.g. e8=Q, O-O — press Enter to add"
+              : "e.g. O-O-O, Rac1 — press Enter to add"
+          }
           value={rule.values}
           onChange={(values) => onChange({ ...rule, values })}
-          size="sm"
+          size="xs"
         />
       );
     }
 
-    if (SELECT_RULES.includes(rule.type)) {
-      const options = rule.type === "stm" ? STM_OPTIONS : [];
+    if (rule.type === "stm") {
       return (
         <Select
           placeholder="Select..."
-          data={options}
+          data={STM_OPTIONS}
           value={rule.values[0] ?? null}
           onChange={(value) => onChange({ ...rule, values: value ? [value] : [] })}
-          size="sm"
+          size="xs"
           clearable
         />
       );
@@ -184,42 +124,41 @@ function RuleEditor({
 
   return (
     <Box
-      style={{
-        padding: "0.5rem 0",
-        borderBottom: "1px solid var(--mantine-color-default-border)",
-      }}
+      className={classes.ruleRow}
+      data-count-rule={rule.type === "material" || rule.type === "imbalance" || undefined}
     >
-      <Group gap="sm" align="start" wrap="nowrap">
-        <Box style={{ flexGrow: 1 }}>
-          <Group gap="xs" mb={4}>
-            <Select
-              data={ruleOptions}
-              value={rule.type}
-              onChange={(value) => {
-                if (value) {
-                  onChange({
-                    type: value as ConditionRuleType,
-                    values: [],
-                  });
-                }
-              }}
-              size="xs"
-              style={{ width: 160 }}
-            />
-            <Text size="xs" c="dimmed" style={{ flex: 1 }}>
-              {RULE_DESCRIPTIONS[rule.type]}
-            </Text>
-          </Group>
-          {renderValueEditor()}
-        </Box>
-        {canRemove && (
+      <Select
+        data={RULE_OPTIONS}
+        value={rule.type}
+        onChange={(value) => {
+          if (value) {
+            onChange({
+              type: value as ConditionRuleType,
+              values: [],
+            });
+          }
+        }}
+        size="xs"
+        className={classes.ruleType}
+      />
+      <Box className={classes.ruleValue}>{renderValueEditor()}</Box>
+      <Box className={classes.ruleRemove}>
+        {onRemove && (
           <Tooltip label="Remove rule">
-            <ActionIcon variant="subtle" color="red" size="sm" onClick={onRemove} mt={4}>
+            <ActionIcon variant="subtle" color="red" size="sm" onClick={onRemove}>
               <IconTrash size="0.875rem" />
             </ActionIcon>
           </Tooltip>
         )}
-      </Group>
+      </Box>
+      {rule.type === "sub-fen" && (
+        <Collapse in={boardOpen} className={classes.boardDetails}>
+          <SubFenEditor
+            value={rule.values[0] ?? ""}
+            onChange={(fen) => onChange({ ...rule, values: [fen, ...rule.values.slice(1)] })}
+          />
+        </Collapse>
+      )}
     </Box>
   );
 }
@@ -227,13 +166,13 @@ function RuleEditor({
 export function ConditionCard({
   condition,
   index,
-  isSequenceMode,
-  canRemove,
   dragHandleProps,
   onChange,
   onRemove,
 }: ConditionCardProps) {
-  const [collapsed, { toggle }] = useDisclosure(false);
+  const [collapseRequested, { toggle }] = useDisclosure(false);
+  const isStep = index !== undefined;
+  const collapsed = isStep && collapseRequested;
 
   const updateRule = (ruleIndex: number, updated: ConditionRule) => {
     const newRules = [...condition.rules];
@@ -253,35 +192,34 @@ export function ConditionCard({
     });
   };
 
-  const rulesSummary = condition.rules.map((r) => RULE_LABELS[r.type]).join(" + ");
+  const rulesSummary = condition.rules
+    .map((rule) => {
+      const value =
+        rule.type === "captured" && !rule.values[0] ? "Quiet move" : rule.values.join(" / ");
+      return `${RULE_LABELS[rule.type]}${value ? `: ${value}` : ""}`;
+    })
+    .join(" · ");
 
   return (
     <Paper
       withBorder
-      p="sm"
-      radius="md"
+      p="xs"
+      radius="sm"
       style={{
         borderLeftWidth: 3,
-        borderLeftColor: isSequenceMode
-          ? "var(--mantine-color-blue-6)"
-          : "var(--mantine-color-teal-6)",
+        borderLeftColor: isStep ? "var(--mantine-color-blue-6)" : "var(--mantine-color-teal-6)",
       }}
     >
-      <Group justify="space-between" mb={collapsed ? 0 : "xs"}>
-        <Group gap="xs">
+      <Group justify="space-between" gap="xs" wrap="nowrap" mb={collapsed ? 0 : 4}>
+        <Group gap={6} wrap="nowrap" className={classes.conditionHeading}>
           {dragHandleProps && (
             <Tooltip label="Drag to reorder step">
-              <Box
-                {...dragHandleProps}
-                aria-label={`Reorder step ${index + 1}`}
-                c="dimmed"
-                style={{ display: "flex", cursor: "grab" }}
-              >
+              <Box {...dragHandleProps} c="dimmed" style={{ display: "flex", cursor: "grab" }}>
                 <IconGripVertical size="1rem" />
               </Box>
             </Tooltip>
           )}
-          {isSequenceMode && (
+          {isStep && (
             <Text
               size="xs"
               fw={700}
@@ -289,23 +227,44 @@ export function ConditionCard({
               style={{
                 background: "var(--mantine-color-blue-light)",
                 borderRadius: "var(--mantine-radius-sm)",
-                padding: "2px 8px",
+                padding: "2px 6px",
+                flexShrink: 0,
               }}
             >
               Step {index + 1}
             </Text>
           )}
-          <Text size="sm" fw={500}>
-            {collapsed ? rulesSummary : "Condition"}
+          <Text size="xs" c="dimmed" className={classes.conditionSummary}>
+            {collapsed
+              ? rulesSummary
+              : `${condition.rules.length} ${condition.rules.length === 1 ? "rule" : "rules"}`}
           </Text>
         </Group>
-        <Group gap={4}>
-          <Tooltip label={collapsed ? "Expand" : "Collapse"}>
-            <ActionIcon variant="subtle" size="sm" onClick={toggle}>
-              {collapsed ? <IconChevronDown size="0.875rem" /> : <IconChevronUp size="0.875rem" />}
-            </ActionIcon>
-          </Tooltip>
-          {canRemove && (
+        <Group gap={4} wrap="nowrap">
+          {!collapsed && (
+            <Tooltip label="Combine another rule with AND in this condition">
+              <Button
+                variant="subtle"
+                size="compact-xs"
+                leftSection={<IconPlus size="0.875rem" />}
+                onClick={addRule}
+              >
+                Add rule
+              </Button>
+            </Tooltip>
+          )}
+          {isStep && (
+            <Tooltip label={collapsed ? "Expand" : "Collapse"}>
+              <ActionIcon variant="subtle" size="sm" onClick={toggle} aria-expanded={!collapsed}>
+                {collapsed ? (
+                  <IconChevronDown size="0.875rem" />
+                ) : (
+                  <IconChevronUp size="0.875rem" />
+                )}
+              </ActionIcon>
+            </Tooltip>
+          )}
+          {onRemove && (
             <Tooltip label="Remove condition">
               <ActionIcon variant="subtle" color="red" size="sm" onClick={onRemove}>
                 <IconTrash size="0.875rem" />
@@ -322,21 +281,10 @@ export function ConditionCard({
               key={`${condition.id}-rule-${ruleIdx}`}
               rule={rule}
               onChange={(updated) => updateRule(ruleIdx, updated)}
-              onRemove={() => removeRule(ruleIdx)}
-              canRemove={condition.rules.length > 1}
+              onRemove={condition.rules.length > 1 ? () => removeRule(ruleIdx) : undefined}
             />
           ))}
         </Stack>
-        <Group mt="xs">
-          <Tooltip label="Combine another rule with AND in this condition">
-            <ActionIcon variant="light" size="sm" onClick={addRule}>
-              <IconPlus size="0.875rem" />
-            </ActionIcon>
-          </Tooltip>
-          <Text size="xs" c="dimmed">
-            Add rule (AND)
-          </Text>
-        </Group>
       </Collapse>
     </Paper>
   );
