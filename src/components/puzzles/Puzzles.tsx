@@ -17,7 +17,6 @@ import {
   Text,
   Tooltip,
 } from "@mantine/core";
-import { useSessionStorage } from "@mantine/hooks";
 import {
   IconAlertTriangle,
   IconFlame,
@@ -32,8 +31,10 @@ import { parseFen } from "chessops/fen";
 import { useAtom, useSetAtom } from "jotai";
 import { useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Mosaic } from "react-mosaic-component";
 import { useStore } from "zustand";
 import { commands, type PuzzleDatabaseInfo } from "@/bindings";
+import { usePuzzleSession } from "@/hooks/usePuzzleSession";
 import {
   activeTabAtom,
   currentPuzzleAtom,
@@ -60,6 +61,7 @@ import MoveControls from "../common/MoveControls";
 import { TreeStateContext } from "../common/TreeStateContext";
 import AddPuzzle from "./AddPuzzle";
 import PuzzleBoard from "./PuzzleBoard";
+import PuzzleSessionHistory from "./PuzzleSessionHistory";
 
 function Puzzles({ id }: { id: string }) {
   const { t } = useTranslation();
@@ -70,14 +72,11 @@ function Puzzles({ id }: { id: string }) {
   const makeMove = useStore(store, (s) => s.makeMove);
   const setShapes = useStore(store, (s) => s.setShapes);
   const currentMove = useStore(store, (s) => s.currentNode().move);
-  const [puzzles, setPuzzles] = useSessionStorage<Puzzle[]>({
-    key: `${id}-puzzles`,
-    defaultValue: [],
-  });
   const [currentPuzzle, setCurrentPuzzle] = useAtom(currentPuzzleAtom);
 
   const [puzzleDbs, setPuzzleDbs] = useState<PuzzleDatabaseInfo[]>([]);
   const [selectedDb, setSelectedDb] = useAtom(selectedPuzzleDbAtom);
+  const [puzzles, setPuzzles] = usePuzzleSession(id, selectedDb);
 
   const [settingsOpened, setSettingsOpened] = useState(false);
 
@@ -351,6 +350,14 @@ function Puzzles({ id }: { id: string }) {
                 if (v === "add") {
                   setAddOpened(true);
                 } else {
+                  if (v !== selectedDb) {
+                    solutionAbortRef.current?.abort();
+                    setPuzzles([]);
+                    setCurrentPuzzle(0);
+                    reset();
+                    setTimerStart(null);
+                    setIsPlayingSolution(false);
+                  }
                   setSelectedDb(v);
                 }
               }}
@@ -570,10 +577,13 @@ function Puzzles({ id }: { id: string }) {
                   <IconZoomCheck />
                 </ActionIcon>
               </Tooltip>
-              <Tooltip label={t("Puzzle.ClearSession")}>
+              <Tooltip label={t("Puzzle.NewSession")}>
                 <ActionIcon
+                  aria-label={t("Puzzle.NewSession")}
                   onClick={() => {
+                    solutionAbortRef.current?.abort();
                     setPuzzles([]);
+                    setCurrentPuzzle(0);
                     reset();
                     setTimerStart(null);
                     setIsPlayingSolution(false);
@@ -668,35 +678,78 @@ function Puzzles({ id }: { id: string }) {
         </Paper>
       </Portal>
       <Portal target="#bottomRight" style={{ height: "100%" }}>
-        <Stack h="100%" gap="xs">
-          <Paper withBorder p="md" mih="5rem">
-            <ScrollArea h="100%" offsetScrollbars>
-              <ChallengeHistory
-                challenges={puzzles.map((p) => ({
-                  ...p,
-                  label: p.rating?.toString() ?? "-",
-                }))}
-                current={currentPuzzle}
-                select={(i) => {
-                  if (i === currentPuzzle) return;
-                  solutionAbortRef.current?.abort();
-                  setIsPlayingSolution(false);
-                  setCurrentPuzzle(i);
-                  setPuzzle(puzzles[i]);
-                  if (puzzles[i].completion === "incomplete") {
-                    setTimerStart(Date.now() - (puzzles[i].timeSpent || 0));
-                  } else {
-                    setTimerStart(null);
-                  }
-                }}
-              />
-            </ScrollArea>
-          </Paper>
-          <Stack flex={1} gap="xs">
-            <GameNotation />
-            <MoveControls readOnly />
-          </Stack>
-        </Stack>
+        <div style={{ height: "100%", overflowY: "auto" }}>
+          <div
+            data-resizable-puzzle-panels
+            style={{ height: "100%", minHeight: 520, position: "relative" }}
+          >
+            <Mosaic<"played" | "history" | "notation">
+              initialValue={{
+                direction: "column",
+                first: "played",
+                second: { direction: "column", first: "history", second: "notation" },
+                splitPercentage: 20,
+              }}
+              resize={{ minimumPaneSizePercentage: 15 }}
+              renderTile={(panel) => {
+                switch (panel) {
+                  case "played":
+                    return (
+                      <Paper withBorder p="md" h="100%" style={{ overflow: "hidden" }}>
+                        <ScrollArea h="100%" offsetScrollbars>
+                          <ChallengeHistory
+                            challenges={puzzles.map((p) => ({
+                              ...p,
+                              label: p.rating?.toString() ?? "-",
+                            }))}
+                            current={currentPuzzle}
+                            select={(i) => {
+                              if (i === currentPuzzle) return;
+                              solutionAbortRef.current?.abort();
+                              setIsPlayingSolution(false);
+                              setCurrentPuzzle(i);
+                              setPuzzle(puzzles[i]);
+                              if (puzzles[i].completion === "incomplete") {
+                                setTimerStart(Date.now() - (puzzles[i].timeSpent || 0));
+                              } else {
+                                setTimerStart(null);
+                              }
+                            }}
+                          />
+                        </ScrollArea>
+                      </Paper>
+                    );
+                  case "history":
+                    return (
+                      <PuzzleSessionHistory
+                        onInspect={(puzzle) => {
+                          createTab({
+                            tab: { name: "Puzzle Analysis", type: "analysis" },
+                            setTabs,
+                            setActiveTab,
+                            pgn: puzzle.moves.join(" "),
+                            headers: {
+                              ...defaultTree().headers,
+                              fen: puzzle.fen,
+                              orientation:
+                                parseFen(puzzle.fen).unwrap().turn === "white" ? "black" : "white",
+                            },
+                          });
+                        }}
+                      />
+                    );
+                  case "notation":
+                    return (
+                      <Stack h="100%" gap="xs" style={{ minHeight: 0 }}>
+                        <GameNotation />
+                        <MoveControls readOnly />
+                      </Stack>
+                    );
+                }
+              }}
+            />
+          </div>
+        </div>
       </Portal>
     </>
   );
