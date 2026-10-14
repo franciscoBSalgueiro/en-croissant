@@ -17,6 +17,7 @@ use shakmaty::{fen::Fen, EnPassantMode, Position};
 use specta::Type;
 use std::collections::HashMap;
 use std::io::{BufWriter, Write};
+use std::sync::{Arc, Mutex};
 use std::{
     fs::{remove_file, File, OpenOptions},
     path::{Path, PathBuf},
@@ -101,7 +102,56 @@ fn get_duckdb_pool(state: &AppState, path: &Path) -> Result<Pool<DuckdbConnectio
 
 pub fn remove_duckdb_pool(state: &AppState, path: &Path) {
     let key = duckdb_pool_key(path);
+    state.player_catalogs.remove(&key);
     state.duckdb_connection_pool.remove(&key);
+}
+
+fn player_catalog_cache(state: &AppState, path: &Path) -> Arc<Mutex<Option<Connection>>> {
+    state
+        .player_catalogs
+        .entry(duckdb_pool_key(path))
+        .or_insert_with(|| Arc::new(Mutex::new(None)))
+        .clone()
+}
+
+fn ensure_player_catalog<'a>(
+    cache: &'a mut Option<Connection>,
+    source: &Connection,
+) -> Result<&'a Connection, Error> {
+    if cache.is_none() {
+        let connection = source.try_clone()?;
+        connection.execute_batch(
+            "CREATE TEMP TABLE ec_player_catalog AS
+             WITH all_players AS (
+                 SELECT white AS name, MAX(white_rating) AS elo FROM games GROUP BY white
+                 UNION ALL
+                 SELECT black AS name, MAX(black_rating) AS elo FROM games GROUP BY black
+             )
+             SELECT name, MAX(elo) AS elo FROM all_players GROUP BY name;",
+        )?;
+        *cache = Some(connection);
+    }
+    Ok(cache.as_ref().expect("player catalog initialized"))
+}
+
+struct PlayerCatalogInvalidation<'a> {
+    state: &'a AppState,
+    path: &'a Path,
+}
+
+impl<'a> PlayerCatalogInvalidation<'a> {
+    fn new(state: &'a AppState, path: &'a Path) -> Self {
+        state.player_catalogs.remove(&duckdb_pool_key(path));
+        Self { state, path }
+    }
+}
+
+impl Drop for PlayerCatalogInvalidation<'_> {
+    fn drop(&mut self) {
+        self.state
+            .player_catalogs
+            .remove(&duckdb_pool_key(self.path));
+    }
 }
 
 pub fn load_aixchess_extension(
@@ -147,6 +197,7 @@ pub async fn convert_pgn(
 
     let db_pool = get_duckdb_pool(&state, &db_path)?;
     let db = db_pool.get()?;
+    let _invalidate_players = PlayerCatalogInvalidation::new(&state, &db_path);
 
     if !db_exists {
         db.execute_batch(include_str!("init-database.sql"))?;
@@ -257,16 +308,16 @@ pub async fn get_db_info(
         row.get::<_, i32>(0)
     })?;
 
-    let player_count = db.query_row(
-        "SELECT COUNT(DISTINCT name) AS total_unique_names
-            FROM (
-                SELECT white AS name FROM games
-                UNION ALL
-                SELECT black AS name FROM games
-            );",
+    let cache = player_catalog_cache(&state, &path);
+    let mut catalog = cache
+        .lock()
+        .map_err(|_| std::io::Error::other("player catalog mutex poisoned"))?;
+    let player_count = ensure_player_catalog(&mut catalog, &db)?.query_row(
+        "SELECT COUNT(name) FROM ec_player_catalog;",
         [],
         |row| row.get::<_, i32>(0),
     )?;
+    drop(catalog);
 
     let storage_size = path.metadata()?.len();
     let filename = path.file_name().expect("get filename").to_string_lossy();
@@ -700,7 +751,12 @@ pub async fn get_players(
     state: tauri::State<'_, AppState>,
 ) -> Result<QueryResponse<Vec<Player>>, Error> {
     let db_pool = get_duckdb_pool(&state, &file)?;
-    let db = db_pool.get()?;
+    let source = db_pool.get()?;
+    let cache = player_catalog_cache(&state, &file);
+    let mut catalog = cache
+        .lock()
+        .map_err(|_| std::io::Error::other("player catalog mutex poisoned"))?;
+    let db = ensure_player_catalog(&mut catalog, &source)?;
 
     let mut where_clauses = vec!["name != 'Unknown'".to_string()];
 
@@ -732,15 +788,8 @@ pub async fn get_players(
         .unwrap_or(0);
 
     let data_sql = format!(
-        "WITH all_players AS (
-            SELECT white AS name, MAX(white_rating) AS elo FROM games GROUP BY white
-            UNION ALL
-            SELECT black AS name, MAX(black_rating) AS elo FROM games GROUP BY black
-        ), players AS (
-            SELECT name, MAX(elo) AS elo FROM all_players GROUP BY name
-        )
-        SELECT name, elo
-        FROM players
+        "SELECT name, elo
+        FROM ec_player_catalog
         {where_sql}
         {order_sql}
         LIMIT {page_size} OFFSET {offset};"
@@ -759,16 +808,7 @@ pub async fn get_players(
     let count = if query.options.skip_count {
         None
     } else {
-        let count_sql = format!(
-            "WITH all_players AS (
-                SELECT white AS name, MAX(white_rating) AS elo FROM games GROUP BY white
-                UNION ALL
-                SELECT black AS name, MAX(black_rating) AS elo FROM games GROUP BY black
-            ), players AS (
-                SELECT name, MAX(elo) AS elo FROM all_players GROUP BY name
-            )
-            SELECT COUNT(*) FROM players {where_sql};"
-        );
+        let count_sql = format!("SELECT COUNT(*) FROM ec_player_catalog {where_sql};");
         Some(db.query_row(&count_sql, [], |row| row.get::<_, i32>(0))?)
     };
 
@@ -1100,6 +1140,7 @@ pub async fn delete_duplicated_games(
 ) -> Result<(), Error> {
     let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
+    let _invalidate_players = PlayerCatalogInvalidation::new(&state, &file);
 
     db.execute_batch(
         "
@@ -1130,6 +1171,7 @@ pub async fn delete_empty_games(
 ) -> Result<(), Error> {
     let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
+    let _invalidate_players = PlayerCatalogInvalidation::new(&state, &file);
 
     db.execute("DELETE FROM games WHERE ply_count = 0;", [])?;
 
@@ -1301,6 +1343,7 @@ pub async fn delete_db_game(
 ) -> Result<(), Error> {
     let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
+    let _invalidate_players = PlayerCatalogInvalidation::new(&state, &file);
 
     db.execute("DELETE FROM games WHERE rowid = ?;", params![game_id])?;
 
@@ -1346,6 +1389,7 @@ pub async fn merge_players(
 ) -> Result<(), Error> {
     let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
+    let _invalidate_players = PlayerCatalogInvalidation::new(&state, &file);
 
     db.execute(
         "UPDATE games SET white = ? WHERE white = ?;",
@@ -1363,6 +1407,83 @@ pub async fn merge_players(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn catalog_fixture() -> Connection {
+        let db = Connection::open_in_memory().unwrap();
+        db.execute_batch(
+            "CREATE TABLE games (white VARCHAR, black VARCHAR, white_rating INTEGER, black_rating INTEGER);
+             INSERT INTO games VALUES
+                 ('Carlsen', 'Kasparov', 2800, 2851),
+                 ('Kasparov', 'Carlsen', 2800, 2882),
+                 ('Unknown', 'O''Brien', NULL, 2200);",
+        ).unwrap();
+        db
+    }
+
+    #[test]
+    fn player_catalog_combines_both_colors_and_reuses_the_snapshot() {
+        let source = catalog_fixture();
+        let mut cache = None;
+        let catalog = ensure_player_catalog(&mut cache, &source).unwrap();
+        let players: Vec<(String, i32)> = catalog.prepare(
+            "SELECT name, elo FROM ec_player_catalog WHERE name != 'Unknown' ORDER BY elo DESC;",
+        ).unwrap().query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+            .unwrap().collect::<Result<_, _>>().unwrap();
+        assert_eq!(
+            players,
+            vec![
+                ("Carlsen".into(), 2882),
+                ("Kasparov".into(), 2851),
+                ("O'Brien".into(), 2200),
+            ]
+        );
+        // If a warm lookup rebuilt the catalog, it would fail without the source table.
+        source.execute_batch("DROP TABLE games;").unwrap();
+        let count: i32 = ensure_player_catalog(&mut cache, &source)
+            .unwrap()
+            .query_row("SELECT COUNT(*) FROM ec_player_catalog;", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(count, 4);
+    }
+
+    #[test]
+    fn player_catalog_invalidation_refreshes_imports_merges_and_deletions() {
+        let source = catalog_fixture();
+        let state = AppState::default();
+        let path = Path::new("catalog-test.db");
+        let cache = player_catalog_cache(&state, path);
+        ensure_player_catalog(&mut cache.lock().unwrap(), &source).unwrap();
+        {
+            let _invalidate = PlayerCatalogInvalidation::new(&state, path);
+            source
+                .execute_batch(
+                    "INSERT INTO games VALUES ('New player', 'Kasparov', 2900, 2800);
+                 UPDATE games SET white = 'Merged player' WHERE white = 'Carlsen';
+                 DELETE FROM games WHERE black = 'Carlsen';",
+                )
+                .unwrap();
+            // A lookup during the write must also be invalidated when it finishes.
+            let during_write = player_catalog_cache(&state, path);
+            ensure_player_catalog(&mut during_write.lock().unwrap(), &source).unwrap();
+        }
+        assert!(!state.player_catalogs.contains_key(&duckdb_pool_key(path)));
+        let fresh_cache = player_catalog_cache(&state, path);
+        let mut fresh = fresh_cache.lock().unwrap();
+        let catalog = ensure_player_catalog(&mut fresh, &source).unwrap();
+        let names: Vec<String> = catalog
+            .prepare("SELECT name FROM ec_player_catalog WHERE name != 'Unknown' ORDER BY name;")
+            .unwrap()
+            .query_map([], |row| row.get(0))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        assert_eq!(
+            names,
+            vec!["Kasparov", "Merged player", "New player", "O'Brien"]
+        );
+    }
 
     #[test]
     fn opening_uses_the_mainline_of_a_game_with_nested_variations() {

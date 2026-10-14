@@ -8,6 +8,7 @@ import {
   Text,
   TextInput,
 } from "@mantine/core";
+import { useDebouncedValue } from "@mantine/hooks";
 import { IconDotsVertical, IconSearch } from "@tabler/icons-react";
 import { DataTable } from "mantine-datatable";
 import { useContext, useState } from "react";
@@ -33,8 +34,9 @@ function PlayerTable() {
   const selectedPlayer = useStore(store, (s) => s.players.selectedPlayer);
   const setSelectedPlayer = useStore(store, (s) => s.setPlayersSelectedPlayer);
 
-  const { data, error, isLoading } = useSWR(["players", file, query], () =>
-    query_players(file, query),
+  const [debouncedQuery] = useDebouncedValue(query, 200);
+  const { data, error, isLoading } = useSWR(["players", file, debouncedQuery], () =>
+    query_players(file, debouncedQuery),
   );
   const players = data?.data ?? [];
   const count = data?.count;

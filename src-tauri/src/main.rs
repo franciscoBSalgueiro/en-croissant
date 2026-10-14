@@ -76,6 +76,7 @@ use tokio::sync::Semaphore;
 #[derivative(Default)]
 pub struct AppState {
     duckdb_connection_pool: DashMap<String, diesel::r2d2::Pool<duckdb::DuckdbConnectionManager>>,
+    player_catalogs: DashMap<String, Arc<Mutex<Option<duckdb::Connection>>>>,
     aixchess_extension_path: Mutex<Option<PathBuf>>,
     line_cache: DashMap<(GameQuery, PathBuf), (Vec<PositionStats>, Vec<NormalizedGame>)>,
     pgn_offsets: DashMap<String, Vec<u64>>,

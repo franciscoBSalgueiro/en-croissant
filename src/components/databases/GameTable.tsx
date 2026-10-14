@@ -1,5 +1,5 @@
 import { Box, Center, Flex, Text } from "@mantine/core";
-import { useHotkeys } from "@mantine/hooks";
+import { useDebouncedValue, useHotkeys } from "@mantine/hooks";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
 import { DataTable } from "mantine-datatable";
@@ -32,8 +32,9 @@ function GameTable() {
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
 
-  const { data, error, isLoading, mutate } = useSWR(["games", file, query], () =>
-    query_games(file, query),
+  const [debouncedQuery] = useDebouncedValue(query, 200);
+  const { data, error, isLoading, mutate } = useSWR(["games", file, debouncedQuery], () =>
+    query_games(file, debouncedQuery),
   );
 
   const games = data?.data ?? [];

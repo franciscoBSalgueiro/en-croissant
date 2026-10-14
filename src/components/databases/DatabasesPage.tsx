@@ -542,6 +542,7 @@ function PlayerMerger({ selectedDatabase }: { selectedDatabase: DatabaseInfo }) 
         <PlayerSearchInput
           label={t("Databases.Player.One")}
           file={selectedDatabase.file}
+          value={player1}
           setValue={setPlayer1}
         />
         <Button
@@ -554,6 +555,7 @@ function PlayerMerger({ selectedDatabase }: { selectedDatabase: DatabaseInfo }) 
         <PlayerSearchInput
           label={t("Databases.Player.Two")}
           file={selectedDatabase.file}
+          value={player2}
           setValue={setPlayer2}
         />
       </Group>
