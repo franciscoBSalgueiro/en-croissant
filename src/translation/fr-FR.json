@@ -494,6 +494,8 @@
     "Notation.ShowMoves": "Afficher les coups",
     "Notation.ShowVariations": "Afficher les variantes",
     "Notation.TableView": "Affichage sous forme de tableau",
+    "OpeningCatalog.Download": "",
+    "OpeningCatalog.DownloadDescription": "",
     "OpeningCatalog.EmptyRepertoire": "",
     "OpeningCatalog.FromCatalog": "",
     "OpeningCatalog.IncludeContinuations": "",

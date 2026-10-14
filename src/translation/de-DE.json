@@ -470,6 +470,8 @@
     "Notation.ShowMoves": "Züge zeigen",
     "Notation.ShowVariations": "Varianten zeigen",
     "Notation.TableView": "Zeige Tabelle",
+    "OpeningCatalog.Download": "",
+    "OpeningCatalog.DownloadDescription": "",
     "OpeningCatalog.EmptyRepertoire": "",
     "OpeningCatalog.FromCatalog": "",
     "OpeningCatalog.IncludeContinuations": "",

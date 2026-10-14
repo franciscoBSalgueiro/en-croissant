@@ -1,9 +1,4 @@
 import { ChildNode, makePgn, Node, type PgnNodeData } from "chessops/pgn";
-import a from "@/data/chess-openings/a.tsv?raw";
-import b from "@/data/chess-openings/b.tsv?raw";
-import c from "@/data/chess-openings/c.tsv?raw";
-import d from "@/data/chess-openings/d.tsv?raw";
-import e from "@/data/chess-openings/e.tsv?raw";
 
 export interface CatalogOpening {
     id: string;
@@ -13,42 +8,47 @@ export interface CatalogOpening {
     moves: string[];
 }
 
-export const openingLines: CatalogOpening[] = [a, b, c, d, e].flatMap((tsv) =>
-    tsv
-        .trim()
-        .split(/\r?\n/)
-        .slice(1)
-        .map((row) => {
-            const [eco, name, pgn] = row.split("\t");
-            return {
-                id: `${eco}:${name}:${pgn}`,
-                eco,
-                name,
-                pgn,
-                moves: pgn
-                    .replace(/\d+\.(?:\.\.)?/g, " ")
-                    .trim()
-                    .split(/\s+/),
-            };
-        }),
-);
-
-// A name can have several transpositions. Show its shortest named line once
-// in the picker, retaining all source lines for optional continuations.
-const namedOpenings = new Map<string, CatalogOpening>();
-for (const opening of openingLines) {
-    const key = `${opening.eco}:${opening.name}`;
-    const previous = namedOpenings.get(key);
-    if (!previous || opening.moves.length < previous.moves.length) namedOpenings.set(key, opening);
+export interface OpeningCatalog {
+    lines: CatalogOpening[];
+    openings: CatalogOpening[];
 }
-export const openingCatalog = [...namedOpenings.values()].sort(
-    (a, b) => a.eco.localeCompare(b.eco) || a.name.localeCompare(b.name),
-);
 
-export function openingContinuations(opening: CatalogOpening): CatalogOpening[] {
+export function parseOpeningCatalog(volumes: string[]): OpeningCatalog {
+    if (volumes.length !== 5) throw new Error("Incomplete opening catalog");
+    const lines = volumes.flatMap((tsv) => {
+        const rows = tsv.trim().split(/\r?\n/);
+        if (rows.shift() !== "eco\tname\tpgn" || !rows.length)
+            throw new Error("Invalid opening catalog");
+        return rows.map((row) => {
+            const [eco, name, pgn] = row.split("\t");
+            if (!/^[A-E]\d{2}$/.test(eco) || !name || !pgn)
+                throw new Error("Invalid opening catalog row");
+            const moves = pgn
+                .replace(/\d+\.(?:\.\.)?/g, " ")
+                .trim()
+                .split(/\s+/);
+            return { id: `${eco}:${name}:${pgn}`, eco, name, pgn, moves };
+        });
+    });
+    const named = new Map<string, CatalogOpening>();
+    for (const opening of lines) {
+        const key = `${opening.eco}:${opening.name}`;
+        const previous = named.get(key);
+        if (!previous || opening.moves.length < previous.moves.length) named.set(key, opening);
+    }
+    const openings = [...named.values()].sort(
+        (a, b) => a.eco.localeCompare(b.eco) || a.name.localeCompare(b.name),
+    );
+    return { lines, openings };
+}
+
+export function openingContinuations(
+    opening: CatalogOpening,
+    catalogLines: CatalogOpening[],
+): CatalogOpening[] {
     return [
         opening,
-        ...openingCatalog.filter(
+        ...catalogLines.filter(
             (candidate) =>
                 candidate.id !== opening.id &&
                 candidate.moves.length > opening.moves.length &&
@@ -62,13 +62,15 @@ export function openingRepertoirePgn({
     color,
     opening,
     includeContinuations,
+    catalogLines = [opening],
 }: {
     name: string;
     color: "white" | "black";
     opening: CatalogOpening;
     includeContinuations: boolean;
+    catalogLines?: CatalogOpening[];
 }) {
-    const lines = includeContinuations ? openingContinuations(opening) : [opening];
+    const lines = includeContinuations ? openingContinuations(opening, catalogLines) : [opening];
     const moves = new Node<PgnNodeData>();
     for (const line of lines) {
         let node = moves;

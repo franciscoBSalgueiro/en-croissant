@@ -14,13 +14,14 @@ import { useLoaderData, useNavigate } from "@tanstack/react-router";
 import { INITIAL_FEN } from "chessops/fen";
 import { useAtom, useSetAtom, useStore } from "jotai";
 import { useState } from "react";
+import useSWR from "swr";
+import { loadOpeningCatalog, downloadOpeningCatalog } from "@/utils/openingCatalogDownload";
 import { useTranslation } from "react-i18next";
 import { activeTabAtom, addRecentFileAtom, tabFamily, tabsAtom } from "@/state/atoms";
 import { headersToPGN } from "@/utils/chess";
 import { createFile } from "@/utils/files";
 import { createTab } from "@/utils/tabs";
 import {
-  openingCatalog,
   openingContinuations,
   openingRepertoirePgn,
   openingRepertoireName,
@@ -41,14 +42,27 @@ export default function CreateRepertoireModal({
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [includeContinuations, setIncludeContinuations] = useState(false);
   const [creating, setCreating] = useState(false);
+  const {
+    data: catalog,
+    isLoading: catalogLoading,
+    mutate: setCatalog,
+  } = useSWR(opened && mode === "catalog" ? "opening-catalog" : null, loadOpeningCatalog, {
+    revalidateOnFocus: false,
+  });
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState("");
+  const openingCatalog = catalog?.openings ?? [];
+  const catalogLines = catalog?.lines ?? [];
   const selectedOpening = openingCatalog.find((opening) => opening.id === openingId);
   const lineCount =
-    selectedOpening && includeContinuations ? openingContinuations(selectedOpening).length : 1;
+    selectedOpening && includeContinuations
+      ? openingContinuations(selectedOpening, catalogLines).length
+      : 1;
   const trainable =
     selectedOpening &&
     (selectedOpening.moves.length >= (color === "black" ? 2 : 1) ||
       (includeContinuations &&
-        openingContinuations(selectedOpening).some(
+        openingContinuations(selectedOpening, catalogLines).some(
           (opening) => opening.moves.length >= (color === "black" ? 2 : 1),
         )));
   const { documentDir } = useLoaderData({ from: "/" });
@@ -79,6 +93,7 @@ export default function CreateRepertoireModal({
               color,
               opening: selectedOpening,
               includeContinuations,
+              catalogLines,
             })
           : headersToPGN({
               id: 0,
@@ -165,13 +180,35 @@ export default function CreateRepertoireModal({
           />
           {mode === "catalog" && (
             <>
+              {!catalog && (
+                <>
+                  <Text size="sm">{t("OpeningCatalog.DownloadDescription")}</Text>
+                  <Button
+                    loading={downloading || catalogLoading}
+                    onClick={async () => {
+                      setDownloading(true);
+                      setDownloadError("");
+                      try {
+                        await setCatalog(await downloadOpeningCatalog(), { revalidate: false });
+                      } catch (cause) {
+                        setDownloadError(cause instanceof Error ? cause.message : String(cause));
+                      } finally {
+                        setDownloading(false);
+                      }
+                    }}
+                  >
+                    {t("OpeningCatalog.Download")}
+                  </Button>
+                </>
+              )}
+              {downloadError && <Alert color="red">{downloadError}</Alert>}
               <Select
                 label={t("OpeningCatalog.Opening")}
                 placeholder={t("OpeningCatalog.Search")}
                 searchable
                 clearable
                 limit={50}
-                disabled={creating}
+                disabled={creating || !catalog}
                 data={openingCatalog.map((opening) => ({
                   value: opening.id,
                   label: `${opening.eco} · ${opening.name}`,

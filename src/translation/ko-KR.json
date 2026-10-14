@@ -475,6 +475,8 @@
     "Notation.ShowMoves": "수 표시",
     "Notation.ShowVariations": "변형 수순 표시",
     "Notation.TableView": "표 보기",
+    "OpeningCatalog.Download": "",
+    "OpeningCatalog.DownloadDescription": "",
     "OpeningCatalog.EmptyRepertoire": "",
     "OpeningCatalog.FromCatalog": "",
     "OpeningCatalog.IncludeContinuations": "",
