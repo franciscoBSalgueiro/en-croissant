@@ -180,8 +180,6 @@ function PersonalPlayerCard({
         <Tabs.Panel value="openings" className={classes.panel} style={{ overflow: "hidden" }}>
           <OpeningsPanel
             playerName={name}
-            info={info}
-            isDatabase={isDatabase}
             openingSources={openingSources}
           />
         </Tabs.Panel>

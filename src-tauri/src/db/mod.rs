@@ -4,16 +4,14 @@ mod schema;
 mod search;
 
 use crate::{db::models::*, error::Error, AppState};
-use aix_chess_compression::{
-    CompressionLevel as AixCompressionLevel, Decode, Decoder, EncodedGame,
-};
+use aix_chess_compression::CompressionLevel as AixCompressionLevel;
 use dashmap::mapref::entry::Entry;
 use duckdb::{params, AccessMode, Config, Connection, DuckdbConnectionManager};
 use r2d2::CustomizeConnection;
 use r2d2::Pool;
 
 use serde::{Deserialize, Serialize};
-use shakmaty::{fen::Fen, EnPassantMode, Position};
+use shakmaty::fen::Fen;
 use specta::Type;
 use std::collections::HashMap;
 use std::io::{BufWriter, Write};
@@ -957,31 +955,6 @@ pub struct StatsData {
     pub player_elo: i32,
     pub result: GameOutcome,
     pub time_control: String,
-    pub opening: String,
-}
-
-fn opening_from_moves(movedata: &[u8], fen: Option<&str>) -> String {
-    // Opening names are defined for games starting from the standard position.
-    if fen.is_some_and(|fen| fen != Fen::default().to_string()) {
-        return String::new();
-    }
-    let Ok(encoded) = EncodedGame::from_bytes(movedata) else {
-        return String::new();
-    };
-    let mut decoder = Decoder::new(&encoded);
-    let mut opening = String::new();
-    // Match master's limit to the longest opening in the opening table.
-    for _ in 0..55 {
-        let Some(Ok(position)) = decoder.next_position() else {
-            break;
-        };
-        if let Ok(name) =
-            crate::opening::get_opening_from_setup(position.to_setup(EnPassantMode::Legal))
-        {
-            opening = name;
-        }
-    }
-    opening
 }
 
 #[derive(Serialize, Debug, Clone, Type, tauri_specta::Event)]
@@ -1055,9 +1028,7 @@ pub async fn get_players_game_info(
             is_player_white,
             CAST(CASE WHEN is_player_white THEN white_rating ELSE black_rating END AS INTEGER) AS player_elo,
             result AS game_result,
-              COALESCE(time_control, '') AS time_control,
-              movedata,
-              fen
+            COALESCE(time_control, '') AS time_control
         FROM filtered_games
         WHERE utc_timestamp IS NOT NULL
           AND (CASE WHEN is_player_white THEN white_rating ELSE black_rating END) IS NOT NULL
@@ -1078,9 +1049,6 @@ pub async fn get_players_game_info(
         let player_elo: i32 = row.get("player_elo")?;
         let game_result: String = row.get("game_result")?;
         let time_control: String = row.get("time_control")?;
-        let movedata: Vec<u8> = row.get("movedata")?;
-        let fen: Option<String> = row.get("fen")?;
-        let opening = opening_from_moves(&movedata, fen.as_deref());
 
         let Some(result) = GameOutcome::from_str(game_result.as_str(), is_player_white) else {
             continue;
@@ -1097,7 +1065,6 @@ pub async fn get_players_game_info(
                 player_elo,
                 result,
                 time_control,
-                opening,
             });
 
         processed += 1;
@@ -1482,34 +1449,6 @@ mod tests {
         assert_eq!(
             names,
             vec!["Kasparov", "Merged player", "New player", "O'Brien"]
-        );
-    }
-
-    #[test]
-    fn opening_uses_the_mainline_of_a_game_with_nested_variations() {
-        let mainline = pgn::encode_single_game_moves(
-            "1. e4 e5 2. Nf3 Nc6 3. Bb5 *",
-            AixCompressionLevel::Low,
-            false,
-        )
-        .unwrap();
-        let variations = pgn::encode_single_game_moves(
-            "1. e4 (1. d4 d5 (1... Nf6)) e5 2. Nf3 Nc6 3. Bb5 *",
-            AixCompressionLevel::Low,
-            false,
-        )
-        .unwrap();
-        let expected = opening_from_moves(&mainline, None);
-        assert!(!expected.is_empty());
-        assert_eq!(opening_from_moves(&variations, None), expected);
-    }
-
-    #[test]
-    fn opening_ignores_invalid_data_and_nonstandard_start_positions() {
-        assert_eq!(opening_from_moves(&[], None), "");
-        assert_eq!(
-            opening_from_moves(&[0], Some("8/8/8/8/8/8/8/K6k w - - 0 1")),
-            ""
         );
     }
 }
