@@ -15,7 +15,7 @@ import { useTranslation } from "react-i18next";
 import { useSWRConfig } from "swr";
 import { commands, type NormalizedGame } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
-import { createTab } from "@/utils/tabs";
+import { createTab, getAccountGameOrientation } from "@/utils/tabs";
 import GamePreview from "./GamePreview";
 import GameInfo from "../common/GameInfo";
 
@@ -91,7 +91,7 @@ function GameCard({
           <GamePreview
             key={`preview-${game.id}`}
             pgn={game.moves}
-            headers={game}
+            headers={{ ...game, orientation: getAccountGameOrientation(file, game) }}
             showOpening
             startAtEnd
           />
