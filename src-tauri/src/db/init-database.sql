@@ -17,9 +17,5 @@ CREATE TABLE games (
   ply_count USMALLINT,
   utc_timestamp TIMESTAMP,
   movedata BLOB,
-  -- JSON text keyed by move/variation event in movedata traversal order.
-  -- VARCHAR avoids requiring DuckDB's separately installed JSON extension.
-  annotations VARCHAR,
-  -- Preserve all original headers, including unknown tags and partial dates.
-  pgn_tags VARCHAR NOT NULL
+  annotations BLOB
 );

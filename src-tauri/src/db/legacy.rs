@@ -82,7 +82,6 @@ fn game_pgn(row: &rusqlite::Row<'_>) -> Result<String, Error> {
         ("black_elo", "BlackElo"),
         ("result", "Result"),
         ("time_control", "TimeControl"),
-        ("eco", "ECO"),
     ] {
         if let Some(value) = row.get::<_, Option<String>>(column).map_err(sqlite_error)? {
             tags.insert(tag.into(), value);
@@ -133,7 +132,7 @@ fn convert(
             w.Name AS white, b.Name AS black,
             CAST(g.WhiteElo AS TEXT) AS white_elo, CAST(g.BlackElo AS TEXT) AS black_elo,
             CAST(g.Result AS TEXT) AS result, g.TimeControl AS time_control,
-            g.ECO AS eco, g.FEN AS fen, g.Moves AS moves
+            g.FEN AS fen, g.Moves AS moves
          FROM Games g LEFT JOIN Events e ON e.ID = g.EventID
          LEFT JOIN Sites s ON s.ID = g.SiteID
          LEFT JOIN Players w ON w.ID = g.WhiteID
@@ -292,12 +291,10 @@ mod tests {
             1
         );
         assert_eq!(progress, [1]);
-        let (data, annotations, tags): (Vec<u8>, String, String) = destination
-            .query_row(
-                "SELECT movedata, annotations, pgn_tags FROM games",
-                [],
-                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
-            )
+        let (data, annotations): (Vec<u8>, Vec<u8>) = destination
+            .query_row("SELECT movedata, annotations FROM games", [], |row| {
+                Ok((row.get(0)?, row.get(1)?))
+            })
             .unwrap();
         let bare = super::super::annotations::decode_movetext(&data, None).unwrap();
         let movetext =
@@ -306,11 +303,16 @@ mod tests {
         assert!(movetext.contains("$1"));
         assert!(movetext.contains("d4"));
         assert!(movetext.contains("e5"));
-        let tags = super::super::annotations::parse_tags(&tags).unwrap();
-        assert_eq!(tags["Date"], "2020.??.??");
-        assert_eq!(tags["ECO"], "C20");
-        assert_eq!(tags["Round"], "3");
-        assert_eq!(tags["WhiteElo"], "2400");
+        let (timestamp, round, rating): (String, String, i16) = destination
+            .query_row(
+                "SELECT strftime(utc_timestamp, '%Y.%m.%d %H:%M:%S'), round, white_rating FROM games",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .unwrap();
+        assert_eq!(timestamp, "2020.01.01 12:34:56");
+        assert_eq!(round, "3");
+        assert_eq!(rating, 2400);
         let title: String = destination
             .query_row(
                 "SELECT value FROM db_info WHERE name = 'title'",

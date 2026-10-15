@@ -6,7 +6,6 @@ use duckdb::{appender_params_from_iter, Appender};
 use pgn_reader::{Nag, RawComment, RawTag, Reader, SanPlus, Skip, Visitor};
 use shakmaty::san::San;
 use shakmaty::{fen::Fen as ShakmatyFen, CastlingMode, Chess, FromSetup, Position};
-use std::collections::BTreeMap;
 use std::ops::ControlFlow;
 
 pub struct PgnProcessor<'a> {
@@ -19,11 +18,9 @@ pub struct PgnProcessor<'a> {
 
 #[derive(Default, Debug)]
 pub struct Headers {
-    tags: BTreeMap<String, String>,
     event: Option<String>,
     site: Option<String>,
     round: Option<String>,
-    setup: bool,
     fen: Option<String>,
 
     white: Option<String>,
@@ -70,7 +67,7 @@ pub struct StoredGame {
     pub headers: Headers,
     pub movedata: Vec<u8>,
     pub ply_count: u16,
-    pub annotations: Option<String>,
+    pub annotations: Option<Vec<u8>>,
 }
 
 impl StoredGame {
@@ -91,7 +88,6 @@ impl StoredGame {
         let timestamp = self
             .timestamp()
             .map(|ts| Value::Timestamp(TimeUnit::Microsecond, ts));
-        let tags = serde_json::to_string(&self.headers.tags).unwrap();
         let h = self.headers;
         vec![
             h.event.into(),
@@ -110,7 +106,6 @@ impl StoredGame {
             timestamp.unwrap_or(Value::Null),
             Value::Blob(self.movedata),
             self.annotations.into(),
-            tags.into(),
         ]
     }
 }
@@ -183,10 +178,6 @@ impl Visitor for SingleGameProcessor {
         outcome: shakmaty::Outcome,
     ) -> ControlFlow<Self::Output> {
         let result = outcome.to_string();
-        movetext
-            .headers
-            .tags
-            .insert("Result".into(), result.clone());
         movetext.headers.result = Some(result);
         ControlFlow::Continue(())
     }
@@ -277,13 +268,8 @@ impl GameInProcessing<'_> {
 
     fn finish(mut self) -> StoredGame {
         self.close_variations();
-        if self.headers.tags.contains_key("PlyCount") {
-            self.headers
-                .tags
-                .insert("PlyCount".into(), self.ply.to_string());
-        }
         StoredGame {
-            annotations: self.annotations.to_json(),
+            annotations: self.annotations.encode(),
             headers: self.headers,
             movedata: self.encoder.finish().into_bytes(),
             ply_count: self.ply,
@@ -431,10 +417,6 @@ impl<'a> Visitor for PgnProcessor<'a> {
         outcome: shakmaty::Outcome,
     ) -> ControlFlow<Self::Output> {
         let result = outcome.to_string();
-        movetext
-            .headers
-            .tags
-            .insert("Result".into(), result.clone());
         movetext.headers.result = Some(result);
         ControlFlow::Continue(())
     }
@@ -469,10 +451,6 @@ impl<'a> Visitor for PgnProcessor<'a> {
 }
 
 fn apply_tag(tags: &mut Headers, key: &[u8], value: RawTag<'_>) {
-    tags.tags.insert(
-        String::from_utf8_lossy(key).into_owned(),
-        value.decode_utf8_lossy().into_owned(),
-    );
     match key {
         b"White" => tags.white = Some(value.decode_utf8_lossy().into_owned()),
         b"Black" => tags.black = Some(value.decode_utf8_lossy().into_owned()),
@@ -489,7 +467,6 @@ fn apply_tag(tags: &mut Headers, key: &[u8], value: RawTag<'_>) {
         b"Time" => tags.time = Some(value.decode_utf8_lossy().into_owned()),
         b"UTCDate" => tags.utc_date = Some(value.decode_utf8_lossy().into_owned()),
         b"UTCTime" => tags.utc_time = Some(value.decode_utf8_lossy().into_owned()),
-        b"SetUp" => tags.setup = value.decode_utf8_lossy() == "1",
         b"FEN" => tags.fen = Some(value.decode_utf8_lossy().into_owned()),
         _ => {}
     };

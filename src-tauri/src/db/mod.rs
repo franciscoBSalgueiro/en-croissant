@@ -667,19 +667,6 @@ fn parse_normalized_game(row: &duckdb::Row) -> duckdb::Result<NormalizedGame> {
         annotations::decode_movetext(&row.get::<_, Vec<u8>>("movedata")?, initial_fen.as_deref())
             .map_err(duckdb::Error::InvalidParameterName)?;
 
-    let tags = annotations::parse_tags(&row.get::<_, String>("pgn_tags")?)
-        .map_err(duckdb::Error::InvalidParameterName)?;
-    let date = tags
-        .get("Date")
-        .or_else(|| tags.get("UTCDate"))
-        .cloned()
-        .or(row.get("date")?);
-    let time = tags
-        .get("UTCTime")
-        .or_else(|| tags.get("Time"))
-        .cloned()
-        .or(row.get("time")?);
-
     Ok(NormalizedGame {
         id: row.get("id")?,
         event: row.get::<_, Option<String>>("event")?.unwrap_or_default(),
@@ -695,35 +682,22 @@ fn parse_normalized_game(row: &duckdb::Row) -> duckdb::Result<NormalizedGame> {
         result,
 
         ply_count: row.get("ply_count")?,
-        date,
-        time,
+        date: row.get("date")?,
+        time: row.get("time")?,
         moves: annotations::restore_movetext(
             &bare_moves,
-            row.get::<_, Option<String>>("annotations")?.as_deref(),
+            row.get::<_, Option<Vec<u8>>>("annotations")?.as_deref(),
         )
         .map_err(duckdb::Error::InvalidParameterName)?,
         time_control: row.get("time_control")?,
         other: Some(
-            tags.into_iter()
-                .filter(|(key, _)| {
-                    ![
-                        "Event",
-                        "Site",
-                        "Date",
-                        "Round",
-                        "White",
-                        "Black",
-                        "Result",
-                        "FEN",
-                        "SetUp",
-                        "WhiteElo",
-                        "BlackElo",
-                        "UTCTime",
-                        "TimeControl",
-                    ]
-                    .contains(&key.as_str())
-                })
-                .collect(),
+            [
+                ("WhiteTitle", row.get::<_, Option<String>>("white_title")?),
+                ("BlackTitle", row.get::<_, Option<String>>("black_title")?),
+            ]
+            .into_iter()
+            .filter_map(|(key, value)| value.map(|value| (key.to_owned(), value)))
+            .collect(),
         ),
     })
 }
@@ -771,10 +745,11 @@ pub async fn get_games(
             black,
             white_rating,
             black_rating,
+            white_title,
+            black_title,
             result,
             movedata,
             annotations,
-            pgn_tags,
             time_control,
             ply_count
         FROM games
@@ -1207,7 +1182,9 @@ fn remove_duplicated_games(db: &Connection) -> duckdb::Result<()> {
             FROM (
                 SELECT rowid,
                     ROW_NUMBER() OVER (
-                        PARTITION BY event, site, round, white, black, movedata, utc_timestamp, annotations, pgn_tags
+                        PARTITION BY event, site, round, fen, white, black,
+                            white_rating, black_rating, white_title, black_title,
+                            result, time_control, ply_count, movedata, utc_timestamp, annotations
                         ORDER BY rowid
                     ) AS row_num
                 FROM games
@@ -1245,21 +1222,34 @@ fn remove_empty_games(db: &Connection) -> duckdb::Result<()> {
 
 fn export_game(row: &duckdb::Row) -> duckdb::Result<String> {
     let game = parse_normalized_game(row)?;
-    let mut tags = annotations::parse_tags(&row.get::<_, String>("pgn_tags")?)
-        .map_err(duckdb::Error::InvalidParameterName)?;
-    // Indexed columns are authoritative after maintenance operations such as
-    // merging player names. Keep all other original tags verbatim.
+    let mut tags = std::collections::BTreeMap::new();
     for (key, value) in [
         ("Event", game.event),
         ("Site", game.site),
         ("Round", game.round.unwrap_or_default()),
         ("White", game.white),
         ("Black", game.black),
+        ("Date", game.date.unwrap_or_else(|| "????.??.??".into())),
     ] {
         tags.insert(key.into(), value);
     }
-    tags.entry("Date".into())
-        .or_insert_with(|| game.date.unwrap_or_else(|| "????.??.??".into()));
+    for (key, value) in [
+        ("UTCTime", game.time),
+        ("WhiteElo", game.white_elo.map(|elo| elo.to_string())),
+        ("BlackElo", game.black_elo.map(|elo| elo.to_string())),
+        ("WhiteTitle", row.get("white_title")?),
+        ("BlackTitle", row.get("black_title")?),
+        ("TimeControl", game.time_control),
+        ("PlyCount", game.ply_count.map(|count| count.to_string())),
+    ] {
+        if let Some(value) = value {
+            tags.insert(key.into(), value);
+        }
+    }
+    if let Some(fen) = row.get::<_, Option<String>>("fen")? {
+        tags.insert("FEN".into(), fen);
+        tags.insert("SetUp".into(), "1".into());
+    }
     let result = row
         .get::<_, Option<String>>("result")?
         .unwrap_or_else(|| "*".into());
@@ -1291,10 +1281,10 @@ pub async fn export_to_pgn(
     let mut writer = BufWriter::new(output_file);
     let mut statement = db.prepare(
         "SELECT CAST(rowid AS INTEGER) AS id, event, site, round, fen, white, black,
-            white_rating, black_rating, result, time_control, ply_count,
+            white_rating, black_rating, white_title, black_title, result, time_control, ply_count,
             strftime(utc_timestamp, '%Y.%m.%d') AS date,
             strftime(utc_timestamp, '%H:%M:%S') AS time,
-            movedata, annotations, pgn_tags
+            movedata, annotations
          FROM games ORDER BY rowid;",
     )?;
     let rows = statement.query_map([], export_game)?;
@@ -1348,7 +1338,7 @@ fn update_game(db: &Connection, game_id: i32, pgn: &str) -> Result<(), Error> {
         "UPDATE games SET event = ?, site = ?, round = ?, fen = ?,
             white = ?, black = ?, white_rating = ?, black_rating = ?,
             white_title = ?, black_title = ?, result = ?, time_control = ?,
-            ply_count = ?, utc_timestamp = ?, movedata = ?, annotations = ?, pgn_tags = ?
+            ply_count = ?, utc_timestamp = ?, movedata = ?, annotations = ?
          WHERE rowid = ?;",
         duckdb::params_from_iter(values),
     )?;
@@ -1459,6 +1449,8 @@ mod tests {
 [Black "Opponent"]
 [Result "*"]
 [WhiteElo "2100"]
+[WhiteTitle "IM"]
+[BlackTitle "GM"]
 [TimeControl "300+3"]
 [ECO "C20"]
 [Annotator "Ana \"Quoted\" \\ Name"]
@@ -1468,10 +1460,34 @@ mod tests {
 (1. c4 {Other sibling}) 1... e5 2. Nf3 *"#;
 
     const READ_TEST_GAME: &str = "SELECT CAST(rowid AS INTEGER) AS id, event, site, round, fen,
-        white, black, white_rating, black_rating, result, time_control, ply_count,
+        white, black, white_rating, black_rating, white_title, black_title, result, time_control, ply_count,
         strftime(utc_timestamp, '%Y.%m.%d') AS date,
         strftime(utc_timestamp, '%H:%M:%S') AS time,
-        movedata, annotations, pgn_tags FROM games WHERE rowid = 0";
+        movedata, annotations FROM games WHERE rowid = 0";
+
+    #[test]
+    fn supported_headers_export_from_columns_and_utc_timestamp() {
+        let db = Connection::open_in_memory().unwrap();
+        db.execute_batch(include_str!("init-database.sql")).unwrap();
+        let input = "[Event \"Test\"]\n[Site \"Lisboa\"]\n[Round \"1\"]\n[White \"White\"]\n[Black \"Black\"]\n[Date \"2020.??.??\"]\n[Time \"01:02:03\"]\n[UTCDate \"2026.10.15\"]\n[UTCTime \"12:34:56\"]\n[WhiteElo \"02300\"]\n[BlackElo \"invalid\"]\n[UnknownTag \"discard\"]\n\n1. e4 *";
+        let game = pgn::parse_single_game(input).unwrap();
+        {
+            let mut appender = db.appender("games").unwrap();
+            appender
+                .append_row(duckdb::appender_params_from_iter(game.database_values()))
+                .unwrap();
+            appender.flush().unwrap();
+        }
+        let exported = db.query_row(READ_TEST_GAME, [], export_game).unwrap();
+        assert!(exported.contains("[Date \"2026.10.15\"]"));
+        assert!(exported.contains("[UTCTime \"12:34:56\"]"));
+        assert!(exported.contains("[WhiteElo \"2300\"]"));
+        assert!(!exported.contains("[BlackElo "));
+        assert!(!exported.contains("[UnknownTag "));
+        let original = pgn::parse_single_game(input).unwrap().database_values();
+        let restored = pgn::parse_single_game(&exported).unwrap().database_values();
+        assert_eq!(original, restored);
+    }
 
     #[test]
     fn annotations_survive_import_reopen_edit_and_export() {
@@ -1493,9 +1509,13 @@ mod tests {
         let game = db
             .query_row(READ_TEST_GAME, [], parse_normalized_game)
             .unwrap();
-        assert_eq!(game.date.as_deref(), Some("2026.??.??"));
+        assert_eq!(game.date.as_deref(), Some("2026.01.01"));
         assert_eq!(game.time_control.as_deref(), Some("300+3"));
-        assert_eq!(game.other.as_ref().unwrap()["ECO"], "C20");
+        let other = game.other.as_ref().unwrap();
+        assert_eq!(other["WhiteTitle"], "IM");
+        assert_eq!(other["BlackTitle"], "GM");
+        assert!(!other.contains_key("ECO"));
+        assert!(!other.contains_key("Annotator"));
         assert_eq!(game.ply_count, Some(3));
         for text in [
             "Root comentário",
@@ -1519,13 +1539,15 @@ mod tests {
         let restored = pgn::parse_single_game(&exported).unwrap();
         assert_eq!(first.movedata, restored.movedata);
         assert_eq!(first.annotations, restored.annotations);
-        assert_eq!(first.database_values()[16], restored.database_values()[16]);
+        assert_eq!(first.database_values(), restored.database_values());
+        assert!(!exported.contains("[ECO "));
+        assert!(!exported.contains("[Annotator "));
 
         let edited = exported
             .replace("Original", "Edited")
             .replace("Root comentário", "Edited root")
             .replace("2. Nf3", "2. Bc4")
-            .replace("2026.??.??", "2026.10.15")
+            .replace("2026.01.01", "2026.10.15")
             .replace("2100", "2300")
             .replace("300+3", "600+5")
             .replace("*", "1-0");
@@ -1595,29 +1617,34 @@ mod tests {
             .unwrap()
             .append_row(duckdb::appender_params_from_iter(game.database_values()))
             .unwrap();
+        let stored: Vec<u8> = db
+            .query_row("SELECT annotations FROM games", [], |row| row.get(0))
+            .unwrap();
+        assert!(stored.len() < comment.len() / 10);
+        let exported = db.query_row(READ_TEST_GAME, [], export_game).unwrap();
+        assert!(exported.contains(&format!("{{{comment}}}")));
         update_game(&db, 0, "[PlyCount \"99\"]\n\n1. d4 d5 *").unwrap();
-        let (annotations, count): (Option<String>, u16) = db
+        let (annotations, count): (Option<Vec<u8>>, u16) = db
             .query_row("SELECT annotations, ply_count FROM games", [], |row| {
                 Ok((row.get(0)?, row.get(1)?))
             })
             .unwrap();
         assert!(annotations.is_none());
         assert_eq!(count, 2);
-        let tags: String = db
-            .query_row("SELECT pgn_tags FROM games", [], |row| row.get(0))
-            .unwrap();
-        assert_eq!(annotations::parse_tags(&tags).unwrap()["PlyCount"], "2");
+        let exported = db.query_row(READ_TEST_GAME, [], export_game).unwrap();
+        assert!(exported.contains("[PlyCount \"2\"]"));
     }
 
     #[test]
-    fn maintenance_preserves_different_annotations_and_annotated_empty_studies() {
+    fn maintenance_preserves_supported_headers_annotations_and_empty_studies() {
         let db = Connection::open_in_memory().unwrap();
         db.execute_batch(include_str!("init-database.sql")).unwrap();
         {
             let mut appender = db.appender("games").unwrap();
             for input in [
                 "1. e4 {First} *",
-                "1. e4 {First} *",
+                "[Unsupported \"ignored\"]\n\n1. e4 {First} *",
+                "[TimeControl \"300+3\"]\n\n1. e4 {First} *",
                 "1. e4 {Different} *",
                 "{Study} *",
                 "*",
@@ -1634,7 +1661,7 @@ mod tests {
         let count: i32 = db
             .query_row("SELECT COUNT(*) FROM games", [], |row| row.get(0))
             .unwrap();
-        assert_eq!(count, 3);
+        assert_eq!(count, 4);
         let empty_annotated: i32 = db
             .query_row(
                 "SELECT COUNT(*) FROM games WHERE ply_count = 0 AND annotations IS NOT NULL",

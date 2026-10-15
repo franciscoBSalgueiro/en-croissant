@@ -82,19 +82,28 @@ impl Annotations {
         self.events.entry(event).or_default().push(annotation);
     }
 
-    pub fn to_json(&self) -> Option<String> {
-        (!self.events.is_empty()).then(|| serde_json::to_string(self).unwrap())
+    pub fn encode(&self) -> Option<Vec<u8>> {
+        if self.events.is_empty() {
+            return None;
+        }
+        let json = serde_json::to_vec(self).unwrap();
+        Some(zstd::bulk::compress(&json, 3).expect("Failed to compress annotations"))
     }
+}
+
+fn decode(data: &[u8]) -> Result<Annotations, String> {
+    let decoder = zstd::stream::read::Decoder::new(data).map_err(|e| e.to_string())?;
+    serde_json::from_reader(std::io::BufReader::new(decoder)).map_err(|e| e.to_string())
 }
 
 /// Aix returns annotation-free PGN with whitespace-delimited move numbers and
 /// SAN, and parentheses for variations. Reinsert annotations without touching
 /// those move numbers (including custom starting positions).
-pub fn restore_movetext(moves: &str, json: Option<&str>) -> Result<String, String> {
-    let Some(json) = json else {
+pub fn restore_movetext(moves: &str, data: Option<&[u8]>) -> Result<String, String> {
+    let Some(data) = data else {
         return Ok(moves.to_owned());
     };
-    let annotations: Annotations = serde_json::from_str(json).map_err(|e| e.to_string())?;
+    let annotations = decode(data)?;
     let mut output = String::new();
     let mut event = 0;
     append_annotations(&mut output, annotations.events.get(&event));
@@ -124,10 +133,6 @@ fn append_annotations(output: &mut String, annotations: Option<&Vec<Annotation>>
             Annotation::Nag(nag) => output.push_str(&format!("${nag} ")),
         }
     }
-}
-
-pub fn parse_tags(json: &str) -> Result<BTreeMap<String, String>, String> {
-    serde_json::from_str(json).map_err(|e| e.to_string())
 }
 
 pub fn write_tags(tags: &BTreeMap<String, String>) -> String {
