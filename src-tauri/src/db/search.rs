@@ -248,7 +248,6 @@ pub async fn search_position(
             SUM(CASE WHEN result = '0-1' THEN 1 ELSE 0 END) AS black_wins,
             SUM(CASE WHEN result = '1/2-1/2' THEN 1 ELSE 0 END) AS draws
         FROM matching_positions
-        WHERE next_move IS NOT NULL
         GROUP BY next_move
         ORDER BY total_games DESC;",
         full_fen = sql_literal(&position_query.fen),
@@ -258,15 +257,19 @@ pub async fn search_position(
     let openings = db
         .prepare(&sql)?
         .query_map([], |row| {
-            Ok(PositionStats {
-                move_: row.get::<_, String>("next_move")?,
+            let Some(move_) = row.get::<_, Option<String>>("next_move")? else {
+                return Ok(None);
+            };
+            Ok(Some(PositionStats {
+                move_,
                 white: row.get::<_, i32>("white_wins")?,
                 draw: row.get::<_, i32>("draws")?,
                 black: row.get::<_, i32>("black_wins")?,
-            })
+            }))
         })?
         .collect::<Result<Vec<_>, _>>()?
         .into_iter()
+        .flatten()
         .map(|mut stat| {
             stat.move_ = uci_to_san(&stat.move_, &reference_position);
             stat
