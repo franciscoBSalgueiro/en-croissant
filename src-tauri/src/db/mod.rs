@@ -1,4 +1,6 @@
 mod annotations;
+mod legacy;
+mod legacy_encoding;
 mod models;
 mod pgn;
 mod schema;
@@ -27,6 +29,7 @@ use tauri_specta::Event as TauriSpectaEvent;
 
 use log::info;
 
+pub use self::legacy::convert_legacy_database;
 pub use self::models::NormalizedGame;
 pub use self::models::Puzzle;
 pub use self::schema::puzzle_themes;
@@ -71,30 +74,52 @@ fn duckdb_pool_key(path: &Path) -> String {
 }
 
 fn get_duckdb_pool(state: &AppState, path: &Path) -> Result<Pool<DuckdbConnectionManager>, Error> {
-    let key = duckdb_pool_key(path);
+    database_pool(state, path)?.ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "This database uses an older format. Convert it from the Databases page before using it.",
+        ).into()
+    })
+}
 
-    if let Some(pool) = state.duckdb_connection_pool.get(&key) {
-        return Ok(pool.clone());
-    }
+/// None identifies a legacy SQLite database; current databases share one pool.
+fn database_pool(
+    state: &AppState,
+    path: &Path,
+) -> Result<Option<Pool<DuckdbConnectionManager>>, Error> {
+    get_or_create_database_pool(state, path, || {
+        let extension_path = state
+            .aixchess_extension_path
+            .lock()
+            .map_err(|_| std::io::Error::other("aixchess extension path mutex poisoned"))?
+            .clone()
+            .ok_or_else(|| {
+                std::io::Error::new(
+                    std::io::ErrorKind::NotFound,
+                    "aixchess extension resource path is not initialized",
+                )
+            })?;
+        create_duckdb_pool(path, &extension_path)
+    })
+}
 
-    let extension_path = state
-        .aixchess_extension_path
-        .lock()
-        .map_err(|_| std::io::Error::other("aixchess extension path mutex poisoned"))?
-        .clone()
-        .ok_or_else(|| {
-            std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                "aixchess extension resource path is not initialized",
-            )
-        })?;
-
-    let pool = create_duckdb_pool(path, &extension_path)?;
-    match state.duckdb_connection_pool.entry(key) {
-        Entry::Occupied(entry) => Ok(entry.get().clone()),
+fn get_or_create_database_pool(
+    state: &AppState,
+    path: &Path,
+    create: impl FnOnce() -> Result<Pool<DuckdbConnectionManager>, Error>,
+) -> Result<Option<Pool<DuckdbConnectionManager>>, Error> {
+    // Hold the entry through detection and creation. A second caller must not
+    // probe the file while the first caller opens it: DuckDB's Windows handle
+    // can deny that separate read, even within this process.
+    match state.duckdb_connection_pool.entry(duckdb_pool_key(path)) {
+        Entry::Occupied(entry) => Ok(Some(entry.get().clone())),
         Entry::Vacant(entry) => {
+            if path.exists() && legacy::is_sqlite(path)? {
+                return Ok(None);
+            }
+            let pool = create()?;
             entry.insert(pool.clone());
-            Ok(pool)
+            Ok(Some(pool))
         }
     }
 }
@@ -277,6 +302,7 @@ pub async fn convert_pgn(
 
 #[derive(Serialize, Type)]
 pub struct DatabaseInfo {
+    needs_conversion: bool,
     title: String,
     description: String,
     player_count: i32,
@@ -294,9 +320,15 @@ pub async fn get_db_info(
 ) -> Result<DatabaseInfo, Error> {
     info!("get_db_info {:?}", file);
 
-    let path = file;
+    read_database_info(&file, &state)
+}
 
-    let db_pool = get_duckdb_pool(&state, &path)?;
+fn read_database_info(path: &Path, state: &AppState) -> Result<DatabaseInfo, Error> {
+    let storage_size = path.metadata()?.len();
+    // Metadata queries must reuse DuckDB's handle before attempting a raw read.
+    let Some(db_pool) = database_pool(state, path)? else {
+        return legacy::database_info(path);
+    };
     let db = db_pool.get()?;
 
     let event_count = db.query_row("SELECT COUNT(DISTINCT event) FROM games;", [], |row| {
@@ -307,7 +339,7 @@ pub async fn get_db_info(
         row.get::<_, i32>(0)
     })?;
 
-    let cache = player_catalog_cache(&state, &path);
+    let cache = player_catalog_cache(state, path);
     let mut catalog = cache
         .lock()
         .map_err(|_| std::io::Error::other("player catalog mutex poisoned"))?;
@@ -318,7 +350,6 @@ pub async fn get_db_info(
     )?;
     drop(catalog);
 
-    let storage_size = path.metadata()?.len();
     let filename = path.file_name().expect("get filename").to_string_lossy();
 
     let mut title = filename.to_string();
@@ -341,6 +372,7 @@ pub async fn get_db_info(
     }
 
     Ok(DatabaseInfo {
+        needs_conversion: false,
         title,
         description,
         player_count,
@@ -1354,6 +1386,70 @@ pub async fn merge_players(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn metadata_reuses_an_open_database_without_reopening_its_file() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("open.duckdb");
+        let state = AppState::default();
+        let pool = get_or_create_database_pool(&state, &path, || {
+            Ok(Pool::builder()
+                .max_size(1)
+                .build(DuckdbConnectionManager::file(&path)?)?)
+        })
+        .unwrap()
+        .unwrap();
+        pool.get()
+            .unwrap()
+            .execute_batch(include_str!("init-database.sql"))
+            .unwrap();
+
+        // Keep the real file-backed DuckDB pool alive across repeated refreshes.
+        // On Windows a separate File::open can conflict with this handle.
+        for _ in 0..3 {
+            let info = read_database_info(&path, &state).unwrap();
+            assert!(!info.needs_conversion);
+            assert_eq!(info.game_count, 0);
+            assert_eq!(info.filename, "open.duckdb");
+        }
+        get_or_create_database_pool(&state, &path, || panic!("Must reuse the open pool"))
+            .unwrap()
+            .unwrap();
+    }
+
+    #[test]
+    fn concurrent_database_opens_create_one_pool() {
+        use std::sync::{
+            atomic::{AtomicUsize, Ordering},
+            Barrier,
+        };
+
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("concurrent.duckdb");
+        let state = AppState::default();
+        let starts = Barrier::new(8);
+        let creations = AtomicUsize::new(0);
+        std::thread::scope(|scope| {
+            for _ in 0..8 {
+                scope.spawn(|| {
+                    starts.wait();
+                    get_or_create_database_pool(&state, &path, || {
+                        creations.fetch_add(1, Ordering::SeqCst);
+                        Ok(Pool::builder()
+                            .max_size(1)
+                            .build(DuckdbConnectionManager::file(&path)?)?)
+                    })
+                    .unwrap()
+                    .unwrap()
+                    .get()
+                    .unwrap()
+                    .execute_batch("SELECT 1")
+                    .unwrap();
+                });
+            }
+        });
+        assert_eq!(creations.load(Ordering::SeqCst), 1);
+    }
 
     const ANNOTATED_PGN: &str = r#"[Event "Annotation test"]
 [Site "Lisboa"]

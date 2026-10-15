@@ -23,7 +23,10 @@ use std::sync::{Arc, Mutex};
 
 use chess::{BestMovesPayload, EngineProcess};
 use dashmap::DashMap;
-use db::{convert_pgn, DatabaseProgress, GameQuery, NormalizedGame, PositionStats};
+use db::{
+    convert_legacy_database, convert_pgn, DatabaseProgress, GameQuery, NormalizedGame,
+    PositionStats,
+};
 use derivative::Derivative;
 use game::GameManager;
 use progress::{clear_progress, get_progress, ProgressEvent, ProgressStore};
@@ -143,6 +146,7 @@ fn main() {
             get_file_metadata,
             merge_players,
             convert_pgn,
+            convert_legacy_database,
             get_player,
             count_pgn_games,
             read_games,

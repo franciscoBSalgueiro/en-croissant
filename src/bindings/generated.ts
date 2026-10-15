@@ -160,6 +160,14 @@ async convertPgn(files: string[], dbPath: string, timestamp: number | null, titl
     else return { status: "error", error: e  as any };
 }
 },
+async convertLegacyDatabase(file: string, destFile: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("convert_legacy_database", { file, destFile }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getPlayer(file: string, id: number) : Promise<Result<Player | null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_player", { file, id }) };
@@ -464,7 +472,7 @@ export type AnalysisOptions = { fen: string; moves: string[]; annotateNovelties:
 export type BestMoves = { nodes: number; depth: number; score: Score; uciMoves: string[]; sanMoves: string[]; multipv: number; nps: number }
 export type BestMovesPayload = { bestLines: BestMoves[]; engine: string; tab: string; fen: string; moves: string[]; progress: number }
 export type ClockUpdateEvent = { gameId: string; whiteTime: bigint | null; blackTime: bigint | null }
-export type DatabaseInfo = { title: string; description: string; player_count: number; event_count: number; game_count: number; storage_size: bigint; filename: string }
+export type DatabaseInfo = { needs_conversion: boolean; title: string; description: string; player_count: number; event_count: number; game_count: number; storage_size: bigint; filename: string }
 export type DatabaseProgress = { id: string; progress: number }
 export type DrawReason = "stalemate" | "insufficientMaterial" | "threefoldRepetition" | "fiftyMoveRule" | "agreement"
 export type EngineConfig = { name: string; options: UciOptionConfig[] }

@@ -115,7 +115,7 @@ export async function query_tournaments(
 export async function getDatabases(): Promise<DatabaseInfo[]> {
     const dbDir = await getDatabasesDir();
     const files = await readDir(dbDir);
-    const dbs = files.filter((file) => file.name?.endsWith(".duckdb"));
+    const dbs = files.filter((file) => /\.(duckdb|db3)$/i.test(file.name ?? ""));
     return (await Promise.allSettled(dbs.map((db) => getDatabase(db.name))))
         .filter((r) => r.status === "fulfilled")
         .map((r) => (r as PromiseFulfilledResult<DatabaseInfo>).value);
@@ -127,7 +127,7 @@ async function getDatabase(name: string): Promise<DatabaseInfo> {
     const res = await commands.getDbInfo(path);
     if (res.status === "ok") {
         return {
-            type: "success",
+            type: res.data.needs_conversion ? "legacy" : "success",
             ...res.data,
             file: path,
         };

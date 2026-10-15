@@ -1,5 +1,7 @@
 import {
   ActionIcon,
+  Alert,
+  Badge,
   Box,
   Button,
   Center,
@@ -26,6 +28,7 @@ import { IconArrowRight, IconDatabase, IconPlus, IconSearch } from "@tabler/icon
 import { Link, useNavigate } from "@tanstack/react-router";
 import { basename } from "@tauri-apps/api/path";
 import { open as openDialog, save } from "@tauri-apps/plugin-dialog";
+import { exists } from "@tauri-apps/plugin-fs";
 import { useAtom } from "jotai";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -80,8 +83,8 @@ export default function DatabasesPage() {
       const values = [
         item.filename,
         item.file,
-        item.type === "success" ? item.title : item.error,
-        item.type === "success" ? item.description : "",
+        item.type !== "error" ? item.title : item.error,
+        item.type !== "error" ? item.description : "",
       ];
 
       return values.some((value) => value.toLowerCase().includes(normalizedSearch));
@@ -217,7 +220,7 @@ export default function DatabasesPage() {
                       setSelected={setSelected}
                       error={item.type === "error" ? item.error : ""}
                       onDoubleClick={() => {
-                        if (item.type === "error") return;
+                        if (item.type !== "success") return;
                         navigate({
                           to: "/databases/$databaseId",
                           params: {
@@ -233,14 +236,20 @@ export default function DatabasesPage() {
                             <IconDatabase size="1.5rem" />
                             <Box miw={0}>
                               <Text fw={500} fz="sm">
-                                {item.type === "success" ? item.title : item.error}
+                                {item.type !== "error" ? item.title : item.error}
                               </Text>
+                              {item.type === "legacy" && (
+                                <Badge color="yellow" size="sm">
+                                  {t("Databases.Conversion.Required")}
+                                </Badge>
+                              )}
                               <Text size="xs" c="dimmed" style={{ wordWrap: "break-word" }}>
                                 {item.type === "error" ? item.file : item.description}
                               </Text>
                             </Box>
                           </Group>
                           <Rating
+                            readOnly={item.type !== "success"}
                             value={referenceDatabase === item.file ? 1 : 0}
                             count={1}
                             onChange={() => {
@@ -252,12 +261,12 @@ export default function DatabasesPage() {
                       stats={[
                         {
                           label: t("Databases.Card.Games"),
-                          value: item.type === "success" ? formatNumber(item.game_count) : "???",
+                          value: item.type !== "error" ? formatNumber(item.game_count) : "???",
                         },
                         {
                           label: t("Databases.Card.Storage"),
                           value:
-                            item.type === "success" ? formatBytes(item.storage_size ?? 0) : "???",
+                            item.type !== "error" ? formatBytes(item.storage_size ?? 0) : "???",
                         },
                       ]}
                     />
@@ -315,6 +324,55 @@ export default function DatabasesPage() {
                     </Text>
 
                     <Text>{t("Databases.LoadError.Description")}</Text>
+                  </>
+                ) : selectedDatabase.type === "legacy" ? (
+                  <>
+                    <Title order={3}>{selectedDatabase.title}</Title>
+                    <Alert color="yellow" title={t("Databases.Conversion.Required")}>
+                      {t("Databases.Conversion.Description")}
+                    </Alert>
+                    <Button
+                      disabled={conversionState.inProgress}
+                      onClick={async () => {
+                        const stem = selectedDatabase.file.replace(/\.[^.]+$/, "");
+                        let destFile = `${stem}.duckdb`;
+                        let suffix = 1;
+                        while (await exists(destFile)) {
+                          destFile = `${stem} (${suffix++}).duckdb`;
+                        }
+                        setConversionState((prev) => ({
+                          ...prev,
+                          inProgress: true,
+                          totalGames: 0,
+                          elapsedSeconds: 0,
+                          targetDatabasePath: destFile,
+                          targetDatabaseTitle: selectedDatabase.title,
+                          sourceFileName: null,
+                        }));
+                        try {
+                          unwrap(
+                            await commands.convertLegacyDatabase(selectedDatabase.file, destFile),
+                          );
+                          if (referenceDatabase === selectedDatabase.file)
+                            setReferenceDatabase(destFile);
+                          await mutate();
+                          setSelected(destFile);
+                        } catch {
+                        } finally {
+                          setConversionState((prev) => ({
+                            ...prev,
+                            inProgress: false,
+                            totalGames: 0,
+                            elapsedSeconds: 0,
+                            targetDatabasePath: null,
+                            targetDatabaseTitle: null,
+                            sourceFileName: null,
+                          }));
+                        }
+                      }}
+                    >
+                      {t("Databases.Conversion.Convert")}
+                    </Button>
                   </>
                 ) : (
                   <>
@@ -452,7 +510,11 @@ export default function DatabasesPage() {
                       </Button>
                     </Group>
                   )}
-                  <Button onClick={() => toggleDeleteModal()} color="red">
+                  <Button
+                    onClick={() => toggleDeleteModal()}
+                    color="red"
+                    disabled={conversionState.inProgress}
+                  >
                     {t("Common.Delete")}
                   </Button>
                 </Group>
