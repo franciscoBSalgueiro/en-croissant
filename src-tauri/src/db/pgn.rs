@@ -5,7 +5,6 @@ use chrono::NaiveDate;
 use duckdb::types::{TimeUnit, Value};
 use duckdb::{appender_params_from_iter, Appender};
 use pgn_reader::{Nag, RawComment, RawTag, Reader, SanPlus, Skip, Visitor};
-use shakmaty::san::San;
 use shakmaty::{fen::Fen as ShakmatyFen, CastlingMode, Chess, FromSetup, Position};
 use std::ops::ControlFlow;
 
@@ -290,12 +289,8 @@ impl GameInProcessing<'_> {
     }
 
     fn play_san(&mut self, san_plus: &SanPlus) -> Result<(), String> {
-        let san = san_plus
+        let chess_move = san_plus
             .san
-            .to_string()
-            .parse::<San>()
-            .map_err(|err| format!("invalid SAN '{}': {err}", san_plus.san))?;
-        let chess_move = san
             .to_move(&self.pos)
             .map_err(|_| format!("invalid move '{}' at ply {}", san_plus.san, self.ply + 1))?;
 
