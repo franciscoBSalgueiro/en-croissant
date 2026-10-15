@@ -33,6 +33,7 @@ import { RESET } from "jotai/utils";
 import posthog from "posthog-js";
 import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { ReviewOrder } from "@/components/files/opening";
 import {
   autoPromoteAtom,
   autoSaveAtom,
@@ -46,6 +47,7 @@ import {
   moveNotationTypeAtom,
   nativeBarAtom,
   practiceAutoDifficultyAtom,
+  practiceReviewOrderAtom,
   previewBoardOnHoverAtom,
   flipBoardAfterMoveAtom,
   showArrowsAtom,
@@ -182,6 +184,7 @@ export default function Page() {
   const [showCoordinates, setShowCoordinates] = useAtom(showCoordinatesAtom);
   const [materialDisplay, setMaterialDisplay] = useAtom(materialDisplayAtom);
   const [practiceAutoDifficulty, setPracticeAutoDifficulty] = useAtom(practiceAutoDifficultyAtom);
+  const [practiceReviewOrder, setPracticeReviewOrder] = useAtom(practiceReviewOrderAtom);
 
   const settings: SettingItem[] = useMemo(
     () => [
@@ -528,6 +531,25 @@ export default function Page() {
         ),
       },
       {
+        id: "repertoire-review-order",
+        category: "repertoire",
+        title: t("Settings.Repertoire.ReviewOrder"),
+        description: t("Settings.Repertoire.ReviewOrder.Desc"),
+        keywords: ["repertoire", "review", "order", "random", "shuffle", "overdue"],
+        render: () => (
+          <Select
+            allowDeselect={false}
+            data={[
+              { label: t("Settings.Repertoire.ReviewOrder.MostOverdue"), value: "most-overdue" },
+              { label: t("Settings.Repertoire.ReviewOrder.Random"), value: "random" },
+              { label: t("Settings.Repertoire.ReviewOrder.TreeOrder"), value: "tree-order" },
+            ]}
+            value={practiceReviewOrder}
+            onChange={(val) => setPracticeReviewOrder(val as ReviewOrder)}
+          />
+        ),
+      },
+      {
         id: "repertoire-practice-reminder-badges",
         category: "repertoire",
         title: t("Settings.Repertoire.PracticeReminderBadges"),
@@ -666,6 +688,8 @@ export default function Page() {
       setMaterialDisplay,
       practiceAutoDifficulty,
       setPracticeAutoDifficulty,
+      practiceReviewOrder,
+      setPracticeReviewOrder,
     ],
   );
 

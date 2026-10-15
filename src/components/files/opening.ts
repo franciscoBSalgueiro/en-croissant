@@ -281,18 +281,28 @@ export function getStats(positions: Position[]) {
     return stats;
 }
 
-export function getCardForReview(
-    positions: Position[],
-    options: { random: boolean } = { random: false },
-): Position | null {
-    if (options.random) {
-        return positions[Math.floor(Math.random() * positions.length)];
-    }
+export type ReviewOrder = "most-overdue" | "random" | "tree-order";
+
+export function getCardForReview(positions: Position[], order: ReviewOrder): Position | null {
     const now = new Date();
 
     const filtered = positions.filter((position) => new Date(position.card.due) <= now);
 
-    return filtered.length > 0 ? filtered[0] : null;
+    if (filtered.length === 0) {
+        return null;
+    }
+    if (order === "random") {
+        return filtered[Math.floor(Math.random() * filtered.length)];
+    }
+    if (order === "most-overdue") {
+        // An unseen card's due date is just when it was added to the deck, so it isn't
+        // overdue: the earliest-due seen card goes first, then unseen cards in tree order.
+        const seen = filtered.filter((position) => position.card.reps > 0);
+        if (seen.length > 0) {
+            return seen.reduce((a, b) => (new Date(b.card.due) < new Date(a.card.due) ? b : a));
+        }
+    }
+    return filtered[0];
 }
 
 // Start Practice asks one card: a position and one of the user's moves there. Any of their

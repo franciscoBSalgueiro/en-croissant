@@ -16,7 +16,12 @@ import type { ReviewLog } from "ts-fsrs";
 import { z } from "zod";
 import type { BestMoves, GoMode } from "@/bindings";
 import { DEFAULT_TIME_CONTROL, type OpponentSettings } from "@/components/boards/OpponentForm";
-import { type Position, type PracticeStep, positionSchema } from "@/components/files/opening";
+import {
+    type Position,
+    type PracticeStep,
+    positionSchema,
+    type ReviewOrder,
+} from "@/components/files/opening";
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { positionFromFen, swapMove } from "@/utils/chessops";
 import type { SuccessDatabaseInfo } from "@/utils/db";
@@ -546,6 +551,11 @@ export const showPracticeReminderBadgesAtom = atomWithStorage<boolean>(
 export const practiceAutoDifficultyAtom = atomWithStorage<"none" | "1" | "2" | "3" | "4">(
     "practice-auto-difficulty",
     "none",
+);
+
+export const practiceReviewOrderAtom = atomWithStorage<ReviewOrder>(
+    "practice-review-order",
+    "random",
 );
 
 const practiceCardStartTimeFamily = atomFamily((_tab: string) => atom<number>(0));
