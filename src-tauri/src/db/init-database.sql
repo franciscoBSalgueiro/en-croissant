@@ -11,14 +11,15 @@ CREATE TABLE games (
   white_title VARCHAR,
   black_title VARCHAR,
 
-  -- clocks_white USMALLINT[],
-  -- clocks_black USMALLINT[],
-  -- evals SMALLINT[],
-
   result VARCHAR,
   time_control VARCHAR,
 
   ply_count USMALLINT,
   utc_timestamp TIMESTAMP,
-  movedata BLOB
+  movedata BLOB,
+  -- JSON text keyed by move/variation event in movedata traversal order.
+  -- VARCHAR avoids requiring DuckDB's separately installed JSON extension.
+  annotations VARCHAR,
+  -- Preserve all original headers, including unknown tags and partial dates.
+  pgn_tags VARCHAR NOT NULL
 );

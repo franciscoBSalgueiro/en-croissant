@@ -441,8 +441,11 @@ export default function DatabasesPage() {
                           });
                           if (!destFile) return;
                           setExportLoading(true);
-                          await commands.exportToPgn(selectedDatabase.file, destFile);
-                          setExportLoading(false);
+                          try {
+                            unwrap(await commands.exportToPgn(selectedDatabase.file, destFile));
+                          } finally {
+                            setExportLoading(false);
+                          }
                         }}
                       >
                         {t("Databases.Settings.ExportPGN")}

@@ -1,11 +1,12 @@
+use super::annotations::{Annotation, Annotations};
 use aix_chess_compression::{CompressionLevel, Encode, Encoder};
 use chrono::NaiveDate;
 use duckdb::types::{TimeUnit, Value};
-use duckdb::{params, Appender};
-use lazy_regex::regex_captures;
-use pgn_reader::{RawComment, RawTag, Reader, SanPlus, Skip, Visitor};
+use duckdb::{appender_params_from_iter, Appender};
+use pgn_reader::{Nag, RawComment, RawTag, Reader, SanPlus, Skip, Visitor};
 use shakmaty::san::San;
 use shakmaty::{fen::Fen as ShakmatyFen, CastlingMode, Chess, FromSetup, Position};
+use std::collections::BTreeMap;
 use std::ops::ControlFlow;
 
 pub struct PgnProcessor<'a> {
@@ -18,6 +19,7 @@ pub struct PgnProcessor<'a> {
 
 #[derive(Default, Debug)]
 pub struct Headers {
+    tags: BTreeMap<String, String>,
     event: Option<String>,
     site: Option<String>,
     round: Option<String>,
@@ -64,51 +66,75 @@ impl<'a> PgnProcessor<'a> {
     }
 }
 
-pub fn encode_single_game_moves(
-    pgn: &str,
-    level: CompressionLevel,
-    continue_on_invalid_move: bool,
-) -> Result<Vec<u8>, String> {
-    let mut reader = Reader::new(pgn.as_bytes());
-    let mut proc = SingleGameProcessor::new(level, continue_on_invalid_move);
-    let game = reader
-        .read_game(&mut proc)
-        .map_err(|err| format!("failed to parse PGN: {err}"))?;
+pub struct StoredGame {
+    pub headers: Headers,
+    pub movedata: Vec<u8>,
+    pub ply_count: u16,
+    pub annotations: Option<String>,
+}
 
-    if let Some(err) = proc.error {
-        return Err(err);
+impl StoredGame {
+    pub fn timestamp(&self) -> Option<i64> {
+        build_utc_timestamp(
+            self.headers
+                .utc_date
+                .as_deref()
+                .or(self.headers.date.as_deref()),
+            self.headers
+                .utc_time
+                .as_deref()
+                .or(self.headers.time.as_deref()),
+        )
     }
 
-    game.ok_or_else(|| "no game found in PGN".to_owned())
-}
-
-struct SingleGameProcessor {
-    level: CompressionLevel,
-    continue_on_invalid_move: bool,
-    error: Option<String>,
-}
-
-impl SingleGameProcessor {
-    fn new(level: CompressionLevel, continue_on_invalid_move: bool) -> Self {
-        Self {
-            level,
-            continue_on_invalid_move,
-            error: None,
-        }
+    pub fn database_values(self) -> Vec<Value> {
+        let timestamp = self
+            .timestamp()
+            .map(|ts| Value::Timestamp(TimeUnit::Microsecond, ts));
+        let tags = serde_json::to_string(&self.headers.tags).unwrap();
+        let h = self.headers;
+        vec![
+            h.event.into(),
+            h.site.into(),
+            h.round.into(),
+            h.fen.into(),
+            h.white.into(),
+            h.black.into(),
+            h.white_rating.into(),
+            h.black_rating.into(),
+            h.white_title.into(),
+            h.black_title.into(),
+            h.result.into(),
+            h.time_control.into(),
+            self.ply_count.into(),
+            timestamp.unwrap_or(Value::Null),
+            Value::Blob(self.movedata),
+            self.annotations.into(),
+            tags.into(),
+        ]
     }
 }
+
+pub fn parse_single_game(pgn: &str) -> Result<StoredGame, String> {
+    Reader::new(pgn.as_bytes())
+        .read_game(&mut SingleGameProcessor)
+        .map_err(|err| format!("failed to parse PGN: {err}"))?
+        .ok_or_else(|| "no game found in PGN".to_owned())?
+}
+
+struct SingleGameProcessor;
 
 impl Visitor for SingleGameProcessor {
     type Tags = Headers;
     type Movetext = GameInProcessing<'static>;
-    type Output = Vec<u8>;
+    type Output = Result<StoredGame, String>;
 
     fn begin_tags(&mut self) -> ControlFlow<Self::Output, Self::Tags> {
         ControlFlow::Continue(Headers::default())
     }
 
     fn begin_movetext(&mut self, tags: Self::Tags) -> ControlFlow<Self::Output, Self::Movetext> {
-        ControlFlow::Continue(GameInProcessing::new(tags, self.level))
+        ControlFlow::Continue(GameInProcessing::new(tags, CompressionLevel::Low))
     }
 
     fn san(
@@ -119,14 +145,7 @@ impl Visitor for SingleGameProcessor {
         if let Err(err) = movetext.play_san(&san_plus) {
             let error_msg = format!("{err} in game with headers {:?}", movetext.headers);
 
-            if self.continue_on_invalid_move {
-                eprintln!("{error_msg}");
-                self.error = Some(error_msg);
-                return ControlFlow::Break(Vec::new());
-            }
-
-            self.error = Some(error_msg);
-            return ControlFlow::Break(Vec::new());
+            return ControlFlow::Break(Err(error_msg));
         }
 
         ControlFlow::Continue(())
@@ -158,6 +177,38 @@ impl Visitor for SingleGameProcessor {
         ControlFlow::Continue(())
     }
 
+    fn outcome(
+        &mut self,
+        movetext: &mut Self::Movetext,
+        outcome: shakmaty::Outcome,
+    ) -> ControlFlow<Self::Output> {
+        let result = outcome.to_string();
+        movetext
+            .headers
+            .tags
+            .insert("Result".into(), result.clone());
+        movetext.headers.result = Some(result);
+        ControlFlow::Continue(())
+    }
+
+    fn nag(&mut self, movetext: &mut Self::Movetext, nag: Nag) -> ControlFlow<Self::Output> {
+        movetext
+            .annotations
+            .push(movetext.event, Annotation::Nag(nag.0));
+        ControlFlow::Continue(())
+    }
+
+    fn partial_comment(
+        &mut self,
+        movetext: &mut Self::Movetext,
+        comment: RawComment<'_>,
+    ) -> ControlFlow<Self::Output> {
+        movetext
+            .pending_comment
+            .push_str(&String::from_utf8_lossy(comment.as_bytes()));
+        ControlFlow::Continue(())
+    }
+
     fn comment(
         &mut self,
         movetext: &mut Self::Movetext,
@@ -167,18 +218,17 @@ impl Visitor for SingleGameProcessor {
         ControlFlow::Continue(())
     }
 
-    fn end_game(&mut self, mut movetext: Self::Movetext) -> Self::Output {
-        movetext.close_variations();
-        movetext.encoder.finish().into_bytes()
+    fn end_game(&mut self, movetext: Self::Movetext) -> Self::Output {
+        Ok(movetext.finish())
     }
 }
 
 pub struct GameInProcessing<'a> {
     headers: Headers,
     encoder: Encoder<'a>,
-    evals: Vec<(u16, i16)>,
-    clocks_white: Vec<(u16, u16)>,
-    clocks_black: Vec<(u16, u16)>,
+    annotations: Annotations,
+    event: usize,
+    pending_comment: String,
     pos: Chess,
     ply: u16,
     /// Saved state for each variation, including the branch point for siblings.
@@ -213,9 +263,9 @@ impl GameInProcessing<'_> {
             headers,
             encoder: Encoder::new_with_initial_fen(level, initial_fen.as_deref())
                 .unwrap_or_else(|e| panic!("failed to initialize encoder with initial FEN: {e}")),
-            evals: vec![],
-            clocks_white: vec![],
-            clocks_black: vec![],
+            annotations: Annotations::default(),
+            event: 0,
+            pending_comment: String::new(),
             pos: pos.clone(),
             ply: 0,
             position_stack: vec![],
@@ -225,52 +275,19 @@ impl GameInProcessing<'_> {
         }
     }
 
-    fn finalize_evals(&self) -> Option<String> {
-        if self.evals.is_empty() {
-            return None;
+    fn finish(mut self) -> StoredGame {
+        self.close_variations();
+        if self.headers.tags.contains_key("PlyCount") {
+            self.headers
+                .tags
+                .insert("PlyCount".into(), self.ply.to_string());
         }
-
-        let mut index = 1;
-        let mut evals = vec![];
-        for &(ply, eval) in &self.evals {
-            if index != ply {
-                let n = ply - index;
-                let last = evals.last().cloned().unwrap_or(0);
-                evals.append(&mut vec![last; n.into()]);
-            }
-
-            evals.push(eval);
-            index = ply + 1;
+        StoredGame {
+            annotations: self.annotations.to_json(),
+            headers: self.headers,
+            movedata: self.encoder.finish().into_bytes(),
+            ply_count: self.ply,
         }
-
-        Some(format!("{:?}", evals))
-    }
-
-    fn finalize_clocks(&self, white: bool) -> Option<String> {
-        let clocks = if white {
-            &self.clocks_white
-        } else {
-            &self.clocks_black
-        };
-
-        if clocks.is_empty() {
-            return None;
-        }
-
-        let mut index = 1;
-        let mut clocks_out = vec![];
-        for &(ply, clock) in clocks {
-            if index != ply {
-                let n = (ply - index) / 2;
-                let last = clocks_out.last().cloned().unwrap_or(0);
-                clocks_out.append(&mut vec![last; n.into()]);
-            }
-
-            clocks_out.push(clock);
-            index = ply + 2;
-        }
-
-        Some(format!("{:?}", clocks_out))
     }
 
     fn play_san(&mut self, san_plus: &SanPlus) -> Result<(), String> {
@@ -290,6 +307,7 @@ impl GameInProcessing<'_> {
             .encode_move(chess_move)
             .map_err(|err| format!("failed to encode move: {err}"))?;
         self.ply += 1;
+        self.event += 1;
 
         Ok(())
     }
@@ -300,6 +318,7 @@ impl GameInProcessing<'_> {
         }
 
         self.encoder.encode_start_variation();
+        self.event += 1;
         self.position_stack.push(VariationState {
             pos: self.pos.clone(),
             ply: self.ply,
@@ -318,6 +337,7 @@ impl GameInProcessing<'_> {
     fn end_variation(&mut self) {
         if let Some(saved) = self.position_stack.pop() {
             self.encoder.encode_end_variation();
+            self.event += 1;
             self.pos = saved.pos;
             self.ply = saved.ply;
             self.pos_before_last_move = saved.pos_before_last_move;
@@ -405,6 +425,38 @@ impl<'a> Visitor for PgnProcessor<'a> {
         ControlFlow::Continue(())
     }
 
+    fn outcome(
+        &mut self,
+        movetext: &mut Self::Movetext,
+        outcome: shakmaty::Outcome,
+    ) -> ControlFlow<Self::Output> {
+        let result = outcome.to_string();
+        movetext
+            .headers
+            .tags
+            .insert("Result".into(), result.clone());
+        movetext.headers.result = Some(result);
+        ControlFlow::Continue(())
+    }
+
+    fn nag(&mut self, movetext: &mut Self::Movetext, nag: Nag) -> ControlFlow<Self::Output> {
+        movetext
+            .annotations
+            .push(movetext.event, Annotation::Nag(nag.0));
+        ControlFlow::Continue(())
+    }
+
+    fn partial_comment(
+        &mut self,
+        movetext: &mut Self::Movetext,
+        comment: RawComment<'_>,
+    ) -> ControlFlow<Self::Output> {
+        movetext
+            .pending_comment
+            .push_str(&String::from_utf8_lossy(comment.as_bytes()));
+        ControlFlow::Continue(())
+    }
+
     fn comment(
         &mut self,
         movetext: &mut Self::Movetext,
@@ -417,6 +469,10 @@ impl<'a> Visitor for PgnProcessor<'a> {
 }
 
 fn apply_tag(tags: &mut Headers, key: &[u8], value: RawTag<'_>) {
+    tags.tags.insert(
+        String::from_utf8_lossy(key).into_owned(),
+        value.decode_utf8_lossy().into_owned(),
+    );
     match key {
         b"White" => tags.white = Some(value.decode_utf8_lossy().into_owned()),
         b"Black" => tags.black = Some(value.decode_utf8_lossy().into_owned()),
@@ -429,8 +485,8 @@ fn apply_tag(tags: &mut Headers, key: &[u8], value: RawTag<'_>) {
         b"WhiteTitle" => tags.white_title = Some(value.decode_utf8_lossy().into_owned()),
         b"BlackTitle" => tags.black_title = Some(value.decode_utf8_lossy().into_owned()),
         b"Event" => tags.event = Some(value.decode_utf8_lossy().into_owned()),
-        b"Date" => tags.utc_date = Some(value.decode_utf8_lossy().into_owned()),
-        b"Time" => tags.utc_time = Some(value.decode_utf8_lossy().into_owned()),
+        b"Date" => tags.date = Some(value.decode_utf8_lossy().into_owned()),
+        b"Time" => tags.time = Some(value.decode_utf8_lossy().into_owned()),
         b"UTCDate" => tags.utc_date = Some(value.decode_utf8_lossy().into_owned()),
         b"UTCTime" => tags.utc_time = Some(value.decode_utf8_lossy().into_owned()),
         b"SetUp" => tags.setup = value.decode_utf8_lossy() == "1",
@@ -440,66 +496,26 @@ fn apply_tag(tags: &mut Headers, key: &[u8], value: RawTag<'_>) {
 }
 
 fn apply_comment(movetext: &mut GameInProcessing<'_>, comment: RawComment<'_>) {
-    let cmt = std::str::from_utf8(comment.as_bytes()).unwrap_or("");
-
-    if let Some(eval_cp) = extract_eval_cp_from_comment(cmt) {
-        movetext.evals.push((movetext.ply, eval_cp));
-    }
-
-    if let Some(clock_seconds) = extract_clock_seconds_from_comment(cmt) {
-        if movetext.ply % 2 == 1 {
-            movetext.clocks_white.push((movetext.ply, clock_seconds));
-        } else {
-            movetext.clocks_black.push((movetext.ply, clock_seconds));
-        }
-    }
+    let mut text = std::mem::take(&mut movetext.pending_comment);
+    text.push_str(&String::from_utf8_lossy(comment.as_bytes()));
+    movetext
+        .annotations
+        .push(movetext.event, Annotation::Comment(text));
 }
 
 impl<'a> PgnProcessor<'a> {
     fn end_game_inner(
         &mut self,
-        mut movetext: <Self as Visitor>::Movetext,
+        movetext: <Self as Visitor>::Movetext,
     ) -> <Self as Visitor>::Output {
-        movetext.close_variations();
-        let clocks_w = movetext.finalize_clocks(true);
-        let clocks_b = movetext.finalize_clocks(false);
-        let evals = movetext.finalize_evals();
-        let moves = movetext.encoder.finish();
-        let bytes = moves.into_bytes();
-        let headers = movetext.headers;
-
-        let game_ts = build_utc_timestamp(
-            headers.utc_date.as_deref().or(headers.date.as_deref()),
-            headers.utc_time.as_deref().or(headers.time.as_deref()),
-        );
-        if let Some(ts) = self.timestamp {
-            if let Some(game_ts) = game_ts {
-                if game_ts < ts as i64 {
-                    return;
-                }
+        let game = movetext.finish();
+        if let (Some(cutoff), Some(timestamp)) = (self.timestamp, game.timestamp()) {
+            if timestamp < i64::from(cutoff) * 1_000_000 {
+                return;
             }
         }
-
-        let db_ts = game_ts.map(|ts| Value::Timestamp(TimeUnit::Microsecond, ts));
-
         self.appender
-            .append_row(params![
-                headers.event,
-                headers.site,
-                headers.round,
-                headers.fen,
-                headers.white,
-                headers.black,
-                headers.white_rating,
-                headers.black_rating,
-                headers.white_title,
-                headers.black_title,
-                headers.result,
-                headers.time_control,
-                movetext.ply,
-                db_ts,
-                bytes
-            ])
+            .append_row(appender_params_from_iter(game.database_values()))
             .unwrap();
 
         self.count += 1;
@@ -509,38 +525,11 @@ impl<'a> PgnProcessor<'a> {
     }
 }
 
-fn chess_from_fen(fen: &str) -> Result<Chess, String> {
+pub(super) fn chess_from_fen(fen: &str) -> Result<Chess, String> {
     let parsed = ShakmatyFen::from_ascii(fen.as_bytes()).map_err(|e| e.to_string())?;
     let setup = parsed.as_setup();
     let castling_mode = CastlingMode::detect(setup);
     Chess::from_setup(setup.clone(), castling_mode).map_err(|_| "invalid FEN setup".to_owned())
-}
-
-fn extract_eval_cp_from_comment(comment: &str) -> Option<i16> {
-    regex_captures!(r"\[%eval (-?\d+\.\d+|#-?\d+)\]", comment)
-        .and_then(|(_whole, eval)| eval_capture_to_cp(eval))
-}
-
-fn eval_capture_to_cp(eval: &str) -> Option<i16> {
-    if &eval[0..1] == "#" {
-        eval[1..].parse().ok().map(|mate: i16| {
-            if mate > 0 {
-                i16::MAX - mate + 1
-            } else {
-                i16::MIN - mate - 1
-            }
-        })
-    } else {
-        eval.parse().ok().map(|p: f64| (p * 100.0).round() as i16)
-    }
-}
-
-fn extract_clock_seconds_from_comment(comment: &str) -> Option<u16> {
-    regex_captures!(r"\[%clk ([0-9]+):([0-9]{2}):([0-9]{2})\]", comment).map(|(_whole, h, m, s)| {
-        h.parse::<u16>().unwrap() * 3600
-            + m.parse::<u16>().unwrap() * 60
-            + s.parse::<u16>().unwrap()
-    })
 }
 
 fn build_utc_timestamp(date: Option<&str>, time: Option<&str>) -> Option<i64> {

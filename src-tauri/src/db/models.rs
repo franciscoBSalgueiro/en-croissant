@@ -80,4 +80,8 @@ pub struct NormalizedGame {
     #[specta(optional)]
     pub ply_count: Option<i32>,
     pub moves: String,
+    #[specta(optional)]
+    pub time_control: Option<String>,
+    #[specta(optional)]
+    pub other: Option<std::collections::HashMap<String, String>>,
 }

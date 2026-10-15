@@ -8,6 +8,7 @@ use crate::error::Error;
 
 struct Lexer {
     tokens: Vec<Token>,
+    pending_comment: String,
 }
 
 #[derive(Serialize, Clone, Type)]
@@ -29,6 +30,7 @@ impl Visitor for Lexer {
 
     fn begin_tags(&mut self) -> ControlFlow<Self::Output, Self::Tags> {
         self.tokens.clear();
+        self.pending_comment.clear();
         ControlFlow::Continue(())
     }
 
@@ -40,7 +42,7 @@ impl Visitor for Lexer {
     ) -> ControlFlow<Self::Output> {
         self.tokens.push(Token::Header {
             tag: String::from_utf8_lossy(key).to_string(),
-            value: String::from_utf8_lossy(value.as_bytes()).to_string(),
+            value: value.decode_utf8_lossy().into_owned(),
         });
         ControlFlow::Continue(())
     }
@@ -72,14 +74,24 @@ impl Visitor for Lexer {
         ControlFlow::Continue(())
     }
 
+    fn partial_comment(
+        &mut self,
+        _movetext: &mut Self::Movetext,
+        comment: RawComment<'_>,
+    ) -> ControlFlow<Self::Output> {
+        self.pending_comment
+            .push_str(&String::from_utf8_lossy(comment.as_bytes()));
+        ControlFlow::Continue(())
+    }
+
     fn comment(
         &mut self,
         _movetext: &mut Self::Movetext,
         comment: RawComment<'_>,
     ) -> ControlFlow<Self::Output> {
-        self.tokens.push(Token::Comment(
-            String::from_utf8_lossy(comment.as_bytes()).to_string(),
-        ));
+        let mut text = std::mem::take(&mut self.pending_comment);
+        text.push_str(&String::from_utf8_lossy(comment.as_bytes()));
+        self.tokens.push(Token::Comment(text));
         ControlFlow::Continue(())
     }
 
@@ -102,9 +114,35 @@ impl Visitor for Lexer {
 pub async fn lex_pgn(pgn: String) -> Result<Vec<Token>, Error> {
     let mut reader = Reader::new(pgn.as_bytes());
 
-    let mut lexer = Lexer { tokens: Vec::new() };
+    let mut lexer = Lexer {
+        tokens: Vec::new(),
+        pending_comment: String::new(),
+    };
 
     reader.read_game(&mut lexer)?;
 
     Ok(lexer.tokens)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn lexer_preserves_long_comments_and_unescapes_tag_values() {
+        let comment = "é".repeat(20_000);
+        let pgn = format!("[Annotator \"Ana \\\"Quoted\\\" \\\\ Name\"]\n\n1. e4 {{{comment}}} *");
+        let tokens = lex_pgn(pgn).await.unwrap();
+        assert!(
+            matches!(&tokens[0], Token::Header { value, .. } if value == "Ana \"Quoted\" \\ Name")
+        );
+        let comments: Vec<_> = tokens
+            .iter()
+            .filter_map(|token| match token {
+                Token::Comment(text) => Some(text),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(comments, vec![&comment]);
+    }
 }

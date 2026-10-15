@@ -1,3 +1,4 @@
+mod annotations;
 mod models;
 mod pgn;
 mod schema;
@@ -628,9 +629,24 @@ fn parse_normalized_game(row: &duckdb::Row) -> duckdb::Result<NormalizedGame> {
         _ => Outcome::Unknown,
     };
 
-    let fen = row
-        .get::<_, Option<String>>("fen")?
-        .unwrap_or(Fen::default().to_string());
+    let initial_fen = row.get::<_, Option<String>>("fen")?;
+    let fen = initial_fen.clone().unwrap_or(Fen::default().to_string());
+    let bare_moves =
+        annotations::decode_movetext(&row.get::<_, Vec<u8>>("movedata")?, initial_fen.as_deref())
+            .map_err(duckdb::Error::InvalidParameterName)?;
+
+    let tags = annotations::parse_tags(&row.get::<_, String>("pgn_tags")?)
+        .map_err(duckdb::Error::InvalidParameterName)?;
+    let date = tags
+        .get("Date")
+        .or_else(|| tags.get("UTCDate"))
+        .cloned()
+        .or(row.get("date")?);
+    let time = tags
+        .get("UTCTime")
+        .or_else(|| tags.get("Time"))
+        .cloned()
+        .or(row.get("time")?);
 
     Ok(NormalizedGame {
         id: row.get("id")?,
@@ -647,9 +663,36 @@ fn parse_normalized_game(row: &duckdb::Row) -> duckdb::Result<NormalizedGame> {
         result,
 
         ply_count: row.get("ply_count")?,
-        date: row.get("date")?,
-        time: row.get("time")?,
-        moves: row.get("moves")?,
+        date,
+        time,
+        moves: annotations::restore_movetext(
+            &bare_moves,
+            row.get::<_, Option<String>>("annotations")?.as_deref(),
+        )
+        .map_err(duckdb::Error::InvalidParameterName)?,
+        time_control: row.get("time_control")?,
+        other: Some(
+            tags.into_iter()
+                .filter(|(key, _)| {
+                    ![
+                        "Event",
+                        "Site",
+                        "Date",
+                        "Round",
+                        "White",
+                        "Black",
+                        "Result",
+                        "FEN",
+                        "SetUp",
+                        "WhiteElo",
+                        "BlackElo",
+                        "UTCTime",
+                        "TimeControl",
+                    ]
+                    .contains(&key.as_str())
+                })
+                .collect(),
+        ),
     })
 }
 
@@ -697,7 +740,10 @@ pub async fn get_games(
             white_rating,
             black_rating,
             result,
-            to_pgn(movedata, fen) AS moves,
+            movedata,
+            annotations,
+            pgn_tags,
+            time_control,
             ply_count
         FROM games
         {where_sql}
@@ -1116,6 +1162,11 @@ pub async fn delete_duplicated_games(
     let db = db_pool.get()?;
     let _invalidate_players = PlayerCatalogInvalidation::new(&state, &file);
 
+    remove_duplicated_games(&db)?;
+    Ok(())
+}
+
+fn remove_duplicated_games(db: &Connection) -> duckdb::Result<()> {
     db.execute_batch(
         "
         DELETE FROM games
@@ -1124,7 +1175,7 @@ pub async fn delete_duplicated_games(
             FROM (
                 SELECT rowid,
                     ROW_NUMBER() OVER (
-                        PARTITION BY event, site, round, white, black, movedata, utc_timestamp
+                        PARTITION BY event, site, round, white, black, movedata, utc_timestamp, annotations, pgn_tags
                         ORDER BY rowid
                     ) AS row_num
                 FROM games
@@ -1147,99 +1198,46 @@ pub async fn delete_empty_games(
     let db = db_pool.get()?;
     let _invalidate_players = PlayerCatalogInvalidation::new(&state, &file);
 
-    db.execute("DELETE FROM games WHERE ply_count = 0;", [])?;
+    remove_empty_games(&db)?;
 
     Ok(())
 }
 
-struct PgnGame {
-    event: Option<String>,
-    site: Option<String>,
-    date: Option<String>,
-    round: Option<String>,
-    white: Option<String>,
-    black: Option<String>,
-    result: Option<String>,
-    time_control: Option<String>,
-    eco: Option<String>,
-    white_elo: Option<String>,
-    black_elo: Option<String>,
-    ply_count: Option<String>,
-    fen: Option<String>,
-    moves: Option<String>,
+fn remove_empty_games(db: &Connection) -> duckdb::Result<()> {
+    db.execute(
+        "DELETE FROM games WHERE ply_count = 0 AND annotations IS NULL;",
+        [],
+    )?;
+    Ok(())
 }
 
-impl PgnGame {
-    fn write(&self, writer: &mut impl Write) -> Result<(), Error> {
-        writeln!(
-            writer,
-            "[Event \"{}\"]",
-            self.event.as_deref().unwrap_or("")
-        )?;
-        writeln!(writer, "[Site \"{}\"]", self.site.as_deref().unwrap_or(""))?;
-        writeln!(writer, "[Date \"{}\"]", self.date.as_deref().unwrap_or(""))?;
-        writeln!(
-            writer,
-            "[Round \"{}\"]",
-            self.round.as_deref().unwrap_or("")
-        )?;
-        writeln!(
-            writer,
-            "[White \"{}\"]",
-            self.white.as_deref().unwrap_or("")
-        )?;
-        writeln!(
-            writer,
-            "[Black \"{}\"]",
-            self.black.as_deref().unwrap_or("")
-        )?;
-        writeln!(
-            writer,
-            "[Result \"{}\"]",
-            self.result.as_deref().unwrap_or("*")
-        )?;
-        if let Some(time_control) = self.time_control.as_deref() {
-            writeln!(writer, "[TimeControl \"{}\"]", time_control)?;
-        }
-        if let Some(eco) = self.eco.as_deref() {
-            writeln!(writer, "[ECO \"{}\"]", eco)?;
-        }
-        if let Some(white_elo) = self.white_elo.as_deref() {
-            if white_elo == "0" {
-                writeln!(writer, "[WhiteElo \"-\"]")?;
-            } else {
-                writeln!(writer, "[WhiteElo \"{}\"]", white_elo)?;
-            }
-        }
-        if let Some(black_elo) = self.black_elo.as_deref() {
-            if black_elo == "0" {
-                writeln!(writer, "[BlackElo \"-\"]")?;
-            } else {
-                writeln!(writer, "[BlackElo \"{}\"]", black_elo)?;
-            }
-        }
-        if let Some(ply_count) = self.ply_count.as_deref() {
-            writeln!(writer, "[PlyCount \"{}\"]", ply_count)?;
-        }
-        if let Some(fen) = self.fen.as_deref() {
-            writeln!(writer, "[SetUp \"1\"]")?;
-            writeln!(writer, "[FEN \"{}\"]", fen)?;
-        }
-        writeln!(writer)?;
-        if let Some(moves) = self.moves.as_deref() {
-            if !moves.is_empty() {
-                write!(writer, "{} ", moves)?;
-            }
-        }
-        match self.result.as_deref() {
-            Some("1-0") => writeln!(writer, "1-0"),
-            Some("0-1") => writeln!(writer, "0-1"),
-            Some("1/2-1/2") => writeln!(writer, "1/2-1/2"),
-            _ => writeln!(writer, "*"),
-        }?;
-        writeln!(writer)?;
-        Ok(())
+fn export_game(row: &duckdb::Row) -> duckdb::Result<String> {
+    let game = parse_normalized_game(row)?;
+    let mut tags = annotations::parse_tags(&row.get::<_, String>("pgn_tags")?)
+        .map_err(duckdb::Error::InvalidParameterName)?;
+    // Indexed columns are authoritative after maintenance operations such as
+    // merging player names. Keep all other original tags verbatim.
+    for (key, value) in [
+        ("Event", game.event),
+        ("Site", game.site),
+        ("Round", game.round.unwrap_or_default()),
+        ("White", game.white),
+        ("Black", game.black),
+    ] {
+        tags.insert(key.into(), value);
     }
+    tags.entry("Date".into())
+        .or_insert_with(|| game.date.unwrap_or_else(|| "????.??.??".into()));
+    let result = row
+        .get::<_, Option<String>>("result")?
+        .unwrap_or_else(|| "*".into());
+    tags.insert("Result".into(), result.clone());
+    Ok(format!(
+        "{}\n{} {}\n\n",
+        annotations::write_tags(&tags),
+        game.moves,
+        result
+    ))
 }
 
 #[tauri::command]
@@ -1260,50 +1258,18 @@ pub async fn export_to_pgn(
 
     let mut writer = BufWriter::new(output_file);
     let mut statement = db.prepare(
-        "SELECT
-            event,
-            site,
+        "SELECT CAST(rowid AS INTEGER) AS id, event, site, round, fen, white, black,
+            white_rating, black_rating, result, time_control, ply_count,
             strftime(utc_timestamp, '%Y.%m.%d') AS date,
-            round,
-            white,
-            black,
-            result,
-            white_rating,
-            black_rating,
-            ply_count,
-            fen,
-            to_pgn(movedata, fen) AS moves
-        FROM games;",
+            strftime(utc_timestamp, '%H:%M:%S') AS time,
+            movedata, annotations, pgn_tags
+         FROM games ORDER BY rowid;",
     )?;
-
-    let rows = statement.query_map([], |row| {
-        Ok(PgnGame {
-            event: row.get("event")?,
-            site: row.get("site")?,
-            date: row.get("date")?,
-            round: row.get("round")?,
-            white: row.get("white")?,
-            black: row.get("black")?,
-            result: row.get("result")?,
-            time_control: row.get("timecontrol")?,
-            eco: row.get("eco")?,
-            white_elo: row
-                .get::<_, Option<i32>>("white_rating")?
-                .map(|v| v.to_string()),
-            black_elo: row
-                .get::<_, Option<i32>>("black_rating")?
-                .map(|v| v.to_string()),
-            ply_count: row
-                .get::<_, Option<i32>>("ply_count")?
-                .map(|v| v.to_string()),
-            fen: row.get("fen")?,
-            moves: row.get("moves")?,
-        })
-    })?;
-
+    let rows = statement.query_map([], export_game)?;
     for row in rows {
-        row?.write(&mut writer)?;
+        writer.write_all(row?.as_bytes())?;
     }
+    writer.flush()?;
 
     Ok(())
 }
@@ -1335,21 +1301,28 @@ pub async fn write_db_game(
     let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
 
-    let movedata = pgn::encode_single_game_moves(pgn.as_str(), AixCompressionLevel::Low, false)
+    let _invalidate_players = PlayerCatalogInvalidation::new(&state, &file);
+    update_game(&db, game_id, &pgn)
+}
+
+fn update_game(db: &Connection, game_id: i32, pgn: &str) -> Result<(), Error> {
+    let game = pgn::parse_single_game(pgn)
         .map_err(|msg| std::io::Error::new(std::io::ErrorKind::InvalidData, msg))?;
-
-    if !movedata.is_empty() {
-        db.execute(
-            "UPDATE games SET movedata = ? WHERE rowid = ?;",
-            params![movedata, game_id],
-        )?;
-    } else {
-        return Err(Error::Io(Box::new(std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
-            "Failed to parse PGN",
-        ))));
+    let mut values = game.database_values();
+    values.push(game_id.into());
+    // A single statement atomically replaces the move tree, annotations and
+    // headers, preventing annotation anchors or derived metadata going stale.
+    let changed = db.execute(
+        "UPDATE games SET event = ?, site = ?, round = ?, fen = ?,
+            white = ?, black = ?, white_rating = ?, black_rating = ?,
+            white_title = ?, black_title = ?, result = ?, time_control = ?,
+            ply_count = ?, utc_timestamp = ?, movedata = ?, annotations = ?, pgn_tags = ?
+         WHERE rowid = ?;",
+        duckdb::params_from_iter(values),
+    )?;
+    if changed == 0 {
+        return Err(Error::GameNotFound(game_id.to_string()));
     }
-
     Ok(())
 }
 
@@ -1381,6 +1354,200 @@ pub async fn merge_players(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const ANNOTATED_PGN: &str = r#"[Event "Annotation test"]
+[Site "Lisboa"]
+[Date "2026.??.??"]
+[Round "1"]
+[White "Original"]
+[Black "Opponent"]
+[Result "*"]
+[WhiteElo "2100"]
+[TimeControl "300+3"]
+[ECO "C20"]
+[Annotator "Ana \"Quoted\" \\ Name"]
+
+{Root comentário} 1. e4 $1 $255 {First} {Second [%eval 0.25,18] [%clk 0:04:59.125] [%emt 0:00:00.875] [%cal Ge2e4] [%csl Re4] [%custom keep]}
+( {Variation introduction} 1. d4 $2 {Sibling} d5 (1... Nf6 {Nested [%eval #-3,22]}) 2. c4 )
+(1. c4 {Other sibling}) 1... e5 2. Nf3 *"#;
+
+    const READ_TEST_GAME: &str = "SELECT CAST(rowid AS INTEGER) AS id, event, site, round, fen,
+        white, black, white_rating, black_rating, result, time_control, ply_count,
+        strftime(utc_timestamp, '%Y.%m.%d') AS date,
+        strftime(utc_timestamp, '%H:%M:%S') AS time,
+        movedata, annotations, pgn_tags FROM games WHERE rowid = 0";
+
+    #[test]
+    fn annotations_survive_import_reopen_edit_and_export() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("annotations.duckdb");
+        {
+            let db = Connection::open(&path).unwrap();
+            db.execute_batch(include_str!("init-database.sql")).unwrap();
+            let appender = db.appender("games").unwrap();
+            let mut processor =
+                pgn::PgnProcessor::new(appender, AixCompressionLevel::Low, false, None);
+            pgn_reader::Reader::new(ANNOTATED_PGN.as_bytes())
+                .read_game(&mut processor)
+                .unwrap();
+            assert_eq!(processor.count(), 1);
+            processor.flush().unwrap();
+        }
+        let db = Connection::open(&path).unwrap();
+        let game = db
+            .query_row(READ_TEST_GAME, [], parse_normalized_game)
+            .unwrap();
+        assert_eq!(game.date.as_deref(), Some("2026.??.??"));
+        assert_eq!(game.time_control.as_deref(), Some("300+3"));
+        assert_eq!(game.other.as_ref().unwrap()["ECO"], "C20");
+        assert_eq!(game.ply_count, Some(3));
+        for text in [
+            "Root comentário",
+            "$1",
+            "$255",
+            "First",
+            "Second",
+            "Variation introduction",
+            "Sibling",
+            "Nested [%eval #-3,22]",
+            "Other sibling",
+            "[%clk 0:04:59.125]",
+            "[%cal Ge2e4]",
+            "[%csl Re4]",
+            "[%custom keep]",
+        ] {
+            assert!(game.moves.contains(text), "Missing {text}: {}", game.moves);
+        }
+        let exported = db.query_row(READ_TEST_GAME, [], export_game).unwrap();
+        let first = pgn::parse_single_game(ANNOTATED_PGN).unwrap();
+        let restored = pgn::parse_single_game(&exported).unwrap();
+        assert_eq!(first.movedata, restored.movedata);
+        assert_eq!(first.annotations, restored.annotations);
+        assert_eq!(first.database_values()[16], restored.database_values()[16]);
+
+        let edited = exported
+            .replace("Original", "Edited")
+            .replace("Root comentário", "Edited root")
+            .replace("2. Nf3", "2. Bc4")
+            .replace("2026.??.??", "2026.10.15")
+            .replace("2100", "2300")
+            .replace("300+3", "600+5")
+            .replace("*", "1-0");
+        update_game(&db, 0, &edited).unwrap();
+        let saved = db
+            .query_row(READ_TEST_GAME, [], parse_normalized_game)
+            .unwrap();
+        assert_eq!(saved.white, "Edited");
+        assert_eq!(saved.date.as_deref(), Some("2026.10.15"));
+        assert_eq!(saved.white_elo, Some(2300));
+        assert_eq!(saved.time_control.as_deref(), Some("600+5"));
+        let dated: i32 = db
+            .query_row(
+                "SELECT COUNT(*) FROM games WHERE utc_timestamp = TIMESTAMP '2026-10-15 00:00:00'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(dated, 1);
+        assert!(matches!(saved.result, Outcome::WhiteWin));
+        assert!(saved.moves.contains("Edited root"));
+        assert!(saved.moves.contains("Bc4"));
+        assert!(!saved.moves.contains("Nf3"));
+        let before: Vec<u8> = db
+            .query_row("SELECT movedata FROM games", [], |row| row.get(0))
+            .unwrap();
+        assert!(update_game(&db, 0, "1. e4 e5 2. Qh8 *").is_err());
+        assert_eq!(
+            before,
+            db.query_row::<Vec<u8>, _, _>("SELECT movedata FROM games", [], |row| row.get(0))
+                .unwrap()
+        );
+        assert!(matches!(
+            update_game(&db, 999, "1. e4 *"),
+            Err(Error::GameNotFound(_))
+        ));
+    }
+
+    #[test]
+    fn annotation_only_games_and_custom_fen_are_preserved() {
+        for input in [
+            "[White \"Study\"]\n\n{Empty study [%custom root]} *",
+            "[SetUp \"1\"]\n[FEN \"8/8/8/8/8/8/4K3/7k b - - 0 40\"]\n\n{Initial} 40... Kg2 $255 {[%eval #-2] [%clk 0:00:00]} *",
+        ] {
+            let game = pgn::parse_single_game(input).unwrap();
+            let values = pgn::parse_single_game(input).unwrap().database_values();
+            let fen = match &values[3] {
+                duckdb::types::Value::Text(fen) => Some(fen.as_str()),
+                _ => None,
+            };
+            let bare = annotations::decode_movetext(&game.movedata, fen).unwrap();
+            if fen.is_some() { assert!(bare.starts_with("40... Kg2")); }
+            let restored = annotations::restore_movetext(&bare, game.annotations.as_deref()).unwrap();
+            assert!(restored.contains(if fen.is_some() { "[%eval #-2]" } else { "Empty study" }));
+        }
+    }
+
+    #[test]
+    fn long_comments_and_clearing_annotations_survive_saves() {
+        let comment = "é".repeat(20_000);
+        let game = pgn::parse_single_game(&format!("1. e4 {{{comment}}} *")).unwrap();
+        let restored = annotations::restore_movetext("1. e4", game.annotations.as_deref()).unwrap();
+        assert_eq!(restored, format!("1. e4 {{{comment}}}"));
+        let db = Connection::open_in_memory().unwrap();
+        db.execute_batch(include_str!("init-database.sql")).unwrap();
+        db.appender("games")
+            .unwrap()
+            .append_row(duckdb::appender_params_from_iter(game.database_values()))
+            .unwrap();
+        update_game(&db, 0, "[PlyCount \"99\"]\n\n1. d4 d5 *").unwrap();
+        let (annotations, count): (Option<String>, u16) = db
+            .query_row("SELECT annotations, ply_count FROM games", [], |row| {
+                Ok((row.get(0)?, row.get(1)?))
+            })
+            .unwrap();
+        assert!(annotations.is_none());
+        assert_eq!(count, 2);
+        let tags: String = db
+            .query_row("SELECT pgn_tags FROM games", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(annotations::parse_tags(&tags).unwrap()["PlyCount"], "2");
+    }
+
+    #[test]
+    fn maintenance_preserves_different_annotations_and_annotated_empty_studies() {
+        let db = Connection::open_in_memory().unwrap();
+        db.execute_batch(include_str!("init-database.sql")).unwrap();
+        {
+            let mut appender = db.appender("games").unwrap();
+            for input in [
+                "1. e4 {First} *",
+                "1. e4 {First} *",
+                "1. e4 {Different} *",
+                "{Study} *",
+                "*",
+            ] {
+                let game = pgn::parse_single_game(input).unwrap();
+                appender
+                    .append_row(duckdb::appender_params_from_iter(game.database_values()))
+                    .unwrap();
+            }
+            appender.flush().unwrap();
+        }
+        remove_duplicated_games(&db).unwrap();
+        remove_empty_games(&db).unwrap();
+        let count: i32 = db
+            .query_row("SELECT COUNT(*) FROM games", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(count, 3);
+        let empty_annotated: i32 = db
+            .query_row(
+                "SELECT COUNT(*) FROM games WHERE ply_count = 0 AND annotations IS NOT NULL",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(empty_annotated, 1);
+    }
 
     fn catalog_fixture() -> Connection {
         let db = Connection::open_in_memory().unwrap();
