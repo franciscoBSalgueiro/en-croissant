@@ -269,7 +269,12 @@ pub async fn convert_pgn(
 
         let mut reader = pgn_reader::Reader::new(uncompressed);
         loop {
-            let games_read = reader.read_games(&mut proc).take(10_000).count();
+            let games_read = proc.read_batch(&mut reader).map_err(|error| {
+                std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    format!("Failed to import '{}': {error}", file_path.display()),
+                )
+            })?;
             if games_read == 0 {
                 break;
             }
@@ -1501,6 +1506,8 @@ mod tests {
                 pgn::PgnProcessor::new(appender, AixCompressionLevel::Low, false, None);
             pgn_reader::Reader::new(ANNOTATED_PGN.as_bytes())
                 .read_game(&mut processor)
+                .unwrap()
+                .unwrap()
                 .unwrap();
             assert_eq!(processor.count(), 1);
             processor.flush().unwrap();

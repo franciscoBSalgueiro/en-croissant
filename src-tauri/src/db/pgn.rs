@@ -1,4 +1,5 @@
 use super::annotations::{Annotation, Annotations};
+use crate::error::Error;
 use aix_chess_compression::{CompressionLevel, Encode, Encoder};
 use chrono::NaiveDate;
 use duckdb::types::{TimeUnit, Value};
@@ -60,6 +61,15 @@ impl<'a> PgnProcessor<'a> {
 
     pub fn count(&self) -> u32 {
         self.count
+    }
+
+    pub fn read_batch<R: std::io::Read>(&mut self, reader: &mut Reader<R>) -> Result<usize, Error> {
+        let mut count = 0;
+        for game in reader.read_games(self).take(10_000) {
+            game??;
+            count += 1;
+        }
+        Ok(count)
     }
 }
 
@@ -129,7 +139,10 @@ impl Visitor for SingleGameProcessor {
     }
 
     fn begin_movetext(&mut self, tags: Self::Tags) -> ControlFlow<Self::Output, Self::Movetext> {
-        ControlFlow::Continue(GameInProcessing::new(tags, CompressionLevel::Low))
+        match GameInProcessing::new(tags, CompressionLevel::Low) {
+            Ok(game) => ControlFlow::Continue(game),
+            Err(error) => ControlFlow::Break(Err(error)),
+        }
     }
 
     fn san(
@@ -242,18 +255,18 @@ struct VariationState {
 }
 
 impl GameInProcessing<'_> {
-    fn new(headers: Headers, level: CompressionLevel) -> Self {
+    fn new(headers: Headers, level: CompressionLevel) -> Result<Self, String> {
         let initial_fen = headers.fen.clone();
         let pos = match initial_fen.as_deref() {
             Some(fen) => chess_from_fen(fen)
-                .unwrap_or_else(|e| panic!("invalid initial FEN in PGN tags: {e}")),
+                .map_err(|e| format!("invalid initial FEN '{fen}' in PGN tags: {e}"))?,
             None => Chess::new(),
         };
 
-        GameInProcessing {
+        Ok(GameInProcessing {
             headers,
             encoder: Encoder::new_with_initial_fen(level, initial_fen.as_deref())
-                .unwrap_or_else(|e| panic!("failed to initialize encoder with initial FEN: {e}")),
+                .map_err(|e| format!("failed to initialize encoder with initial FEN: {e}"))?,
             annotations: Annotations::default(),
             event: 0,
             pending_comment: String::new(),
@@ -263,7 +276,7 @@ impl GameInProcessing<'_> {
             pos_before_last_move: None,
             ply_before_last_move: 0,
             supports_variations: level == CompressionLevel::Low,
-        }
+        })
     }
 
     fn finish(mut self) -> StoredGame {
@@ -343,14 +356,17 @@ impl GameInProcessing<'_> {
 impl<'a> Visitor for PgnProcessor<'a> {
     type Tags = Headers;
     type Movetext = GameInProcessing<'a>;
-    type Output = ();
+    type Output = Result<(), Error>;
 
     fn begin_tags(&mut self) -> ControlFlow<Self::Output, Self::Tags> {
         ControlFlow::Continue(Headers::default())
     }
 
     fn begin_movetext(&mut self, tags: Self::Tags) -> ControlFlow<Self::Output, Self::Movetext> {
-        ControlFlow::Continue(GameInProcessing::new(tags, self.level))
+        match GameInProcessing::new(tags, self.level) {
+            Ok(game) => ControlFlow::Continue(game),
+            Err(error) => ControlFlow::Break(Err(invalid_pgn(error))),
+        }
     }
 
     fn san(
@@ -363,16 +379,16 @@ impl<'a> Visitor for PgnProcessor<'a> {
             if self.continue_on_invalid_move {
                 eprintln!("{error_msg}");
 
-                let mut swap = GameInProcessing::new(Headers::default(), CompressionLevel::Low);
+                let mut swap =
+                    match GameInProcessing::new(Headers::default(), CompressionLevel::Low) {
+                        Ok(game) => game,
+                        Err(error) => return ControlFlow::Break(Err(invalid_pgn(error))),
+                    };
 
                 std::mem::swap(&mut swap, movetext);
-                self.end_game_inner(swap);
-
-                return ControlFlow::Break(());
+                return ControlFlow::Break(self.end_game_inner(swap));
             } else {
-                panic!(
-                    "{error_msg}\nCheck the PGN file or if you want to use --continue-on-invalid-move."
-                );
+                return ControlFlow::Break(Err(invalid_pgn(error_msg)));
             }
         }
 
@@ -488,18 +504,22 @@ impl<'a> PgnProcessor<'a> {
         let game = movetext.finish();
         if let (Some(cutoff), Some(timestamp)) = (self.timestamp, game.timestamp()) {
             if timestamp < i64::from(cutoff) * 1_000_000 {
-                return;
+                return Ok(());
             }
         }
         self.appender
-            .append_row(appender_params_from_iter(game.database_values()))
-            .unwrap();
+            .append_row(appender_params_from_iter(game.database_values()))?;
 
         self.count += 1;
         if self.count % 10000 == 0 {
             println!("{} done", self.count);
         }
+        Ok(())
     }
+}
+
+fn invalid_pgn(message: String) -> Error {
+    std::io::Error::new(std::io::ErrorKind::InvalidData, message).into()
 }
 
 pub(super) fn chess_from_fen(fen: &str) -> Result<Chess, String> {
