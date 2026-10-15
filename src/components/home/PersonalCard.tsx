@@ -178,10 +178,7 @@ function PersonalPlayerCard({
           </ScrollArea>
         </Tabs.Panel>
         <Tabs.Panel value="openings" className={classes.panel} style={{ overflow: "hidden" }}>
-          <OpeningsPanel
-            playerName={name}
-            openingSources={openingSources}
-          />
+          <OpeningsPanel playerName={name} openingSources={openingSources} />
         </Tabs.Panel>
         <Tabs.Panel value="ratings" className={classes.panel}>
           <ScrollArea
