@@ -615,6 +615,8 @@
     "Settings.Repertoire.Depth.Desc": "Mindestanzahl von Partien, damit ein Zug für das Repertoire berücksichtigt wird",
     "Settings.Repertoire.Desc": "Hier können benutzerdefinierte Einstellungen zum Repertoire festgelegt werden",
     "Settings.Repertoire.Essential": "Essentiell",
+    "Settings.Repertoire.PracticeReminderBadges": "",
+    "Settings.Repertoire.PracticeReminderBadges.Desc": "",
     "Settings.Repertoire.Standard": "Standard",
     "Settings.ScrollThroughMoves": "Züge durchscrollen",
     "Settings.ScrollThroughMoves.Desc": "Aktiviere oder deaktiviere das Durchscrollen von Zügen auf dem Schachbrett",

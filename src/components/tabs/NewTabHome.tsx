@@ -1,5 +1,4 @@
 import {
-  Badge,
   Box,
   Button,
   Card,
@@ -16,7 +15,6 @@ import { useCallback, useEffect, useState } from "react";
 import {
   activeTabAtom,
   addRecentFileAtom,
-  deckAtomFamily,
   type RecentFile,
   recentFilesAtom,
   tabFamily,
@@ -33,7 +31,6 @@ import {
   IconClock,
   IconFileImport,
   IconPuzzle,
-  IconTarget,
   IconTargetArrow,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
@@ -41,30 +38,11 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { useTranslation } from "react-i18next";
 import { commands } from "@/bindings";
-import { getStats } from "@/components/files/opening";
 import Chessboard from "../icons/Chessboard";
 import { FileIcon } from "@/components/files/FileIcon";
+import { PracticeReminderBadge } from "@/components/files/PracticeReminderBadge";
 
 dayjs.extend(relativeTime);
-
-function RecentFileDuePositions({ file }: { file: string }) {
-  const [deck] = useAtom(
-    deckAtomFamily({
-      file,
-      game: 0,
-    }),
-  );
-
-  const stats = getStats(deck.positions);
-
-  if (stats.due + stats.unseen === 0) return null;
-
-  return (
-    <Badge size="sm" variant="light" color="orange" leftSection={<IconTarget size="0.75rem" />}>
-      {stats.due + stats.unseen} due
-    </Badge>
-  );
-}
 
 function RecentFileRow({ file, onOpen }: { file: RecentFile; onOpen: (file: RecentFile) => void }) {
   const displayName = file.name.replace(/\.pgn$/i, "");
@@ -87,7 +65,7 @@ function RecentFileRow({ file, onOpen }: { file: RecentFile; onOpen: (file: Rece
           <Text size="sm" truncate fw={500}>
             {displayName}
           </Text>
-          {file.type === "repertoire" && <RecentFileDuePositions file={file.path} />}
+          {file.type === "repertoire" && <PracticeReminderBadge file={file.path} size="sm" />}
         </Group>
         <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
           <Tooltip label={dayjs(file.lastOpened).format("YYYY-MM-DD HH:mm")}>

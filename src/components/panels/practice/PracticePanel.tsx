@@ -613,7 +613,7 @@ function PracticePanel() {
                           leftSection={<IconTarget size={20} />}
                           justify="space-between"
                           rightSection={
-                            <Badge size="sm" variant="white" color="blue">
+                            <Badge size="sm" variant="white">
                               {stats.due + stats.unseen}
                             </Badge>
                           }

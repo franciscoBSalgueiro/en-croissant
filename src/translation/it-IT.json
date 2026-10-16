@@ -625,6 +625,8 @@
     "Settings.Repertoire.Depth.Desc": "Numero minimo di partite per considerare una mossa rilevante",
     "Settings.Repertoire.Desc": "Personalizza le impostazioni del repertorio",
     "Settings.Repertoire.Essential": "Minimo",
+    "Settings.Repertoire.PracticeReminderBadges": "",
+    "Settings.Repertoire.PracticeReminderBadges.Desc": "",
     "Settings.Repertoire.Standard": "Normale",
     "Settings.ScrollThroughMoves": "Scorri mosse",
     "Settings.ScrollThroughMoves.Desc": "Abilita o disabilita lo scorrimento tra le mosse sulla scacchiera",
