@@ -10,6 +10,7 @@ pub struct ProgressItem {
     pub id: String,
     pub progress: f32,
     pub finished: bool,
+    pub bytes_per_second: Option<f64>,
 }
 
 #[derive(Clone, Debug, Serialize, Type, Event)]
@@ -17,6 +18,7 @@ pub struct ProgressEvent {
     pub id: String,
     pub progress: f32,
     pub finished: bool,
+    pub bytes_per_second: Option<f64>,
 }
 
 pub type ProgressStore = DashMap<String, ProgressItem>;
@@ -28,10 +30,22 @@ pub fn update_progress(
     progress: f32,
     finished: bool,
 ) -> Result<(), Error> {
+    update_download_progress(store, app, id, progress, finished, None)
+}
+
+pub fn update_download_progress(
+    store: &ProgressStore,
+    app: &tauri::AppHandle,
+    id: String,
+    progress: f32,
+    finished: bool,
+    bytes_per_second: Option<f64>,
+) -> Result<(), Error> {
     let item = ProgressItem {
         id: id.clone(),
         progress,
         finished,
+        bytes_per_second,
     };
 
     store.insert(id.clone(), item.clone());
@@ -40,6 +54,7 @@ pub fn update_progress(
         id: item.id,
         progress: item.progress,
         finished: item.finished,
+        bytes_per_second: item.bytes_per_second,
     }
     .emit(app)?;
 

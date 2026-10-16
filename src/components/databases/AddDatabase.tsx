@@ -228,7 +228,8 @@ function DatabaseCard({
   async function downloadDatabase(id: number, url: string, name: string) {
     setInProgress(true);
     const path = await resolve(databaseDir, `${name}.db3`);
-    await commands.downloadFile(`db_${id}`, url, path, null, null, null);
+    const result = await commands.downloadFile(`db_${id}`, url, path, null, null, null);
+    if (result.status === "error") throw new Error(result.error);
     await setDatabases(await getDatabases());
   }
 
@@ -268,6 +269,7 @@ function DatabaseCard({
             </Stack>
           </Group>
           <ProgressButton
+            cancellableDownload
             id={`db_${databaseId}`}
             initInstalled={initInstalled}
             labels={{

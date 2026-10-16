@@ -65,7 +65,7 @@ use crate::{
         delete_duplicated_games, edit_db_info, get_db_info, get_games, get_players, merge_players,
         write_db_game,
     },
-    fs::{download_file, file_exists, get_file_metadata},
+    fs::{cancel_download, download_file, file_exists, get_file_metadata},
     opening::{
         get_opening_from_fen, get_opening_from_fens, get_opening_from_name, search_opening_name,
     },
@@ -93,6 +93,7 @@ pub struct AppState {
     auth: AuthState,
     game_manager: GameManager,
     progress_state: ProgressStore,
+    downloads: DashMap<String, futures_util::future::AbortHandle>,
 }
 
 #[tauri::command]
@@ -165,6 +166,7 @@ fn main() {
             authenticate,
             write_game,
             download_file,
+            cancel_download,
             get_tournaments,
             get_db_info,
             get_games,

@@ -138,12 +138,14 @@ export async function downloadChessCom(player: string, timestamp: number | null)
     });
     events.progressEvent.emit({
       finished: false,
+      bytes_per_second: null,
       id: `chesscom_${player}`,
       progress: (filteredArchives.indexOf(archive) / filteredArchives.length) * 100,
     });
   }
   events.progressEvent.emit({
     finished: false,
+    bytes_per_second: null,
     id: `chesscom_${player}`,
     progress: 100,
   });

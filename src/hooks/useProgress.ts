@@ -19,6 +19,7 @@ export function useProgress(id: string) {
                     id: payload.id,
                     progress: payload.progress,
                     finished: payload.finished,
+                    bytes_per_second: payload.bytes_per_second,
                 });
             }
         });
@@ -35,6 +36,7 @@ export function useProgress(id: string) {
     return {
         progress: item?.progress ?? 0,
         finished: item?.finished ?? false,
+        bytesPerSecond: item?.bytes_per_second ?? null,
         isActive: item !== null && !item.finished,
         clear,
         item,

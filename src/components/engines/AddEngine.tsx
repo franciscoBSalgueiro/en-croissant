@@ -30,7 +30,6 @@ import {
 } from "@/utils/engines";
 import { usePlatform } from "@/utils/files";
 import { formatBytes } from "@/utils/format";
-import { unwrap } from "@/utils/unwrap";
 import ProgressButton from "../common/ProgressButton";
 import EngineForm from "./EngineForm";
 
@@ -212,14 +211,18 @@ function EngineCard({
       if (/\.(?:zip|tar|tar\.gz)(?:[?#]|$)/.test(url)) {
         path = enginesDir;
       }
-      await commands.downloadFile(`engine_${id}`, url, path, null, null, null);
+      const result = await commands.downloadFile(`engine_${id}`, url, path, null, false, null);
+      if (result.status === "error") throw new Error(result.error);
       let enginesDirPath = enginesDir;
       if (enginesDirPath.endsWith("/") || enginesDirPath.endsWith("\\")) {
         enginesDirPath = enginesDirPath.slice(0, -1);
       }
       const enginePath = await join(enginesDirPath, ...engine.path.split("/"));
-      await commands.setFileAsExecutable(enginePath);
-      const config = unwrap(await commands.getEngineConfig(enginePath));
+      const executable = await commands.setFileAsExecutable(enginePath);
+      if (executable.status === "error") throw new Error(executable.error);
+      const engineConfig = await commands.getEngineConfig(enginePath);
+      if (engineConfig.status === "error") throw new Error(engineConfig.error);
+      const config = engineConfig.data;
       setEngines(async (prev) => [
         ...(await prev),
         {
@@ -265,6 +268,7 @@ function EngineCard({
             <Text size="xs">{formatBytes(engine.downloadSize ?? 0)}</Text>
           </Group>
           <ProgressButton
+            cancellableDownload
             id={`engine_${engineId}`}
             initInstalled={initInstalled}
             labels={{
@@ -275,7 +279,7 @@ function EngineCard({
             }}
             onClick={() => {
               if (!engine.downloadLink) return;
-              downloadEngine(engineId, engine.downloadLink);
+              return downloadEngine(engineId, engine.downloadLink);
             }}
             inProgress={inProgress}
             setInProgress={setInProgress}
