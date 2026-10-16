@@ -7,12 +7,18 @@ type EngineLines = Map<number, { pv: string[]; winChance: number }[]>;
 
 /** Compare every displayed candidate's first move, counting each engine once per move. */
 export function getEngineAgreements(arrows: EngineLines) {
-    const votes = new Map<string, { orig: string; dest: string; colors: string[] }>();
+    const votes = new Map<
+        string,
+        { orig: string; dest: string; colors: string[]; opacities: number[] }
+    >();
     const displayedMoves = new Map<string, string>();
     for (const [engineIndex, lines] of [...arrows].sort(([a], [b]) => a - b)) {
         if (engineIndex < 0 || engineIndex >= engineColors.length) continue;
-        const candidates = new Set(lines.map(({ pv }) => pv[0]));
-        for (const move of candidates) {
+        const candidates = new Set<string>();
+        for (const [rank, { pv }] of lines.entries()) {
+            const move = pv[0];
+            if (!move || candidates.has(move)) continue;
+            candidates.add(move);
             const parsed = move && parseUci(move);
             if (!move || !parsed || !("from" in parsed)) continue;
             const orig = makeSquare(parsed.from);
@@ -23,8 +29,9 @@ export function getEngineAgreements(arrows: EngineLines) {
             const endpoints = `${orig}${dest}`;
             if (!displayedMoves.has(endpoints)) displayedMoves.set(endpoints, move);
             if (displayedMoves.get(endpoints) !== move) continue;
-            const vote = votes.get(move) ?? { orig, dest, colors: [] };
+            const vote = votes.get(move) ?? { orig, dest, colors: [], opacities: [] };
             vote.colors.push(engineColors[engineIndex]);
+            vote.opacities.push(rank === 0 ? 0.8 : 0.4);
             votes.set(move, vote);
         }
     }
@@ -59,7 +66,11 @@ export function agreementArrowShape(
     colors: string[],
     orientation: "white" | "black",
     boardId: string,
-    { lineWidth = 11, shorten = false }: { lineWidth?: number; shorten?: boolean } = {},
+    {
+        lineWidth = 11,
+        shorten = false,
+        opacities = [],
+    }: { lineWidth?: number; shorten?: boolean; opacities?: number[] } = {},
 ): DrawShape {
     const direction = orientation === "white" ? 1 : -1;
     const dx = (dest.charCodeAt(0) - orig.charCodeAt(0)) * direction;
@@ -75,16 +86,15 @@ export function agreementArrowShape(
     const shaftTop = 50 - width / 2;
     const headTop = 50 - 2 * width;
     const clipId = `engine-agreement-${boardId}-${orig}-${dest}`;
-    const shaftStripes = colors
+    // The first contributor owns the shaft. Stop its fill at the shoulder so
+    // its color cannot show through the other contributors' translucent head.
+    const shaftFill = `<rect x="${50 - width / 2}" y="${shaftTop}" width="${shoulder - (50 - width / 2)}" height="${width}" fill="${colors[0]}" opacity="${opacities[0] ?? 0.8}"/>`;
+    const headColors = colors.slice(1);
+    const headSegments = headColors
         .map((color, index) => {
-            const y = shaftTop + (width * index) / colors.length;
-            return `<rect x="${50 - width / 2}" y="${y}" width="${endpoint - 50 + width}" height="${width / colors.length}" fill="${color}"/>`;
-        })
-        .join("");
-    const headStripes = colors
-        .map((color, index) => {
-            const y = headTop + (4 * width * index) / colors.length;
-            return `<rect x="${shoulder}" y="${y}" width="${tip - shoulder}" height="${(4 * width) / colors.length}" fill="${color}"/>`;
+            const top = headTop + (4 * width * index) / headColors.length;
+            const bottom = headTop + (4 * width * (index + 1)) / headColors.length;
+            return `<path d="M${shoulder} ${top} L${tip} 50 L${shoulder} ${bottom} Z" fill="${color}" opacity="${opacities[index + 1] ?? 0.8}"/>`;
         })
         .join("");
     const head = `M${shoulder} ${headTop} L${tip} 50 L${shoulder} ${50 + 2 * width} Z`;
@@ -94,7 +104,7 @@ export function agreementArrowShape(
         dest: dest as DrawShape["dest"],
         below: true,
         customSvg: {
-            html: `<g transform="rotate(${angle} 50 50)" opacity="0.8"><defs><clipPath id="${clipId}-shaft">${shaft}</clipPath><clipPath id="${clipId}"><path d="${head}"/></clipPath></defs><g clip-path="url(#${clipId}-shaft)">${shaftStripes}</g><g clip-path="url(#${clipId})">${headStripes}</g></g>`,
+            html: `<g transform="rotate(${angle} 50 50)"><defs><clipPath id="${clipId}-shaft">${shaft}</clipPath><clipPath id="${clipId}"><path d="${head}"/></clipPath></defs><g clip-path="url(#${clipId}-shaft)">${shaftFill}</g><g clip-path="url(#${clipId})">${headSegments}</g></g>`,
         },
     };
 }

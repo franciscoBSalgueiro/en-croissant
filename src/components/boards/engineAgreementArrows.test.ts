@@ -17,9 +17,27 @@ describe("engine agreement arrows", () => {
             [3, [{ pv: ["g1f3"], winChance: 51 }]],
         ]);
         expect(getEngineAgreements(arrows)).toEqual([
-            { move: "e2e4", orig: "e2", dest: "e4", colors: ["#003088", "#15781B"] },
-            { move: "d2d4", orig: "d2", dest: "d4", colors: ["#003088", "#882020"] },
-            { move: "g1f3", orig: "g1", dest: "f3", colors: ["#003088", "#e68f00"] },
+            {
+                move: "e2e4",
+                orig: "e2",
+                dest: "e4",
+                colors: ["#003088", "#15781B"],
+                opacities: [0.8, 0.8],
+            },
+            {
+                move: "d2d4",
+                orig: "d2",
+                dest: "d4",
+                colors: ["#003088", "#882020"],
+                opacities: [0.4, 0.8],
+            },
+            {
+                move: "g1f3",
+                orig: "g1",
+                dest: "f3",
+                colors: ["#003088", "#e68f00"],
+                opacities: [0.4, 0.8],
+            },
         ]);
     });
 
@@ -43,6 +61,7 @@ describe("engine agreement arrows", () => {
                 orig: "d2",
                 dest: "d4",
                 colors: ["#003088", "#15781B", "#882020", "#e68f00"],
+                opacities: [0.4, 0.8, 0.8, 0.8],
             },
         ]);
     });
@@ -65,7 +84,13 @@ describe("engine agreement arrows", () => {
             ],
         ]);
         expect(getEngineAgreements(arrows)).toEqual([
-            { move: "d2d4", orig: "d2", dest: "d4", colors: ["#003088", "#15781B"] },
+            {
+                move: "d2d4",
+                orig: "d2",
+                dest: "d4",
+                colors: ["#003088", "#15781B"],
+                opacities: [0.4, 0.4],
+            },
         ]);
     });
 
@@ -80,6 +105,34 @@ describe("engine agreement arrows", () => {
             ],
         ]);
         expect(getEngineAgreements(arrows)).toEqual([]);
+    });
+
+    it("keeps the earliest rank for each engine and sorts contributors without Stockfish", () => {
+        const arrows = new Map([
+            [
+                3,
+                [
+                    { pv: ["d2d4"], winChance: 51 },
+                    { pv: ["e2e4"], winChance: 50 },
+                ],
+            ],
+            [
+                1,
+                [
+                    { pv: ["e2e4"], winChance: 51 },
+                    { pv: ["e2e4"], winChance: 50 },
+                ],
+            ],
+        ]);
+        expect(getEngineAgreements(arrows)).toEqual([
+            {
+                move: "e2e4",
+                orig: "e2",
+                dest: "e4",
+                colors: ["#15781B", "#e68f00"],
+                opacities: [0.8, 0.4],
+            },
+        ]);
     });
 
     it("does not treat different promotion pieces as the same candidate", () => {
@@ -109,7 +162,13 @@ describe("engine agreement arrows", () => {
             [2, [{ pv: ["e7e8q"], winChance: 51 }]],
         ]);
         expect(getEngineAgreements(arrows)).toEqual([
-            { move: "e7e8n", orig: "e7", dest: "e8", colors: ["#003088", "#15781B"] },
+            {
+                move: "e7e8n",
+                orig: "e7",
+                dest: "e8",
+                colors: ["#003088", "#15781B"],
+                opacities: [0.8, 0.4],
+            },
         ]);
     });
 
