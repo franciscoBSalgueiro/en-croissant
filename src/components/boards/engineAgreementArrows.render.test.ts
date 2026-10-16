@@ -1,8 +1,54 @@
 import { Chessground } from "@lichess-org/chessground";
 import type { Api } from "@lichess-org/chessground/api";
+import type { DrawShape } from "@lichess-org/chessground/draw";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import boardCss from "@/styles/chessgroundBaseOverride.css?raw";
-import { agreementArrowShape, getEngineAgreements } from "./engineAgreementArrows";
+import {
+    agreementArrowShape,
+    getEngineAgreements,
+    shortenAgreementArrow,
+} from "./engineAgreementArrows";
+
+function expectMatchingNativeArrow(board: HTMLElement) {
+    const line = board.querySelector<SVGLineElement>(".cg-shapes line")!;
+    const number = (element: Element, name: string) => Number(element.getAttribute(name));
+    const width = number(line, "stroke-width") * 100;
+    const length =
+        Math.hypot(
+            number(line, "x2") - number(line, "x1"),
+            number(line, "y2") - number(line, "y1"),
+        ) * 100;
+    const markerId = line.getAttribute("marker-end")!.slice(5, -1);
+    const marker = board.querySelector<SVGMarkerElement>(`marker[id="${markerId}"]`)!;
+    // Read the native renderer's triangle, rather than duplicating its dimensions.
+    const nativePath = marker.querySelector("path")!.getAttribute("d")!;
+    const [, left, top, bottom, tip, middle] = nativePath.match(
+        /^M([\d.]+),([\d.]+) V([\d.]+) L([\d.]+),([\d.]+) Z$/,
+    )!;
+    const expectedHead = [
+        [left, top],
+        [tip, middle],
+        [left, bottom],
+    ].flatMap(([x, y]) => [
+        50 + length + (Number(x) - number(marker, "refX")) * width,
+        50 + (Number(y) - number(marker, "refY")) * width,
+    ]);
+    const head = board.querySelector(".cg-custom-below clipPath path")!;
+    const actualHead = head
+        .getAttribute("d")!
+        .match(/-?[\d.]+/g)!
+        .map(Number);
+    expect(actualHead).toHaveLength(expectedHead.length);
+    expectedHead.forEach((value, index) => expect(actualHead[index]).toBeCloseTo(value));
+
+    const shaft = board.querySelector(".cg-custom-below clipPath rect")!;
+    expect(line.getAttribute("stroke-linecap")).toBe("round");
+    expect(number(shaft, "x")).toBeCloseTo(50 - width / 2);
+    expect(number(shaft, "y")).toBeCloseTo(50 - width / 2);
+    expect(number(shaft, "width")).toBeCloseTo(length + width);
+    expect(number(shaft, "height")).toBeCloseTo(width);
+    expect(number(shaft, "rx")).toBeCloseTo(width / 2);
+}
 
 describe("engine agreement arrows in Chessground", () => {
     let board: HTMLDivElement;
@@ -52,6 +98,12 @@ describe("engine agreement arrows in Chessground", () => {
                     viewOnly: true,
                     drawable: {
                         autoShapes: [
+                            {
+                                orig: agreement.orig,
+                                dest: agreement.dest,
+                                brush: "blue",
+                                modifiers: { lineWidth: 11 },
+                            } as DrawShape,
                             agreementArrowShape(
                                 agreement.orig,
                                 agreement.dest,
@@ -81,7 +133,7 @@ describe("engine agreement arrows in Chessground", () => {
                 const arrow = layer.querySelector("svg")!;
                 // The arrow crosses the origin square's nested SVG viewport.
                 expect(getComputedStyle(arrow).overflow).toBe("visible");
-                expect(arrow.querySelectorAll("rect")).toHaveLength(count * 2);
+                expect(arrow.querySelectorAll("rect[fill]")).toHaveLength(count * 2);
                 for (const color of agreement.colors) {
                     expect(arrow.querySelectorAll(`rect[fill="${color}"]`)).toHaveLength(2);
                 }
@@ -92,7 +144,43 @@ describe("engine agreement arrows in Chessground", () => {
                 expect(arrow.querySelector("g[clip-path]")?.getAttribute("clip-path")).toBe(
                     `url(#${clip.id})`,
                 );
+                expectMatchingNativeArrow(board);
             },
         );
     }
+
+    it.each([
+        { lineWidth: 4, otherSource: undefined },
+        { lineWidth: 7.5, otherSource: undefined },
+        { lineWidth: 11, otherSource: undefined },
+        { lineWidth: 11, otherSource: "d2" }, // Nearby approach: shortened.
+        { lineWidth: 11, otherSource: "a4" }, // Perpendicular: full length.
+        { lineWidth: 11, otherSource: "e5" }, // Opposite: full length.
+    ] as const)(
+        "matches native width $lineWidth and destination spacing with source $otherSource",
+        ({ lineWidth, otherSource }) => {
+            expect.hasAssertions();
+            const normal: DrawShape = {
+                orig: "e2",
+                dest: "e4",
+                brush: "blue",
+                modifiers: { lineWidth },
+            };
+            const shapes: DrawShape[] = [normal];
+            if (otherSource) shapes.push({ orig: otherSource, dest: "e4", brush: "red" });
+            const agreement = agreementArrowShape(
+                "e2",
+                "e4",
+                ["#003088", "#15781B"],
+                "white",
+                "geometry-test",
+                { lineWidth, shorten: shortenAgreementArrow("e4", shapes) },
+            );
+            api = Chessground(board, {
+                viewOnly: true,
+                drawable: { autoShapes: [normal, agreement, ...shapes.slice(1)] },
+            });
+            expectMatchingNativeArrow(board);
+        },
+    );
 });
