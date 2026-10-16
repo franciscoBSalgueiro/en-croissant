@@ -339,7 +339,7 @@ async getPlayers(file: string, query: PlayerQuery) : Promise<Result<QueryRespons
     else return { status: "error", error: e  as any };
 }
 },
-async getPuzzleDbInfo(file: string) : Promise<Result<PuzzleDatabaseInfo, string>> {
+async getPuzzleDbInfo(file: string) : Promise<Result<PuzzleDatabaseInfo | null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_puzzle_db_info", { file }) };
 } catch (e) {

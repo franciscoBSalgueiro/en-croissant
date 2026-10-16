@@ -19,7 +19,7 @@ export interface Puzzle {
     themes?: string[];
 }
 
-async function getPuzzleDatabase(name: string): Promise<PuzzleDatabaseInfo> {
+async function getPuzzleDatabase(name: string): Promise<PuzzleDatabaseInfo | null> {
     const puzzlesDir = await getPuzzlesDir();
     const path = await resolve(puzzlesDir, name);
     return unwrap(await commands.getPuzzleDbInfo(path));
@@ -28,8 +28,8 @@ async function getPuzzleDatabase(name: string): Promise<PuzzleDatabaseInfo> {
 export async function getPuzzleDatabases(): Promise<PuzzleDatabaseInfo[]> {
     const puzzlesDir = await getPuzzlesDir();
     const files = await readDir(puzzlesDir);
-    const dbs = files.filter((file) => file.name?.endsWith(".db3"));
-    return (await Promise.allSettled(dbs.map((db) => getPuzzleDatabase(db.name))))
-        .filter((r) => r.status === "fulfilled")
-        .map((r) => (r as PromiseFulfilledResult<PuzzleDatabaseInfo>).value);
+    const dbs = files.filter((file) => /\.(duckdb|db3)$/i.test(file.name ?? ""));
+    return (await Promise.allSettled(dbs.map((db) => getPuzzleDatabase(db.name)))).flatMap((r) =>
+        r.status === "fulfilled" && r.value ? [r.value] : [],
+    );
 }

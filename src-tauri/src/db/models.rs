@@ -3,12 +3,7 @@ use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use diesel::prelude::*;
-
-use crate::db::schema::*;
-
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, Type)]
-#[diesel(table_name = puzzles)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct Puzzle {
     pub id: i32,
     pub fen: String,

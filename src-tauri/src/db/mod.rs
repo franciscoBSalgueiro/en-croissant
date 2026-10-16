@@ -3,7 +3,6 @@ mod legacy;
 mod legacy_encoding;
 mod models;
 mod pgn;
-mod schema;
 mod search;
 
 use crate::{db::models::*, error::Error, AppState};
@@ -32,9 +31,6 @@ use log::info;
 pub use self::legacy::convert_legacy_database;
 pub use self::models::NormalizedGame;
 pub use self::models::Puzzle;
-pub use self::schema::puzzle_themes;
-pub use self::schema::puzzles;
-pub use self::schema::themes;
 pub(crate) use self::search::PositionCache;
 pub use self::search::{is_position_in_db, search_position, PositionQueryJs};
 
