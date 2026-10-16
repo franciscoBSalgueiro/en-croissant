@@ -35,7 +35,8 @@ pub use self::models::Puzzle;
 pub use self::schema::puzzle_themes;
 pub use self::schema::puzzles;
 pub use self::schema::themes;
-pub use self::search::{is_position_in_db, search_position, PositionQueryJs, PositionStats};
+pub(crate) use self::search::PositionCache;
+pub use self::search::{is_position_in_db, search_position, PositionQueryJs};
 
 #[derive(Debug)]
 struct DuckdbConnectionCustomizer {
@@ -127,6 +128,7 @@ fn get_or_create_database_pool(
 pub fn remove_duckdb_pool(state: &AppState, path: &Path) {
     let key = duckdb_pool_key(path);
     state.player_catalogs.remove(&key);
+    state.position_caches.remove(&key);
     state.duckdb_connection_pool.remove(&key);
 }
 
@@ -158,22 +160,26 @@ fn ensure_player_catalog<'a>(
     Ok(cache.as_ref().expect("player catalog initialized"))
 }
 
-struct PlayerCatalogInvalidation<'a> {
+struct DatabaseCacheInvalidation<'a> {
     state: &'a AppState,
     path: &'a Path,
 }
 
-impl<'a> PlayerCatalogInvalidation<'a> {
+impl<'a> DatabaseCacheInvalidation<'a> {
     fn new(state: &'a AppState, path: &'a Path) -> Self {
         state.player_catalogs.remove(&duckdb_pool_key(path));
+        state.position_caches.remove(&duckdb_pool_key(path));
         Self { state, path }
     }
 }
 
-impl Drop for PlayerCatalogInvalidation<'_> {
+impl Drop for DatabaseCacheInvalidation<'_> {
     fn drop(&mut self) {
         self.state
             .player_catalogs
+            .remove(&duckdb_pool_key(self.path));
+        self.state
+            .position_caches
             .remove(&duckdb_pool_key(self.path));
     }
 }
@@ -221,7 +227,7 @@ pub async fn convert_pgn(
 
     let db_pool = get_duckdb_pool(&state, &db_path)?;
     let db = db_pool.get()?;
-    let _invalidate_players = PlayerCatalogInvalidation::new(&state, &db_path);
+    let _invalidate_caches = DatabaseCacheInvalidation::new(&state, &db_path);
 
     if !db_exists {
         db.execute_batch(include_str!("init-database.sql"))?;
@@ -1172,7 +1178,7 @@ pub async fn delete_duplicated_games(
 ) -> Result<(), Error> {
     let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
-    let _invalidate_players = PlayerCatalogInvalidation::new(&state, &file);
+    let _invalidate_caches = DatabaseCacheInvalidation::new(&state, &file);
 
     remove_duplicated_games(&db)?;
     Ok(())
@@ -1210,7 +1216,7 @@ pub async fn delete_empty_games(
 ) -> Result<(), Error> {
     let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
-    let _invalidate_players = PlayerCatalogInvalidation::new(&state, &file);
+    let _invalidate_caches = DatabaseCacheInvalidation::new(&state, &file);
 
     remove_empty_games(&db)?;
 
@@ -1310,7 +1316,7 @@ pub async fn delete_db_game(
 ) -> Result<(), Error> {
     let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
-    let _invalidate_players = PlayerCatalogInvalidation::new(&state, &file);
+    let _invalidate_caches = DatabaseCacheInvalidation::new(&state, &file);
 
     db.execute("DELETE FROM games WHERE rowid = ?;", params![game_id])?;
 
@@ -1328,7 +1334,7 @@ pub async fn write_db_game(
     let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
 
-    let _invalidate_players = PlayerCatalogInvalidation::new(&state, &file);
+    let _invalidate_caches = DatabaseCacheInvalidation::new(&state, &file);
     update_game(&db, game_id, &pgn)
 }
 
@@ -1363,7 +1369,7 @@ pub async fn merge_players(
 ) -> Result<(), Error> {
     let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
-    let _invalidate_players = PlayerCatalogInvalidation::new(&state, &file);
+    let _invalidate_caches = DatabaseCacheInvalidation::new(&state, &file);
 
     db.execute(
         "UPDATE games SET white = ? WHERE white = ?;",
@@ -1727,7 +1733,7 @@ mod tests {
         let cache = player_catalog_cache(&state, path);
         ensure_player_catalog(&mut cache.lock().unwrap(), &source).unwrap();
         {
-            let _invalidate = PlayerCatalogInvalidation::new(&state, path);
+            let _invalidate = DatabaseCacheInvalidation::new(&state, path);
             source
                 .execute_batch(
                     "INSERT INTO games VALUES ('New player', 'Kasparov', 2900, 2800);

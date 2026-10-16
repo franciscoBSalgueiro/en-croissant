@@ -1,11 +1,65 @@
 use serde::{Deserialize, Serialize};
-use shakmaty::{fen::Fen, san::SanPlus, uci::UciMove, CastlingMode, Chess};
+use shakmaty::{
+    fen::{Epd, Fen},
+    san::SanPlus,
+    uci::UciMove,
+    CastlingMode, Chess, EnPassantMode,
+};
 use specta::Type;
-use std::path::PathBuf;
+use std::{
+    collections::{HashMap, VecDeque},
+    path::{Path, PathBuf},
+    sync::{Arc, Mutex},
+};
 
 use crate::{db::models::*, error::Error, AppState};
 
-use super::{get_duckdb_pool, GameQuery, Sides};
+use super::{duckdb_pool_key, get_duckdb_pool, GameQuery, Sides};
+
+const POSITION_CACHE_CAPACITY: usize = 4096;
+
+#[derive(Default)]
+pub(crate) struct PositionCache {
+    entries: HashMap<String, Vec<PositionStats>>,
+    order: VecDeque<String>,
+}
+
+impl PositionCache {
+    fn get_or_compute(
+        &mut self,
+        key: String,
+        compute: impl FnOnce() -> Result<Vec<PositionStats>, Error>,
+    ) -> Result<Vec<PositionStats>, Error> {
+        if let Some(stats) = self.entries.get(&key) {
+            return Ok(stats.clone());
+        }
+        let stats = compute()?;
+        if self.entries.len() == POSITION_CACHE_CAPACITY {
+            if let Some(oldest) = self.order.pop_front() {
+                self.entries.remove(&oldest);
+            }
+        }
+        self.order.push_back(key.clone());
+        self.entries.insert(key, stats.clone());
+        Ok(stats)
+    }
+}
+
+pub(super) fn position_cache(state: &AppState, path: &Path) -> Arc<Mutex<PositionCache>> {
+    state
+        .position_caches
+        .entry(duckdb_pool_key(path))
+        .or_insert_with(|| Arc::new(Mutex::new(PositionCache::default())))
+        .clone()
+}
+
+fn position_cache_key(position: &Chess, where_sql: &str) -> String {
+    format!(
+        "{}|{}",
+        Epd::from_position(position, EnPassantMode::Legal),
+        where_sql
+    )
+}
 
 const INITIAL_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -95,10 +149,16 @@ fn build_position_where_clauses(query: &GameQuery, full_fen: Option<&str>) -> Ve
                 clauses.push(format!("black = {}", sql_literal(player2)));
             }
             if let Some(range1) = query.range1 {
-                clauses.push(format!("white_rating BETWEEN {} AND {}", range1.0, range1.1));
+                clauses.push(format!(
+                    "white_rating BETWEEN {} AND {}",
+                    range1.0, range1.1
+                ));
             }
             if let Some(range2) = query.range2 {
-                clauses.push(format!("black_rating BETWEEN {} AND {}", range2.0, range2.1));
+                clauses.push(format!(
+                    "black_rating BETWEEN {} AND {}",
+                    range2.0, range2.1
+                ));
             }
         }
         Some(Sides::BlackWhite) => {
@@ -109,10 +169,16 @@ fn build_position_where_clauses(query: &GameQuery, full_fen: Option<&str>) -> Ve
                 clauses.push(format!("white = {}", sql_literal(player2)));
             }
             if let Some(range1) = query.range1 {
-                clauses.push(format!("black_rating BETWEEN {} AND {}", range1.0, range1.1));
+                clauses.push(format!(
+                    "black_rating BETWEEN {} AND {}",
+                    range1.0, range1.1
+                ));
             }
             if let Some(range2) = query.range2 {
-                clauses.push(format!("white_rating BETWEEN {} AND {}", range2.0, range2.1));
+                clauses.push(format!(
+                    "white_rating BETWEEN {} AND {}",
+                    range2.0, range2.1
+                ));
             }
         }
         Some(Sides::Any) => {
@@ -173,10 +239,16 @@ fn build_position_where_clauses(query: &GameQuery, full_fen: Option<&str>) -> Ve
                 clauses.push(format!("black = {}", sql_literal(player2)));
             }
             if let Some(range1) = query.range1 {
-                clauses.push(format!("white_rating BETWEEN {} AND {}", range1.0, range1.1));
+                clauses.push(format!(
+                    "white_rating BETWEEN {} AND {}",
+                    range1.0, range1.1
+                ));
             }
             if let Some(range2) = query.range2 {
-                clauses.push(format!("black_rating BETWEEN {} AND {}", range2.0, range2.1));
+                clauses.push(format!(
+                    "black_rating BETWEEN {} AND {}",
+                    range2.0, range2.1
+                ));
             }
         }
     }
@@ -222,10 +294,10 @@ pub async fn search_position(
     let fen = Fen::from_ascii(position_query.fen.as_bytes())?;
     let setup = fen.into_setup();
     let castling_mode = CastlingMode::detect(&setup);
-    let reference_position = setup.position(castling_mode)?;
+    let reference_position: Chess = setup.position(castling_mode)?;
 
     let db_pool = get_duckdb_pool(&state, &file)?;
-    let db = db_pool.get()?;
+    let cache = position_cache(&state, &file);
 
     let where_clauses = build_position_where_clauses(&query, None);
 
@@ -254,29 +326,41 @@ pub async fn search_position(
         where_clause = where_sql,
     );
 
-    let openings = db
-        .prepare(&sql)?
-        .query_map([], |row| {
-            let Some(move_) = row.get::<_, Option<String>>("next_move")? else {
-                return Ok(None);
-            };
-            Ok(Some(PositionStats {
-                move_,
-                white: row.get::<_, i32>("white_wins")?,
-                draw: row.get::<_, i32>("draws")?,
-                black: row.get::<_, i32>("black_wins")?,
-            }))
-        })?
-        .collect::<Result<Vec<_>, _>>()?
-        .into_iter()
-        .flatten()
-        .map(|mut stat| {
-            stat.move_ = uci_to_san(&stat.move_, &reference_position);
-            stat
-        })
-        .collect();
+    let key = position_cache_key(&reference_position, &where_sql);
+    tokio::task::spawn_blocking(move || {
+        let mut cache = cache
+            .lock()
+            .map_err(|_| std::io::Error::other("position cache mutex poisoned"))?;
+        let openings = cache.get_or_compute(key, || {
+            let db = db_pool.get()?;
+            let openings = db
+                .prepare(&sql)?
+                .query_map([], |row| {
+                    let Some(move_) = row.get::<_, Option<String>>("next_move")? else {
+                        return Ok(None);
+                    };
+                    Ok(Some(PositionStats {
+                        move_,
+                        white: row.get::<_, i32>("white_wins")?,
+                        draw: row.get::<_, i32>("draws")?,
+                        black: row.get::<_, i32>("black_wins")?,
+                    }))
+                })?
+                .collect::<Result<Vec<_>, _>>()?
+                .into_iter()
+                .flatten()
+                .map(|mut stat| {
+                    stat.move_ = uci_to_san(&stat.move_, &reference_position);
+                    stat
+                })
+                .collect();
+            Ok(openings)
+        })?;
 
-    Ok((openings, vec![]))
+        Ok((openings, vec![]))
+    })
+    .await
+    .map_err(|err| std::io::Error::other(err.to_string()))?
 }
 
 pub async fn is_position_in_db(

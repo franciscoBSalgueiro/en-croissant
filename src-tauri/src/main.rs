@@ -23,10 +23,7 @@ use std::sync::{Arc, Mutex};
 
 use chess::{BestMovesPayload, EngineProcess};
 use dashmap::DashMap;
-use db::{
-    convert_legacy_database, convert_pgn, DatabaseProgress, GameQuery, NormalizedGame,
-    PositionStats,
-};
+use db::{convert_legacy_database, convert_pgn, DatabaseProgress};
 use derivative::Derivative;
 use game::GameManager;
 use progress::{clear_progress, get_progress, ProgressEvent, ProgressStore};
@@ -81,7 +78,7 @@ pub struct AppState {
     duckdb_connection_pool: DashMap<String, diesel::r2d2::Pool<duckdb::DuckdbConnectionManager>>,
     player_catalogs: DashMap<String, Arc<Mutex<Option<duckdb::Connection>>>>,
     aixchess_extension_path: Mutex<Option<PathBuf>>,
-    line_cache: DashMap<(GameQuery, PathBuf), (Vec<PositionStats>, Vec<NormalizedGame>)>,
+    position_caches: DashMap<String, Arc<Mutex<db::PositionCache>>>,
     pgn_offsets: DashMap<String, Vec<u64>>,
 
     engine_processes: DashMap<(String, String), Arc<tokio::sync::Mutex<EngineProcess>>>,

@@ -109,7 +109,6 @@ function RepertoireInfo() {
   const [gamesMap, setGamesMap] = useState<Map<string, number>>(new Map());
   const [missingGamesMap, setMissingGamesMap] = useState<Map<string, number>>(new Map());
   const [coverageLoading, setCoverageLoading] = useState(false);
-  const coverageVersionRef = useRef(0);
 
   const startPath = headers.start || [];
   const startPathKey = startPath.join(",");
@@ -126,16 +125,22 @@ function RepertoireInfo() {
       setCoverageLoading(false);
       return;
     }
-    const version = ++coverageVersionRef.current;
+    const controller = new AbortController();
     setCoverageLoading(true);
-    computeTreeCoverage(root, orientation, referenceDb, minGames, startPath).then((result) => {
-      if (version === coverageVersionRef.current) {
+    computeTreeCoverage(root, orientation, referenceDb, minGames, startPath, controller.signal)
+      .then((result) => {
+        if (controller.signal.aborted) return;
         setCoverageMap(result.coverageMap);
         setGamesMap(result.gamesMap);
         setMissingGamesMap(result.missingGamesMap);
-        setCoverageLoading(false);
-      }
-    });
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) console.error("Coverage calculation failed", error);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setCoverageLoading(false);
+      });
+    return () => controller.abort();
   }, [rootStructureHash, orientation, referenceDb, startPathKey, minGames]);
 
   const positionMoves = useMemo(() => {
