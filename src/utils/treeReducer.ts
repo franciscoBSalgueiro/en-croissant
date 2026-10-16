@@ -124,7 +124,7 @@ export function createNode({
         fen,
         move,
         san,
-        clock: clock ? clock / 1000 : undefined,
+        clock: clock !== undefined ? clock / 1000 : undefined,
         children: [],
         score: null,
         depth: null,

@@ -8,6 +8,7 @@ mod db;
 mod engine;
 mod error;
 mod game;
+mod game_history;
 
 mod fs;
 mod lexer;
@@ -46,8 +47,9 @@ use crate::db::{
     preload_reference_db, search_position, MmapSearchIndex,
 };
 use crate::game::{
-    abort_game, get_game_engine_logs, get_game_state, make_game_move, resign_game, start_game,
-    take_back_game_move, ClockUpdateEvent, GameMoveEvent, GameOverEvent,
+    abort_game, get_game_engine_logs, get_game_state, list_saved_games, load_saved_game,
+    make_game_move, resign_game, resume_saved_game, start_game, take_back_game_move,
+    ClockUpdateEvent, GameMoveEvent, GameOverEvent,
 };
 
 use crate::fs::set_file_as_executable;
@@ -174,6 +176,9 @@ fn main() {
             get_puzzle_themes,
             get_themes_for_puzzle,
             delete_puzzle_database,
+            list_saved_games,
+            load_saved_game,
+            resume_saved_game,
             start_game,
             get_game_state,
             make_game_move,

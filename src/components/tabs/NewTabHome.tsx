@@ -43,6 +43,7 @@ import { useTranslation } from "react-i18next";
 import { commands } from "@/bindings";
 import { getStats } from "@/components/files/opening";
 import Chessboard from "../icons/Chessboard";
+import GameHistory from "../games/GameHistory";
 import { FileIcon } from "@/components/files/FileIcon";
 
 dayjs.extend(relativeTime);
@@ -273,6 +274,8 @@ export default function NewTabHome({ id }: { id: string }) {
             </Card>
           ))}
         </SimpleGrid>
+
+        <GameHistory recent />
 
         <Card shadow="sm" p="md" radius="md" withBorder>
           <Text fw={600} size="lg" mb="xs">
