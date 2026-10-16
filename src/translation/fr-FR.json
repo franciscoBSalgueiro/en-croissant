@@ -639,6 +639,8 @@
     "Settings.Repertoire.Depth.Desc": "Nombre minimum de parties pour qu'un coup soit considéré comme pertinent",
     "Settings.Repertoire.Desc": "Personnaliser les paramètres du répertoire",
     "Settings.Repertoire.Essential": "Essentiel",
+    "Settings.Repertoire.PracticeReminderBadges": "",
+    "Settings.Repertoire.PracticeReminderBadges.Desc": "",
     "Settings.Repertoire.Standard": "Standard",
     "Settings.ScrollThroughMoves": "Défilement des coups",
     "Settings.ScrollThroughMoves.Desc": "Active ou désactive le défilement des coups sur l'échiquier",

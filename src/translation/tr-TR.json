@@ -629,6 +629,8 @@
     "Settings.Repertoire.Depth.Desc": "Bir hamlenin önemli sayılması için gereken minimum oyun sayısı",
     "Settings.Repertoire.Desc": "Repertuvar ayarlarını özelleştirin",
     "Settings.Repertoire.Essential": "Temel",
+    "Settings.Repertoire.PracticeReminderBadges": "",
+    "Settings.Repertoire.PracticeReminderBadges.Desc": "",
     "Settings.Repertoire.Standard": "Standart",
     "Settings.ScrollThroughMoves": "Fare Tekeriyle Hamlelerde Gezin",
     "Settings.ScrollThroughMoves.Desc": "Satranç tahtasındaki hamleler arasında fare tekeriyle hareketi etkinleştirin veya devre dışı bırakın",

@@ -538,6 +538,11 @@ const practiceSessionStatsFamily = atomFamily((_tab: string) =>
 );
 export const practiceSessionStatsAtom = tabValue(practiceSessionStatsFamily);
 
+export const showPracticeReminderBadgesAtom = atomWithStorage<boolean>(
+    "show-practice-reminder-badges",
+    true,
+);
+
 export const practiceAutoDifficultyAtom = atomWithStorage<"none" | "1" | "2" | "3" | "4">(
     "practice-auto-difficulty",
     "none",

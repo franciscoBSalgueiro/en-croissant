@@ -625,6 +625,8 @@
     "Settings.Repertoire.Depth.Desc": "",
     "Settings.Repertoire.Desc": "",
     "Settings.Repertoire.Essential": "",
+    "Settings.Repertoire.PracticeReminderBadges": "",
+    "Settings.Repertoire.PracticeReminderBadges.Desc": "",
     "Settings.Repertoire.Standard": "",
     "Settings.ScrollThroughMoves": "Desplazarse por los movimientos",
     "Settings.ScrollThroughMoves.Desc": "Habilitar o deshabilitar el desplazamiento por los movimientos con el ratón en el tablero",

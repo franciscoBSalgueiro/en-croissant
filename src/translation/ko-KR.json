@@ -620,6 +620,8 @@
     "Settings.Repertoire.Depth.Desc": "수를 관련 있는 것으로 간주하기 위한 최소 게임 수",
     "Settings.Repertoire.Desc": "레퍼토리 설정을 사용자 정의합니다",
     "Settings.Repertoire.Essential": "필수",
+    "Settings.Repertoire.PracticeReminderBadges": "",
+    "Settings.Repertoire.PracticeReminderBadges.Desc": "",
     "Settings.Repertoire.Standard": "표준",
     "Settings.ScrollThroughMoves": "스크롤로 수 이동",
     "Settings.ScrollThroughMoves.Desc": "체스판에서 스크롤하여 수를 이동합니다",

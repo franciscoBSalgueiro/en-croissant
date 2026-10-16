@@ -52,6 +52,7 @@ import {
   showConsecutiveArrowsAtom,
   showCoordinatesAtom,
   showDestsAtom,
+  showPracticeReminderBadgesAtom,
   showVariationArrowsAtom,
   snapArrowsAtom,
   spellCheckAtom,
@@ -525,6 +526,14 @@ export default function Page() {
             onChange={(val) => setPracticeAutoDifficulty(val as "none" | "1" | "2" | "3" | "4")}
           />
         ),
+      },
+      {
+        id: "repertoire-practice-reminder-badges",
+        category: "repertoire",
+        title: t("Settings.Repertoire.PracticeReminderBadges"),
+        description: t("Settings.Repertoire.PracticeReminderBadges.Desc"),
+        keywords: ["repertoire", "practice", "reminder", "badges", "due", "home", "files"],
+        render: () => <SettingsSwitch atom={showPracticeReminderBadgesAtom} />,
       },
       // Sound settings
       {
