@@ -1,4 +1,3 @@
-import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { searchPosition } from "./db";
 import { getNodeAtPath, type TreeNode, treeIterator } from "./treeReducer";
 import { TreeStoreState } from "@/state/store/tree";
@@ -42,11 +41,8 @@ export async function computeTreeCoverage(
             const [openings] = await searchPosition(
                 {
                     path: dbPath,
-                    fen,
-                    color: "white",
-                    player: null,
-                    result: "any",
-                } as LocalOptions,
+                    position: { fen, type_: "exact" },
+                },
                 "coverage-calc",
             );
 
