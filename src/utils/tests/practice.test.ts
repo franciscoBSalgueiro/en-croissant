@@ -3,9 +3,13 @@ import { makeFen } from "chessops/fen";
 import { expect, test } from "vitest";
 import {
     buildFromTree,
-    continueInBranch,
+    countMoves,
     getAnswers,
     getLineProgress,
+    isAnswerDone,
+    moveKey,
+    type PracticeStep,
+    planNextQuestion,
 } from "@/components/files/opening";
 import { positionFromFen } from "../chessops";
 import { createNode, defaultTree, getNodeAtPath, type TreeNode } from "../treeReducer";
@@ -75,25 +79,207 @@ test("a position accepts the repertoire's moves however it was reached (transpos
     expect(getNodeAtPath(root, answers[1].path)).toBe(viaC4.children[0]);
 });
 
-test("full practice continues down the branch of the move just played", () => {
-    // Black repertoire: 1.e4 e5 2.Nf3 Nc6 and 1.e4 c5 2.Nf3 d6
+// Black repertoire: 1...c5 2.Nf3 Nc6, then 3.d4 cxd4 4.Nxd4 g6 or 3.Nc3 g6; and 1...e5 2.Nf3
+// Nc6 3.Bc4, then 3...Bc5 4.c3 or 3...Nf6 4.Ng5, then 4...d5 5.exd5 Na5 6.Bd3 / 5...Nxd5,
+// or 4...Rb8
+function blackRepertoire() {
     const root = defaultTree().root;
     const afterE4 = addMove(root, "e4");
-    const e5 = addMove(afterE4, "e5");
-    addLine(e5, ["Nf3", "Nc6"]);
-    const c5 = addMove(afterE4, "c5");
-    addLine(c5, ["Nf3", "d6"]);
+    const afterNc6 = addLine(afterE4, ["c5", "Nf3", "Nc6"]);
+    addLine(afterNc6, ["d4", "cxd4", "Nxd4", "g6"]);
+    addLine(afterNc6, ["Nc3", "g6"]);
+    const afterBc4 = addLine(afterE4, ["e5", "Nf3", "Nc6", "Bc4"]);
+    addLine(afterBc4, ["Bc5", "c3"]);
+    const afterNg5 = addLine(afterBc4, ["Nf6", "Ng5"]);
+    const afterExd5 = addLine(afterNg5, ["d5", "exd5"]);
+    addLine(afterExd5, ["Na5", "Bd3"]);
+    addMove(afterExd5, "Nxd5");
+    addMove(afterNg5, "Rb8");
+    return root;
+}
 
-    // Tree order: after 1.e4, after 1.e4 e5 2.Nf3, after 1.e4 c5 2.Nf3
-    const positions = buildFromTree(root, "black", []);
-    expect(positions.map((p) => p.answer)).toEqual(["e5", "Nc6", "d6"]);
+// The positions with a practice card, as in the app
+function askableIn(root: TreeNode, color: "white" | "black" = "black") {
+    return new Set(buildFromTree(root, color, []).map((p) => p.fen));
+}
 
-    // Answering 1.e4 with the second variation goes on with the c5 line, not back to e5
-    expect(continueInBranch([1, 2], positions, c5)).toEqual([2, 1]);
-    // Answering with the first variation keeps the order
-    expect(continueInBranch([1, 2], positions, e5)).toEqual([1, 2]);
-    // Once the c5 line is done, the rest of the queue carries on as before
-    expect(continueInBranch([1], positions, c5)).toEqual([1]);
+function pathTo(root: TreeNode, line: string) {
+    const path: number[] = [];
+    let node = root;
+    for (const san of line.split(" ")) {
+        const i = node.children.findIndex((child) => child.san === san);
+        path.push(i);
+        node = node.children[i];
+    }
+    return path;
+}
+
+function lineAt(root: TreeNode, path: number[]) {
+    return path.map((_, i) => getNodeAtPath(root, path.slice(0, i + 1)).san).join(" ");
+}
+
+// Every one of the user's moves along these lines, as practiced
+function practicedAlong(root: TreeNode, askable: Set<string>, ...lines: string[]) {
+    const practiced = new Set<string>();
+    for (const line of lines) {
+        let node = root;
+        for (const san of line.split(" ")) {
+            if (askable.has(node.fen)) practiced.add(moveKey(node.fen, san));
+            node = node.children.find((child) => child.san === san)!;
+        }
+    }
+    return practiced;
+}
+
+function readable(root: TreeNode, plan: { steps: PracticeStep[]; ask: number[] | null }) {
+    return {
+        steps: plan.steps.map((step) => (step.jump ? "back to " : "") + lineAt(root, step.path)),
+        ask: plan.ask && lineAt(root, plan.ask),
+    };
+}
+
+const SICILIAN_D4 = "e4 c5 Nf3 Nc6 d4 cxd4 Nxd4 g6";
+const SICILIAN_NC3 = "e4 c5 Nf3 Nc6 Nc3 g6";
+const BC5 = "e4 e5 Nf3 Nc6 Bc4 Bc5";
+const NA5 = "e4 e5 Nf3 Nc6 Bc4 Nf6 Ng5 d5 exd5 Na5";
+const NXD5 = "e4 e5 Nf3 Nc6 Bc4 Nf6 Ng5 d5 exd5 Nxd5";
+const RB8 = "e4 e5 Nf3 Nc6 Bc4 Nf6 Ng5 Rb8";
+
+test("full practice starts by playing the opponent's first move", () => {
+    const root = blackRepertoire();
+
+    expect(readable(root, planNextQuestion(root, [], new Set(), askableIn(root), false))).toEqual({
+        steps: ["e4"],
+        ask: "e4",
+    });
+});
+
+test("after your move, the opponent's reply is played and your next position asked", () => {
+    const root = blackRepertoire();
+    const askable = askableIn(root);
+    const practiced = practicedAlong(root, askable, "e4 c5");
+
+    expect(
+        readable(root, planNextQuestion(root, pathTo(root, "e4 c5"), practiced, askable, true)),
+    ).toEqual({ steps: ["e4 c5 Nf3"], ask: "e4 c5 Nf3" });
+});
+
+test("at the end of a line, the opponent's last reply is shown, then it's back to your branch point for your other move", () => {
+    const root = blackRepertoire();
+    const askable = askableIn(root);
+    const practiced = practicedAlong(root, askable, NA5);
+
+    // Not on to 5...Nxd5 6.Nxf7 with your 5...Nxd5 already played: back to 5.exd5 to play it
+    expect(
+        readable(root, planNextQuestion(root, pathTo(root, NA5), practiced, askable, true)),
+    ).toEqual({
+        steps: [`${NA5} Bd3`, "back to e4 e5 Nf3 Nc6 Bc4 Nf6 Ng5 d5 exd5"],
+        ask: "e4 e5 Nf3 Nc6 Bc4 Nf6 Ng5 d5 exd5",
+    });
+});
+
+test("after a line, it goes back to the opponent's branch point and plays their other move", () => {
+    const root = blackRepertoire();
+    const askable = askableIn(root);
+    const practiced = practicedAlong(root, askable, SICILIAN_D4);
+
+    expect(
+        readable(root, planNextQuestion(root, pathTo(root, SICILIAN_D4), practiced, askable, true)),
+    ).toEqual({ steps: ["back to e4 c5 Nf3 Nc6", "e4 c5 Nf3 Nc6 Nc3"], ask: "e4 c5 Nf3 Nc6 Nc3" });
+});
+
+test("moves you've practiced are asked again on the way to what's left, never played for you", () => {
+    const root = blackRepertoire();
+    const askable = askableIn(root);
+    // Everything but 4...Rb8
+    const practiced = practicedAlong(root, askable, SICILIAN_D4, SICILIAN_NC3, BC5, NA5, NXD5);
+
+    expect(
+        readable(
+            root,
+            planNextQuestion(root, pathTo(root, SICILIAN_NC3), practiced, askable, true),
+        ),
+    ).toEqual({ steps: ["back to e4"], ask: "e4" });
+    // Then you play 1...e5 again, and it carries on towards 4...Rb8
+    expect(
+        readable(root, planNextQuestion(root, pathTo(root, "e4 e5"), practiced, askable, true)),
+    ).toEqual({ steps: ["e4 e5 Nf3"], ask: "e4 e5 Nf3" });
+});
+
+test("full practice ends once every move has been practiced", () => {
+    const root = blackRepertoire();
+    const askable = askableIn(root);
+    const practiced = practicedAlong(root, askable, SICILIAN_D4, SICILIAN_NC3, BC5, NA5, NXD5, RB8);
+
+    expect(planNextQuestion(root, pathTo(root, RB8), practiced, askable, true).ask).toBeNull();
+});
+
+test("a full session asks every one of your moves and never plays one for you", () => {
+    const root = blackRepertoire();
+    const askable = askableIn(root);
+    const practiced = new Set<string>();
+    let plan = planNextQuestion(root, [], practiced, askable, false);
+    let questions = 0;
+    while (plan.ask && questions < 100) {
+        for (const step of plan.steps.filter((step) => !step.jump)) {
+            expect(askable.has(getNodeAtPath(root, step.path.slice(0, -1)).fen)).toBe(false);
+        }
+        // Answer with a move that still adds something, as the user would
+        const ask = plan.ask;
+        const node = getNodeAtPath(root, ask);
+        const i = node.children.findIndex(
+            (child, i) =>
+                !isAnswerDone(
+                    root,
+                    node.fen,
+                    { san: child.san!, path: [...ask, i] },
+                    practiced,
+                    askable,
+                ),
+        );
+        practiced.add(moveKey(node.fen, node.children[i].san!));
+        plan = planNextQuestion(root, [...ask, i], practiced, askable, true);
+        questions++;
+    }
+
+    expect(plan.ask).toBeNull();
+    expect(practiced.size).toBe(13);
+    expect(countMoves(root, askable)).toBe(13);
+});
+
+test("a move counts as already practiced only when nothing is left after it", () => {
+    const root = blackRepertoire();
+    const askable = askableIn(root);
+    const practiced = practicedAlong(root, askable, NA5);
+    const EXD5 = "e4 e5 Nf3 Nc6 Bc4 Nf6 Ng5 d5 exd5";
+    const fen = getNodeAtPath(root, pathTo(root, EXD5)).fen;
+    const atExd5 = (san: string) =>
+        isAnswerDone(root, fen, { san, path: pathTo(root, `${EXD5} ${san}`) }, practiced, askable);
+
+    expect(atExd5("Na5")).toBe(true);
+    expect(atExd5("Nxd5")).toBe(false);
+    // 1...e5 was practiced, but there's more to practice after it
+    const e4 = getNodeAtPath(root, pathTo(root, "e4"));
+    expect(
+        isAnswerDone(root, e4.fen, { san: "e5", path: pathTo(root, "e4 e5") }, practiced, askable),
+    ).toBe(false);
+});
+
+test("a move reachable by transposition is one move to practice", () => {
+    const root = defaultTree().root;
+    // 1.d4 Nf6 2.c4 e6 3.Nc3 Bb4 and 1.c4 Nf6 2.Nc3 e6 3.d4 d5 / 3...Bb4 reach the same position
+    addLine(root, ["d4", "Nf6", "c4", "e6", "Nc3", "Bb4"]);
+    const viaC4 = addLine(root, ["c4", "Nf6", "Nc3", "e6", "d4"]);
+    addMove(viaC4, "d5");
+    addMove(viaC4, "Bb4");
+    const askable = askableIn(root);
+
+    // Nf6 and e6 in each move order, then 3...Bb4 once and 3...d5
+    expect(countMoves(root, askable)).toBe(6);
+    // Having played 3...Bb4 after 3.Nc3, it's already practiced after 3.d4 too
+    const practiced = practicedAlong(root, askable, "d4 Nf6 c4 e6 Nc3 Bb4");
+    const bb4 = { san: "Bb4", path: pathTo(root, "c4 Nf6 Nc3 e6 d4 Bb4") };
+    expect(isAnswerDone(root, viaC4.fen, bb4, practiced, askable)).toBe(true);
 });
 
 // Black repertoire: 1.e4 e5 2.Nf3 Nc6 3.Bc4, answered with 3...Bc5 (4.c3 Nf6) or 3...Nf6,

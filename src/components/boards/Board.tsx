@@ -57,7 +57,7 @@ import { getNodeAtPath } from "@/utils/treeReducer";
 import ShowMaterial from "../common/ShowMaterial";
 import { TreeStateContext } from "../common/TreeStateContext";
 import FideInfo from "../databases/FideInfo";
-import { getAnswers, updateCardPerformance } from "../files/opening";
+import { getAnswers, isAnswerDone, updateCardPerformance } from "../files/opening";
 import { arrowColors } from "../panels/analysis/BestMoves";
 import AnnotationHint from "./AnnotationHint";
 import { BoardBar } from "./BoardBar";
@@ -179,6 +179,8 @@ function Board({
 
   const [practiceState, setPracticeState] = useAtom(practiceStateAtom);
   const [sessionStats, setSessionStats] = useAtom(practiceSessionStatsAtom);
+  // The positions where it's the user's move: the ones with a practice card
+  const askable = useMemo(() => new Set(deck.positions.map((p) => p.fen)), [deck.positions]);
   const cardStartTime = useAtomValue(practiceCardStartTimeAtom);
 
   async function makeMove(move: NormalMove) {
@@ -228,6 +230,15 @@ function Board({
         await new Promise((resolve) => setTimeout(resolve, 500));
         goToNext();
       } else {
+        if (
+          sessionStats.mode === "full" &&
+          isAnswerDone(root, currentNode.fen, answer, new Set(sessionStats.practicedMoves), askable)
+        ) {
+          notifications.show({ message: t("Board.Practice.AlreadyPracticed") });
+          // A new state re-renders the board, which takes back the piece that was moved
+          setPracticeState({ ...practiceState, alreadyPracticed: true });
+          return;
+        }
         if (currentNode.children.some((child) => child.san === san)) {
           storeMakeMove({
             payload: move,
@@ -336,13 +347,20 @@ function Board({
     }
   }
 
-  // After a wrong move in practice, show every accepted move
+  // After a wrong move in practice, show every accepted move (in full practice, those that
+  // still have something left to practice)
   if (
     practicing &&
     practiceState.phase === "incorrect" &&
     practiceState.currentFen === currentNode.fen
   ) {
-    for (const answer of getAnswers(root, position)) {
+    const practiced = new Set(sessionStats.practicedMoves);
+    const answers = getAnswers(root, position).filter(
+      (answer) =>
+        sessionStats.mode !== "full" ||
+        !isAnswerDone(root, currentNode.fen, answer, practiced, askable),
+    );
+    for (const answer of answers) {
       const m = getNodeAtPath(root, answer.path).move as NormalMove;
       shapes.push({
         orig: makeSquare(m.from)!,

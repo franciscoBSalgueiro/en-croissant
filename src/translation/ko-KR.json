@@ -101,6 +101,7 @@
     "Board.Practice.Accuracy": "정확도",
     "Board.Practice.Again": "다시 해야함",
     "Board.Practice.AgainHint": "조금 있다가 다시 보여주세요 (1)",
+    "Board.Practice.AlreadyPracticed": "",
     "Board.Practice.Build": "구축",
     "Board.Practice.Build.BeforeStart": "이 포지션은 시작 포지션 이전입니다",
     "Board.Practice.Build.BiggestGap": "가장 큰 빈틈으로 이동",

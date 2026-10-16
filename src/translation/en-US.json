@@ -101,6 +101,7 @@
     "Board.Practice.Accuracy": "Accuracy",
     "Board.Practice.Again": "Again",
     "Board.Practice.AgainHint": "Show again soon (1)",
+    "Board.Practice.AlreadyPracticed": "Already practiced! Play another move.",
     "Board.Practice.Build": "Build",
     "Board.Practice.Build.BeforeStart": "This position is before your Start position",
     "Board.Practice.Build.BiggestGap": "Go to your biggest gap",

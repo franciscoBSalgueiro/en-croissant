@@ -101,6 +101,7 @@
     "Board.Practice.Accuracy": "Précision",
     "Board.Practice.Again": "Réessayer",
     "Board.Practice.AgainHint": "Afficher réessayer bientôt (1)",
+    "Board.Practice.AlreadyPracticed": "",
     "Board.Practice.Build": "Créer",
     "Board.Practice.Build.BeforeStart": "Cette position se trouve avant votre position de départ",
     "Board.Practice.Build.BiggestGap": "Aller à votre plus grande lacune",

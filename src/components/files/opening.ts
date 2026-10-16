@@ -49,8 +49,12 @@ export function buildFromTree(tree: TreeNode, color: "white" | "black", start: n
 
 // The same position reached by different move orders can have a different halfmove
 // clock and move number, so only the first four FEN fields identify the position.
+function positionKey(fen: string) {
+    return fen.split(" ").slice(0, 4).join(" ");
+}
+
 function samePosition(a: string, b: string) {
-    return a.split(" ").slice(0, 4).join(" ") === b.split(" ").slice(0, 4).join(" ");
+    return positionKey(a) === positionKey(b);
 }
 
 // Every repertoire move from the position at `path` is a correct answer, including moves
@@ -76,18 +80,103 @@ export function getAnswers(tree: TreeNode, path: number[]): { san: string; path:
     return answers;
 }
 
-// After a correct move in full practice, keep practicing the branch that move leads into
-// instead of jumping back to the queue's next variation.
-export function continueInBranch(
-    remaining: number[],
-    positions: Position[],
-    branch: TreeNode,
-): number[] {
-    const fens = new Set(Array.from(treeIterator(branch), ({ node }) => node.fen));
-    return [
-        ...remaining.filter((i) => fens.has(positions[i].fen)),
-        ...remaining.filter((i) => !fens.has(positions[i].fen)),
-    ];
+// One of the user's repertoire moves, the same however its position was reached
+export function moveKey(fen: string, san: string) {
+    return `${positionKey(fen)} ${san}`;
+}
+
+// Whether any of the user's moves at or below `node` hasn't been practiced yet. The user's
+// positions are the ones with a practice card (`askable` holds their FENs).
+export function hasMovesLeft(node: TreeNode, practiced: Set<string>, askable: Set<string>) {
+    for (const { node: n } of treeIterator(node)) {
+        if (
+            askable.has(n.fen) &&
+            n.children.some((child) => child.san && !practiced.has(moveKey(n.fen, child.san)))
+        ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Full practice: whether playing this answer adds nothing — it was already practiced, and so
+// was everything after it
+export function isAnswerDone(
+    tree: TreeNode,
+    fen: string,
+    answer: { san: string; path: number[] },
+    practiced: Set<string>,
+    askable: Set<string>,
+) {
+    return (
+        practiced.has(moveKey(fen, answer.san)) &&
+        !hasMovesLeft(getNodeAtPath(tree, answer.path), practiced, askable)
+    );
+}
+
+// How many different moves of the user's there are to practice
+export function countMoves(tree: TreeNode, askable: Set<string>) {
+    const moves = new Set<string>();
+    for (const { node } of treeIterator(tree)) {
+        if (askable.has(node.fen)) {
+            for (const child of node.children) {
+                if (child.san) moves.add(moveKey(node.fen, child.san));
+            }
+        }
+    }
+    return moves.size;
+}
+
+// A move the app plays on the board, or (`jump`) going back to an earlier position
+export type PracticeStep = { path: number[]; jump: boolean };
+
+// Full practice walks the repertoire until every one of the user's moves is practiced.
+// From the position at `from`, it goes down the line while there's something left, playing
+// the opponent's moves; when the line is done it shows the opponent's reply that ends it
+// (if `showLastReply`) and goes back to the most recent branch point with something left.
+// Returns the steps to play and the position to ask next (null when everything is done).
+export function planNextQuestion(
+    tree: TreeNode,
+    from: number[],
+    practiced: Set<string>,
+    askable: Set<string>,
+    showLastReply: boolean,
+): { steps: PracticeStep[]; ask: number[] | null } {
+    const movesLeft = (node: TreeNode) => hasMovesLeft(node, practiced, askable);
+    const steps: PracticeStep[] = [];
+    let path = from;
+    let node = getNodeAtPath(tree, path);
+    let canShowReply = showLastReply;
+    for (;;) {
+        while (!(askable.has(node.fen) && movesLeft(node))) {
+            const next = node.children.findIndex(movesLeft);
+            if (next === -1) {
+                break;
+            }
+            path = [...path, next];
+            node = node.children[next];
+            steps.push({ path, jump: false });
+            canShowReply = false;
+        }
+        if (askable.has(node.fen) && movesLeft(node)) {
+            return { steps, ask: path };
+        }
+        if (canShowReply && node.children.length > 0) {
+            path = [...path, 0];
+            steps.push({ path, jump: false });
+            canShowReply = false;
+        }
+        let depth = path.length - 1;
+        while (depth >= 0 && !movesLeft(getNodeAtPath(tree, path.slice(0, depth)))) {
+            depth--;
+        }
+        if (depth < 0) {
+            return { steps, ask: null };
+        }
+        path = path.slice(0, depth);
+        node = getNodeAtPath(tree, path);
+        steps.push({ path, jump: true });
+    }
 }
 
 function isUsersTurn(node: TreeNode, color: "white" | "black") {

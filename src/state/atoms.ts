@@ -16,7 +16,7 @@ import type { ReviewLog } from "ts-fsrs";
 import { z } from "zod";
 import type { BestMoves, GoMode } from "@/bindings";
 import { DEFAULT_TIME_CONTROL, type OpponentSettings } from "@/components/boards/OpponentForm";
-import { type Position, positionSchema } from "@/components/files/opening";
+import { type Position, type PracticeStep, positionSchema } from "@/components/files/opening";
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { positionFromFen, swapMove } from "@/utils/chessops";
 import type { SuccessDatabaseInfo } from "@/utils/db";
@@ -497,7 +497,8 @@ export type PracticePhase =
     | "idle" // Not practicing
     | "waiting" // Waiting for user to make a move
     | "correct" // Move was correct, waiting for quality rating
-    | "incorrect"; // Move was incorrect, showing feedback
+    | "incorrect" // Move was incorrect, showing feedback
+    | "moving"; // Full practice: playing moves on the way to the next position
 
 export type PracticeState = {
     phase: PracticePhase;
@@ -507,6 +508,8 @@ export type PracticeState = {
     timeTaken?: number;
     positionIndex?: number;
     afterMistake?: boolean; // Answered after a wrong move: not counted as correct or rated again
+    plan?: { steps: PracticeStep[]; ask: number[] | null }; // "moving": what's left to play
+    alreadyPracticed?: boolean; // "waiting": the move just tried was already practiced
 };
 
 export const practiceStateFamily = atomFamily((_tab: string) =>
@@ -516,18 +519,17 @@ export const practiceStateAtom = tabValue(practiceStateFamily);
 
 export type PracticeSessionStats = {
     mode: "anki" | "full";
-    remainingPositions: number[];
     correct: number;
     incorrect: number;
     streak: number;
     bestStreak: number;
+    practicedMoves?: string[]; // Full practice: the user's moves practiced so far (`moveKey`)
     visitedPaths?: number[][]; // Full practice: positions shown and moves played, for "Line N of M"
 };
 
 const practiceSessionStatsFamily = atomFamily((_tab: string) =>
     atom<PracticeSessionStats>({
         mode: "anki",
-        remainingPositions: [],
         correct: 0,
         incorrect: 0,
         streak: 0,
