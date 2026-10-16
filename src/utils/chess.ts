@@ -1,3 +1,4 @@
+import { tokenizePgn } from "@/utils/pgn";
 import type { DrawShape } from "@lichess-org/chessground/draw";
 import { type Color, type Move, makeSquare, makeUci, parseUci, type Role } from "chessops";
 import { type Chess, normalizeMove } from "chessops/chess";
@@ -16,7 +17,6 @@ import {
     type TreeNode,
     type TreeState,
 } from "./treeReducer";
-import { unwrap } from "./unwrap";
 
 export interface BestMoves {
     depth: number;
@@ -399,12 +399,13 @@ function innerParsePGN(tokens: Token[], fen: string = INITIAL_FEN, halfMoves = 0
                 root.shapes.push(...shapes);
             }
 
-            if (comment.clock) {
+            if (comment.clock !== undefined) {
                 root.clock = comment.clock;
             }
 
             // Strip [%timestamp N] annotations (chess.com export format) from comment text
-            root.comment = comment.text.replace(/\s?\[%timestamp\s+\d+\]\s?/g, " ").trim();
+            const text = comment.text.replace(/\s?\[%timestamp\s+\d+\]\s?/g, " ").trim();
+            root.comment = [root.comment, text].filter(Boolean).join(" ");
         } else if (token.type === "ParenOpen") {
             const variation = [];
             let subvariations = 0;
@@ -461,7 +462,7 @@ function innerParsePGN(tokens: Token[], fen: string = INITIAL_FEN, halfMoves = 0
 }
 
 export async function parsePGN(pgn: string, initialFen?: string): Promise<TreeState> {
-    const tokens = unwrap(await commands.lexPgn(pgn));
+    const tokens = tokenizePgn(pgn);
 
     const headers = getPgnHeaders(tokens);
     const fen = initialFen?.trim() || headers.fen.trim();
@@ -505,6 +506,8 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
         Start,
         Orientation,
         TimeControl,
+        WhiteTimeControl,
+        BlackTimeControl,
         Variant,
         ...other
     } = Object.fromEntries(headersN);
@@ -533,6 +536,8 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
         start: JSON.parse(Start ?? "[]"),
         orientation: isValidOrientation(Orientation) ? Orientation : "white",
         time_control: TimeControl,
+        white_time_control: WhiteTimeControl,
+        black_time_control: BlackTimeControl,
         variant: Variant,
         other: other,
     };

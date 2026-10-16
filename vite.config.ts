@@ -46,6 +46,11 @@ export default defineConfig({
         },
     },
     test: {
+        include: ["src/**/*.test.{ts,tsx}"],
+        execArgv:
+            Number(process.versions.node.split(".")[0]) >= 22
+                ? ["--no-experimental-webstorage"]
+                : [],
         environment: "jsdom",
     },
     define: {

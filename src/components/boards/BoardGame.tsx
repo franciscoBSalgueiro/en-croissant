@@ -1,3 +1,6 @@
+import { notifications } from "@mantine/notifications";
+import { listen } from "@tauri-apps/api/event";
+import { getPGN } from "@/utils/chess";
 import {
   ActionIcon,
   Box,
@@ -138,6 +141,19 @@ function BoardGame() {
   const [whiteTime, setWhiteTime] = useState<number | null>(null);
   const [blackTime, setBlackTime] = useState<number | null>(null);
   const [gameId, setGameId] = useAtom(currentGameIdAtom);
+  useEffect(() => {
+    const unlisten = listen<string>("game-save-error", ({ payload }) =>
+      notifications.show({
+        color: "red",
+        title: "Could not save game",
+        message: payload,
+        autoClose: false,
+      }),
+    );
+    return () => {
+      void unlisten.then((stop) => stop());
+    };
+  }, []);
 
   const [logsOpened, toggleLogsOpened] = useToggle();
   const [logsColor, setLogsColor] = useState<"white" | "black">("white");
@@ -311,6 +327,24 @@ function BoardGame() {
         : null,
       initialFen: root.fen === INITIAL_FEN ? null : root.fen,
       initialMoves,
+      sourcePgn: getPGN(root, {
+        headers: {
+          ...headers,
+          white_elo:
+            playerSettings.white.type === "engine"
+              ? playerSettings.white.engine?.elo
+              : headers.white_elo,
+          black_elo:
+            playerSettings.black.type === "engine"
+              ? playerSettings.black.engine?.elo
+              : headers.black_elo,
+          orientation: boardOrientation,
+        },
+        glyphs: true,
+        comments: true,
+        variations: true,
+        extraMarkups: true,
+      }),
       openingBook:
         openingBookEnabled && openingBookPath
           ? { path: openingBookPath, maxPly: Math.max(1, openingBookMaxPly) }
@@ -414,6 +448,7 @@ function BoardGame() {
       if (!gameId || gameState !== "playing") return;
       try {
         const result = await commands.makeGameMove(gameId, uci);
+        unwrap(result);
         if (!isPlayerVsEngine && autoFlipBoard) {
           toggleOrientation();
         }
@@ -461,6 +496,7 @@ function BoardGame() {
   const onTakeBack = useCallback(async () => {
     if (!gameId || gameState !== "playing") return;
     const result = await commands.takeBackGameMove(gameId);
+    unwrap(result);
   }, [gameId, gameState]);
 
   useEffect(() => {
@@ -561,7 +597,7 @@ function BoardGame() {
 
   async function handleAbort() {
     if (!gameId) return;
-    await commands.abortGame(gameId);
+    unwrap(await commands.abortGame(gameId));
     setGameState("gameOver");
     setResult("*");
   }
@@ -569,7 +605,7 @@ function BoardGame() {
   async function handleResign() {
     if (!gameId) return;
     const losingColor = getResignationLosingColor();
-    await commands.resignGame(gameId, losingColor);
+    unwrap(await commands.resignGame(gameId, losingColor));
   }
 
   async function handleNewGame() {
@@ -738,6 +774,9 @@ function BoardGame() {
                   </ScrollArea>
 
                   <Divider pb="sm" />
+                  <Text size="xs" c="dimmed">
+                    Games are saved automatically after every move.
+                  </Text>
                   <Button onClick={startGame} fullWidth variant="light" disabled={error !== null}>
                     {t("Board.Opponent.StartGame")}
                   </Button>

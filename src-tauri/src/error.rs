@@ -72,6 +72,9 @@ pub enum Error {
     #[error("Game not found: {0}")]
     GameNotFound(String),
 
+    #[error("Could not save the game: {0}")]
+    GameSave(String),
+
     #[error("Game not in progress")]
     GameNotInProgress,
 

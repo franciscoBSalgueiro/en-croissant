@@ -382,6 +382,30 @@ async deletePuzzleDatabase(file: string) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async listSavedGames() : Promise<Result<SavedGameSummary[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_saved_games") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async loadSavedGame(id: string) : Promise<Result<SavedGame, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("load_saved_game", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async resumeSavedGame(id: string, gameId: string) : Promise<Result<GameState, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("resume_saved_game", { id, gameId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async startGame(gameId: string, config: GameConfig) : Promise<Result<GameState, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("start_game", { gameId, config }) };
@@ -500,7 +524,7 @@ export type EngineOption = { name: string; value: string }
 export type EngineOptions = { fen: string; moves: string[]; extraOptions: EngineOption[] }
 export type Event = { id: number; name: string | null }
 export type FileMetadata = { last_modified: number }
-export type GameConfig = { white: PlayerConfig; black: PlayerConfig; whiteTimeControl: TimeControl | null; blackTimeControl: TimeControl | null; initialFen: string | null; initialMoves?: string[]; openingBook: OpeningBookConfig | null }
+export type GameConfig = { white: PlayerConfig; black: PlayerConfig; whiteTimeControl: TimeControl | null; blackTimeControl: TimeControl | null; initialFen: string | null; initialMoves?: string[]; openingBook: OpeningBookConfig | null; sourcePgn?: string | null }
 export type GameEndReason = "checkmate" | "timeout" | "resignation" | "abandonment"
 export type GameMove = { uci: string; san: string; fenAfter: string; clock: bigint | null; whiteTime: bigint | null; blackTime: bigint | null }
 export type GameMoveEvent = { gameId: string; moves: GameMove[]; fen: string; whiteTime: bigint | null; blackTime: bigint | null }
@@ -531,6 +555,8 @@ export type Puzzle = { id: number; fen: string; moves: string; rating: number; r
 export type PuzzleDatabaseInfo = { title: string; description: string; puzzleCount: number; storageSize: bigint; path: string }
 export type QueryOptions<SortT> = { skipCount: boolean; page?: number | null; pageSize?: number | null; sort: SortT; direction: SortDirection }
 export type QueryResponse<T> = { data: T; count: number | null }
+export type SavedGame = { version: number; id: string; startedAt: bigint; updatedAt: bigint; config: GameConfig; state: GameState }
+export type SavedGameSummary = { id: string; startedAt: bigint; updatedAt: bigint; white: string; black: string; status: GameStatus; ply: number; activeGameId: string | null }
 export type Score = { value: ScoreValue; 
 /**
  * The probability of each result (win, draw, loss).
