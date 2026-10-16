@@ -556,6 +556,8 @@
     "Settings.Coordinates.Desc": "Zeige Koordinaten auf dem Brett",
     "Settings.Coordinates.Edge": "Seitenränder",
     "Settings.Coordinates.None": "Keine",
+    "Settings.DefaultPanelTab": "",
+    "Settings.DefaultPanelTab.Desc": "",
     "Settings.Directories": "Verzeichnisse",
     "Settings.Directories.Databases": "Datenbanken",
     "Settings.Directories.Databases.Desc": "Hier werden deine Datenbanken gespeichert",

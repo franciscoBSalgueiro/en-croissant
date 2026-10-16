@@ -566,6 +566,8 @@
     "Settings.Coordinates.Desc": "Mostra le coordinate sulla scacchiera",
     "Settings.Coordinates.Edge": "A bordo scacchiera",
     "Settings.Coordinates.None": "Nascondi coordinate",
+    "Settings.DefaultPanelTab": "",
+    "Settings.DefaultPanelTab.Desc": "",
     "Settings.Directories": "Cartelle",
     "Settings.Directories.Databases": "Cartella dei database",
     "Settings.Directories.Databases.Desc": "Qui vengono archiviati i tuoi database",

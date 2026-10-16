@@ -561,6 +561,8 @@
     "Settings.Coordinates.Desc": "보드에 좌표를 표시합니다",
     "Settings.Coordinates.Edge": "가장자리",
     "Settings.Coordinates.None": "없음",
+    "Settings.DefaultPanelTab": "",
+    "Settings.DefaultPanelTab.Desc": "",
     "Settings.Directories": "경로",
     "Settings.Directories.Databases": "데이터베이스 경로",
     "Settings.Directories.Databases.Desc": "데이터베이스가 저장되는 위치입니다",

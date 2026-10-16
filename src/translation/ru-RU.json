@@ -590,6 +590,8 @@
     "Settings.Coordinates.Desc": "Показать координаты на доске",
     "Settings.Coordinates.Edge": "",
     "Settings.Coordinates.None": "",
+    "Settings.DefaultPanelTab": "",
+    "Settings.DefaultPanelTab.Desc": "",
     "Settings.Directories": "Каталоги",
     "Settings.Directories.Databases": "Каталог для баз данных",
     "Settings.Directories.Databases.Desc": "Здесь хранятся базы данных на странице баз данных",
