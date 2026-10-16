@@ -9,7 +9,7 @@ import useSWR from "swr";
 import { useStore } from "zustand";
 import type { GameSort, NormalizedGame } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
-import { query_games } from "@/utils/db";
+import { getDatabases, query_games } from "@/utils/db";
 import { createTab } from "@/utils/tabs";
 import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
 import GameCard from "./GameCard";
@@ -23,7 +23,10 @@ function GameTable() {
   const store = useContext(DatabaseViewStateContext)!;
 
   const file = useStore(store, (s) => s.database?.file)!;
-  const totalCount = useStore(store, (s) => s.database?.game_count);
+  const initialTotalCount = useStore(store, (s) => s.database?.game_count);
+  const { data: databases } = useSWR(file ? "databases" : null, getDatabases);
+  const database = databases?.find((database) => database.file === file);
+  const totalCount = database?.type === "success" ? database.game_count : initialTotalCount;
   const query = useStore(store, (s) => s.games.query);
   const setQuery = useStore(store, (s) => s.setGamesQuery);
   const selectedGame = useStore(store, (s) => s.games.selectedGame);

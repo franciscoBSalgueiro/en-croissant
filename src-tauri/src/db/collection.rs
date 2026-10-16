@@ -1,13 +1,36 @@
 use super::*;
 
-fn ids_clause(ids: &[i32]) -> String {
-    if ids.is_empty() {
-        return "FALSE".into();
+struct SelectedIds<'a> {
+    db: &'a Connection,
+    name: String,
+}
+
+impl<'a> SelectedIds<'a> {
+    fn new(db: &'a Connection, ids: &[i32]) -> Result<Self, Error> {
+        let name = format!("collection_ids_{}", rand::random::<u64>());
+        db.execute_batch(&format!("CREATE TEMP TABLE {name} (id INTEGER)"))?;
+        let selection = Self { db, name };
+        {
+            let mut appender = db.appender_to_catalog_and_db(&selection.name, "temp", "main")?;
+            for id in ids {
+                appender.append_row([id])?;
+            }
+            appender.flush()?;
+        }
+        Ok(selection)
     }
-    format!(
-        "rowid IN ({})",
-        ids.iter().map(i32::to_string).collect::<Vec<_>>().join(",")
-    )
+
+    fn predicate(&self) -> String {
+        format!("rowid IN (SELECT id FROM temp.main.{})", self.name)
+    }
+}
+
+impl Drop for SelectedIds<'_> {
+    fn drop(&mut self) {
+        let _ = self
+            .db
+            .execute_batch(&format!("DROP TABLE temp.main.{}", self.name));
+    }
 }
 
 #[tauri::command]
@@ -54,14 +77,27 @@ pub async fn delete_collection(
 
 fn delete_ids(db: &mut Connection, ids: &[i32]) -> Result<usize, Error> {
     let tx = db.transaction()?;
-    let changed = tx.execute(&format!("DELETE FROM games WHERE {}", ids_clause(ids)), [])?;
+    let selection = SelectedIds::new(&tx, ids)?;
+    let expected: usize = tx.query_row(
+        &format!(
+            "SELECT COUNT(DISTINCT id) FROM temp.main.{}",
+            selection.name
+        ),
+        [],
+        |row| row.get(0),
+    )?;
+    let changed = tx.execute(
+        &format!("DELETE FROM games WHERE {}", selection.predicate()),
+        [],
+    )?;
     // Fail atomically if the confirmed collection changed before execution.
-    if changed != ids.iter().collect::<std::collections::HashSet<_>>().len() {
+    if changed != expected {
         return Err(std::io::Error::other(
             "The collection changed. Refresh and confirm deletion again.",
         )
         .into());
     }
+    drop(selection);
     tx.commit()?;
     Ok(changed)
 }
@@ -97,7 +133,8 @@ pub async fn export_collection(
 }
 
 fn write_pgn(db: &Connection, ids: &[i32], writer: &mut impl Write) -> Result<(), Error> {
-    let mut stmt = db.prepare(&format!("SELECT CAST(rowid AS INTEGER) AS id, *, strftime(utc_timestamp, '%Y.%m.%d') AS date, strftime(utc_timestamp, '%H:%M:%S') AS time FROM games WHERE {} ORDER BY rowid", ids_clause(ids)))?;
+    let selection = SelectedIds::new(db, ids)?;
+    let mut stmt = db.prepare(&format!("SELECT CAST(rowid AS INTEGER) AS id, *, strftime(utc_timestamp, '%Y.%m.%d') AS date, strftime(utc_timestamp, '%H:%M:%S') AS time FROM games WHERE {} ORDER BY rowid", selection.predicate()))?;
     for game in stmt.query_map([], export_game)? {
         writer.write_all(game?.as_bytes())?;
     }
@@ -157,15 +194,12 @@ fn copy_ids(
     ids: &[i32],
     create: bool,
 ) -> Result<usize, Error> {
+    let selection = SelectedIds::new(source, ids)?;
     let mut stmt = source.prepare(&format!(
         "SELECT * FROM games WHERE {} ORDER BY rowid",
-        ids_clause(ids)
+        selection.predicate()
     ))?;
-    let rows = stmt.query_map([], |row| {
-        (0..16)
-            .map(|i| row.get::<_, duckdb::types::Value>(i))
-            .collect::<duckdb::Result<Vec<_>>>()
-    })?;
+    let batches = stmt.stream_arrow([])?;
     let tx = target.transaction()?;
     if create {
         tx.execute_batch(include_str!("init-database.sql"))?;
@@ -173,9 +207,9 @@ fn copy_ids(
     let mut count = 0;
     {
         let mut appender = tx.appender("games")?;
-        for row in rows {
-            appender.append_row(duckdb::appender_params_from_iter(row?))?;
-            count += 1;
+        for batch in batches {
+            count += batch.num_rows();
+            appender.append_record_batch(batch)?;
         }
         appender.flush()?;
     }
