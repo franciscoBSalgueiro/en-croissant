@@ -14,7 +14,7 @@ import {
 import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeFen, parseFen } from "chessops/fen";
 import { makeSan } from "chessops/san";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { memo, useCallback, useContext, useMemo, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
@@ -53,6 +53,7 @@ import { getVariationLine } from "@/utils/chess";
 import { chessopsError, forceEnPassant, positionFromFen } from "@/utils/chessops";
 import { playSound } from "@/utils/sound";
 import { getTabFile, getTabGameNumber } from "@/utils/tabs";
+import { getNodeAtPath } from "@/utils/treeReducer";
 import ShowMaterial from "../common/ShowMaterial";
 import { TreeStateContext } from "../common/TreeStateContext";
 import FideInfo from "../databases/FideInfo";
@@ -176,7 +177,7 @@ function Board({
     }),
   );
 
-  const setPracticeState = useSetAtom(practiceStateAtom);
+  const [practiceState, setPracticeState] = useAtom(practiceStateAtom);
   const [sessionStats, setSessionStats] = useAtom(practiceSessionStatsAtom);
   const cardStartTime = useAtomValue(practiceCardStartTimeAtom);
 
@@ -193,12 +194,15 @@ function Board({
       const timeTaken = Date.now() - cardStartTime;
       const answers = getAnswers(root, position);
       const answer = answers.find((a) => a.san === san);
+      // A wrong move was already made at this position: it's counted (and rated) only once
+      const afterMistake =
+        practiceState.phase === "incorrect" && practiceState.currentFen === c.fen;
 
       if (!answer) {
         const correctMoves = new Intl.ListFormat(i18n.resolvedLanguage ?? "en-US", {
           type: "disjunction",
         }).format(answers.map((a) => a.san));
-        if (sessionStats.mode !== "full") {
+        if (sessionStats.mode !== "full" && !afterMistake) {
           updateCardPerformance(setDeck, i, c.card, 1);
         }
         setPracticeState({
@@ -209,11 +213,13 @@ function Board({
           positionIndex: i,
           timeTaken,
         });
-        setSessionStats((prev) => ({
-          ...prev,
-          incorrect: prev.incorrect + 1,
-          streak: 0,
-        }));
+        if (!afterMistake) {
+          setSessionStats((prev) => ({
+            ...prev,
+            incorrect: prev.incorrect + 1,
+            streak: 0,
+          }));
+        }
         notifications.show({
           title: t("Common.Incorrect"),
           message: t("Board.Practice.CorrectMoveWas", { move: correctMoves }),
@@ -239,6 +245,7 @@ function Board({
           answer: c.answer,
           positionIndex: i,
           timeTaken,
+          afterMistake,
         });
       }
     } else {
@@ -326,6 +333,25 @@ function Board({
           });
         }
       }
+    }
+  }
+
+  // After a wrong move in practice, show every accepted move
+  if (
+    practicing &&
+    practiceState.phase === "incorrect" &&
+    practiceState.currentFen === currentNode.fen
+  ) {
+    for (const answer of getAnswers(root, position)) {
+      const m = getNodeAtPath(root, answer.path).move as NormalMove;
+      shapes.push({
+        orig: makeSquare(m.from)!,
+        dest: makeSquare(m.to)!,
+        brush: arrowColors[0].strong,
+        modifiers: {
+          lineWidth: LARGE_BRUSH,
+        },
+      });
     }
   }
 

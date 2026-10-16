@@ -506,6 +506,7 @@ export type PracticeState = {
     playedMove?: string;
     timeTaken?: number;
     positionIndex?: number;
+    afterMistake?: boolean; // Answered after a wrong move: not counted as correct or rated again
 };
 
 export const practiceStateFamily = atomFamily((_tab: string) =>
