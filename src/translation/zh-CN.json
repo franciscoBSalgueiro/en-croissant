@@ -101,6 +101,7 @@
     "Board.Practice.Accuracy": "准确率",
     "Board.Practice.Again": "再来",
     "Board.Practice.AgainHint": "很快再看一次 (1)",
+    "Board.Practice.AlreadyPracticed": "",
     "Board.Practice.Build": "构建",
     "Board.Practice.Build.BeforeStart": "此局面位于您的起始局面之前",
     "Board.Practice.Build.BiggestGap": "前往最大的缺口",

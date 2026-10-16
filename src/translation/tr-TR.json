@@ -101,6 +101,7 @@
     "Board.Practice.Accuracy": "Doğruluk",
     "Board.Practice.Again": "Tekrar",
     "Board.Practice.AgainHint": "Yakında tekrar göster (1)",
+    "Board.Practice.AlreadyPracticed": "",
     "Board.Practice.Build": "Oluştur",
     "Board.Practice.Build.BeforeStart": "Bu pozisyon Başlangıç pozisyonunuzdan önce",
     "Board.Practice.Build.BiggestGap": "En büyük eksiğinize git",
