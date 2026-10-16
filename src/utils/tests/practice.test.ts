@@ -1,16 +1,25 @@
 import { parseSan } from "chessops/san";
 import { makeFen } from "chessops/fen";
+import { createEmptyCard } from "ts-fsrs";
 import { expect, test } from "vitest";
 import {
     buildFromTree,
+    cardForMove,
     countMoves,
     getAnswers,
     getLineProgress,
+    getStats,
     isAnswerDone,
     moveKey,
+    type Position,
     type PracticeStep,
     planNextQuestion,
+    positionKey,
+    positionsWithCards,
+    syncDeck,
+    updateCardPerformance,
 } from "@/components/files/opening";
+import type { PracticeData } from "@/state/atoms";
 import { positionFromFen } from "../chessops";
 import { createNode, defaultTree, getNodeAtPath, type TreeNode } from "../treeReducer";
 
@@ -100,7 +109,7 @@ function blackRepertoire() {
 
 // The positions with a practice card, as in the app
 function askableIn(root: TreeNode, color: "white" | "black" = "black") {
-    return new Set(buildFromTree(root, color, []).map((p) => p.fen));
+    return positionsWithCards(buildFromTree(root, color, []));
 }
 
 function pathTo(root: TreeNode, line: string) {
@@ -124,7 +133,7 @@ function practicedAlong(root: TreeNode, askable: Set<string>, ...lines: string[]
     for (const line of lines) {
         let node = root;
         for (const san of line.split(" ")) {
-            if (askable.has(node.fen)) practiced.add(moveKey(node.fen, san));
+            if (askable.has(positionKey(node.fen))) practiced.add(moveKey(node.fen, san));
             node = node.children.find((child) => child.san === san)!;
         }
     }
@@ -222,7 +231,9 @@ test("a full session asks every one of your moves and never plays one for you", 
     let questions = 0;
     while (plan.ask && questions < 100) {
         for (const step of plan.steps.filter((step) => !step.jump)) {
-            expect(askable.has(getNodeAtPath(root, step.path.slice(0, -1)).fen)).toBe(false);
+            expect(askable.has(positionKey(getNodeAtPath(root, step.path.slice(0, -1)).fen))).toBe(
+                false,
+            );
         }
         // Answer with a move that still adds something, as the user would
         const ask = plan.ask;
@@ -365,4 +376,137 @@ test("line counter: splits before the Start position don't count", () => {
     expect(getLineProgress(root, [0, 0], [[0, 0]], "white", [])).toEqual({ current: 1, total: 2 });
     // With the Start position set after 1.e4 e5, the 1.e4 / 1.d4 choice is before it
     expect(getLineProgress(root, [0, 0], [[0, 0]], "white", [0, 0])).toBeNull();
+});
+
+test("every one of your moves gets its own spaced-repetition card", () => {
+    const root = blackRepertoire();
+    const cards = buildFromTree(root, "black", []);
+    const afterE4 = getNodeAtPath(root, pathTo(root, "e4")).fen;
+    const afterNg5 = getNodeAtPath(root, pathTo(root, "e4 e5 Nf3 Nc6 Bc4 Nf6 Ng5")).fen;
+
+    // Both replies to 1.e4, and 4...Rb8 next to 4...d5, not just the first move
+    expect(cards.filter((c) => c.fen === afterE4).map((c) => c.answer)).toEqual(["c5", "e5"]);
+    expect(cards.filter((c) => c.fen === afterNg5).map((c) => c.answer)).toEqual(["d5", "Rb8"]);
+    // The counts are per move: 13 moves across 9 positions
+    expect(getStats(cards).unseen).toBe(13);
+    expect(new Set(cards.map((c) => c.fen)).size).toBe(9);
+});
+
+test("syncing a deck keeps each move's progress and gives your other moves new cards", () => {
+    const root = blackRepertoire();
+    const afterE4 = getNodeAtPath(root, pathTo(root, "e4")).fen;
+    // A deck from before, with one card per position: 1...c5 has been reviewed
+    const reviewed = { ...createEmptyCard(new Date(Date.now() + 86_400_000)), reps: 3 };
+    const existing: Position[] = [
+        { fen: afterE4, answer: "c5", card: reviewed },
+        { fen: afterE4, answer: "d5", card: createEmptyCard() }, // no longer in the repertoire
+    ];
+
+    const { positions, added, removed } = syncDeck(existing, root, "black", []);
+
+    expect(positions.find((c) => c.fen === afterE4 && c.answer === "c5")?.card).toBe(reviewed);
+    expect(positions.find((c) => c.fen === afterE4 && c.answer === "e5")?.card.reps).toBe(0);
+    expect(positions).toHaveLength(13);
+    expect(added).toBe(12);
+    expect(removed).toBe(1);
+});
+
+test("a correct move counts for its own card when that card is due, otherwise it's already practiced", () => {
+    const root = blackRepertoire();
+    const afterE4 = getNodeAtPath(root, pathTo(root, "e4")).fen;
+    const due = createEmptyCard(new Date(Date.now() - 60_000));
+    const notDue = { ...createEmptyCard(new Date(Date.now() + 86_400_000)), reps: 2 };
+    const cards = (e5: typeof due): Position[] => [
+        { fen: afterE4, answer: "c5", card: due },
+        { fen: afterE4, answer: "e5", card: e5 },
+    ];
+
+    // Asked for 1...c5
+    expect(cardForMove(cards(due), 0, "c5")).toBe(0);
+    // 1...e5 is also correct: its own card is rated if it's due...
+    expect(cardForMove(cards(due), 0, "e5")).toBe(1);
+    // ...and if it isn't, it was already practiced
+    expect(cardForMove(cards(notDue), 0, "e5")).toBeNull();
+});
+
+test("a correct move counts for its card at a transposition of the same position", () => {
+    const root = defaultTree().root;
+    const viaD4 = addLine(root, ["d4", "Nf6", "c4", "e6", "Nc3"]);
+    addMove(viaD4, "Bb4");
+    const viaC4 = addLine(root, ["c4", "Nf6", "Nc3", "e6", "d4"]);
+    addMove(viaC4, "d5");
+    const due = createEmptyCard(new Date(Date.now() - 60_000));
+    const cards: Position[] = [
+        { fen: viaC4.fen, answer: "d5", card: due },
+        { fen: viaD4.fen, answer: "Bb4", card: due },
+    ];
+
+    // Asked for 3...d5 after 3.d4; 3...Bb4 (from 1.d4's move order) is rated on its own card
+    expect(cardForMove(cards, 0, "Bb4")).toBe(1);
+});
+
+test("rating a card adds its log as a new list, with the move, so the logs view updates", () => {
+    const data: PracticeData = {
+        positions: buildFromTree(blackRepertoire(), "black", []),
+        logs: [],
+    };
+    let next = data;
+    updateCardPerformance(
+        (update) => {
+            next = typeof update === "function" ? update(data) : update;
+        },
+        1,
+        data.positions[1].card,
+        3,
+    );
+
+    // A new list: the memoized logs view only re-renders when the list itself changes
+    expect(next.logs).not.toBe(data.logs);
+    expect(next.logs).toEqual([
+        expect.objectContaining({
+            rating: 3,
+            fen: data.positions[1].fen,
+            answer: data.positions[1].answer,
+        }),
+    ]);
+    // The rated card itself is updated in place: Start Practice picks the next card right away
+    expect(data.positions[1].card.reps).toBe(1);
+});
+
+test("a move reachable by two move orders is one card, the same as in full practice", () => {
+    const root = defaultTree().root;
+    // 1.d4 Nf6 2.c4 e6 3.Nc3 and 1.c4 Nf6 2.Nc3 e6 3.d4 reach the same position (only the
+    // halfmove clock differs); 3...Bb4 is in the repertoire both ways
+    addLine(root, ["d4", "Nf6", "c4", "e6", "Nc3", "Bb4"]);
+    const viaC4 = addLine(root, ["c4", "Nf6", "Nc3", "e6", "d4"]);
+    addMove(viaC4, "d5");
+    addMove(viaC4, "Bb4");
+    const cards = buildFromTree(root, "black", []);
+
+    expect(cards.filter((c) => c.answer === "Bb4")).toHaveLength(1);
+    // Start Practice and Practice Full Repertoire count the same moves
+    expect(cards).toHaveLength(countMoves(root, positionsWithCards(cards)));
+    expect(cards).toHaveLength(6);
+});
+
+test("syncing an older deck merges its two cards for a transposed move, keeping the more practiced", () => {
+    const root = defaultTree().root;
+    const viaD4 = addLine(root, ["d4", "Nf6", "c4", "e6", "Nc3"]);
+    addMove(viaD4, "Bb4");
+    const viaC4 = addLine(root, ["c4", "Nf6", "Nc3", "e6", "d4"]);
+    addMove(viaC4, "Bb4");
+    const practiced = { ...createEmptyCard(new Date(Date.now() + 86_400_000)), reps: 4 };
+    // From before cards ignored the move counters: one 3...Bb4 card for each move order
+    // (the practiced one first, so keeping simply the last one would lose its progress)
+    const existing: Position[] = [
+        { fen: viaC4.fen, answer: "Bb4", card: practiced },
+        { fen: viaD4.fen, answer: "Bb4", card: createEmptyCard() },
+    ];
+
+    const { positions, removed } = syncDeck(existing, root, "black", []);
+    const bb4 = positions.filter((c) => c.answer === "Bb4");
+
+    expect(bb4).toHaveLength(1);
+    expect(bb4[0].card).toBe(practiced);
+    expect(removed).toBe(1);
 });

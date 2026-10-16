@@ -51,6 +51,7 @@ import {
   hasMovesLeft,
   moveKey,
   planNextQuestion,
+  positionsWithCards,
   syncDeck,
   updateCardPerformance,
 } from "@/components/files/opening";
@@ -142,7 +143,7 @@ function PracticePanel() {
   const practiceAutoDifficulty = useAtomValue(practiceAutoDifficultyAtom);
 
   // The positions where it's the user's move: the ones with a practice card
-  const askable = useMemo(() => new Set(deck.positions.map((p) => p.fen)), [deck.positions]);
+  const askable = useMemo(() => positionsWithCards(deck.positions), [deck.positions]);
   const movesToPractice = useMemo(() => countMoves(root, askable), [root, askable]);
 
   const newPractice = useCallback(() => {
@@ -165,7 +166,11 @@ function PracticePanel() {
     setShowComments(false);
     setEvalOpen(false);
     setCardStartTime(Date.now());
-    setPracticeState({ phase: "waiting", currentFen: c.fen });
+    setPracticeState({
+      phase: "waiting",
+      currentFen: c.fen,
+      positionIndex: deck.positions.indexOf(c),
+    });
   }, [
     deck.positions,
     root,
@@ -922,7 +927,7 @@ function PositionsModal({
           const position = findFen(c.fen, root);
           const node = getNodeAtPath(root, position);
           return (
-            <Card key={c.fen}>
+            <Card key={`${c.fen} ${c.answer}`}>
               <Text>
                 {Math.floor(node.halfMoves / 2) + 1}
                 {node.halfMoves % 2 === 0 ? ". " : "... "}
@@ -999,7 +1004,7 @@ function LogsModal({
               <Text>
                 {Math.floor(node.halfMoves / 2) + 1}
                 {node.halfMoves % 2 === 0 ? ". " : "... "}
-                {node.san}
+                {log.answer ?? node.san}
               </Text>
 
               <Divider my="xs" />

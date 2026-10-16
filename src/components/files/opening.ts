@@ -25,23 +25,27 @@ export function buildFromTree(tree: TreeNode, color: "white" | "black", start: n
     const cards: Position[] = [];
     const iterator = treeIterator(tree);
     for (const item of iterator) {
-        if (
-            item.node.children.length === 0 ||
-            isPrefix(item.position, start) ||
-            !item.node.children[0].san ||
-            cards.find((c) => c.fen === item.node.fen)
-        ) {
+        if (item.node.children.length === 0 || isPrefix(item.position, start)) {
             continue;
         }
         if (
             (color === "white" && item.node.halfMoves % 2 === 0) ||
             (color === "black" && item.node.halfMoves % 2 === 1)
         ) {
-            cards.push({
-                fen: item.node.fen,
-                answer: item.node.children[0].san,
-                card: createEmptyCard(),
-            });
+            // One card per repertoire move, so each of the user's moves here is practiced,
+            // however the position is reached
+            for (const child of item.node.children) {
+                if (
+                    child.san &&
+                    !cards.find((c) => samePosition(c.fen, item.node.fen) && c.answer === child.san)
+                ) {
+                    cards.push({
+                        fen: item.node.fen,
+                        answer: child.san,
+                        card: createEmptyCard(),
+                    });
+                }
+            }
         }
     }
     return cards;
@@ -49,12 +53,17 @@ export function buildFromTree(tree: TreeNode, color: "white" | "black", start: n
 
 // The same position reached by different move orders can have a different halfmove
 // clock and move number, so only the first four FEN fields identify the position.
-function positionKey(fen: string) {
+export function positionKey(fen: string) {
     return fen.split(" ").slice(0, 4).join(" ");
 }
 
-function samePosition(a: string, b: string) {
+export function samePosition(a: string, b: string) {
     return positionKey(a) === positionKey(b);
+}
+
+// The positions where it's the user's move: the ones with a practice card
+export function positionsWithCards(positions: Position[]) {
+    return new Set(positions.map((position) => positionKey(position.fen)));
 }
 
 // Every repertoire move from the position at `path` is a correct answer, including moves
@@ -86,11 +95,11 @@ export function moveKey(fen: string, san: string) {
 }
 
 // Whether any of the user's moves at or below `node` hasn't been practiced yet. The user's
-// positions are the ones with a practice card (`askable` holds their FENs).
+// positions are the ones with a practice card (`askable`, from `positionsWithCards`).
 export function hasMovesLeft(node: TreeNode, practiced: Set<string>, askable: Set<string>) {
     for (const { node: n } of treeIterator(node)) {
         if (
-            askable.has(n.fen) &&
+            askable.has(positionKey(n.fen)) &&
             n.children.some((child) => child.san && !practiced.has(moveKey(n.fen, child.san)))
         ) {
             return true;
@@ -118,7 +127,7 @@ export function isAnswerDone(
 export function countMoves(tree: TreeNode, askable: Set<string>) {
     const moves = new Set<string>();
     for (const { node } of treeIterator(tree)) {
-        if (askable.has(node.fen)) {
+        if (askable.has(positionKey(node.fen))) {
             for (const child of node.children) {
                 if (child.san) moves.add(moveKey(node.fen, child.san));
             }
@@ -148,7 +157,7 @@ export function planNextQuestion(
     let node = getNodeAtPath(tree, path);
     let canShowReply = showLastReply;
     for (;;) {
-        while (!(askable.has(node.fen) && movesLeft(node))) {
+        while (!(askable.has(positionKey(node.fen)) && movesLeft(node))) {
             const next = node.children.findIndex(movesLeft);
             if (next === -1) {
                 break;
@@ -158,7 +167,7 @@ export function planNextQuestion(
             steps.push({ path, jump: false });
             canShowReply = false;
         }
-        if (askable.has(node.fen) && movesLeft(node)) {
+        if (askable.has(positionKey(node.fen)) && movesLeft(node)) {
             return { steps, ask: path };
         }
         if (canShowReply && node.children.length > 0) {
@@ -286,6 +295,23 @@ export function getCardForReview(
     return filtered.length > 0 ? filtered[0] : null;
 }
 
+// Start Practice asks one card: a position and one of the user's moves there. Any of their
+// moves is correct and counts for its own card if that card is due. Returns the card to rate
+// for `san` (the asked card if it's that move), or null when that move's card isn't due yet.
+export function cardForMove(positions: Position[], asked: number, san: string): number | null {
+    if (positions[asked].answer === san) {
+        return asked;
+    }
+    const now = new Date();
+    const cards = positions.flatMap((p, i) =>
+        samePosition(p.fen, positions[asked].fen) && p.answer === san ? [i] : [],
+    );
+    if (cards.length === 0) {
+        return asked;
+    }
+    return cards.find((i) => new Date(positions[i].card.due) <= now) ?? null;
+}
+
 export function updateCardPerformance(
     setPositions: React.Dispatch<SetStateAction<PracticeData>>,
     i: number,
@@ -298,10 +324,13 @@ export function updateCardPerformance(
 
     setPositions((data) => {
         data.positions[i].card = newCard;
-        data.logs.push({ ...log, fen: data.positions[i].fen });
         return {
             positions: data.positions,
-            logs: data.logs,
+            // A new list, so the (memoized) logs view sees the new entry
+            logs: [
+                ...data.logs,
+                { ...log, fen: data.positions[i].fen, answer: data.positions[i].answer },
+            ],
         };
     });
 }
@@ -314,25 +343,32 @@ export function syncDeck(
 ): { positions: Position[]; added: number; removed: number } {
     const freshPositions = buildFromTree(tree, color, start);
 
-    const existingByFen = new Map<string, Position>();
+    // A card is one move at one position (however it's reached); it keeps its progress as
+    // long as that move exists
+    const cardKey = (pos: Position) => `${positionKey(pos.fen)} ${pos.answer}`;
+    const existingByMove = new Map<string, Position>();
     for (const pos of existing) {
-        existingByFen.set(pos.fen, pos);
+        const other = existingByMove.get(cardKey(pos));
+        // Older decks can have two cards for one move at a transposition: keep the more practiced
+        if (!other || pos.card.reps > other.card.reps) {
+            existingByMove.set(cardKey(pos), pos);
+        }
     }
 
     let added = 0;
     const merged: Position[] = [];
     for (const pos of freshPositions) {
-        const prev = existingByFen.get(pos.fen);
+        const prev = existingByMove.get(cardKey(pos));
         if (prev) {
-            merged.push({ ...prev, answer: pos.answer });
+            merged.push({ ...prev, fen: pos.fen });
         } else {
             merged.push(pos);
             added++;
         }
     }
 
-    const freshFens = new Set(freshPositions.map((p) => p.fen));
-    const removed = existing.filter((p) => !freshFens.has(p.fen)).length;
+    // Cards whose move is gone, or that were merged into another card
+    const removed = existing.length - (merged.length - added);
 
     return { positions: merged, added, removed };
 }

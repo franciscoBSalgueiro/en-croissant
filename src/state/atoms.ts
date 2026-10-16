@@ -476,7 +476,7 @@ const practiceDataSchema = z.object({
 
 export type PracticeData = {
     positions: Position[];
-    logs: (ReviewLog & { fen: string })[];
+    logs: (ReviewLog & { fen: string; answer?: string })[]; // `answer`: the move (older logs lack it)
 };
 
 export const deckAtomFamily = atomFamily(
