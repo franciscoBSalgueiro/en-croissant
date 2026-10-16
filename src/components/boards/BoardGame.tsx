@@ -168,14 +168,7 @@ function BoardGame() {
     (players.white.type === "human" && players.black.type === "engine") ||
     (players.black.type === "human" && players.white.type === "engine");
 
-  const orientation = headers.orientation || "white";
-  const toggleOrientation = () => {
-    setHeaders({
-      ...headers,
-      fen: root.fen,
-      orientation: orientation === "black" ? "white" : "black",
-    });
-  };
+  const isHumanVsHuman = players.white.type === "human" && players.black.type === "human";
 
   const fetchEngineLogs = useCallback(async () => {
     if (!gameId || !hasEngine) return;
@@ -262,6 +255,15 @@ function BoardGame() {
     }
     return positionFromFen(node.fen);
   }, [root]);
+
+  useEffect(() => {
+    if (gameState !== "playing" || !isHumanVsHuman || !autoFlipBoard || !pos) return;
+
+    const { headers, setHeaders } = store.getState();
+    if (headers.orientation !== pos.turn) {
+      setHeaders({ ...headers, orientation: pos.turn });
+    }
+  }, [gameState, isHumanVsHuman, autoFlipBoard, pos, headers.orientation, store]);
 
   function toPlayerConfig(settings: OpponentSettings): PlayerConfig {
     if (settings.type === "human") {
@@ -447,16 +449,12 @@ function BoardGame() {
     async (uci: string) => {
       if (!gameId || gameState !== "playing") return;
       try {
-        const result = await commands.makeGameMove(gameId, uci);
-        unwrap(result);
-        if (!isPlayerVsEngine && autoFlipBoard) {
-          toggleOrientation();
-        }
+        unwrap(await commands.makeGameMove(gameId, uci));
       } catch (err) {
         console.error("Failed to make move:", err);
       }
     },
-    [gameId, gameState, toggleOrientation],
+    [gameId, gameState],
   );
 
   const pendingMovesRef = useRef<{ uci: string; clock: number | null }[] | null>(null);
@@ -495,8 +493,7 @@ function BoardGame() {
 
   const onTakeBack = useCallback(async () => {
     if (!gameId || gameState !== "playing") return;
-    const result = await commands.takeBackGameMove(gameId);
-    unwrap(result);
+    unwrap(await commands.takeBackGameMove(gameId, null));
   }, [gameId, gameState]);
 
   useEffect(() => {
