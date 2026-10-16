@@ -57,7 +57,14 @@ import { getNodeAtPath } from "@/utils/treeReducer";
 import ShowMaterial from "../common/ShowMaterial";
 import { TreeStateContext } from "../common/TreeStateContext";
 import FideInfo from "../databases/FideInfo";
-import { getAnswers, isAnswerDone, updateCardPerformance } from "../files/opening";
+import {
+  cardForMove,
+  getAnswers,
+  isAnswerDone,
+  positionsWithCards,
+  samePosition,
+  updateCardPerformance,
+} from "../files/opening";
 import { arrowColors } from "../panels/analysis/BestMoves";
 import AnnotationHint from "./AnnotationHint";
 import { BoardBar } from "./BoardBar";
@@ -180,25 +187,33 @@ function Board({
   const [practiceState, setPracticeState] = useAtom(practiceStateAtom);
   const [sessionStats, setSessionStats] = useAtom(practiceSessionStatsAtom);
   // The positions where it's the user's move: the ones with a practice card
-  const askable = useMemo(() => new Set(deck.positions.map((p) => p.fen)), [deck.positions]);
+  const askable = useMemo(() => positionsWithCards(deck.positions), [deck.positions]);
   const cardStartTime = useAtomValue(practiceCardStartTimeAtom);
 
   async function makeMove(move: NormalMove) {
     if (!pos) return;
     const san = makeSan(pos, move);
     if (practicing) {
-      const c = deck.positions.find((c) => c.fen === currentNode.fen);
+      // In Start Practice, the card that was asked (a position has a card per move)
+      const asked = practiceState.positionIndex;
+      const i =
+        sessionStats.mode !== "full" &&
+        asked !== undefined &&
+        deck.positions[asked] &&
+        samePosition(deck.positions[asked].fen, currentNode.fen)
+          ? asked
+          : deck.positions.findIndex((c) => samePosition(c.fen, currentNode.fen));
+      const c = deck.positions[i];
       if (!c) {
         return;
       }
 
-      const i = deck.positions.indexOf(c);
       const timeTaken = Date.now() - cardStartTime;
       const answers = getAnswers(root, position);
       const answer = answers.find((a) => a.san === san);
       // A wrong move was already made at this position: it's counted (and rated) only once
       const afterMistake =
-        practiceState.phase === "incorrect" && practiceState.currentFen === c.fen;
+        practiceState.phase === "incorrect" && practiceState.currentFen === currentNode.fen;
 
       if (!answer) {
         const correctMoves = new Intl.ListFormat(i18n.resolvedLanguage ?? "en-US", {
@@ -209,7 +224,7 @@ function Board({
         }
         setPracticeState({
           phase: "incorrect",
-          currentFen: c.fen,
+          currentFen: currentNode.fen,
           answer: correctMoves,
           playedMove: san,
           positionIndex: i,
@@ -230,9 +245,19 @@ function Board({
         await new Promise((resolve) => setTimeout(resolve, 500));
         goToNext();
       } else {
+        // Start Practice: the card this move counts for, or null if it isn't due yet
+        const rated =
+          sessionStats.mode === "full" || afterMistake ? i : cardForMove(deck.positions, i, san);
         if (
-          sessionStats.mode === "full" &&
-          isAnswerDone(root, currentNode.fen, answer, new Set(sessionStats.practicedMoves), askable)
+          rated === null ||
+          (sessionStats.mode === "full" &&
+            isAnswerDone(
+              root,
+              currentNode.fen,
+              answer,
+              new Set(sessionStats.practicedMoves),
+              askable,
+            ))
         ) {
           notifications.show({ message: t("Board.Practice.AlreadyPracticed") });
           // A new state re-renders the board, which takes back the piece that was moved
@@ -252,9 +277,9 @@ function Board({
         setPendingMove(null);
         setPracticeState({
           phase: "correct",
-          currentFen: c.fen,
+          currentFen: currentNode.fen,
           answer: c.answer,
-          positionIndex: i,
+          positionIndex: rated,
           timeTaken,
           afterMistake,
         });
@@ -384,7 +409,8 @@ function Board({
     !!headers.white_time_control ||
     !!headers.black_time_control;
 
-  const practiceLock = !!practicing && !deck.positions.find((c) => c.fen === currentNode.fen);
+  const practiceLock =
+    !!practicing && !deck.positions.some((c) => samePosition(c.fen, currentNode.fen));
 
   const movableColor: "white" | "black" | "both" | undefined = useMemo(() => {
     return practiceLock
