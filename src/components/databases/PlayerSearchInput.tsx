@@ -9,12 +9,14 @@ export function PlayerSearchInput({
   value,
   file,
   rightSection,
+  withinPortal = true,
   setValue,
 }: {
   label: string;
   value?: string;
   file: string;
   rightSection?: ReactNode;
+  withinPortal?: boolean;
   setValue: (val: string | undefined) => void;
 }) {
   const [suggestions, setSuggestions] = useState<{
@@ -59,10 +61,14 @@ export function PlayerSearchInput({
   }, [file, name]);
   return (
     <Autocomplete
+      comboboxProps={{ withinPortal }}
+      aria-label={label}
       value={name}
       data={data.map((player) => player.name!)}
       onChange={handleChange}
       rightSection={rightSection}
+      rightSectionWidth={rightSection ? 36 : undefined}
+      rightSectionProps={{ style: { zIndex: "auto" } }}
       leftSection={<IconSearch size="1rem" />}
       placeholder={label}
     />

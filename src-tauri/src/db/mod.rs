@@ -1,4 +1,5 @@
 mod annotations;
+pub mod collection;
 mod legacy;
 mod legacy_encoding;
 mod models;

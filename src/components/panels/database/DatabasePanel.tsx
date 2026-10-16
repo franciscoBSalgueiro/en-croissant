@@ -279,6 +279,11 @@ function DatabasePanel() {
           missingExplorerToken={missingExplorerToken}
         >
           <GamesTable
+            query={
+              db === "local"
+                ? { ...localOptions, sides: localOptions.sides ?? "WhiteBlack" }
+                : undefined
+            }
             games={db === "local" ? localGames?.data || [] : openingData?.games || []}
             loading={db === "local" ? gamesLoading : isLoading}
             databasePath={dbType.type === "local" ? dbType.options.path : null}

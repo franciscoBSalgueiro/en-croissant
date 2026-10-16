@@ -47,32 +47,33 @@ export async function query_games(
     db: string,
     query: GameQuery,
 ): Promise<QueryResponse<NormalizedGame[]>> {
+    return unwrap(await commands.getGames(db, normalizeGameQuery(query)));
+}
+
+export function normalizeGameQuery(query: GameQuery): GameQuery {
     const position =
         query.position?.type_ === "exact" || query.position?.type_ === "scoutfish"
             ? query.position
             : null;
-
-    return unwrap(
-        await commands.getGames(db, {
-            player1: query.player1,
-            range1: normalizeRange(query.range1),
-            player2: query.player2,
-            range2: normalizeRange(query.range2),
-            tournament: query.tournament,
-            sides: query.sides,
-            outcome: query.outcome,
-            start_date: query.start_date,
-            end_date: query.end_date,
-            position,
-            options: {
-                skipCount: query.options?.skipCount ?? false,
-                page: query.options?.page,
-                pageSize: query.options?.pageSize,
-                sort: query.options?.sort || "id",
-                direction: query.options?.direction || "desc",
-            },
-        }),
-    );
+    return {
+        player1: query.player1,
+        range1: normalizeRange(query.range1),
+        player2: query.player2,
+        range2: normalizeRange(query.range2),
+        tournament: query.tournament,
+        sides: query.sides,
+        outcome: query.outcome,
+        start_date: query.start_date,
+        end_date: query.end_date,
+        position,
+        options: {
+            skipCount: query.options?.skipCount ?? false,
+            page: query.options?.page,
+            pageSize: query.options?.pageSize,
+            sort: query.options?.sort || "id",
+            direction: query.options?.direction || "desc",
+        },
+    };
 }
 
 export async function query_players(

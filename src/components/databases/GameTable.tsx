@@ -1,4 +1,4 @@
-import { Box, Center, Flex, Text } from "@mantine/core";
+import { Center, Text } from "@mantine/core";
 import { useDebouncedValue, useHotkeys } from "@mantine/hooks";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
@@ -7,7 +7,7 @@ import { useContext } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 import { useStore } from "zustand";
-import type { GameSort, NormalizedGame, Outcome, PositionQueryJs } from "@/bindings";
+import type { GameSort, NormalizedGame } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
 import { query_games } from "@/utils/db";
 import { createTab } from "@/utils/tabs";
@@ -16,12 +16,14 @@ import GameCard from "./GameCard";
 import GridLayout from "./GridLayout";
 import { GameFilters } from "./GameFilters";
 import classes from "./styles.module.css";
+import { useGameCollection } from "./useGameCollection";
 
 function GameTable() {
   const { t } = useTranslation();
   const store = useContext(DatabaseViewStateContext)!;
 
   const file = useStore(store, (s) => s.database?.file)!;
+  const totalCount = useStore(store, (s) => s.database?.game_count);
   const query = useStore(store, (s) => s.games.query);
   const setQuery = useStore(store, (s) => s.setGamesQuery);
   const selectedGame = useStore(store, (s) => s.games.selectedGame);
@@ -39,6 +41,17 @@ function GameTable() {
 
   const games = data?.data ?? [];
   const count = data?.count;
+  const collection = useGameCollection(
+    file,
+    query,
+    games,
+    isLoading || query !== debouncedQuery,
+    () => {
+      setSelectedGame(undefined);
+      setQuery({ ...query, options: { ...query.options!, page: 1 } });
+    },
+    count,
+  );
 
   useHotkeys([
     [
@@ -69,13 +82,21 @@ function GameTable() {
 
   return (
     <GridLayout
+      compactSearch
       search={
-        <Box>
-          <GameFilters query={query} setQuery={setQuery} file={file} />
-        </Box>
+        <GameFilters
+          actions={collection.toolbar}
+          query={query}
+          setQuery={setQuery}
+          file={file}
+          totalCount={totalCount}
+          matchingCount={count ?? undefined}
+          loading={isLoading || query !== debouncedQuery}
+        />
       }
       table={
         <DataTable<NormalizedGame>
+          {...collection.selectionProps}
           withTableBorder
           highlightOnHover
           records={games}

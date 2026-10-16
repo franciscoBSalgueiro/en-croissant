@@ -9,12 +9,14 @@ export function EventSearchInput({
   value,
   file,
   rightSection,
+  withinPortal = true,
   setValue,
 }: {
   label: string;
   value?: string;
   file: string;
   rightSection?: ReactNode;
+  withinPortal?: boolean;
   setValue: (val: string | undefined) => void;
 }) {
   const [data, setData] = useState<Event[]>([]);
@@ -41,6 +43,8 @@ export function EventSearchInput({
   }
   return (
     <Autocomplete
+      comboboxProps={{ withinPortal }}
+      aria-label={label}
       value={value ?? ""}
       data={data.map((event) => event.name!)}
       onChange={handleChange}

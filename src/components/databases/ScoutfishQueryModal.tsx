@@ -93,7 +93,7 @@ export function ScoutfishQueryModal({ opened, onClose, onApply }: ScoutfishQuery
         <Group gap="xs">
           <IconSearch size="1.25rem" />
           <Text fw={600} size="lg">
-            Advanced Position Search
+            Advanced Search
           </Text>
         </Group>
       }

@@ -275,6 +275,38 @@ async exportToPgn(file: string, destFile: string) : Promise<Result<null, string>
     else return { status: "error", error: e  as any };
 }
 },
+async collectionIds(file: string, query: GameQuery) : Promise<Result<number[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("collection_ids", { file, query }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async exportCollection(file: string, ids: number[], destination: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("export_collection", { file, ids, destination }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async copyCollection(file: string, ids: number[], destination: string, create: boolean) : Promise<Result<bigint, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("copy_collection", { file, ids, destination, create }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async deleteCollection(file: string, ids: number[]) : Promise<Result<bigint, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("delete_collection", { file, ids }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async authenticate(username: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("authenticate", { username }) };
