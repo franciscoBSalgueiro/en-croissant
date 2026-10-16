@@ -521,6 +521,7 @@ export type PracticeSessionStats = {
     incorrect: number;
     streak: number;
     bestStreak: number;
+    visitedPaths?: number[][]; // Full practice: positions shown and moves played, for "Line N of M"
 };
 
 const practiceSessionStatsFamily = atomFamily((_tab: string) =>
