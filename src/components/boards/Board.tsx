@@ -60,7 +60,11 @@ import { arrowColors } from "../panels/analysis/BestMoves";
 import AnnotationHint from "./AnnotationHint";
 import { BoardBar } from "./BoardBar";
 import Clock from "./Clock";
-import { agreementArrowShape, getEngineAgreements } from "./engineAgreementArrows";
+import {
+  agreementArrowShape,
+  getEngineAgreements,
+  shortenAgreementArrow,
+} from "./engineAgreementArrows";
 import EvalBar from "./EvalBar";
 import MoveInput from "./MoveInput";
 import PromotionModal from "./PromotionModal";
@@ -293,21 +297,9 @@ function Board({
         }
       }
     }
-    for (const agreement of getEngineAgreements(arrows)) {
-      const index = shapes.findIndex(
-        (shape) => shape.orig === agreement.orig && shape.dest === agreement.dest,
-      );
-      if (index !== -1) {
-        shapes[index] = agreementArrowShape(
-          agreement.orig,
-          agreement.dest,
-          agreement.colors,
-          orientation,
-          agreementBoardId,
-        );
-      }
-    }
   }
+
+  const engineShapeCount = shapes.length;
 
   // Variation arrows: show all children moves when there are alternatives
   if (showVariationArrows && !practicing && currentNode.children.length > 1) {
@@ -332,6 +324,27 @@ function Board({
 
   if (currentNode.shapes.length > 0) {
     shapes = shapes.concat(currentNode.shapes);
+  }
+
+  if (showArrows && evalOpen && arrows.size > 0 && pos) {
+    for (const agreement of getEngineAgreements(arrows)) {
+      const index = shapes.findIndex(
+        (shape) => shape.orig === agreement.orig && shape.dest === agreement.dest,
+      );
+      if (index !== -1 && index < engineShapeCount) {
+        shapes[index] = agreementArrowShape(
+          agreement.orig,
+          agreement.dest,
+          agreement.colors,
+          orientation,
+          agreementBoardId,
+          {
+            lineWidth: shapes[index].modifiers?.lineWidth ?? LARGE_BRUSH,
+            shorten: shortenAgreementArrow(agreement.dest, shapes),
+          },
+        );
+      }
+    }
   }
 
   const hasClock =
