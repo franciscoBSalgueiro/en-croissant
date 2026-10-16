@@ -15,7 +15,7 @@ import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeFen, parseFen } from "chessops/fen";
 import { makeSan } from "chessops/san";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { memo, useCallback, useContext, useMemo, useState } from "react";
+import { memo, useCallback, useContext, useId, useMemo, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
@@ -60,6 +60,7 @@ import { arrowColors } from "../panels/analysis/BestMoves";
 import AnnotationHint from "./AnnotationHint";
 import { BoardBar } from "./BoardBar";
 import Clock from "./Clock";
+import { agreementArrowShape, getEngineAgreements } from "./engineAgreementArrows";
 import EvalBar from "./EvalBar";
 import MoveInput from "./MoveInput";
 import PromotionModal from "./PromotionModal";
@@ -119,6 +120,7 @@ function Board({
       gameMoves: moves,
     }),
   );
+  const agreementBoardId = useId().replace(/[^a-zA-Z0-9_-]/g, "");
 
   const goToNext = useStore(store, (s) => s.goToNext);
   const goToPrevious = useStore(store, (s) => s.goToPrevious);
@@ -289,6 +291,20 @@ function Board({
             }
           }
         }
+      }
+    }
+    for (const agreement of getEngineAgreements(arrows)) {
+      const index = shapes.findIndex(
+        (shape) => shape.orig === agreement.orig && shape.dest === agreement.dest,
+      );
+      if (index !== -1) {
+        shapes[index] = agreementArrowShape(
+          agreement.orig,
+          agreement.dest,
+          agreement.colors,
+          orientation,
+          agreementBoardId,
+        );
       }
     }
   }
