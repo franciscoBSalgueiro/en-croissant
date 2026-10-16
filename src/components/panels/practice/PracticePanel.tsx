@@ -194,15 +194,23 @@ function PracticePanel() {
             deck.positions,
             store.getState().currentNode(),
           );
-          setSessionStats((prev) => ({
-            ...prev,
-            remainingPositions,
-            correct: prev.correct + 1,
-            streak: prev.streak + 1,
-            bestStreak: Math.max(prev.bestStreak, prev.streak + 1),
-          }));
+          setSessionStats((prev) =>
+            practiceState.afterMistake
+              ? { ...prev, remainingPositions }
+              : {
+                  ...prev,
+                  remainingPositions,
+                  correct: prev.correct + 1,
+                  streak: prev.streak + 1,
+                  bestStreak: Math.max(prev.bestStreak, prev.streak + 1),
+                },
+          );
           newPractice({ remainingPositions, mode: "full" });
         }, 300);
+        return () => clearTimeout(timer);
+      } else if (practiceState.afterMistake) {
+        // The card was already rated "Again" when the wrong move was made
+        const timer = setTimeout(() => newPractice(), 300);
         return () => clearTimeout(timer);
       } else if (practiceAutoDifficulty !== "none" && practiceState.positionIndex !== undefined) {
         const positionIndex = practiceState.positionIndex;
@@ -225,6 +233,7 @@ function PracticePanel() {
   }, [
     practiceState.phase,
     practiceState.positionIndex,
+    practiceState.afterMistake,
     sessionStats.mode,
     sessionStats.remainingPositions,
     newPractice,
@@ -236,7 +245,13 @@ function PracticePanel() {
   ]);
 
   function handleQualityRating(grade: 1 | 2 | 3 | 4) {
-    if (practiceState.phase !== "correct" || practiceState.positionIndex === undefined) return;
+    if (
+      practiceState.phase !== "correct" ||
+      practiceState.positionIndex === undefined ||
+      practiceState.afterMistake ||
+      practiceAutoDifficulty !== "none"
+    )
+      return;
 
     const { positionIndex } = practiceState;
     const card = deck.positions[positionIndex].card;
@@ -578,17 +593,20 @@ function PracticePanel() {
                   </Paper>
                 )}
 
-                {practiceState.phase === "correct" && sessionStats.mode !== "full" && (
-                  <QualityRatingPanel
-                    onRate={handleQualityRating}
-                    card={
-                      practiceState.positionIndex !== undefined
-                        ? deck.positions[practiceState.positionIndex].card
-                        : undefined
-                    }
-                    timeTaken={practiceState.timeTaken}
-                  />
-                )}
+                {practiceState.phase === "correct" &&
+                  sessionStats.mode !== "full" &&
+                  !practiceState.afterMistake &&
+                  practiceAutoDifficulty === "none" && (
+                    <QualityRatingPanel
+                      onRate={handleQualityRating}
+                      card={
+                        practiceState.positionIndex !== undefined
+                          ? deck.positions[practiceState.positionIndex].card
+                          : undefined
+                      }
+                      timeTaken={practiceState.timeTaken}
+                    />
+                  )}
 
                 {practiceState.phase === "incorrect" && (
                   <Paper p="sm" withBorder>
