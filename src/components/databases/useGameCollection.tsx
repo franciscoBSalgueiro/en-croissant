@@ -4,6 +4,7 @@ import {
   Group,
   Menu,
   Modal,
+  SegmentedControl,
   Select,
   Stack,
   Text,
@@ -66,12 +67,19 @@ export function useGameCollection(
     action: "copy" | "delete";
   } | null>(null);
   const [destination, setDestination] = useState<string | null>(null);
+  const [copyMode, setCopyMode] = useState("existing");
   const { data: databases } = useSWR(file ? "databases" : null, getDatabases);
   const { mutate } = useSWRConfig();
   const name = (path: string) => {
     const db = databases?.find((db) => db.file === path);
     return (db?.type === "success" && db.title) || path.split(/[\\/]/).pop() || path;
   };
+  const copyDestinations = (databases ?? [])
+    .filter((db) => db.type === "success" && db.file !== (pending?.file ?? file))
+    .map((db) => ({ value: db.file, label: name(db.file) }));
+  const selectedDestination = copyDestinations.some((db) => db.value === destination)
+    ? destination
+    : null;
   const run = async (action: () => Promise<void>) => {
     setBusy(true);
     try {
@@ -281,46 +289,72 @@ export function useGameCollection(
         <Modal
           opened={pending?.action === "copy"}
           onClose={() => !busy && setPending(null)}
-          title={`Copy ${pending?.ids.length ?? 0} games`}
+          title="Copy games"
           closeOnClickOutside={!busy}
           closeOnEscape={!busy}
         >
           <Stack>
-            <Select
-              label="Existing database"
-              placeholder="Choose a database"
-              value={destination}
-              onChange={setDestination}
-              data={(databases || [])
-                .filter((db) => db.type === "success")
-                .map((db) => ({ value: db.file, label: name(db.file) }))}
-            />
-            <Button
-              disabled={!destination}
-              loading={busy}
-              onClick={() =>
-                void run(async () => {
-                  if (destination) await copy(destination, false);
-                })
-              }
-            >
-              Add to database
-            </Button>
-            <Button
-              variant="light"
+            <Text size="sm" c="dimmed">
+              Choose where to copy {(pending?.ids.length ?? 0).toLocaleString()} selected games.
+            </Text>
+            <SegmentedControl
+              aria-label="Copy destination"
+              fullWidth
+              value={copyMode}
+              onChange={setCopyMode}
               disabled={busy}
-              onClick={() =>
-                void run(async () => {
-                  const path = await save({
-                    defaultPath: `${await getDatabasesDir()}/collection.duckdb`,
-                    filters: [{ name: "Database", extensions: ["duckdb"] }],
-                  });
-                  if (path) await copy(path, true);
-                })
-              }
-            >
-              Create new database
-            </Button>
+              data={[
+                { label: "Existing database", value: "existing" },
+                { label: "New database", value: "new" },
+              ]}
+            />
+            {copyMode === "existing" ? (
+              copyDestinations.length > 0 ? (
+                <Select
+                  label="Destination database"
+                  placeholder="Choose a database"
+                  value={selectedDestination}
+                  onChange={setDestination}
+                  data={copyDestinations}
+                  searchable
+                  nothingFoundMessage="No databases found"
+                  disabled={busy}
+                />
+              ) : (
+                <Text size="sm" c="dimmed">
+                  No other databases available. Choose New database to create one.
+                </Text>
+              )
+            ) : (
+              <Text size="sm" c="dimmed">
+                Choose a name and location for the new database in the next step.
+              </Text>
+            )}
+            <Group justify="flex-end" mt="sm">
+              <Button variant="default" disabled={busy} onClick={() => setPending(null)}>
+                Cancel
+              </Button>
+              <Button
+                disabled={copyMode === "existing" && !selectedDestination}
+                loading={busy}
+                leftSection={<IconCopy size={16} />}
+                onClick={() =>
+                  void run(async () => {
+                    if (copyMode === "existing") {
+                      if (selectedDestination) await copy(selectedDestination, false);
+                    } else {
+                      const path = await save({
+                        defaultPath: `${await getDatabasesDir()}/collection.duckdb`,
+                        filters: [{ name: "Database", extensions: ["duckdb"] }],
+                      });
+                      if (path) await copy(path, true);
+                    }
+                  })
+                }
+              >
+                Copy games
+              </Button>
+            </Group>
           </Stack>
         </Modal>
       </>
