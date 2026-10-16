@@ -570,6 +570,8 @@
     "Settings.Coordinates.Desc": "Koordinatları tahtada göster",
     "Settings.Coordinates.Edge": "Kenarda",
     "Settings.Coordinates.None": "Hayır",
+    "Settings.DefaultPanelTab": "",
+    "Settings.DefaultPanelTab.Desc": "",
     "Settings.Directories": "Klasörler",
     "Settings.Directories.Databases": "Veritabanları Klasörü",
     "Settings.Directories.Databases.Desc": "Veritabanları sayfasındaki veritabanları burada saklanır",

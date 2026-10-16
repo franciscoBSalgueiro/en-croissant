@@ -580,6 +580,8 @@
     "Settings.Coordinates.Desc": "Affiche les coordonnées sur l'échiquier",
     "Settings.Coordinates.Edge": "Sur le bord",
     "Settings.Coordinates.None": "Aucune",
+    "Settings.DefaultPanelTab": "",
+    "Settings.DefaultPanelTab.Desc": "",
     "Settings.Directories": "Dossiers",
     "Settings.Directories.Databases": "Dossier des bases de données",
     "Settings.Directories.Databases.Desc": "C'est ici que vos bases de données seront sauvegardées",
