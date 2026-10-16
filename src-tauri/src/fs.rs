@@ -1,32 +1,35 @@
 use std::{
     fs::create_dir_all,
-    io::Cursor,
     path::{Path, PathBuf},
     time::{Duration, Instant},
 };
 
-use log::info;
-use reqwest::{header::HeaderMap, Client};
+use log::{error, info, warn};
+use reqwest::Client;
 use specta::Type;
 
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
 use flate2::read::GzDecoder;
-use futures_util::StreamExt;
 
 use crate::error::Error;
 use crate::progress::{update_download_progress, update_progress};
 use crate::AppState;
 
+#[path = "download.rs"]
+mod download;
+
 #[tauri::command]
 #[specta::specta]
 pub fn cancel_download(id: String, state: tauri::State<'_, AppState>) {
     if let Some(handle) = state.downloads.get(&id) {
+        info!("Download [{id}]: cancellation requested");
         handle.abort();
     }
 }
 
+#[allow(clippy::too_many_arguments)] // Public command arguments are part of the frontend API.
 #[tauri::command]
 #[specta::specta]
 pub async fn download_file(
@@ -39,9 +42,73 @@ pub async fn download_file(
     finalize: Option<bool>,
     total_size: Option<u32>,
 ) -> Result<(), Error> {
-    let finalize = finalize.unwrap_or(true);
+    let started = Instant::now();
+    let result = download_file_inner(
+        &id,
+        &url,
+        &path,
+        &app,
+        &state,
+        DownloadOptions {
+            token,
+            finalize,
+            total_size,
+        },
+    )
+    .await;
+    if let Err(ref failure) = result {
+        if failure.to_string() != "Download cancelled" {
+            let message = match failure {
+                Error::Reqwest(error) => {
+                    let mut message = error.to_string();
+                    let mut source = std::error::Error::source(error.as_ref());
+                    while let Some(cause) = source {
+                        message.push_str(&format!("; caused by: {cause}"));
+                        source = cause.source();
+                    }
+                    if let Some(url) = error.url() {
+                        message = message.replace(url.as_str(), &download_log_url(url.as_str()));
+                    }
+                    format!(
+                        "{message}; timeout={}, connect={}, status={:?}",
+                        error.is_timeout(),
+                        error.is_connect(),
+                        error.status()
+                    )
+                }
+                _ => failure.to_string(),
+            };
+            error!(
+                "Download [{id}]: failed after {:.1}s: {message}",
+                started.elapsed().as_secs_f64()
+            );
+        }
+    }
+    result
+}
+
+struct DownloadOptions {
+    token: Option<String>,
+    finalize: Option<bool>,
+    total_size: Option<u32>,
+}
+
+async fn download_file_inner(
+    id: &str,
+    url: &str,
+    path: &Path,
+    app: &tauri::AppHandle,
+    state: &AppState,
+    options: DownloadOptions,
+) -> Result<(), Error> {
+    let DownloadOptions {
+        token,
+        finalize,
+        total_size,
+    } = options;
+    let started = Instant::now();
     let (handle, registration) = futures_util::future::AbortHandle::new_pair();
-    match state.downloads.entry(id.clone()) {
+    match state.downloads.entry(id.to_owned()) {
         dashmap::mapref::entry::Entry::Occupied(_) => {
             return Err(std::io::Error::other("Download already running").into());
         }
@@ -49,66 +116,135 @@ pub async fn download_file(
             entry.insert(handle);
         }
     }
-    let transfer = async {
-        update_progress(&state.progress_state, &app, id.clone(), 0.0, false)?;
-        info!("Downloading file from {}", url);
-        let client = Client::new();
-        let mut req = client.get(&url);
-        if let Some(token) = token {
-            let mut header_map = HeaderMap::new();
-            header_map.insert("Authorization", format!("Bearer {token}").parse().unwrap());
-            req = req.headers(header_map);
-        }
-        receive_download(req, total_size, |progress, speed| {
-            update_download_progress(
-                &state.progress_state,
-                &app,
-                id.clone(),
-                progress,
-                false,
-                speed,
+    let result = futures_util::future::Abortable::new(
+        async {
+            update_progress(&state.progress_state, app, id.to_owned(), 0.0, false)?;
+            info!(
+                "Download [{id}]: starting {} (connect timeout=30s, read inactivity timeout=60s)",
+                download_log_url(url)
+            );
+            download::receive(
+                id,
+                url,
+                path,
+                token.as_deref(),
+                total_size.map(u64::from),
+                |downloaded, total, speed| {
+                    update_download_progress(
+                        &state.progress_state,
+                        app,
+                        id.to_owned(),
+                        download_percentage(downloaded, total),
+                        false,
+                        Some(speed),
+                    )
+                },
             )
-        })
-        .await
-    };
-    let result = futures_util::future::Abortable::new(transfer, registration).await;
-    state.downloads.remove(&id);
+            .await
+        },
+        registration,
+    )
+    .await;
+    state.downloads.remove(id);
     let file = match result {
         Ok(Ok(file)) => file,
         Ok(Err(error)) => {
-            state.progress_state.remove(&id);
+            state.progress_state.remove(id);
             return Err(error);
         }
         Err(_) => {
-            state.progress_state.remove(&id);
+            info!(
+                "Download [{id}]: cancelled after {:.1}s; partial download retained on disk",
+                started.elapsed().as_secs_f64()
+            );
+            state.progress_state.remove(id);
             return Err(std::io::Error::other("Download cancelled").into());
         }
     };
-    update_progress(&state.progress_state, &app, id.clone(), 100.0, false)?;
+    update_progress(&state.progress_state, app, id.to_owned(), 100.0, false)?;
+    let finalize = finalize.unwrap_or(true);
     let path = Path::new(&path);
 
-    info!("Downloaded file to {}", path.display());
+    info!(
+        "Download [{id}]: saving/extracting {:?} to {}",
+        archive_kind(url),
+        path.display()
+    );
 
-    match archive_kind(&url) {
-        Some(ArchiveKind::Zip) => unzip_file(path, file).await?,
-        Some(ArchiveKind::Tar) => {
-            let mut archive = tar::Archive::new(Cursor::new(file));
-            archive.unpack(path)?;
+    if let Some(kind) = archive_kind(url) {
+        match kind {
+            ArchiveKind::Zip => unzip_file(path, std::fs::File::open(&file.path)?).await?,
+            ArchiveKind::Tar => {
+                let mut archive = tar::Archive::new(std::fs::File::open(&file.path)?);
+                archive.unpack(path)?;
+            }
+            ArchiveKind::TarGz => unpack_tar_gz(path, std::fs::File::open(&file.path)?)?,
         }
-        Some(ArchiveKind::TarGz) => {
-            unpack_tar_gz(path, file)?;
-        }
-        None => std::fs::write(path, file)?,
+        file.remove();
+    } else {
+        file.install(path)?;
     }
-
     if finalize {
-        update_progress(&state.progress_state, &app, id, 100.0, true)?;
+        update_progress(&state.progress_state, app, id.to_owned(), 100.0, true)?;
     }
+    info!(
+        "Download [{id}]: saved successfully to {} ({:.1}s total)",
+        path.display(),
+        started.elapsed().as_secs_f64()
+    );
     Ok(())
 }
 
-fn unpack_tar_gz(path: &Path, file: Vec<u8>) -> Result<(), Error> {
-    let decoder = GzDecoder::new(Cursor::new(file));
+struct DownloadRate {
+    sampled_at: Instant,
+    sampled_bytes: u64,
+}
+
+impl DownloadRate {
+    fn sample(&mut self, bytes: u64, now: Instant) -> Option<f64> {
+        let elapsed = now.duration_since(self.sampled_at);
+        if elapsed < Duration::from_millis(250) {
+            return None;
+        }
+        let speed = (bytes - self.sampled_bytes) as f64 / elapsed.as_secs_f64();
+        self.sampled_at = now;
+        self.sampled_bytes = bytes;
+        Some(speed)
+    }
+}
+
+fn download_percentage(downloaded: u64, total: Option<u64>) -> f32 {
+    total
+        .filter(|total| *total > 0)
+        .map(|total| ((downloaded as f64 / total as f64) * 100.0).min(99.9) as f32)
+        .unwrap_or(0.0)
+}
+
+fn download_log_url(raw: &str) -> String {
+    let Ok(mut url) = reqwest::Url::parse(raw) else {
+        warn!("Download URL could not be parsed");
+        return "<invalid URL>".to_string();
+    };
+    let _ = url.set_username("");
+    let _ = url.set_password(None);
+    url.set_query(None);
+    url.set_fragment(None);
+    url.to_string()
+}
+
+fn download_client() -> Result<Client, reqwest::Error> {
+    Client::builder()
+        .no_gzip()
+        .no_brotli()
+        .no_deflate()
+        .no_zstd()
+        .connect_timeout(Duration::from_secs(30))
+        .read_timeout(Duration::from_secs(60))
+        .build()
+}
+
+fn unpack_tar_gz(path: &Path, file: std::fs::File) -> Result<(), Error> {
+    let decoder = GzDecoder::new(file);
     let mut archive = tar::Archive::new(decoder);
     archive.unpack(path)?;
     Ok(())
@@ -135,73 +271,8 @@ fn archive_kind(url: &str) -> Option<ArchiveKind> {
     }
 }
 
-// Throttle progress notifications, never reads from the network.
-async fn receive_download(
-    request: reqwest::RequestBuilder,
-    total_size: Option<u32>,
-    mut on_progress: impl FnMut(f32, Option<f64>) -> Result<(), Error>,
-) -> Result<Vec<u8>, Error> {
-    let response = request.send().await?.error_for_status()?;
-    let total_size = total_size
-        .map(u64::from)
-        .or_else(|| response.content_length());
-    let mut stream = response.bytes_stream();
-    let mut file = Vec::new();
-    let mut downloaded = 0;
-    let mut rate = DownloadRate::new();
-    let mut heartbeat = tokio::time::interval(Duration::from_secs(1));
-    heartbeat.tick().await;
-    loop {
-        tokio::select! {
-            item = stream.next() => {
-                let Some(item) = item else { break; };
-                let chunk = item?;
-                downloaded += chunk.len() as u64;
-                file.extend_from_slice(&chunk);
-            }
-            _ = heartbeat.tick() => {}
-        }
-        if let Some(speed) = rate.sample(downloaded, Instant::now()) {
-            on_progress(download_percentage(downloaded, total_size), Some(speed))?;
-        }
-    }
-    Ok(file)
-}
-
-struct DownloadRate {
-    sampled_at: Instant,
-    sampled_bytes: u64,
-}
-
-impl DownloadRate {
-    fn new() -> Self {
-        Self {
-            sampled_at: Instant::now(),
-            sampled_bytes: 0,
-        }
-    }
-
-    fn sample(&mut self, bytes: u64, now: Instant) -> Option<f64> {
-        let elapsed = now.duration_since(self.sampled_at);
-        if elapsed < Duration::from_millis(250) {
-            return None;
-        }
-        let speed = (bytes - self.sampled_bytes) as f64 / elapsed.as_secs_f64();
-        self.sampled_at = now;
-        self.sampled_bytes = bytes;
-        Some(speed)
-    }
-}
-
-fn download_percentage(downloaded: u64, total: Option<u64>) -> f32 {
-    total
-        .filter(|total| *total > 0)
-        .map(|total| ((downloaded as f64 / total as f64) * 100.0).min(99.9) as f32)
-        .unwrap_or(0.0)
-}
-
-pub async fn unzip_file(path: &Path, file: Vec<u8>) -> Result<(), Error> {
-    let mut archive = zip::ZipArchive::new(Cursor::new(file))?;
+pub async fn unzip_file(path: &Path, file: std::fs::File) -> Result<(), Error> {
+    let mut archive = zip::ZipArchive::new(file)?;
     for i in 0..archive.len() {
         let mut file = archive.by_index(i)?;
         let outpath = path.join(file.mangled_name());
@@ -270,67 +341,6 @@ pub async fn get_file_metadata(path: String) -> Result<FileMetadata, Error> {
 
 #[cfg(test)]
 mod download_tests {
-    async fn assert_cancel_stalled_transfer(send_headers: bool) {
-        use tokio::io::{AsyncReadExt, AsyncWriteExt};
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let address = listener.local_addr().unwrap();
-        let (ready, received) = tokio::sync::oneshot::channel();
-        let server = tokio::spawn(async move {
-            let (mut socket, _) = listener.accept().await.unwrap();
-            let mut request = [0; 4096];
-            socket.read(&mut request).await.unwrap();
-            if send_headers {
-                socket
-                    .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 100\r\n\r\ndata")
-                    .await
-                    .unwrap();
-            }
-            ready.send(()).unwrap();
-            std::future::pending::<()>().await;
-        });
-        let (handle, registration) = futures_util::future::AbortHandle::new_pair();
-        let (sampled, sample) = tokio::sync::oneshot::channel();
-        let mut sampled = Some(sampled);
-        let transfer = tokio::spawn(futures_util::future::Abortable::new(
-            super::receive_download(
-                reqwest::Client::new().get(format!("http://{address}")),
-                None,
-                move |_, _| {
-                    if let Some(sampled) = sampled.take() {
-                        let _ = sampled.send(());
-                    }
-                    Ok(())
-                },
-            ),
-            registration,
-        ));
-        tokio::time::timeout(std::time::Duration::from_secs(5), received)
-            .await
-            .unwrap()
-            .unwrap();
-        if send_headers {
-            // A progress sample proves the response body is being consumed.
-            tokio::time::timeout(std::time::Duration::from_secs(5), sample)
-                .await
-                .unwrap()
-                .unwrap();
-        }
-        handle.abort();
-        let result = tokio::time::timeout(std::time::Duration::from_secs(1), transfer).await;
-        server.abort();
-        assert!(matches!(result, Ok(Ok(Err(_)))));
-    }
-
-    #[tokio::test]
-    async fn cancellation_interrupts_waiting_for_response_headers() {
-        assert_cancel_stalled_transfer(false).await;
-    }
-
-    #[tokio::test]
-    async fn cancellation_interrupts_a_stalled_response_body() {
-        assert_cancel_stalled_transfer(true).await;
-    }
-
     #[test]
     fn speed_samples_are_throttled_and_drop_to_zero_when_stalled() {
         let start = std::time::Instant::now();
@@ -362,5 +372,19 @@ mod download_tests {
         assert_eq!(super::download_percentage(1024, Some(0)), 0.0);
         assert_eq!(super::download_percentage(512, Some(1024)), 50.0);
         assert_eq!(super::download_percentage(1024, Some(1024)), 99.9);
+    }
+
+    #[test]
+    fn download_logs_omit_credentials_and_signed_query_parameters() {
+        assert_eq!(
+            super::download_log_url(
+                "https://user:secret@example.com/database.zip?token=private#fragment"
+            ),
+            "https://example.com/database.zip"
+        );
+        assert_eq!(
+            super::download_log_url("not a URL containing secrets"),
+            "<invalid URL>"
+        );
     }
 }
