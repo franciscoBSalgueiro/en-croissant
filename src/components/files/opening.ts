@@ -3,7 +3,7 @@ import { type Card, createEmptyCard, fsrs, type Grade, generatorParameters } fro
 import { z } from "zod";
 import type { PracticeData } from "@/state/atoms";
 import { isPrefix } from "@/utils/misc";
-import { type TreeNode, treeIterator } from "@/utils/treeReducer";
+import { getNodeAtPath, type TreeNode, treeIterator } from "@/utils/treeReducer";
 
 const params = generatorParameters({ enable_fuzz: true });
 
@@ -45,6 +45,49 @@ export function buildFromTree(tree: TreeNode, color: "white" | "black", start: n
         }
     }
     return cards;
+}
+
+// The same position reached by different move orders can have a different halfmove
+// clock and move number, so only the first four FEN fields identify the position.
+function samePosition(a: string, b: string) {
+    return a.split(" ").slice(0, 4).join(" ") === b.split(" ").slice(0, 4).join(" ");
+}
+
+// Every repertoire move from the position at `path` is a correct answer, including moves
+// that follow the same position elsewhere in the tree (transpositions). The node's own
+// moves come first, then the rest in tree order; each move is listed once, with the path
+// of the existing node it leads to.
+export function getAnswers(tree: TreeNode, path: number[]): { san: string; path: number[] }[] {
+    const current = getNodeAtPath(tree, path);
+    const answers: { san: string; path: number[] }[] = [];
+    const addMoves = (node: TreeNode, nodePath: number[]) => {
+        node.children.forEach((child, i) => {
+            if (child.san && !answers.some((answer) => answer.san === child.san)) {
+                answers.push({ san: child.san, path: [...nodePath, i] });
+            }
+        });
+    };
+    addMoves(current, path);
+    for (const { node, position } of treeIterator(tree)) {
+        if (node !== current && samePosition(node.fen, current.fen)) {
+            addMoves(node, position);
+        }
+    }
+    return answers;
+}
+
+// After a correct move in full practice, keep practicing the branch that move leads into
+// instead of jumping back to the queue's next variation.
+export function continueInBranch(
+    remaining: number[],
+    positions: Position[],
+    branch: TreeNode,
+): number[] {
+    const fens = new Set(Array.from(treeIterator(branch), ({ node }) => node.fen));
+    return [
+        ...remaining.filter((i) => fens.has(positions[i].fen)),
+        ...remaining.filter((i) => !fens.has(positions[i].fen)),
+    ];
 }
 
 type Stats = {

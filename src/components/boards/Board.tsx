@@ -51,11 +51,12 @@ import classes from "@/styles/Chessboard.module.css";
 import { ANNOTATION_INFO, isBasicAnnotation } from "@/utils/annotation";
 import { getVariationLine } from "@/utils/chess";
 import { chessopsError, forceEnPassant, positionFromFen } from "@/utils/chessops";
+import { playSound } from "@/utils/sound";
 import { getTabFile, getTabGameNumber } from "@/utils/tabs";
 import ShowMaterial from "../common/ShowMaterial";
 import { TreeStateContext } from "../common/TreeStateContext";
 import FideInfo from "../databases/FideInfo";
-import { updateCardPerformance } from "../files/opening";
+import { getAnswers, updateCardPerformance } from "../files/opening";
 import { arrowColors } from "../panels/analysis/BestMoves";
 import AnnotationHint from "./AnnotationHint";
 import { BoardBar } from "./BoardBar";
@@ -98,7 +99,7 @@ function Board({
   cgRef,
   enablePremoves = false,
 }: ChessboardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const is3d = useAtomValue(is3dAtom);
 
@@ -120,6 +121,8 @@ function Board({
     }),
   );
 
+  const position = useStore(store, (s) => s.position);
+  const goToMove = useStore(store, (s) => s.goToMove);
   const goToNext = useStore(store, (s) => s.goToNext);
   const goToPrevious = useStore(store, (s) => s.goToPrevious);
   const storeMakeMove = useStore(store, (s) => s.makeMove);
@@ -188,15 +191,20 @@ function Board({
 
       const i = deck.positions.indexOf(c);
       const timeTaken = Date.now() - cardStartTime;
+      const answers = getAnswers(root, position);
+      const answer = answers.find((a) => a.san === san);
 
-      if (san !== c.answer) {
+      if (!answer) {
+        const correctMoves = new Intl.ListFormat(i18n.resolvedLanguage ?? "en-US", {
+          type: "disjunction",
+        }).format(answers.map((a) => a.san));
         if (sessionStats.mode !== "full") {
           updateCardPerformance(setDeck, i, c.card, 1);
         }
         setPracticeState({
           phase: "incorrect",
           currentFen: c.fen,
-          answer: c.answer,
+          answer: correctMoves,
           playedMove: san,
           positionIndex: i,
           timeTaken,
@@ -208,15 +216,22 @@ function Board({
         }));
         notifications.show({
           title: t("Common.Incorrect"),
-          message: t("Board.Practice.CorrectMoveWas", { move: c.answer }),
+          message: t("Board.Practice.CorrectMoveWas", { move: correctMoves }),
           color: "red",
         });
         await new Promise((resolve) => setTimeout(resolve, 500));
         goToNext();
       } else {
-        storeMakeMove({
-          payload: move,
-        });
+        if (currentNode.children.some((child) => child.san === san)) {
+          storeMakeMove({
+            payload: move,
+          });
+        } else {
+          // The move only follows this position where it's reached by another move order:
+          // go to that existing node rather than adding the move to the repertoire
+          playSound(san.includes("x"), san.includes("+"));
+          goToMove(answer.path);
+        }
         setPendingMove(null);
         setPracticeState({
           phase: "correct",

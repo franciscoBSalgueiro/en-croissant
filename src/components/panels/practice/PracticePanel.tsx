@@ -39,6 +39,7 @@ import ConfirmModal from "@/components/common/ConfirmModal";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
   buildFromTree,
+  continueInBranch,
   formatReviewInterval,
   getCardForReview,
   getNextReviewTimes,
@@ -187,7 +188,12 @@ function PracticePanel() {
     if (practiceState.phase === "correct") {
       if (sessionStats.mode === "full") {
         const timer = setTimeout(() => {
-          const remainingPositions = sessionStats.remainingPositions.slice(1);
+          // The board is on the move just played, which may not be the queue's next line
+          const remainingPositions = continueInBranch(
+            sessionStats.remainingPositions.slice(1),
+            deck.positions,
+            store.getState().currentNode(),
+          );
           setSessionStats((prev) => ({
             ...prev,
             remainingPositions,
@@ -226,6 +232,7 @@ function PracticePanel() {
     practiceAutoDifficulty,
     deck.positions,
     setDeck,
+    store,
   ]);
 
   function handleQualityRating(grade: 1 | 2 | 3 | 4) {
