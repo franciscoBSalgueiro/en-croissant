@@ -133,6 +133,7 @@
     "Board.Practice.HardHint": "기억해 내는 데 애를 먹었어요 (2)",
     "Board.Practice.HowDifficult": "이 수는 얼마나 어려웠나요?",
     "Board.Practice.KeyboardHint": "난이도를 빠르게 평가하려면 1~4를 누르세요",
+    "Board.Practice.LineProgress": "",
     "Board.Practice.Logs": "로그",
     "Board.Practice.MakeYourMove": "보드에 수를 두세요...",
     "Board.Practice.MarkStart": "몇 수를 두고 원하는 오프닝의 시작 포지션에 도달하면 시작으로 표시하세요.",

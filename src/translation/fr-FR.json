@@ -133,6 +133,7 @@
     "Board.Practice.HardHint": "J'ai dû faire un effort pour m'en souvenir (2)",
     "Board.Practice.HowDifficult": "C'était difficile à quel point ?",
     "Board.Practice.KeyboardHint": "Appuyez sur les touches 1 à 4 pour noter rapidement",
+    "Board.Practice.LineProgress": "",
     "Board.Practice.Logs": "Carnets d'entraînement",
     "Board.Practice.MakeYourMove": "Jouez votre coup sur l'échiquier...",
     "Board.Practice.MarkStart": "Jouez quelques coups et sélectionnez « Démarrer » lorsque vous atteignez la position initiale de l'ouverture souhaitée.",

@@ -133,6 +133,7 @@
     "Board.Practice.HardHint": "Took effort to recall (2)",
     "Board.Practice.HowDifficult": "How difficult was this?",
     "Board.Practice.KeyboardHint": "Press 1-4 to rate quickly",
+    "Board.Practice.LineProgress": "Line {{current}} of {{total}}",
     "Board.Practice.Logs": "Practice Logs",
     "Board.Practice.MakeYourMove": "Make your move on the board...",
     "Board.Practice.MarkStart": "Play some moves and mark as Start when you reach the starting position of the desired opening.",

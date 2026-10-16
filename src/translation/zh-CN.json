@@ -133,6 +133,7 @@
     "Board.Practice.HardHint": "费劲才想起来 (2)",
     "Board.Practice.HowDifficult": "这个难度如何？",
     "Board.Practice.KeyboardHint": "按 1-4 快速评分",
+    "Board.Practice.LineProgress": "",
     "Board.Practice.Logs": "练习日志",
     "Board.Practice.MakeYourMove": "请在棋盘上走棋...",
     "Board.Practice.MarkStart": "请先走几步棋，当到达所需开局的起始局面时，点击标记为“开始”",

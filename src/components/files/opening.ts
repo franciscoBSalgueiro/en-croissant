@@ -90,6 +90,66 @@ export function continueInBranch(
     ];
 }
 
+function isUsersTurn(node: TreeNode, color: "white" | "black") {
+    return (color === "white") === (node.halfMoves % 2 === 0);
+}
+
+function hasPositionToPractice(branch: TreeNode, color: "white" | "black") {
+    for (const { node } of treeIterator(branch)) {
+        if (isUsersTurn(node, color) && node.children.length > 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// "Line N of M" in full practice. The split is the deepest point on the way to `path`
+// (not before the Start position) where the repertoire branches: M counts its branches,
+// N is this branch's place in the order they were first entered (`visited` holds the
+// paths of the positions shown and moves played this session). A branch counts if it's
+// one of the user's moves, or the user has something to play further down it.
+// Returns null before the first split.
+export function getLineProgress(
+    tree: TreeNode,
+    path: number[],
+    visited: number[][],
+    color: "white" | "black",
+    start: number[],
+): { current: number; total: number } | null {
+    for (let depth = path.length; depth >= 0; depth--) {
+        const splitPath = path.slice(0, depth);
+        if (depth < start.length && isPrefix(splitPath, start)) {
+            break;
+        }
+        const split = getNodeAtPath(tree, splitPath);
+        const branches = split.children.flatMap((child, i) =>
+            isUsersTurn(split, color) || hasPositionToPractice(child, color) ? [i] : [],
+        );
+        if (branches.length < 2) {
+            continue;
+        }
+        const entered: number[] = [];
+        for (const visitedPath of visited) {
+            const branch = visitedPath[depth];
+            if (
+                visitedPath.length > depth &&
+                isPrefix(splitPath, visitedPath) &&
+                branches.includes(branch) &&
+                !entered.includes(branch)
+            ) {
+                entered.push(branch);
+            }
+        }
+        // At the split itself (the user's choice is next), or not entered yet: the next one
+        const index = depth < path.length ? entered.indexOf(path[depth]) : -1;
+        return {
+            current: index === -1 ? Math.min(entered.length + 1, branches.length) : index + 1,
+            total: branches.length,
+        };
+    }
+    return null;
+}
+
 type Stats = {
     unseen: number;
     due: number;
