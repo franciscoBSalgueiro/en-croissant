@@ -5,20 +5,28 @@ const engineColors = ["#003088", "#15781B", "#882020", "#e68f00"];
 
 type EngineLines = Map<number, { pv: string[]; winChance: number }[]>;
 
-/** Only the first PV of each engine votes; secondary lines are not agreement. */
+/** Compare every displayed candidate's first move, counting each engine once per move. */
 export function getEngineAgreements(arrows: EngineLines) {
     const votes = new Map<string, { orig: string; dest: string; colors: string[] }>();
-    for (const [engineIndex, lines] of arrows) {
+    const displayedMoves = new Map<string, string>();
+    for (const [engineIndex, lines] of [...arrows].sort(([a], [b]) => a - b)) {
         if (engineIndex < 0 || engineIndex >= engineColors.length) continue;
-        const move = lines[0]?.pv[0];
-        const parsed = move && parseUci(move);
-        if (!move || !parsed || !("from" in parsed)) continue;
-        const orig = makeSquare(parsed.from);
-        const dest = makeSquare(parsed.to);
-        if (!orig || !dest) continue;
-        const vote = votes.get(move) ?? { orig, dest, colors: [] };
-        vote.colors.push(engineColors[engineIndex]);
-        votes.set(move, vote);
+        const candidates = new Set(lines.map(({ pv }) => pv[0]));
+        for (const move of candidates) {
+            const parsed = move && parseUci(move);
+            if (!move || !parsed || !("from" in parsed)) continue;
+            const orig = makeSquare(parsed.from);
+            const dest = makeSquare(parsed.to);
+            if (!orig || !dest) continue;
+            // The board draws one arrow per endpoint pair. Preserve its first
+            // candidate, including promotion type, instead of replacing it twice.
+            const endpoints = `${orig}${dest}`;
+            if (!displayedMoves.has(endpoints)) displayedMoves.set(endpoints, move);
+            if (displayedMoves.get(endpoints) !== move) continue;
+            const vote = votes.get(move) ?? { orig, dest, colors: [] };
+            vote.colors.push(engineColors[engineIndex]);
+            votes.set(move, vote);
+        }
     }
     return [...votes.entries()]
         .filter(([, vote]) => vote.colors.length > 1)
