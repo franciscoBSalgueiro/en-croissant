@@ -3,8 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
 import { DataTable } from "mantine-datatable";
 import { memo, useState } from "react";
-import type { GameQuery, NormalizedGame } from "@/bindings";
-import { useGameCollection } from "@/components/databases/useGameCollection";
+import type { NormalizedGame } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
 import { createTab } from "@/utils/tabs";
 
@@ -13,12 +12,10 @@ function GamesTable({
   loading,
   databasePath,
   pagination,
-  query,
 }: {
   games: NormalizedGame[];
   loading: boolean;
   databasePath?: string | null;
-  query?: GameQuery;
   pagination?: {
     page: number;
     totalRecords: number;
@@ -31,84 +28,72 @@ function GamesTable({
   const page = localPagination.games === games ? localPagination.page : 1;
   const setPage = (page: number) => setLocalPagination({ games, page });
   const filteredGames = pagination ? games : games.slice((page - 1) * 20, page * 20);
-  const collection = useGameCollection(
-    databasePath || "",
-    query || {},
-    filteredGames,
-    loading,
-    () => pagination?.onPageChange(1),
-    pagination?.totalRecords ?? games.length,
-  );
 
   const navigate = useNavigate();
   return (
-    <>
-      {collection.toolbar}
-      <DataTable
-        {...collection.selectionProps}
-        withTableBorder
-        highlightOnHover
-        records={filteredGames}
-        fetching={loading}
-        totalRecords={pagination?.totalRecords ?? games.length}
-        recordsPerPage={20}
-        page={pagination?.page ?? page}
-        onPageChange={pagination?.onPageChange ?? setPage}
-        onRowClick={(e) => {
-          const game = e.record;
-          createTab({
-            tab: {
-              name: `${game.white} - ${game.black}`,
-              type: "analysis",
-            },
-            setTabs,
-            setActiveTab,
-            pgn: game.moves,
-            headers: game,
-            gameOrigin: databasePath
-              ? {
-                  kind: "database",
-                  database: databasePath,
-                  gameId: game.id,
-                }
-              : undefined,
-          });
-          navigate({ to: "/" });
-        }}
-        columns={[
-          {
-            accessor: "white",
-            render: ({ white, white_elo }) => (
-              <div>
-                <Text size="sm" fw={500}>
-                  {white}
-                </Text>
-                <Text size="xs" c="dimmed">
-                  {white_elo === 0 ? "Unrated" : white_elo}
-                </Text>
-              </div>
-            ),
+    <DataTable
+      withTableBorder
+      highlightOnHover
+      records={filteredGames}
+      fetching={loading}
+      totalRecords={pagination?.totalRecords ?? games.length}
+      recordsPerPage={20}
+      page={pagination?.page ?? page}
+      onPageChange={pagination?.onPageChange ?? setPage}
+      onRowClick={(e) => {
+        const game = e.record;
+        createTab({
+          tab: {
+            name: `${game.white} - ${game.black}`,
+            type: "analysis",
           },
-          {
-            accessor: "black",
-            render: ({ black, black_elo }) => (
-              <div>
-                <Text size="sm" fw={500}>
-                  {black}
-                </Text>
-                <Text size="xs" c="dimmed">
-                  {black_elo === 0 ? "Unrated" : black_elo}
-                </Text>
-              </div>
-            ),
-          },
-          { accessor: "date" },
-          { accessor: "result" },
-          { accessor: "ply_count" },
-        ]}
-        noRecordsText="No games found"
-      />
-    </>
+          setTabs,
+          setActiveTab,
+          pgn: game.moves,
+          headers: game,
+          gameOrigin: databasePath
+            ? {
+                kind: "database",
+                database: databasePath,
+                gameId: game.id,
+              }
+            : undefined,
+        });
+        navigate({ to: "/" });
+      }}
+      columns={[
+        {
+          accessor: "white",
+          render: ({ white, white_elo }) => (
+            <div>
+              <Text size="sm" fw={500}>
+                {white}
+              </Text>
+              <Text size="xs" c="dimmed">
+                {white_elo === 0 ? "Unrated" : white_elo}
+              </Text>
+            </div>
+          ),
+        },
+        {
+          accessor: "black",
+          render: ({ black, black_elo }) => (
+            <div>
+              <Text size="sm" fw={500}>
+                {black}
+              </Text>
+              <Text size="xs" c="dimmed">
+                {black_elo === 0 ? "Unrated" : black_elo}
+              </Text>
+            </div>
+          ),
+        },
+        { accessor: "date" },
+        { accessor: "result" },
+        { accessor: "ply_count" },
+      ]}
+      noRecordsText="No games found"
+    />
   );
 }
 

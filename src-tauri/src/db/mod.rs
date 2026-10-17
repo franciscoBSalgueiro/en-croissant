@@ -71,7 +71,10 @@ fn duckdb_pool_key(path: &Path) -> String {
     path.to_string_lossy().into_owned()
 }
 
-fn get_duckdb_pool(state: &AppState, path: &Path) -> Result<Pool<DuckdbConnectionManager>, Error> {
+fn get_duckdb_pool(
+    state: &AppState,
+    path: &Path,
+) -> Result<Arc<Pool<DuckdbConnectionManager>>, Error> {
     database_pool(state, path)?.ok_or_else(|| {
         std::io::Error::new(
             std::io::ErrorKind::InvalidData,
@@ -84,7 +87,7 @@ fn get_duckdb_pool(state: &AppState, path: &Path) -> Result<Pool<DuckdbConnectio
 fn database_pool(
     state: &AppState,
     path: &Path,
-) -> Result<Option<Pool<DuckdbConnectionManager>>, Error> {
+) -> Result<Option<Arc<Pool<DuckdbConnectionManager>>>, Error> {
     get_or_create_database_pool(state, path, || {
         let extension_path = state
             .aixchess_extension_path
@@ -105,18 +108,24 @@ fn get_or_create_database_pool(
     state: &AppState,
     path: &Path,
     create: impl FnOnce() -> Result<Pool<DuckdbConnectionManager>, Error>,
-) -> Result<Option<Pool<DuckdbConnectionManager>>, Error> {
+) -> Result<Option<Arc<Pool<DuckdbConnectionManager>>>, Error> {
     // Hold the entry through detection and creation. A second caller must not
     // probe the file while the first caller opens it: DuckDB's Windows handle
     // can deny that separate read, even within this process.
     match state.duckdb_connection_pool.entry(duckdb_pool_key(path)) {
-        Entry::Occupied(entry) => Ok(Some(entry.get().clone())),
+        Entry::Occupied(entry) => match entry.get() {
+            Some(pool) => Ok(Some(pool.clone())),
+            None => Err(std::io::Error::other(
+                "The database is being compacted. Try again when it finishes.",
+            )
+            .into()),
+        },
         Entry::Vacant(entry) => {
             if path.exists() && legacy::is_sqlite(path)? {
                 return Ok(None);
             }
-            let pool = create()?;
-            entry.insert(pool.clone());
+            let pool = Arc::new(create()?);
+            entry.insert(Some(pool.clone()));
             Ok(Some(pool))
         }
     }
@@ -1164,6 +1173,77 @@ pub async fn delete_database(
     let path_str = file.to_str().unwrap();
 
     remove_file(path_str)?;
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn compact_database(
+    file: PathBuf,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), Error> {
+    compact_database_file(&state, &file)
+}
+
+fn compact_database_file(state: &AppState, file: &Path) -> Result<(), Error> {
+    let mut entry = state.duckdb_connection_pool.entry(duckdb_pool_key(file));
+    if let Entry::Occupied(entry) = &entry {
+        if let Some(pool) = entry.get() {
+            if Arc::strong_count(pool) != 1
+                || pool.state().connections != pool.state().idle_connections
+            {
+                return Err(std::io::Error::other(
+                    "The database is in use. Wait for other database operations to finish and try again.",
+                ).into());
+            }
+        }
+    }
+    state.player_catalogs.remove(&duckdb_pool_key(file));
+    state.position_caches.remove(&duckdb_pool_key(file));
+    if let Entry::Occupied(entry) = &mut entry {
+        drop(entry.get_mut().take());
+    }
+    let result = compact_db(file);
+    if let Entry::Occupied(entry) = entry {
+        entry.remove();
+    }
+    result
+}
+
+fn compact_db(file: &Path) -> Result<(), Error> {
+    if !file.is_file() {
+        return Err(std::io::Error::other("The database file no longer exists.").into());
+    }
+    let temporary = tempfile::tempdir_in(file.parent().unwrap_or(Path::new(".")))?;
+    let compacted = temporary.path().join("compacted.duckdb");
+    {
+        let db = Connection::open_in_memory()?;
+        db.execute_batch(&format!(
+            "ATTACH {} AS original;
+             ATTACH {} AS compacted;
+             COPY FROM DATABASE original TO compacted;
+             CHECKPOINT compacted;
+             DETACH compacted;
+             DETACH original;",
+            sql_literal(&file.to_string_lossy()),
+            sql_literal(&compacted.to_string_lossy()),
+        ))?;
+    }
+    OpenOptions::new()
+        .write(true)
+        .open(&compacted)
+        .and_then(|db| db.sync_all())
+        .map_err(|err| {
+            std::io::Error::other(format!("Failed to sync compacted database: {err}"))
+        })?;
+    std::fs::set_permissions(&compacted, file.metadata()?.permissions()).map_err(|err| {
+        std::io::Error::other(format!("Failed to preserve database permissions: {err}"))
+    })?;
+    tempfile::TempPath::from_path(compacted)
+        .persist(file)
+        .map_err(|err| {
+            std::io::Error::other(format!("Failed to replace database: {}", err.error))
+        })?;
     Ok(())
 }
 

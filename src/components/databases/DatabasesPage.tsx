@@ -29,16 +29,17 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { basename } from "@tauri-apps/api/path";
 import { open as openDialog, save } from "@tauri-apps/plugin-dialog";
 import { exists } from "@tauri-apps/plugin-fs";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import type { DatabaseInfo } from "@/bindings";
 import { commands } from "@/bindings";
 import {
   databaseConversionStateAtom,
   referenceDbAtom,
   storedDatabasesDirAtom,
+  tabsAtom,
 } from "@/state/atoms";
 import { useActiveDatabaseViewStore } from "@/state/store/database";
 import { getDatabases, type SuccessDatabaseInfo } from "@/utils/db";
@@ -576,6 +577,75 @@ function AdvancedSettings({
     <Stack>
       <PlayerMerger selectedDatabase={selectedDatabase} />
       <DuplicateRemover selectedDatabase={selectedDatabase} reload={reload} />
+      <DatabaseCompactor
+        key={selectedDatabase.file}
+        selectedDatabase={selectedDatabase}
+        reload={reload}
+      />
+    </Stack>
+  );
+}
+
+function DatabaseCompactor({
+  selectedDatabase,
+  reload,
+}: {
+  selectedDatabase: DatabaseInfo;
+  reload: () => void;
+}) {
+  const { t } = useTranslation();
+  const tabs = useAtomValue(tabsAtom);
+  const hasOpenGames = tabs.some(
+    (tab) =>
+      tab.gameOrigin.kind === "database" && tab.gameOrigin.database === selectedDatabase.file,
+  );
+  const { mutate } = useSWRConfig();
+  const clearSelectedGame = useActiveDatabaseViewStore((store) => store.setGamesSelectedGame);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <Stack>
+      <Text fz="lg" fw="bold">
+        {t("Databases.Settings.Compact")}
+      </Text>
+      <Text fz="sm">{t("Databases.Settings.Compact.Desc")}</Text>
+      {hasOpenGames && (
+        <Text size="sm" c="dimmed">
+          {t("Databases.Settings.Compact.CloseGames")}
+        </Text>
+      )}
+      {error && <Alert color="red">{error}</Alert>}
+      <Group>
+        <Button
+          loading={loading}
+          disabled={hasOpenGames}
+          onClick={async () => {
+            setLoading(true);
+            setError(null);
+            try {
+              const result = await commands.compactDatabase(selectedDatabase.file);
+              if (result.status === "error") {
+                setError(result.error);
+                return;
+              }
+              clearSelectedGame(undefined);
+              await mutate(
+                (key) => Array.isArray(key) && key.includes(selectedDatabase.file),
+                undefined,
+                { revalidate: true },
+              );
+              reload();
+            } catch (error) {
+              setError(String(error));
+            } finally {
+              setLoading(false);
+            }
+          }}
+        >
+          {t("Databases.Settings.Compact")}
+        </Button>
+      </Group>
     </Stack>
   );
 }

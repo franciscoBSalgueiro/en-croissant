@@ -227,6 +227,14 @@ async deleteEmptyGames(file: string) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async compactDatabase(file: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("compact_database", { file }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async setFileAsExecutable(path: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("set_file_as_executable", { path }) };

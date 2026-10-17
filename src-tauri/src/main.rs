@@ -41,8 +41,8 @@ use crate::chess::{
     stop_engine,
 };
 use crate::db::{
-    delete_database, delete_db_game, delete_empty_games, export_to_pgn, get_player,
-    get_players_game_info, get_tournaments, search_position,
+    compact_database, delete_database, delete_db_game, delete_empty_games, export_to_pgn,
+    get_player, get_players_game_info, get_tournaments, search_position,
 };
 use crate::game::{
     abort_game, get_game_engine_logs, get_game_state, make_game_move, resign_game, start_game,
@@ -75,7 +75,8 @@ use tokio::sync::Semaphore;
 #[derive(Derivative)]
 #[derivative(Default)]
 pub struct AppState {
-    duckdb_connection_pool: DashMap<String, r2d2::Pool<duckdb::DuckdbConnectionManager>>,
+    duckdb_connection_pool:
+        DashMap<String, Option<Arc<r2d2::Pool<duckdb::DuckdbConnectionManager>>>>,
     player_catalogs: DashMap<String, Arc<Mutex<Option<duckdb::Connection>>>>,
     aixchess_extension_path: Mutex<Option<PathBuf>>,
     position_caches: DashMap<String, Arc<Mutex<db::PositionCache>>>,
@@ -152,6 +153,7 @@ fn main() {
             delete_game,
             delete_duplicated_games,
             delete_empty_games,
+            compact_database,
             set_file_as_executable,
             edit_db_info,
             delete_db_game,
