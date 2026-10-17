@@ -93,6 +93,20 @@ export function genID() {
     return S4() + S4();
 }
 
+// Account downloads are saved as `<username>_lichess.db3` / `<username>_chesscom.db3`.
+// Games the user played as Black in those databases open from Black's side.
+export function getAccountGameOrientation(
+    databasePath: string,
+    { white, black }: Pick<GameHeaders, "white" | "black">,
+): "black" | undefined {
+    const filename = databasePath.split(/[\\/]/).pop() ?? "";
+    const username = filename.match(/^(.+)_(?:lichess|chesscom)\.db3$/)?.[1].toLowerCase();
+    if (username && black.toLowerCase() === username && white.toLowerCase() !== username) {
+        return "black";
+    }
+    return undefined;
+}
+
 export async function createTab({
     tab,
     setTabs,
@@ -115,7 +129,13 @@ export async function createTab({
     if (pgn !== undefined) {
         const tree = await parsePGN(pgn, headers?.fen);
         if (headers) {
-            tree.headers = headers;
+            tree.headers =
+                gameOrigin?.kind === "database"
+                    ? {
+                          ...headers,
+                          orientation: getAccountGameOrientation(gameOrigin.database, headers),
+                      }
+                    : headers;
             if (position) {
                 tree.position = position;
             }
