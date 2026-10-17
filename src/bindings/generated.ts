@@ -459,6 +459,54 @@ async getSoundServerPort() : Promise<Result<number, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async openingReport(file: string, query: GameQuery) : Promise<Result<OpeningMoveReport[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("opening_report", { file, query }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async runSimulation(id: string, config: SimulationConfig) : Promise<Result<SimulationResult, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("run_simulation", { id, config }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async cancelSimulation(id: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cancel_simulation", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async startTreeAnalysis(id: string, tab: string, config: TreeConfig) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("start_tree_analysis", { id, tab, config }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async stopTreeAnalysis(id: string) : Promise<Result<IdeaTree, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("stop_tree_analysis", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getTree(id: string) : Promise<Result<IdeaTree | null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_tree", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -471,14 +519,18 @@ clockUpdateEvent: ClockUpdateEvent,
 databaseProgress: DatabaseProgress,
 gameMoveEvent: GameMoveEvent,
 gameOverEvent: GameOverEvent,
-progressEvent: ProgressEvent
+progressEvent: ProgressEvent,
+simulationUpdateEvent: SimulationUpdateEvent,
+treeUpdateEvent: TreeUpdateEvent
 }>({
 bestMovesPayload: "best-moves-payload",
 clockUpdateEvent: "clock-update-event",
 databaseProgress: "database-progress",
 gameMoveEvent: "game-move-event",
 gameOverEvent: "game-over-event",
-progressEvent: "progress-event"
+progressEvent: "progress-event",
+simulationUpdateEvent: "simulation-update-event",
+treeUpdateEvent: "tree-update-event"
 })
 
 /** user-defined constants **/
@@ -490,10 +542,12 @@ progressEvent: "progress-event"
 export type AnalysisOptions = { fen: string; moves: string[]; annotateNovelties: boolean; referenceDb: string | null; reversed: boolean }
 export type BestMoves = { nodes: number; depth: number; score: Score; uciMoves: string[]; sanMoves: string[]; multipv: number; nps: number }
 export type BestMovesPayload = { bestLines: BestMoves[]; engine: string; tab: string; fen: string; moves: string[]; progress: number }
+export type BookMove = { uci: string; san: string; weight: number }
 export type ClockUpdateEvent = { gameId: string; whiteTime: bigint | null; blackTime: bigint | null }
 export type DatabaseInfo = { title: string; description: string; player_count: number; event_count: number; game_count: number; storage_size: bigint; filename: string; indexed: boolean }
 export type DatabaseProgress = { id: string; progress: number }
 export type DrawReason = "stalemate" | "insufficientMaterial" | "threefoldRepetition" | "fiftyMoveRule" | "agreement"
+export type EloBucketStat = { bucket: string; total: number; white: number; draw: number; black: number }
 export type EngineConfig = { name: string; options: UciOptionConfig[] }
 export type EngineLog = { type: "gui"; value: string } | { type: "engine"; value: string }
 export type EngineOption = { name: string; value: string }
@@ -512,13 +566,17 @@ export type GameSort = "id" | "date" | "whiteElo" | "blackElo" | "ply_count"
 export type GameState = { gameId: string; status: GameStatus; initialFen: string; moves: GameMove[]; currentFen: string; ply: number; turn: string; whiteTime: bigint | null; blackTime: bigint | null; whitePlayer: string; blackPlayer: string }
 export type GameStatus = "playing" | { finished: { result: GameResult } }
 export type GoMode = { t: "PlayersTime"; c: PlayersTime } | { t: "Depth"; c: number } | { t: "Time"; c: number } | { t: "Nodes"; c: number } | { t: "Infinite" }
+export type IdeaTree = { nodes: TreeNode[]; config: TreeConfig | null; updated_at: bigint }
 export type MoveAnalysis = { best: BestMoves[]; novelty: boolean; is_sacrifice: boolean }
 export type NormalizedGame = { id: number; fen: string; event: string; event_id: number; site: string; site_id: number; date?: string | null; time?: string | null; round?: string | null; white: string; white_id: number; white_elo?: number | null; black: string; black_id: number; black_elo?: number | null; result: Outcome; time_control?: string | null; eco?: string | null; ply_count?: number | null; moves: string }
 export type OpeningBookConfig = { path: string; maxPly?: bigint }
+export type OpeningMoveReport = { move_: string; total: number; white: number; draw: number; black: number; avg_elo: number | null; elo_buckets: EloBucketStat[]; yearly: YearStat[] }
+export type OpponentBook = { maxPly: number; positions: Partial<{ [key in string]: BookMove[] }> }
 export type OutOpening = { name: string; fen: string }
 export type Outcome = "1-0" | "0-1" | "1/2-1/2" | "*"
+export type PiecePath = { from: string; to: string; count: number }
 export type Player = { id: number; name: string | null; elo: number | null }
-export type PlayerConfig = { type: "human"; name: string } | { type: "engine"; name: string; path: string; options?: EngineOption[]; go: GoMode | null }
+export type PlayerConfig = { type: "human"; name: string } | { type: "engine"; name: string; path: string; options?: EngineOption[]; go: GoMode | null; opponent_book?: OpponentBook | null }
 export type PlayerGameInfo = { site_stats_data: SiteStatsData[] }
 export type PlayerQuery = { options: QueryOptions<PlayerSort>; name?: string | null; range?: [number, number] | null }
 export type PlayerSort = "id" | "name" | "elo"
@@ -546,6 +604,10 @@ export type ScoreValue =
  */
 { type: "mate"; value: number }
 export type Sides = "BlackWhite" | "WhiteBlack" | "Any"
+export type SimulationConfig = { fen: string; moves: string[]; engine_path: string; engine_options: EngineOption[]; movetime_ms: number; games: number; max_plies: number; multipv: number; temperature: number }
+export type SimulationFirstMove = { uci: string; san: string; total: number; white: number; draw: number; black: number; avg_length: number }
+export type SimulationResult = { games: number; white: number; draw: number; black: number; avg_length: number; first_moves: SimulationFirstMove[]; piece_paths: PiecePath[] }
+export type SimulationUpdateEvent = { id: string; games_done: number; white: number; draw: number; black: number }
 export type SiteStatsData = { site: string; player: string; data: StatsData[] }
 export type SortDirection = "asc" | "desc"
 export type StatsData = { date: string; is_player_white: boolean; player_elo: number; result: GameOutcome; time_control: string; opening: string }
@@ -553,6 +615,9 @@ export type TimeControl = { initialTime: bigint; increment: bigint }
 export type Token = { type: "ParenOpen" } | { type: "ParenClose" } | { type: "Comment"; value: string } | { type: "San"; value: string } | { type: "Header"; value: { tag: string; value: string } } | { type: "Nag"; value: string } | { type: "Outcome"; value: string }
 export type TournamentQuery = { options: QueryOptions<TournamentSort>; name: string | null }
 export type TournamentSort = "id" | "name"
+export type TreeConfig = { fen: string; moves: string[]; engine_path: string; engine_options: EngineOption[]; depth: number; branching: number; max_nodes: number }
+export type TreeNode = { id: number; parent: number | null; uci: string | null; san: string; fen: string; score_cp: number | null; children: number[]; evaluated: boolean }
+export type TreeUpdateEvent = { id: string; tab: string; nodes_done: number; best_line_san: string[]; best_score_cp: number | null; tree: IdeaTree }
 /**
  * Represents a UCI option definition.
  */
@@ -625,6 +690,7 @@ name: string;
  * The default value of this string option.
  */
 default: string | null } }
+export type YearStat = { year: string; total: number; white: number; draw: number; black: number }
 
 /** tauri-specta globals **/
 

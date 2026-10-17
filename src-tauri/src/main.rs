@@ -8,6 +8,8 @@ mod db;
 mod engine;
 mod error;
 mod game;
+mod idea;
+mod simulation;
 
 mod fs;
 mod lexer;
@@ -43,12 +45,14 @@ use crate::chess::{
 use crate::db::{
     clear_games, convert_pgn, create_indexes, delete_database, delete_db_game, delete_empty_games,
     delete_indexes, export_to_pgn, get_player, get_players_game_info, get_tournaments,
-    preload_reference_db, search_position, MmapSearchIndex,
+    opening_report, preload_reference_db, search_position, MmapSearchIndex,
 };
 use crate::game::{
     abort_game, get_game_engine_logs, get_game_state, make_game_move, resign_game, start_game,
     take_back_game_move, ClockUpdateEvent, GameMoveEvent, GameOverEvent,
 };
+use crate::idea::{get_tree, start_tree_analysis, stop_tree_analysis, TreeUpdateEvent};
+use crate::simulation::{cancel_simulation, run_simulation, SimulationUpdateEvent};
 
 use crate::fs::set_file_as_executable;
 use crate::lexer::lex_pgn;
@@ -93,6 +97,8 @@ pub struct AppState {
     auth: AuthState,
     game_manager: GameManager,
     progress_state: ProgressStore,
+    simulations: DashMap<String, Arc<simulation::SimulationHandle>>,
+    idea_trees: DashMap<String, Arc<idea::IdeaController>>,
 }
 
 #[tauri::command]
@@ -123,7 +129,21 @@ pub fn file_from_args(args: &[String], cwd: &str) -> Option<String> {
 }
 
 fn main() {
-    let specta_builder = tauri_specta::Builder::new()
+    let specta_builder = make_specta_builder();
+
+    #[cfg(debug_assertions)]
+    specta_builder
+        .export(
+            Typescript::default().bigint(BigIntExportBehavior::BigInt),
+            "../src/bindings/generated.ts",
+        )
+        .expect("Failed to export types");
+
+    run_app(specta_builder);
+}
+
+fn make_specta_builder() -> tauri_specta::Builder<tauri::Wry> {
+    tauri_specta::Builder::new()
         .commands(tauri_specta::collect_commands!(
             close_splashscreen,
             get_best_moves,
@@ -184,7 +204,13 @@ fn main() {
             preload_reference_db,
             get_progress,
             clear_progress,
-            get_sound_server_port
+            get_sound_server_port,
+            opening_report,
+            run_simulation,
+            cancel_simulation,
+            start_tree_analysis,
+            stop_tree_analysis,
+            get_tree
         ))
         .events(tauri_specta::collect_events!(
             BestMovesPayload,
@@ -192,17 +218,13 @@ fn main() {
             ProgressEvent,
             GameMoveEvent,
             ClockUpdateEvent,
-            GameOverEvent
-        ));
+            GameOverEvent,
+            SimulationUpdateEvent,
+            TreeUpdateEvent
+        ))
+}
 
-    #[cfg(debug_assertions)]
-    specta_builder
-        .export(
-            Typescript::default().bigint(BigIntExportBehavior::BigInt),
-            "../src/bindings/generated.ts",
-        )
-        .expect("Failed to export types");
-
+fn run_app(specta_builder: tauri_specta::Builder) {
     #[cfg(debug_assertions)]
     let log_targets = [TargetKind::Stdout, TargetKind::Webview];
 
@@ -303,4 +325,20 @@ fn is_bmi2_compatible() -> bool {
 fn memory_size() -> u32 {
     let total_bytes = sysinfo::System::new_all().total_memory();
     (total_bytes / 1024 / 1024) as u32
+}
+
+/// Regenerates `src/bindings/generated.ts` without launching the app
+/// (`cargo test export_bindings` from `src-tauri`).
+#[cfg(all(test, debug_assertions))]
+mod binding_tests {
+    #[test]
+    fn export_bindings() {
+        crate::make_specta_builder()
+            .export(
+                specta_typescript::Typescript::default()
+                    .bigint(specta_typescript::BigIntExportBehavior::BigInt),
+                "../src/bindings/generated.ts",
+            )
+            .expect("Failed to export types");
+    }
 }

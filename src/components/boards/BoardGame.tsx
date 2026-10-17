@@ -16,6 +16,7 @@ import {
 import { useToggle } from "@mantine/hooks";
 import {
   IconArrowsExchange,
+  IconCopy,
   IconFileText,
   IconPlus,
   IconX,
@@ -68,6 +69,7 @@ import Board from "./Board";
 import BoardControls from "./BoardControls";
 import EditingCard from "./EditingCard";
 import { OpponentForm, type OpponentSettings } from "./OpponentForm";
+import OpponentCloneModal from "./OpponentCloneModal";
 
 function gameResultToOutcome(result: GameResult): Outcome {
   if (result.type === "whiteWins") return "1-0";
@@ -76,6 +78,11 @@ function gameResultToOutcome(result: GameResult): Outcome {
 }
 
 type BackendMove = { uci: string; clock: number | null };
+
+type LaunchPlayer = {
+  settings: OpponentSettings;
+  config: PlayerConfig;
+};
 
 function mapBackendMoves(moves: { uci: string; clock: bigint | null }[]): BackendMove[] {
   return moves.map((m) => ({
@@ -142,6 +149,7 @@ function BoardGame() {
   const [logsOpened, toggleLogsOpened] = useToggle();
   const [logsColor, setLogsColor] = useState<"white" | "black">("white");
   const [engineLogs, setEngineLogs] = useState<EngineLog[]>([]);
+  const [cloneModalOpened, setCloneModalOpened] = useState(false);
   const [openingBookPath, setOpeningBookPath] = useAtom(gameOpeningBookPathAtom);
   const [openingBookEnabled, setOpeningBookEnabled] = useAtom(gameOpeningBookEnabledAtom);
   const [openingBookMaxPly, setOpeningBookMaxPly] = useAtom(gameOpeningBookMaxPlyAtom);
@@ -284,6 +292,68 @@ function BoardGame() {
 
   async function startGame() {
     const playerSettings = getPlayers();
+    await launchGame(
+      { settings: playerSettings.white, config: toPlayerConfig(playerSettings.white) },
+      { settings: playerSettings.black, config: toPlayerConfig(playerSettings.black) },
+    );
+  }
+
+  /**
+   * Starts a game against a cloned opponent: the clone engine config
+   * overrides the chosen color, while the other side stays human (reusing
+   * the current human form settings whenever possible).
+   */
+  async function startGameWithClone(color: "white" | "black", engineConfig: PlayerConfig) {
+    if (engineConfig.type !== "engine") {
+      return;
+    }
+
+    const otherColor = color === "white" ? "black" : "white";
+    const forms = getPlayers();
+    let otherSettings = forms[otherColor];
+    if (otherSettings.type !== "human") {
+      const humanForm =
+        player1Settings.type === "human"
+          ? player1Settings
+          : player2Settings.type === "human"
+            ? player2Settings
+            : null;
+      otherSettings = humanForm ?? { type: "human", name: "Player" };
+    }
+
+    const cloneSettings: OpponentSettings = {
+      type: "engine",
+      engine: null,
+      go: engineConfig.go ?? { t: "Depth", c: 20 },
+      engineSettings: (engineConfig.options ?? []).map((option) => ({
+        name: option.name,
+        value: option.value,
+      })),
+      // Mirror the human's clock so both players play the same time control.
+      timeControl: otherSettings.timeControl,
+      timeUnit: otherSettings.timeUnit,
+      incrementUnit: otherSettings.incrementUnit,
+    };
+
+    const playerSettings =
+      color === "white"
+        ? { white: cloneSettings, black: otherSettings }
+        : { white: otherSettings, black: cloneSettings };
+
+    await launchGame(
+      {
+        settings: playerSettings.white,
+        config: color === "white" ? engineConfig : toPlayerConfig(playerSettings.white),
+      },
+      {
+        settings: playerSettings.black,
+        config: color === "black" ? engineConfig : toPlayerConfig(playerSettings.black),
+      },
+    );
+  }
+
+  async function launchGame(white: LaunchPlayer, black: LaunchPlayer) {
+    const playerSettings = { white: white.settings, black: black.settings };
     setPlayers(playerSettings);
 
     const boardOrientation =
@@ -297,8 +367,8 @@ function BoardGame() {
     const initialMoves = getTreeMoves();
 
     const config: GameConfig = {
-      white: toPlayerConfig(playerSettings.white),
-      black: toPlayerConfig(playerSettings.black),
+      white: white.config,
+      black: black.config,
       whiteTimeControl: playerSettings.white.timeControl
         ? {
             initialTime: playerSettings.white.timeControl.seconds,
@@ -733,6 +803,14 @@ function BoardGame() {
                           )}
                         </Stack>
                       </Paper>
+
+                      <Button
+                        variant="light"
+                        leftSection={<IconCopy size="1rem" />}
+                        onClick={() => setCloneModalOpened(true)}
+                      >
+                        {t("Board.Play.CloneOpponent", "Clone opponent…")}
+                      </Button>
                     </Stack>
                   </ScrollArea>
 
@@ -815,6 +893,11 @@ function BoardGame() {
           </Stack>
         )}
       </Portal>
+      <OpponentCloneModal
+        opened={cloneModalOpened}
+        onClose={() => setCloneModalOpened(false)}
+        onCloneReady={startGameWithClone}
+      />
     </>
   );
 }

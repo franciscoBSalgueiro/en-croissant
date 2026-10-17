@@ -50,7 +50,7 @@ pub struct EngineProcess {
 }
 
 impl EngineProcess {
-    async fn new(path: PathBuf) -> Result<(Self, EngineReader), Error> {
+    pub(crate) async fn new(path: PathBuf) -> Result<(Self, EngineReader), Error> {
         let mut base = BaseEngine::spawn(path).await?;
         base.init_uci().await?;
         let reader = base.take_reader().ok_or(Error::EngineDisconnected)?;
