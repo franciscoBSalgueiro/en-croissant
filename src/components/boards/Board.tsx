@@ -49,7 +49,7 @@ import {
 import { keyMapAtom } from "@/state/keybinds";
 import classes from "@/styles/Chessboard.module.css";
 import { ANNOTATION_INFO, isBasicAnnotation } from "@/utils/annotation";
-import { getVariationLine } from "@/utils/chess";
+import { getMoveDestination, getVariationLine } from "@/utils/chess";
 import { chessopsError, forceEnPassant, positionFromFen } from "@/utils/chessops";
 import { getTabFile, getTabGameNumber } from "@/utils/tabs";
 import ShowMaterial from "../common/ShowMaterial";
@@ -367,10 +367,7 @@ function Board({
 
   useHotkeys(keyMap.TOGGLE_EVAL_BAR.keys, () => setEvalOpen((e) => !e));
 
-  const square = match(currentNode)
-    .with({ san: "O-O" }, ({ halfMoves }) => parseSquare(halfMoves % 2 === 1 ? "g1" : "g8"))
-    .with({ san: "O-O-O" }, ({ halfMoves }) => parseSquare(halfMoves % 2 === 1 ? "c1" : "c8"))
-    .otherwise((node) => node.move?.to);
+  const square = getMoveDestination(currentNode);
 
   const lastMove =
     currentNode.move && square !== undefined
