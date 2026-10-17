@@ -28,6 +28,7 @@ import {
   requiredEngineSettings,
   useDefaultEngines,
 } from "@/utils/engines";
+import type { CatalogEngine } from "@/utils/builtinEngines";
 import { usePlatform } from "@/utils/files";
 import { formatBytes } from "@/utils/format";
 import { unwrap } from "@/utils/unwrap";
@@ -196,7 +197,7 @@ function EngineCard({
   engineId,
   initInstalled,
 }: {
-  engine: LocalEngine;
+  engine: CatalogEngine;
   engineId: number;
   initInstalled: boolean;
 }) {
@@ -208,11 +209,30 @@ function EngineCard({
     async (id: number, url: string) => {
       setInProgress(true);
       const enginesDir = await getEnginesDir();
-      let path = await resolve(enginesDir, `${url.slice(url.lastIndexOf("/") + 1)}`);
+      const subdir = engine.downloadDir
+        ? await join(enginesDir, ...engine.downloadDir.split("/"))
+        : null;
+      let path: string;
       if (/\.(?:zip|tar|tar\.gz)(?:[?#]|$)/.test(url)) {
-        path = enginesDir;
+        path = subdir ?? enginesDir;
+      } else {
+        const filename = url.slice(url.lastIndexOf("/") + 1);
+        path = subdir ? await join(subdir, filename) : await resolve(enginesDir, filename);
       }
-      await commands.downloadFile(`engine_${id}`, url, path, null, null, null);
+      const downloads = [url, ...(engine.extraDownloads ?? [])];
+      for (const [i, download] of downloads.entries()) {
+        const target =
+          i === 0 ? path : await resolve(enginesDir, download.slice(download.lastIndexOf("/") + 1));
+        // only the last download marks the install as finished
+        await commands.downloadFile(
+          `engine_${id}`,
+          download,
+          target,
+          null,
+          i === downloads.length - 1 ? null : false,
+          null,
+        );
+      }
       let enginesDirPath = enginesDir;
       if (enginesDirPath.endsWith("/") || enginesDirPath.endsWith("\\")) {
         enginesDirPath = enginesDirPath.slice(0, -1);
@@ -220,6 +240,21 @@ function EngineCard({
       const enginePath = await join(enginesDirPath, ...engine.path.split("/"));
       await commands.setFileAsExecutable(enginePath);
       const config = unwrap(await commands.getEngineConfig(enginePath));
+      const settings = config.options
+        .filter((o) => requiredEngineSettings.includes(o.value.name))
+        .map((o) => ({
+          name: o.value.name,
+          // @ts-expect-error
+          value: o.value.default,
+        }));
+      for (const preset of engine.presetSettings ?? []) {
+        if (!settings.find((s) => s.name === preset.name)) {
+          settings.push({
+            name: preset.name,
+            value: preset.value.replace("{{ENGINES_DIR}}", enginesDirPath),
+          });
+        }
+      }
       setEngines(async (prev) => [
         ...(await prev),
         {
@@ -228,13 +263,8 @@ function EngineCard({
           type: "local",
           path: enginePath,
           loaded: true,
-          settings: config.options
-            .filter((o) => requiredEngineSettings.includes(o.value.name))
-            .map((o) => ({
-              name: o.value.name,
-              // @ts-expect-error
-              value: o.value.default,
-            })),
+          go: engine.presetGo ?? engine.go,
+          settings,
         },
       ]);
     },

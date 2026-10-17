@@ -1,0 +1,82 @@
+#!/bin/sh
+# Launcher for the Maia 2 UCI engine (https://github.com/CSSLab/maia2).
+#
+# Ensures a Python 3.10-3.12 virtual environment with the maia2 package
+# exists next to this script, then runs the engine with it. The environment
+# is built on first use (this downloads PyTorch and can take a few minutes);
+# while that happens a static UCI banner is printed so that GUIs probing the
+# engine with `uci`/`uciok` are not blocked.
+#
+# Readiness is tracked with a marker file written only after the pip install
+# succeeds, so an interrupted setup is retried instead of half-running.
+# The Maia 2 model weights are downloaded on first `isready`.
+
+set -e
+DIR="$(cd "$(dirname "$0")" && pwd)"
+VENV="$DIR/.venv"
+PY="$VENV/bin/python"
+READY="$DIR/.venv.ready"
+
+banner() {
+    echo "id name Maia 2"
+    echo "id author CSSLab (UofT), UCI wrapper"
+    echo "option name MaiaElo type spin default 1500 min 1100 max 1900 step 100"
+    echo "option name ModelType type combo default rapid var rapid var blitz"
+    echo "option name MultiPV type spin default 1 min 1 max 20"
+    echo "option name Threads type spin default 1 min 1 max 256"
+    echo "option name Hash type spin default 16 min 1 max 4096"
+    echo "uciok"
+}
+
+bootstrap() {
+    find_python() {
+        for cmd in python3.12 python3.11 python3.10 python3; do
+            p="$(command -v "$cmd" 2>/dev/null)" || continue
+            "$p" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) and sys.version_info < (3, 13) else 1)' 2>/dev/null && { echo "$p"; return 0; }
+        done
+        return 1
+    }
+
+    if BASE_PY="$(find_python)"; then
+        [ -x "$PY" ] || "$BASE_PY" -m venv "$VENV" >&2
+        "$PY" -m pip install --disable-pip-version-check maia2 python-chess >&2
+    elif command -v uv >/dev/null 2>&1; then
+        # uv can fetch a suitable managed Python by itself; note that uv
+        # venvs ship without pip, so packages are installed through uv too
+        uv venv --python 3.12 "$VENV" >&2
+        uv pip install --python "$PY" maia2 python-chess >&2
+    else
+        echo "info string error: no Python 3.10-3.12 found. Install one (e.g. via uv or python.org) and retry." >&2
+        exit 1
+    fi
+    touch "$READY"
+}
+
+if [ ! -f "$READY" ]; then
+    banner
+
+    echo "info string creating Python environment for Maia 2 (first run only)..." >&2
+
+    # exclusive lock so concurrent launches never build the environment
+    # twice; a lock older than 30 minutes is assumed stale (crashed builder)
+    LOCK="$DIR/.venv.lock"
+    now=$(date +%s)
+    if [ -d "$LOCK" ] && [ $((now - $(stat -f %m "$LOCK" 2>/dev/null || echo 0))) -gt 1800 ]; then
+        rmdir "$LOCK" 2>/dev/null
+    fi
+    until mkdir "$LOCK" 2>/dev/null; do
+        echo "info string waiting for another Maia 2 setup to finish..." >&2
+        sleep 5
+        if [ -f "$READY" ]; then
+            break
+        fi
+    done
+    trap 'rmdir "$LOCK" 2>/dev/null' EXIT
+    if [ ! -f "$READY" ]; then
+        bootstrap
+    fi
+    rmdir "$LOCK" 2>/dev/null
+    trap - EXIT
+fi
+
+exec "$PY" "$DIR/maia2_uci.py" "$@"

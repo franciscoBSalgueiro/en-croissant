@@ -1,0 +1,6 @@
+# local bootstrap artifacts created by the launcher on first use
+.venv/
+.venv.ready
+.venv.lock
+models/
+__pycache__/

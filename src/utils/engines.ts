@@ -3,6 +3,7 @@ import type { Platform } from "@tauri-apps/plugin-os";
 import useSWR from "swr";
 import { z } from "zod";
 import { type BestMoves, commands, type EngineOptions, type GoMode } from "@/bindings";
+import { type CatalogEngine, getBuiltinEngines } from "./builtinEngines";
 import { unwrap } from "./unwrap";
 
 export const requiredEngineSettings = ["MultiPV", "Threads", "Hash"];
@@ -95,18 +96,21 @@ export function getBestMoves(
 export function useDefaultEngines(os: Platform | undefined, opened: boolean) {
     const { data, error, isLoading } = useSWR(opened ? os : null, async (os: Platform) => {
         const bmi2: boolean = await commands.isBmi2Compatible();
+        const builtin = getBuiltinEngines(os);
         const data = await fetch(`https://www.encroissant.org/engines?os=${os}&bmi2=${bmi2}`, {
             method: "GET",
         });
         if (!data.ok) {
-            throw new Error("Failed to fetch engines");
+            return builtin;
         }
-        return (await data.json()).filter(
-            (e: { os: Platform; bmi2: boolean }) => e.os === os && e.bmi2 === bmi2,
-        );
+        const remote: CatalogEngine[] = (
+            (await data.json()) as (CatalogEngine & { os: Platform; bmi2: boolean })[]
+        ).filter((e) => e.os === os && e.bmi2 === bmi2);
+        // built-in engines are skipped if the remote catalog already lists them
+        return remote.concat(builtin.filter((b) => !remote.some((e) => e.name === b.name)));
     });
     return {
-        defaultEngines: data as LocalEngine[],
+        defaultEngines: data as CatalogEngine[],
         error,
         isLoading,
     };
