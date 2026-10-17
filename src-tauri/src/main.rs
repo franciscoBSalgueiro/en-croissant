@@ -9,6 +9,7 @@ mod engine;
 mod error;
 mod game;
 mod idea;
+mod training;
 mod simulation;
 
 mod fs;
@@ -45,7 +46,8 @@ use crate::chess::{
 use crate::db::{
     clear_games, convert_pgn, create_indexes, delete_database, delete_db_game, delete_empty_games,
     delete_indexes, export_to_pgn, get_player, get_players_game_info, get_tournaments,
-    opening_report, preload_reference_db, search_position, MmapSearchIndex,
+    model_games, opening_report, player_report, preload_reference_db, search_position,
+    similar_games, MmapSearchIndex,
 };
 use crate::game::{
     abort_game, get_game_engine_logs, get_game_state, make_game_move, resign_game, start_game,
@@ -53,6 +55,7 @@ use crate::game::{
 };
 use crate::idea::{get_tree, start_tree_analysis, stop_tree_analysis, TreeUpdateEvent};
 use crate::simulation::{cancel_simulation, run_simulation, SimulationUpdateEvent};
+use crate::training::{evaluate_position, position_insights, structure_report};
 
 use crate::fs::set_file_as_executable;
 use crate::lexer::lex_pgn;
@@ -210,7 +213,13 @@ fn make_specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             cancel_simulation,
             start_tree_analysis,
             stop_tree_analysis,
-            get_tree
+            get_tree,
+            evaluate_position,
+            structure_report,
+            position_insights,
+            model_games,
+            similar_games,
+            player_report
         ))
         .events(tauri_specta::collect_events!(
             BestMovesPayload,

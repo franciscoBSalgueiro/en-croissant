@@ -507,6 +507,66 @@ async getTree(id: string) : Promise<Result<IdeaTree | null, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+/**
+ * One-shot engine evaluation of a position at fixed depth.
+ * Returns WHITE-POV centipawns (mate ±100000). Used to score replay-training
+ * guesses and to power insights.
+ */
+async evaluatePosition(fen: string, moves: string[], enginePath: string, depth: number) : Promise<Result<number, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("evaluate_position", { fen, moves, enginePath, depth }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Named pawn-structure motifs plus raw structure features for a position.
+ */
+async structureReport(fen: string) : Promise<Result<StructureReport, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("structure_report", { fen }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Natural-language-friendly position summary atoms: material balance,
+ * castling/development heuristics, hanging pieces and the structure report.
+ */
+async positionInsights(fen: string) : Promise<Result<PositionInsights, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("position_insights", { fen }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async modelGames(file: string, query: GameQuery) : Promise<Result<ModelGamesReport, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("model_games", { file, query }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async similarGames(file: string, fen: string, limit: number) : Promise<Result<SimilarGame[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("similar_games", { file, fen, limit }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async playerReport(file: string, playerId: number) : Promise<Result<PlayerReport, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("player_report", { file, playerId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -567,6 +627,8 @@ export type GameState = { gameId: string; status: GameStatus; initialFen: string
 export type GameStatus = "playing" | { finished: { result: GameResult } }
 export type GoMode = { t: "PlayersTime"; c: PlayersTime } | { t: "Depth"; c: number } | { t: "Time"; c: number } | { t: "Nodes"; c: number } | { t: "Infinite" }
 export type IdeaTree = { nodes: TreeNode[]; config: TreeConfig | null; updated_at: bigint }
+export type ModelGamesReport = { players: ModelPlayerStat[]; games: NormalizedGame[] }
+export type ModelPlayerStat = { name: string; elo: number | null; games: number; wins: number; draws: number; losses: number }
 export type MoveAnalysis = { best: BestMoves[]; novelty: boolean; is_sacrifice: boolean }
 export type NormalizedGame = { id: number; fen: string; event: string; event_id: number; site: string; site_id: number; date?: string | null; time?: string | null; round?: string | null; white: string; white_id: number; white_elo?: number | null; black: string; black_id: number; black_elo?: number | null; result: Outcome; time_control?: string | null; eco?: string | null; ply_count?: number | null; moves: string }
 export type OpeningBookConfig = { path: string; maxPly?: bigint }
@@ -578,9 +640,12 @@ export type PiecePath = { from: string; to: string; count: number }
 export type Player = { id: number; name: string | null; elo: number | null }
 export type PlayerConfig = { type: "human"; name: string } | { type: "engine"; name: string; path: string; options?: EngineOption[]; go: GoMode | null; opponent_book?: OpponentBook | null }
 export type PlayerGameInfo = { site_stats_data: SiteStatsData[] }
+export type PlayerOpening = { eco: string; games: number; wins: number; draws: number; losses: number }
 export type PlayerQuery = { options: QueryOptions<PlayerSort>; name?: string | null; range?: [number, number] | null }
+export type PlayerReport = { name: string; elo: number | null; games: number; wins: number; draws: number; losses: number; avg_opponent_elo: number | null; first_year: string | null; last_year: string | null; openings: PlayerOpening[]; best_games: NormalizedGame[] }
 export type PlayerSort = "id" | "name" | "elo"
 export type PlayersTime = { white: number; black: number; winc: number; binc: number }
+export type PositionInsights = { material_diff: number; white_castled: boolean; black_castled: boolean; white_minor_developed: number; black_minor_developed: number; hanging_white: string[]; hanging_black: string[]; structure: StructureReport }
 export type PositionQueryJs = { fen: string; type_: string }
 export type PositionStats = { move: string; white: number; draw: number; black: number }
 export type ProgressEvent = { id: string; progress: number; finished: boolean }
@@ -604,6 +669,7 @@ export type ScoreValue =
  */
 { type: "mate"; value: number }
 export type Sides = "BlackWhite" | "WhiteBlack" | "Any"
+export type SimilarGame = { game: NormalizedGame; ply: number; matched_plies: number }
 export type SimulationConfig = { fen: string; moves: string[]; engine_path: string; engine_options: EngineOption[]; movetime_ms: number; games: number; max_plies: number; multipv: number; temperature: number }
 export type SimulationFirstMove = { uci: string; san: string; total: number; white: number; draw: number; black: number; avg_length: number }
 export type SimulationResult = { games: number; white: number; draw: number; black: number; avg_length: number; first_moves: SimulationFirstMove[]; piece_paths: PiecePath[] }
@@ -611,6 +677,8 @@ export type SimulationUpdateEvent = { id: string; games_done: number; white: num
 export type SiteStatsData = { site: string; player: string; data: StatsData[] }
 export type SortDirection = "asc" | "desc"
 export type StatsData = { date: string; is_player_white: boolean; player_elo: number; result: GameOutcome; time_control: string; opening: string }
+export type StructureFeatures = { white_doubled: number; black_doubled: number; white_isolated: number; black_isolated: number; white_passed: number; black_passed: number; white_islands: number; black_islands: number; open_files: string[]; semi_open_white: string[]; semi_open_black: string[] }
+export type StructureReport = { fen: string; motifs: string[]; features: StructureFeatures }
 export type TimeControl = { initialTime: bigint; increment: bigint }
 export type Token = { type: "ParenOpen" } | { type: "ParenClose" } | { type: "Comment"; value: string } | { type: "San"; value: string } | { type: "Header"; value: { tag: string; value: string } } | { type: "Nag"; value: string } | { type: "Outcome"; value: string }
 export type TournamentQuery = { options: QueryOptions<TournamentSort>; name: string | null }

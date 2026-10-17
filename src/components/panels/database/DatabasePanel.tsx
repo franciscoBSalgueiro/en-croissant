@@ -20,6 +20,7 @@ import { match } from "ts-pattern";
 import { useStore } from "zustand";
 import { commands, type NormalizedGame } from "@/bindings";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
+import ReplayTrainingModal from "@/components/boards/ReplayTrainingModal";
 import {
   currentDbTabAtom,
   currentDbTypeAtom,
@@ -31,14 +32,18 @@ import {
   sessionsAtom,
 } from "@/state/atoms";
 import { getDatabases, type Opening, openingReport, searchPosition } from "@/utils/db";
+import { modelGames } from "@/utils/dbLearning";
 import { formatNumber } from "@/utils/format";
 import { convertToNormalized, getLichessGames, getMasterGames } from "@/utils/lichess/api";
 import type { LichessGamesOptions, MasterGamesOptions } from "@/utils/lichess/explorer";
 import DatabaseLoader from "./DatabaseLoader";
 import GamesTable from "./GamesTable";
+import ModelsTable from "./ModelsTable";
 import NoDatabaseWarning from "./NoDatabaseWarning";
 import OpeningReportTable from "./OpeningReportTable";
 import OpeningsTable from "./OpeningsTable";
+import StrategyTrainerModal from "./StrategyTrainerModal";
+import StructureSearch from "./StructureSearch";
 import LichessOptionsPanel from "./options/LichessOptionsPanel";
 import LocalOptionsPanel from "./options/LocalOptionsPanel";
 import MasterOptionsPanel from "./options/MastersOptionsPanel";
@@ -189,6 +194,21 @@ function DatabasePanel() {
     },
   );
 
+  const {
+    data: modelsData,
+    isLoading: modelsLoading,
+    error: modelsError,
+  } = useSWR(
+    tabType === "models" && dbType.type === "local" && dbType.options.path ? dbType : null,
+    async (dbType: DBType) => {
+      if (dbType.type !== "local") throw Error("Missing reference database");
+      return modelGames(dbType.options);
+    },
+  );
+
+  const [trainerOpen, setTrainerOpen] = useState(false);
+  const [trainingGame, setTrainingGame] = useState<NormalizedGame | null>(null);
+
   const grandTotal = openingData?.openings?.reduce(
     (acc, curr) => acc + curr.black + curr.white + curr.draw,
     0,
@@ -307,7 +327,38 @@ function DatabasePanel() {
           header={header}
           missingExplorerToken={missingExplorerToken}
         >
+          <Group justify="flex-end" pb={4}>
+            <Button
+              size="xs"
+              variant="light"
+              leftSection={<IconTarget size="1rem" />}
+              disabled={dbType.type !== "local" || !dbType.options.path}
+              onClick={() => setTrainerOpen(true)}
+            >
+              {t("Board.Database.TrainLines")}
+            </Button>
+          </Group>
           <OpeningReportTable report={reportData || []} loading={reportLoading} />
+        </PanelWithError>
+        <PanelWithError
+          value="models"
+          error={modelsError}
+          type={db}
+          header={header}
+          missingExplorerToken={missingExplorerToken}
+        >
+          <ModelsTable report={modelsData} loading={modelsLoading} onTrain={setTrainingGame} />
+        </PanelWithError>
+        <PanelWithError
+          value="structures"
+          type={db}
+          header={header}
+          missingExplorerToken={missingExplorerToken}
+        >
+          <StructureSearch
+            path={dbType.type === "local" ? (dbType.options.path ?? "") : ""}
+            fen={debouncedFen}
+          />
         </PanelWithError>
         <PanelWithError
           value="options"
@@ -325,6 +376,20 @@ function DatabasePanel() {
           </ScrollArea>
         </PanelWithError>
       </Tabs>
+
+      <ReplayTrainingModal
+        opened={trainingGame !== null}
+        setOpened={(o) => {
+          if (!o) setTrainingGame(null);
+        }}
+        game={trainingGame}
+      />
+      <StrategyTrainerModal
+        opened={trainerOpen}
+        setOpened={setTrainerOpen}
+        fen={debouncedFen}
+        path={dbType.type === "local" ? (dbType.options.path ?? "") : ""}
+      />
     </Stack>
   );
 }

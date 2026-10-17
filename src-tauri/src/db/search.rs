@@ -723,6 +723,550 @@ pub async fn opening_report(
     Ok(reports)
 }
 
+#[derive(Debug, Serialize, Clone, Type)]
+pub struct ModelPlayerStat {
+    pub name: String,
+    pub elo: Option<i32>,
+    pub games: u32,
+    pub wins: u32,
+    pub draws: u32,
+    pub losses: u32,
+}
+
+#[derive(Serialize, Clone, Type)]
+pub struct ModelGamesReport {
+    pub players: Vec<ModelPlayerStat>,
+    pub games: Vec<NormalizedGame>,
+}
+
+const MAX_MODEL_PLAYERS: usize = 10;
+const MAX_MODEL_GAMES: usize = 30;
+
+#[derive(Default)]
+struct PlayerAccum {
+    games: u32,
+    wins: u32,
+    draws: u32,
+    losses: u32,
+    white_elo: i16,
+    black_elo: i16,
+}
+
+impl PlayerAccum {
+    /// Records one game for this player. Wins count games the player won with
+    /// either color; "*" results do not count towards wins/draws/losses.
+    fn record(&mut self, result: GameResult, as_white: bool, elo: i16) {
+        self.games += 1;
+        match result {
+            GameResult::WhiteWin => {
+                if as_white {
+                    self.wins += 1;
+                } else {
+                    self.losses += 1;
+                }
+            }
+            GameResult::BlackWin => {
+                if as_white {
+                    self.losses += 1;
+                } else {
+                    self.wins += 1;
+                }
+            }
+            GameResult::Draw => self.draws += 1,
+            GameResult::Other | GameResult::None => {}
+        }
+        if as_white {
+            self.white_elo = self.white_elo.max(elo);
+        } else {
+            self.black_elo = self.black_elo.max(elo);
+        }
+    }
+
+    fn max_elo(&self) -> i16 {
+        self.white_elo.max(self.black_elo)
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn model_games(
+    file: PathBuf,
+    query: GameQuery,
+    state: tauri::State<'_, AppState>,
+) -> Result<ModelGamesReport, Error> {
+    let start = Instant::now();
+    info!("start loading games for model games report");
+
+    let permit = state.new_request.acquire().await.unwrap();
+
+    let mmap_index = {
+        let mut cache = state.db_cache.lock().unwrap();
+        if cache.is_none() {
+            let index_path = get_index_path(&file);
+
+            if !MmapSearchIndex::is_valid(&index_path) {
+                info!("Search index not found, generating automatically...");
+                drop(cache);
+                if let Err(e) = super::generate_search_index(&file, &state) {
+                    return Err(Error::from(std::io::Error::other(format!(
+                        "Failed to generate search index: {}",
+                        e
+                    ))));
+                }
+                cache = state.db_cache.lock().unwrap();
+            }
+
+            info!("Loading games from mmap binary search index");
+            match MmapSearchIndex::open(&index_path) {
+                Ok(index) => {
+                    info!(
+                        "Opened mmap index with {} games: {:?}",
+                        index.len(),
+                        start.elapsed()
+                    );
+                    *cache = Some(index);
+                }
+                Err(e) => {
+                    return Err(Error::from(e));
+                }
+            }
+        }
+        cache.as_ref().unwrap().clone()
+    };
+
+    let game_count = mmap_index.len();
+
+    info!(
+        "Ready to search {} games: {:?}",
+        game_count,
+        start.elapsed()
+    );
+
+    let player_stats: DashMap<i32, PlayerAccum> = DashMap::new();
+    // Min-heap of (elo_key, game_id) to track the top-rated model games.
+    // Using Reverse so peek() returns the entry with the lowest ELO,
+    // which we can evict when a higher-rated game is found.
+    let top_games: Mutex<BinaryHeap<Reverse<(i16, i32)>>> =
+        Mutex::new(BinaryHeap::with_capacity(MAX_MODEL_GAMES + 1));
+
+    let parsed_position_query: Option<PositionQuery> = if let Some(pq) = &query.position {
+        Some(convert_position_query(pq.clone())?)
+    } else {
+        None
+    };
+
+    let wanted_result = query.wanted_result.as_ref().and_then(|r| match r.as_str() {
+        "whitewon" => Some(GameResult::WhiteWin),
+        "blackwon" => Some(GameResult::BlackWin),
+        "draw" => Some(GameResult::Draw),
+        _ => None,
+    });
+
+    info!("start model games search");
+
+    let process_entry = |entry: SearchGameEntryRef<'_>| {
+        if let Some(white) = query.player1 {
+            if white != entry.white_id {
+                return;
+            }
+        }
+
+        if let Some(black) = query.player2 {
+            if black != entry.black_id {
+                return;
+            }
+        }
+
+        if let Some(wanted) = wanted_result {
+            if entry.result != wanted {
+                return;
+            }
+        }
+
+        if let Some(start_date) = &query.start_date {
+            if let Some(date) = entry.date {
+                if date < start_date.as_str() {
+                    return;
+                }
+            }
+        }
+
+        if let Some(end_date) = &query.end_date {
+            if let Some(date) = entry.date {
+                if date > end_date.as_str() {
+                    return;
+                }
+            }
+        }
+
+        if let Some(position_query) = &parsed_position_query {
+            let end_material: MaterialCount = ByColor {
+                white: entry.white_material,
+                black: entry.black_material,
+            };
+            if position_query.can_reach(&end_material, entry.pawn_home) {
+                if get_move_after_match(entry.moves, &entry.fen, position_query)
+                    .unwrap_or(None)
+                    .is_some()
+                {
+                    let elo_key = entry.white_elo.max(entry.black_elo);
+                    let mut heap = top_games.lock().unwrap();
+                    if heap.len() < MAX_MODEL_GAMES {
+                        heap.push(Reverse((elo_key, entry.id)));
+                    } else if let Some(&Reverse((min_elo, _))) = heap.peek() {
+                        if elo_key > min_elo {
+                            heap.pop();
+                            heap.push(Reverse((elo_key, entry.id)));
+                        }
+                    }
+                    drop(heap);
+
+                    player_stats
+                        .entry(entry.white_id)
+                        .or_default()
+                        .record(entry.result, true, entry.white_elo);
+                    player_stats
+                        .entry(entry.black_id)
+                        .or_default()
+                        .record(entry.result, false, entry.black_elo);
+                }
+            }
+        }
+    };
+
+    mmap_index.par_iter().for_each(process_entry);
+
+    if player_stats.is_empty() {
+        info!("finished model games search in {:?}", start.elapsed());
+        drop(permit);
+        return Ok(ModelGamesReport {
+            players: Vec::new(),
+            games: Vec::new(),
+        });
+    }
+
+    let mut ranked_players: Vec<(i32, PlayerAccum)> = player_stats.into_iter().collect();
+    ranked_players.sort_by(|(id_a, a), (id_b, b)| {
+        b.games
+            .cmp(&a.games)
+            .then_with(|| b.max_elo().cmp(&a.max_elo()))
+            .then_with(|| id_a.cmp(id_b))
+    });
+    ranked_players.truncate(MAX_MODEL_PLAYERS);
+
+    let game_ids: Vec<i32> = top_games
+        .into_inner()
+        .unwrap()
+        .into_iter()
+        .map(|Reverse((_, id))| id)
+        .collect();
+
+    info!("finished model games search in {:?}", start.elapsed());
+
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+
+    let player_ids: Vec<i32> = ranked_players.iter().map(|(id, _)| *id).collect();
+    let stored_players: Vec<Player> = players::table
+        .filter(players::id.eq_any(player_ids))
+        .load(db)?;
+    let stored_by_id: HashMap<i32, Player> =
+        stored_players.into_iter().map(|p| (p.id, p)).collect();
+
+    let model_players: Vec<ModelPlayerStat> = ranked_players
+        .into_iter()
+        .map(|(id, accum)| {
+            let stored = stored_by_id.get(&id);
+            let name = stored
+                .and_then(|p| p.name.clone())
+                .unwrap_or_else(|| format!("Player {id}"));
+            let elo = stored
+                .and_then(|p| p.elo)
+                .or_else(|| {
+                    let max_seen = accum.max_elo();
+                    (max_seen > 0).then_some(i32::from(max_seen))
+                });
+            ModelPlayerStat {
+                name,
+                elo,
+                games: accum.games,
+                wins: accum.wins,
+                draws: accum.draws,
+                losses: accum.losses,
+            }
+        })
+        .collect();
+
+    let (white_players, black_players) = diesel::alias!(players as white, players as black);
+    let games: Vec<(Game, Player, Player, Event, Site)> = games::table
+        .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
+        .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
+        .inner_join(events::table.on(games::event_id.eq(events::id)))
+        .inner_join(sites::table.on(games::site_id.eq(sites::id)))
+        .filter(games::id.eq_any(game_ids))
+        .order((games::white_elo.desc(), games::black_elo.desc()))
+        .load(db)?;
+
+    let mut model_games_list = normalize_games(games);
+    model_games_list.sort_by(|a, b| {
+        let a_key = a.white_elo.unwrap_or(0).max(a.black_elo.unwrap_or(0));
+        let b_key = b.white_elo.unwrap_or(0).max(b.black_elo.unwrap_or(0));
+        b_key.cmp(&a_key)
+    });
+
+    drop(permit);
+
+    Ok(ModelGamesReport {
+        players: model_players,
+        games: model_games_list,
+    })
+}
+
+#[derive(Serialize, Clone, Type)]
+pub struct SimilarGame {
+    pub game: NormalizedGame,
+    pub ply: u32,
+    pub matched_plies: u32,
+}
+
+/// A pawn skeleton: the bitboards of the white and black pawns of a position.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct PawnStructure {
+    white: Bitboard,
+    black: Bitboard,
+}
+
+impl PawnStructure {
+    fn from_position(position: &Chess) -> Self {
+        let board = position.board();
+        let pawns = board.pawns();
+        Self {
+            white: board.white() & pawns,
+            black: board.black() & pawns,
+        }
+    }
+
+    /// The same skeleton flipped vertically (square ^ 56).
+    fn flip_vertical(self) -> Self {
+        Self {
+            white: self.white.flip_vertical(),
+            black: self.black.flip_vertical(),
+        }
+    }
+
+    fn swap_colors(self) -> Self {
+        Self {
+            white: self.black,
+            black: self.white,
+        }
+    }
+
+    /// Returns true when the skeletons are identical, or when they become
+    /// identical after flipping the target vertically, either with colors
+    /// preserved or with colors swapped (the same skeleton seen from the
+    /// other side's perspective).
+    fn matches(self, target: PawnStructure) -> bool {
+        if self == target {
+            return true;
+        }
+        let flipped = target.flip_vertical();
+        self == flipped || self == flipped.swap_colors()
+    }
+}
+
+fn pawn_structure_from_fen(fen: &str) -> Result<PawnStructure, Error> {
+    let fen = Fen::from_ascii(fen.as_bytes())?;
+    let setup = fen.into_setup();
+    let castling_mode = CastlingMode::detect(&setup);
+    let position: Chess = setup.position(castling_mode)?;
+    Ok(PawnStructure::from_position(&position))
+}
+
+/// Replays the encoded mainline and counts the plies whose pawn skeleton
+/// matches the target (directly or mirrored). Returns
+/// `(first matching ply, number of matching plies)`, or `None` when the game
+/// never matches or its data cannot be decoded.
+fn count_pawn_structure_matches(
+    move_blob: &[u8],
+    fen: Option<&str>,
+    target: PawnStructure,
+) -> Option<(u32, u32)> {
+    let mut chess = if let Some(fen) = fen {
+        let fen = Fen::from_ascii(fen.as_bytes()).ok()?;
+        let setup = fen.into_setup();
+        let castling_mode = CastlingMode::detect(&setup);
+        Chess::from_setup(setup, castling_mode).ok()?
+    } else {
+        Chess::default()
+    };
+
+    let mut first_match_ply: Option<u32> = None;
+    let mut matched_plies = 0u32;
+
+    if PawnStructure::from_position(&chess).matches(target) {
+        first_match_ply = Some(0);
+        matched_plies += 1;
+    }
+
+    for (ply, byte) in iter_mainline_move_bytes(move_blob).enumerate() {
+        let Some(m) = decode_move(byte, &chess) else {
+            return None;
+        };
+        chess.play_unchecked(&m);
+
+        if PawnStructure::from_position(&chess).matches(target) {
+            if first_match_ply.is_none() {
+                first_match_ply = Some(ply as u32 + 1);
+            }
+            matched_plies += 1;
+        }
+    }
+
+    first_match_ply.map(|ply| (ply, matched_plies))
+}
+
+struct SimilarAccum {
+    id: i32,
+    first_match_ply: u32,
+    matched_plies: u32,
+    white_elo: i16,
+    black_elo: i16,
+}
+
+impl SimilarAccum {
+    fn elo_key(&self) -> i16 {
+        self.white_elo.max(self.black_elo)
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn similar_games(
+    file: PathBuf,
+    fen: String,
+    limit: u32,
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<SimilarGame>, Error> {
+    let target = pawn_structure_from_fen(&fen)?;
+
+    let start = Instant::now();
+    info!("start loading games for similar structure search");
+
+    let permit = state.new_request.acquire().await.unwrap();
+
+    let mmap_index = {
+        let mut cache = state.db_cache.lock().unwrap();
+        if cache.is_none() {
+            let index_path = get_index_path(&file);
+
+            if !MmapSearchIndex::is_valid(&index_path) {
+                info!("Search index not found, generating automatically...");
+                drop(cache);
+                if let Err(e) = super::generate_search_index(&file, &state) {
+                    return Err(Error::from(std::io::Error::other(format!(
+                        "Failed to generate search index: {}",
+                        e
+                    ))));
+                }
+                cache = state.db_cache.lock().unwrap();
+            }
+
+            info!("Loading games from mmap binary search index");
+            match MmapSearchIndex::open(&index_path) {
+                Ok(index) => {
+                    info!(
+                        "Opened mmap index with {} games: {:?}",
+                        index.len(),
+                        start.elapsed()
+                    );
+                    *cache = Some(index);
+                }
+                Err(e) => {
+                    return Err(Error::from(e));
+                }
+            }
+        }
+        cache.as_ref().unwrap().clone()
+    };
+
+    let game_count = mmap_index.len();
+
+    info!(
+        "Ready to search {} games: {:?}",
+        game_count,
+        start.elapsed()
+    );
+
+    let matched_games: DashMap<i32, SimilarAccum> = DashMap::new();
+
+    info!("start similar structure search");
+
+    let process_entry = |entry: SearchGameEntryRef<'_>| {
+        if let Some((first_match_ply, matched_plies)) =
+            count_pawn_structure_matches(entry.moves, entry.fen, target)
+        {
+            matched_games.entry(entry.id).or_insert_with(|| SimilarAccum {
+                id: entry.id,
+                first_match_ply,
+                matched_plies,
+                white_elo: entry.white_elo,
+                black_elo: entry.black_elo,
+            });
+        }
+    };
+
+    mmap_index.par_iter().for_each(process_entry);
+
+    let mut ranked: Vec<SimilarAccum> = matched_games.into_iter().map(|(_, accum)| accum).collect();
+    ranked.sort_by(|a, b| {
+        b.matched_plies
+            .cmp(&a.matched_plies)
+            .then_with(|| b.elo_key().cmp(&a.elo_key()))
+            .then_with(|| a.first_match_ply.cmp(&b.first_match_ply))
+            .then_with(|| a.id.cmp(&b.id))
+    });
+    ranked.truncate(limit as usize);
+
+    info!("finished similar structure search in {:?}", start.elapsed());
+
+    if ranked.is_empty() {
+        drop(permit);
+        return Ok(Vec::new());
+    }
+
+    let ids: Vec<i32> = ranked.iter().map(|accum| accum.id).collect();
+
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+
+    let (white_players, black_players) = diesel::alias!(players as white, players as black);
+    let games: Vec<(Game, Player, Player, Event, Site)> = games::table
+        .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
+        .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
+        .inner_join(events::table.on(games::event_id.eq(events::id)))
+        .inner_join(sites::table.on(games::site_id.eq(sites::id)))
+        .filter(games::id.eq_any(ids))
+        .order((games::white_elo.desc(), games::black_elo.desc()))
+        .load(db)?;
+
+    let games_by_id: HashMap<i32, NormalizedGame> =
+        normalize_games(games).into_iter().map(|game| (game.id, game)).collect();
+
+    let similar_games: Vec<SimilarGame> = ranked
+        .into_iter()
+        .filter_map(|accum| {
+            let game = games_by_id.get(&accum.id)?.clone();
+            Some(SimilarGame {
+                game,
+                ply: accum.first_match_ply,
+                matched_plies: accum.matched_plies,
+            })
+        })
+        .collect();
+
+    drop(permit);
+
+    Ok(similar_games)
+}
+
 pub async fn is_position_in_db(
     file: PathBuf,
     query: GameQuery,
@@ -932,9 +1476,124 @@ mod tests {
         assert_eq!(result, Some("e4".to_string()));
     }
 
+    #[test]
+    fn pawn_structure_direct_match_test() {
+        let target = pawn_structure_from_fen("4k3/8/8/3p4/4P3/8/8/4K3 w - - 0 1").unwrap();
 
+        // same skeleton, different side to move
+        let game = pawn_structure_from_fen("4k3/8/8/3p4/4P3/8/8/4K3 b - - 0 1").unwrap();
+        assert!(game.matches(target));
 
+        // non-pawn pieces are ignored
+        let game = pawn_structure_from_fen("4k3/8/8/3p1N2/4P3/8/8/4K3 b - - 0 1").unwrap();
+        assert!(game.matches(target));
+    }
 
+    #[test]
+    fn pawn_structure_rejects_different_skeleton_test() {
+        let target = pawn_structure_from_fen("4k3/8/8/3p4/4P3/8/8/4K3 w - - 0 1").unwrap();
 
+        // black pawn moved
+        let game = pawn_structure_from_fen("4k3/8/4p3/8/4P3/8/8/4K3 w - - 0 1").unwrap();
+        assert!(!game.matches(target));
 
+        // colors swapped without mirroring is not a match
+        let game = pawn_structure_from_fen("4k3/8/8/3P4/3p4/8/8/4K3 w - - 0 1").unwrap();
+        assert!(!game.matches(target));
+    }
+
+    #[test]
+    fn pawn_structure_mirrored_match_test() {
+        // target: white pawn e4, black pawn d5
+        let target = pawn_structure_from_fen("4k3/8/8/3p4/4P3/8/8/4K3 w - - 0 1").unwrap();
+
+        // target flipped with colors preserved: white e5, black d4
+        let game = pawn_structure_from_fen("4k3/8/8/4P3/3p4/8/8/4K3 w - - 0 1").unwrap();
+        assert!(game.matches(target));
+
+        // target flipped with colors swapped: white d4, black e5
+        let game = pawn_structure_from_fen("4k3/8/8/4p3/3P4/8/8/4K3 w - - 0 1").unwrap();
+        assert!(game.matches(target));
+    }
+
+    fn encode_san_game(sans: &[&str]) -> Vec<u8> {
+        use crate::db::encoding::encode_move;
+
+        let mut chess = Chess::default();
+        let mut bytes = Vec::new();
+        for san in sans {
+            let san: shakmaty::san::San = san.parse().unwrap();
+            let m = san.to_move(&chess).unwrap();
+            bytes.push(encode_move(&m, &chess).unwrap());
+            chess.play_unchecked(&m);
+        }
+        bytes
+    }
+
+    #[test]
+    fn count_pawn_structure_matches_test() {
+        // start position skeleton: only ply 0 of 1. e4 e5 matches
+        let target = pawn_structure_from_fen(
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        )
+        .unwrap();
+        let game = vec![12, 12]; // 1. e4 e5
+        assert_eq!(
+            count_pawn_structure_matches(&game, None, target),
+            Some((0, 1))
+        );
+
+        // knight moves keep the skeleton: every ply of 1. Nf3 Nf6 matches
+        let game = encode_san_game(&["Nf3", "Nf6"]);
+        assert_eq!(
+            count_pawn_structure_matches(&game, None, target),
+            Some((0, 3))
+        );
+
+        // skeleton after 1. e4 e5: only the last ply of 1. e4 e5 matches
+        let target = pawn_structure_from_fen(
+            "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+        )
+        .unwrap();
+        assert_eq!(
+            count_pawn_structure_matches(&game, None, target),
+            None
+        );
+        let game = vec![12, 12]; // 1. e4 e5
+        assert_eq!(
+            count_pawn_structure_matches(&game, None, target),
+            Some((2, 1))
+        );
+
+        // mirrored skeletons match during replay: 1. d4 e5 is the mirrored
+        // 1. e4 d5 (same skeleton from the other side's perspective)
+        let target = pawn_structure_from_fen(
+            "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+        )
+        .unwrap();
+        let game = encode_san_game(&["d4", "e5"]);
+        assert_eq!(
+            count_pawn_structure_matches(&game, None, target),
+            Some((2, 1))
+        );
+
+        // undecodable move byte aborts the replay
+        assert_eq!(count_pawn_structure_matches(&[200], None, target), None);
+    }
+
+    #[test]
+    fn player_accum_record_test() {
+        let mut accum = PlayerAccum::default();
+        accum.record(GameResult::WhiteWin, true, 2700);
+        accum.record(GameResult::WhiteWin, false, 2500);
+        accum.record(GameResult::BlackWin, false, 2600);
+        accum.record(GameResult::Draw, true, 0);
+        accum.record(GameResult::Other, true, 2400);
+
+        assert_eq!(accum.games, 5);
+        assert_eq!(accum.wins, 2);
+        assert_eq!(accum.draws, 1);
+        assert_eq!(accum.losses, 1);
+        assert_eq!(accum.max_elo(), 2700);
+    }
 }
