@@ -15,6 +15,10 @@ export type BestMoves = Omit<BestMovesT, "score"> & {
 
 export type DatabaseInfo =
     | (DatabaseInfoT & {
+          type: "legacy";
+          file: string;
+      })
+    | (DatabaseInfoT & {
           type: "success";
           file: string;
           downloadLink?: string;

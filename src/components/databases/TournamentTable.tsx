@@ -28,23 +28,23 @@ function TournamentTable() {
   );
   const tournaments = data?.data ?? [];
   const count = data?.count;
-  const tournament = tournaments.find((t) => t.id === selected);
+  const tournament = tournaments.find((t) => t.name === selected);
 
   useHotkeys("ArrowUp", () => {
     if (selected != null) {
-      const prevIndex = tournaments.findIndex((p) => p.id === selected) - 1;
+      const prevIndex = tournaments.findIndex((p) => p.name === selected) - 1;
       if (prevIndex > -1) {
-        setSelected(tournaments[prevIndex].id);
+        setSelected(tournaments[prevIndex].name ?? undefined);
       }
     }
   });
   useHotkeys("ArrowDown", () => {
-    const curIndex = tournaments.findIndex((p) => p.id === selected);
+    const curIndex = tournaments.findIndex((p) => p.name === selected);
     if (curIndex > -1) {
       const nextIndex = curIndex + 1;
 
       if (nextIndex < (count ?? 0)) {
-        setSelected(tournaments[nextIndex].id);
+        setSelected(tournaments[nextIndex].name ?? undefined);
       }
     }
   });
@@ -74,10 +74,10 @@ function TournamentTable() {
           records={tournaments}
           fetching={isLoading}
           columns={[
-            { accessor: "id", sortable: true },
             { accessor: "name", sortable: true },
+            { accessor: "games_count", title: t("Common.Games"), sortable: true },
           ]}
-          rowClassName={(t) => (t.id === selected ? classes.selected : "")}
+          rowClassName={(t) => (t.name === selected ? classes.selected : "")}
           noRecordsText={
             error
               ? `${t("Common.Error")}: ${error instanceof Error ? error.message : String(error)}`
@@ -117,13 +117,13 @@ function TournamentTable() {
           }
           recordsPerPageOptions={[10, 25, 50]}
           onRowClick={({ index }) => {
-            setSelected(tournaments[index].id);
+            setSelected(tournaments[index].name ?? undefined);
           }}
         />
       }
       preview={
         tournament != null ? (
-          <TournamentCard tournament={tournament} file={file} key={tournament.id} />
+          <TournamentCard tournament={tournament} file={file} key={tournament.name} />
         ) : (
           <Center h="100%">
             <Text>{t("Databases.Tournament.NoSelection")}</Text>

@@ -1,4 +1,3 @@
-import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { searchPosition } from "./db";
 import { getNodeAtPath, type TreeNode, treeIterator } from "./treeReducer";
 import { TreeStoreState } from "@/state/store/tree";
@@ -23,6 +22,7 @@ export async function computeTreeCoverage(
     dbPath: string,
     minGames: number,
     startPath: number[] = [],
+    signal?: AbortSignal,
 ): Promise<{
     coverageMap: Map<string, number>;
     gamesMap: Map<string, number>;
@@ -38,18 +38,16 @@ export async function computeTreeCoverage(
     async function getDbMoves(
         fen: string,
     ): Promise<{ moves: { move: string; games: number }[]; total: number }> {
+        signal?.throwIfAborted();
         try {
             const [openings] = await searchPosition(
                 {
                     path: dbPath,
-                    type: "exact",
-                    fen,
-                    color: "white",
-                    player: null,
-                    result: "any",
-                } as LocalOptions,
+                    position: { fen, type_: "exact" },
+                },
                 "coverage-calc",
             );
+            signal?.throwIfAborted();
 
             const summary = openings.find((op) => op.move === "*");
             const moves = openings
@@ -67,11 +65,13 @@ export async function computeTreeCoverage(
 
             return { moves, total };
         } catch {
+            signal?.throwIfAborted();
             return { moves: [], total: 0 };
         }
     }
 
     async function compute(node: TreeNode, path: number[]): Promise<number> {
+        signal?.throwIfAborted();
         const pathKey = path.join(",");
 
         if (node.children.length === 0 && fenCoverageCache.has(node.fen)) {

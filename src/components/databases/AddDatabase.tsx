@@ -62,7 +62,7 @@ function AddDatabase({
   async function convertDB(paths: string[], title: string, description?: string) {
     if (paths.length === 0) return;
     setLoading(true);
-    const dbPath = await resolve(databaseDir, `${title}.db3`);
+    const dbPath = await resolve(databaseDir, `${title}.duckdb`);
     const sourceFileName = await basename(paths[0]);
     setConversionState((prev) => ({
       ...prev,
@@ -227,7 +227,7 @@ function DatabaseCard({
 
   async function downloadDatabase(id: number, url: string, name: string) {
     setInProgress(true);
-    const path = await resolve(databaseDir, `${name}.db3`);
+    const path = await resolve(databaseDir, `${name}.duckdb`);
     await commands.downloadFile(`db_${id}`, url, path, null, null, null);
     await setDatabases(await getDatabases());
   }

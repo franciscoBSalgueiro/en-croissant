@@ -1,5 +1,7 @@
 import {
   ActionIcon,
+  Alert,
+  Badge,
   Box,
   Button,
   Center,
@@ -26,16 +28,18 @@ import { IconArrowRight, IconDatabase, IconPlus, IconSearch } from "@tabler/icon
 import { Link, useNavigate } from "@tanstack/react-router";
 import { basename } from "@tauri-apps/api/path";
 import { open as openDialog, save } from "@tauri-apps/plugin-dialog";
-import { useAtom } from "jotai";
+import { exists } from "@tauri-apps/plugin-fs";
+import { useAtom, useAtomValue } from "jotai";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import type { DatabaseInfo } from "@/bindings";
 import { commands } from "@/bindings";
 import {
   databaseConversionStateAtom,
   referenceDbAtom,
   storedDatabasesDirAtom,
+  tabsAtom,
 } from "@/state/atoms";
 import { useActiveDatabaseViewStore } from "@/state/store/database";
 import { getDatabases, type SuccessDatabaseInfo } from "@/utils/db";
@@ -80,8 +84,8 @@ export default function DatabasesPage() {
       const values = [
         item.filename,
         item.file,
-        item.type === "success" ? item.title : item.error,
-        item.type === "success" ? item.description : "",
+        item.type !== "error" ? item.title : item.error,
+        item.type !== "error" ? item.description : "",
       ];
 
       return values.some((value) => value.toLowerCase().includes(normalizedSearch));
@@ -98,7 +102,6 @@ export default function DatabasesPage() {
   const [exportLoading, setExportLoading] = useState(false);
 
   function changeReferenceDatabase(file: string) {
-    commands.clearGames();
     if (file === referenceDatabase) {
       setReferenceDatabase(null);
     } else {
@@ -218,7 +221,7 @@ export default function DatabasesPage() {
                       setSelected={setSelected}
                       error={item.type === "error" ? item.error : ""}
                       onDoubleClick={() => {
-                        if (item.type === "error") return;
+                        if (item.type !== "success") return;
                         navigate({
                           to: "/databases/$databaseId",
                           params: {
@@ -234,14 +237,20 @@ export default function DatabasesPage() {
                             <IconDatabase size="1.5rem" />
                             <Box miw={0}>
                               <Text fw={500} fz="sm">
-                                {item.type === "success" ? item.title : item.error}
+                                {item.type !== "error" ? item.title : item.error}
                               </Text>
+                              {item.type === "legacy" && (
+                                <Badge color="yellow" size="sm">
+                                  {t("Databases.Conversion.Required")}
+                                </Badge>
+                              )}
                               <Text size="xs" c="dimmed" style={{ wordWrap: "break-word" }}>
                                 {item.type === "error" ? item.file : item.description}
                               </Text>
                             </Box>
                           </Group>
                           <Rating
+                            readOnly={item.type !== "success"}
                             value={referenceDatabase === item.file ? 1 : 0}
                             count={1}
                             onChange={() => {
@@ -253,12 +262,12 @@ export default function DatabasesPage() {
                       stats={[
                         {
                           label: t("Databases.Card.Games"),
-                          value: item.type === "success" ? formatNumber(item.game_count) : "???",
+                          value: item.type !== "error" ? formatNumber(item.game_count) : "???",
                         },
                         {
                           label: t("Databases.Card.Storage"),
                           value:
-                            item.type === "success" ? formatBytes(item.storage_size ?? 0) : "???",
+                            item.type !== "error" ? formatBytes(item.storage_size ?? 0) : "???",
                         },
                       ]}
                     />
@@ -317,6 +326,55 @@ export default function DatabasesPage() {
 
                     <Text>{t("Databases.LoadError.Description")}</Text>
                   </>
+                ) : selectedDatabase.type === "legacy" ? (
+                  <>
+                    <Title order={3}>{selectedDatabase.title}</Title>
+                    <Alert color="yellow" title={t("Databases.Conversion.Required")}>
+                      {t("Databases.Conversion.Description")}
+                    </Alert>
+                    <Button
+                      disabled={conversionState.inProgress}
+                      onClick={async () => {
+                        const stem = selectedDatabase.file.replace(/\.[^.]+$/, "");
+                        let destFile = `${stem}.duckdb`;
+                        let suffix = 1;
+                        while (await exists(destFile)) {
+                          destFile = `${stem} (${suffix++}).duckdb`;
+                        }
+                        setConversionState((prev) => ({
+                          ...prev,
+                          inProgress: true,
+                          totalGames: 0,
+                          elapsedSeconds: 0,
+                          targetDatabasePath: destFile,
+                          targetDatabaseTitle: selectedDatabase.title,
+                          sourceFileName: null,
+                        }));
+                        try {
+                          unwrap(
+                            await commands.convertLegacyDatabase(selectedDatabase.file, destFile),
+                          );
+                          if (referenceDatabase === selectedDatabase.file)
+                            setReferenceDatabase(destFile);
+                          await mutate();
+                          setSelected(destFile);
+                        } catch {
+                        } finally {
+                          setConversionState((prev) => ({
+                            ...prev,
+                            inProgress: false,
+                            totalGames: 0,
+                            elapsedSeconds: 0,
+                            targetDatabasePath: null,
+                            targetDatabaseTitle: null,
+                            sourceFileName: null,
+                          }));
+                        }
+                      }}
+                    >
+                      {t("Databases.Conversion.Convert")}
+                    </Button>
+                  </>
                 ) : (
                   <>
                     <Divider variant="dashed" label={t("Common.GeneralSettings")} />
@@ -331,11 +389,6 @@ export default function DatabasesPage() {
                       onChange={() => {
                         changeReferenceDatabase(selectedDatabase.file);
                       }}
-                    />
-                    <IndexInput
-                      indexed={selectedDatabase.indexed}
-                      file={selectedDatabase.file}
-                      setDatabases={mutate}
                     />
 
                     <Divider variant="dashed" label={t("Common.Data")} />
@@ -353,7 +406,7 @@ export default function DatabasesPage() {
                           {t("Databases.Card.Players")}
                         </Text>
                         <Text fw={700} size="lg">
-                          {formatNumber(selectedDatabase.player_count - 1)}
+                          {formatNumber(selectedDatabase.player_count)}
                         </Text>
                       </Stack>
                       <Stack gap={0} justify="center" ta="center">
@@ -361,7 +414,7 @@ export default function DatabasesPage() {
                           {t("Databases.Settings.Events")}
                         </Text>
                         <Text fw={700} size="lg">
-                          {formatNumber(selectedDatabase.event_count - 1)}
+                          {formatNumber(selectedDatabase.event_count)}
                         </Text>
                       </Stack>
                     </Group>
@@ -447,15 +500,22 @@ export default function DatabasesPage() {
                           });
                           if (!destFile) return;
                           setExportLoading(true);
-                          await commands.exportToPgn(selectedDatabase.file, destFile);
-                          setExportLoading(false);
+                          try {
+                            unwrap(await commands.exportToPgn(selectedDatabase.file, destFile));
+                          } finally {
+                            setExportLoading(false);
+                          }
                         }}
                       >
                         {t("Databases.Settings.ExportPGN")}
                       </Button>
                     </Group>
                   )}
-                  <Button onClick={() => toggleDeleteModal()} color="red">
+                  <Button
+                    onClick={() => toggleDeleteModal()}
+                    color="red"
+                    disabled={conversionState.inProgress}
+                  >
                     {t("Common.Delete")}
                   </Button>
                 </Group>
@@ -517,6 +577,75 @@ function AdvancedSettings({
     <Stack>
       <PlayerMerger selectedDatabase={selectedDatabase} />
       <DuplicateRemover selectedDatabase={selectedDatabase} reload={reload} />
+      <DatabaseCompactor
+        key={selectedDatabase.file}
+        selectedDatabase={selectedDatabase}
+        reload={reload}
+      />
+    </Stack>
+  );
+}
+
+function DatabaseCompactor({
+  selectedDatabase,
+  reload,
+}: {
+  selectedDatabase: DatabaseInfo;
+  reload: () => void;
+}) {
+  const { t } = useTranslation();
+  const tabs = useAtomValue(tabsAtom);
+  const hasOpenGames = tabs.some(
+    (tab) =>
+      tab.gameOrigin.kind === "database" && tab.gameOrigin.database === selectedDatabase.file,
+  );
+  const { mutate } = useSWRConfig();
+  const clearSelectedGame = useActiveDatabaseViewStore((store) => store.setGamesSelectedGame);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <Stack>
+      <Text fz="lg" fw="bold">
+        {t("Databases.Settings.Compact")}
+      </Text>
+      <Text fz="sm">{t("Databases.Settings.Compact.Desc")}</Text>
+      {hasOpenGames && (
+        <Text size="sm" c="dimmed">
+          {t("Databases.Settings.Compact.CloseGames")}
+        </Text>
+      )}
+      {error && <Alert color="red">{error}</Alert>}
+      <Group>
+        <Button
+          loading={loading}
+          disabled={hasOpenGames}
+          onClick={async () => {
+            setLoading(true);
+            setError(null);
+            try {
+              const result = await commands.compactDatabase(selectedDatabase.file);
+              if (result.status === "error") {
+                setError(result.error);
+                return;
+              }
+              clearSelectedGame(undefined);
+              await mutate(
+                (key) => Array.isArray(key) && key.includes(selectedDatabase.file),
+                undefined,
+                { revalidate: true },
+              );
+              reload();
+            } catch (error) {
+              setError(String(error));
+            } finally {
+              setLoading(false);
+            }
+          }}
+        >
+          {t("Databases.Settings.Compact")}
+        </Button>
+      </Group>
     </Stack>
   );
 }
@@ -524,8 +653,8 @@ function AdvancedSettings({
 function PlayerMerger({ selectedDatabase }: { selectedDatabase: DatabaseInfo }) {
   const { t } = useTranslation();
 
-  const [player1, setPlayer1] = useState<number | undefined>(undefined);
-  const [player2, setPlayer2] = useState<number | undefined>(undefined);
+  const [player1, setPlayer1] = useState<string | undefined>(undefined);
+  const [player2, setPlayer2] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
 
   async function mergePlayers() {
@@ -548,6 +677,7 @@ function PlayerMerger({ selectedDatabase }: { selectedDatabase: DatabaseInfo }) 
         <PlayerSearchInput
           label={t("Databases.Player.One")}
           file={selectedDatabase.file}
+          value={player1}
           setValue={setPlayer1}
         />
         <Button
@@ -560,6 +690,7 @@ function PlayerMerger({ selectedDatabase }: { selectedDatabase: DatabaseInfo }) 
         <PlayerSearchInput
           label={t("Databases.Player.Two")}
           file={selectedDatabase.file}
+          value={player2}
           setValue={setPlayer2}
         />
       </Group>
@@ -623,41 +754,5 @@ function DuplicateRemover({
         </Button>
       </Group>
     </Stack>
-  );
-}
-
-function IndexInput({
-  indexed,
-  file,
-  setDatabases,
-}: {
-  indexed: boolean;
-  file: string;
-  setDatabases: (dbs: DatabaseInfo[]) => void;
-}) {
-  const { t } = useTranslation();
-
-  const [loading, setLoading] = useToggle();
-  return (
-    <Group>
-      <Tooltip label={t("Databases.Settings.Indexed.Desc")}>
-        <Checkbox
-          label={t("Databases.Settings.Indexed")}
-          disabled={loading}
-          checked={indexed}
-          onChange={(e) => {
-            setLoading(true);
-            const fn = e.currentTarget.checked ? commands.createIndexes : commands.deleteIndexes;
-            fn(file).then(() => {
-              getDatabases().then((dbs) => {
-                setDatabases(dbs);
-                setLoading(false);
-              });
-            });
-          }}
-        />
-      </Tooltip>
-      {loading && <Loader size="sm" />}
-    </Group>
   );
 }
