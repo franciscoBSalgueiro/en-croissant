@@ -310,6 +310,9 @@ async downloadFile(id: string, url: string, path: string, token: string | null, 
     else return { status: "error", error: e  as any };
 }
 },
+async cancelDownload(id: string) : Promise<void> {
+    await TAURI_INVOKE("cancel_download", { id });
+},
 async getTournaments(file: string, query: TournamentQuery) : Promise<Result<QueryResponse<Event[]>, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_tournaments", { file, query }) };
@@ -525,8 +528,8 @@ export type PlayerSort = "id" | "name" | "elo"
 export type PlayersTime = { white: number; black: number; winc: number; binc: number }
 export type PositionQueryJs = { fen: string; type_: string }
 export type PositionStats = { move: string; white: number; draw: number; black: number }
-export type ProgressEvent = { id: string; progress: number; finished: boolean }
-export type ProgressItem = { id: string; progress: number; finished: boolean }
+export type ProgressEvent = { id: string; progress: number; finished: boolean; bytes_per_second: number | null }
+export type ProgressItem = { id: string; progress: number; finished: boolean; bytes_per_second: number | null }
 export type Puzzle = { id: number; fen: string; moves: string; rating: number; rating_deviation: number; popularity: number; nb_plays: number }
 export type PuzzleDatabaseInfo = { title: string; description: string; puzzleCount: number; storageSize: bigint; path: string }
 export type QueryOptions<SortT> = { skipCount: boolean; page?: number | null; pageSize?: number | null; sort: SortT; direction: SortDirection }

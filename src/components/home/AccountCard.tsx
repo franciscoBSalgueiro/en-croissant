@@ -132,6 +132,7 @@ export function AccountCard({
       id: `${type}_${title}`,
       progress: 100,
       finished: true,
+      bytes_per_second: null,
     });
   }
 
