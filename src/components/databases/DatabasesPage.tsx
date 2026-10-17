@@ -406,7 +406,7 @@ export default function DatabasesPage() {
                           {t("Databases.Card.Players")}
                         </Text>
                         <Text fw={700} size="lg">
-                          {formatNumber(selectedDatabase.player_count - 1)}
+                          {formatNumber(selectedDatabase.player_count)}
                         </Text>
                       </Stack>
                       <Stack gap={0} justify="center" ta="center">
@@ -414,7 +414,7 @@ export default function DatabasesPage() {
                           {t("Databases.Settings.Events")}
                         </Text>
                         <Text fw={700} size="lg">
-                          {formatNumber(selectedDatabase.event_count - 1)}
+                          {formatNumber(selectedDatabase.event_count)}
                         </Text>
                       </Stack>
                     </Group>
