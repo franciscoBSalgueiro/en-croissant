@@ -51,6 +51,19 @@ fn sql_literal(value: &str) -> String {
     format!("'{}'", value.replace('\'', "''"))
 }
 
+fn name_search_clauses(query: &str) -> Vec<String> {
+    query
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|term| !term.is_empty())
+        .map(|term| {
+            format!(
+                r"contains(regexp_replace(lower(name), '[^\p{{L}}\p{{N}}]+', ' ', 'g'), lower({}))",
+                sql_literal(term)
+            )
+        })
+        .collect()
+}
+
 pub fn create_duckdb_pool(
     path: &Path,
     extension_path: &Path,
@@ -836,7 +849,7 @@ pub async fn get_players(
     let mut where_clauses = vec!["name != 'Unknown'".to_string()];
 
     if let Some(name) = query.name.as_deref() {
-        where_clauses.push(format!("name ILIKE '%{}%'", name.replace('\'', "''")));
+        where_clauses.extend(name_search_clauses(name));
     }
 
     if let Some(range) = query.range {
@@ -920,9 +933,7 @@ pub async fn get_tournaments(
     let mut where_clauses = vec!["name != 'Unknown'".to_string(), "name != ''".to_string()];
 
     if let Some(name) = query.name.as_deref() {
-        if !name.is_empty() {
-            where_clauses.push(format!("name ILIKE '%{}%'", name.replace('\'', "''")));
-        }
+        where_clauses.extend(name_search_clauses(name));
     }
 
     let where_sql = format!("WHERE {}", where_clauses.join(" AND "));
@@ -1464,6 +1475,35 @@ pub async fn merge_players(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn name_search_ignores_word_order_and_punctuation() {
+        let db = Connection::open_in_memory().unwrap();
+        for (name, query, expected) in [
+            ("Carlsen, Magnus", "Magnus Carlsen", true),
+            ("Carlsen,Magnus", "  MAGNUS, carlsen. ", true),
+            ("Carlsen, M.", "M Carlsen", true),
+            ("Carlsen, Magnus", "Magn Carl", true),
+            ("Tata Steel-Masters (2024)", "2024 masters tata", true),
+            ("Tata Steel-Masters (2024)", "tata/steel", true),
+            ("Duda, Jan-Krzysztof", "Krzysztof Jan Duda", true),
+            ("O'Brien, Seán", "Seán O'Brien", true),
+            ("Carlsen, Magnus", "Magnus Kasparov", false),
+            ("Carlsen, M.", "Magnus Carlsen", false),
+            ("Tata Steel Masters 2023", "tata 2024", false),
+            ("Tata Steel Masters 2024", "tata%masters", true),
+            ("Tata Steel Masters 2024", "tata_unknown", false),
+        ] {
+            let clauses = name_search_clauses(query).join(" AND ");
+            let sql = format!(
+                "SELECT {clauses} FROM (SELECT {} AS name)",
+                sql_literal(name)
+            );
+            let matches: bool = db.query_row(&sql, [], |row| row.get(0)).unwrap();
+            assert_eq!(matches, expected, "query {query:?} against {name:?}");
+        }
+        assert!(name_search_clauses(" ,.- ").is_empty());
+    }
 
     #[test]
     fn metadata_reuses_an_open_database_without_reopening_its_file() {

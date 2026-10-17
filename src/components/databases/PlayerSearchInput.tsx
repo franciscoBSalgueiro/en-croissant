@@ -65,6 +65,7 @@ export function PlayerSearchInput({
       aria-label={label}
       value={name}
       data={data.map((player) => player.name!)}
+      filter={({ options }) => options}
       onChange={handleChange}
       rightSection={rightSection}
       rightSectionWidth={rightSection ? 36 : undefined}

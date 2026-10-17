@@ -47,6 +47,7 @@ export function EventSearchInput({
       aria-label={label}
       value={value ?? ""}
       data={data.map((event) => event.name!)}
+      filter={({ options }) => options}
       onChange={handleChange}
       rightSection={rightSection}
       leftSection={<IconSearch size="1rem" />}
