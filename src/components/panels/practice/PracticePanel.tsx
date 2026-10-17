@@ -9,6 +9,7 @@ import {
   Modal,
   Paper,
   Progress,
+  ScrollArea,
   SimpleGrid,
   Stack,
   Tabs,
@@ -18,6 +19,7 @@ import {
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import {
+  IconAlertTriangle,
   IconArrowBack,
   IconArrowRight,
   IconBook,
@@ -29,7 +31,7 @@ import {
 } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { formatDate } from "ts-fsrs";
@@ -39,10 +41,17 @@ import ConfirmModal from "@/components/common/ConfirmModal";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
   buildFromTree,
+  countMoves,
   formatReviewInterval,
+  getAnswers,
   getCardForReview,
+  getLineProgress,
   getNextReviewTimes,
   getStats,
+  hasMovesLeft,
+  moveKey,
+  planNextQuestion,
+  positionsWithCards,
   syncDeck,
   updateCardPerformance,
 } from "@/components/files/opening";
@@ -59,6 +68,7 @@ import {
   practiceSessionStatsAtom,
   practiceStateAtom,
   practiceAutoDifficultyAtom,
+  practiceReviewOrderAtom,
 } from "@/state/atoms";
 import { getTabFile, getTabGameNumber } from "@/utils/tabs";
 import { findFen, getNodeAtPath } from "@/utils/treeReducer";
@@ -73,6 +83,7 @@ function PracticePanel() {
   const goToMove = useStore(store, (s) => s.goToMove);
   const setPracticePath = useStore(store, (s) => s.setPracticePath);
   const currentFen = useStore(store, (s) => s.currentNode().fen);
+  const boardPath = useStore(store, (s) => s.position);
 
   const currentTab = useAtomValue(currentTabAtom);
   const tabFile = getTabFile(currentTab);
@@ -131,72 +142,79 @@ function PracticePanel() {
   const [sessionStats, setSessionStats] = useAtom(practiceSessionStatsAtom);
   const setCardStartTime = useSetAtom(practiceCardStartTimeAtom);
   const practiceAutoDifficulty = useAtomValue(practiceAutoDifficultyAtom);
+  const practiceReviewOrder = useAtomValue(practiceReviewOrderAtom);
 
-  const newPractice = useCallback(
-    (stats?: Partial<PracticeSessionStats>) => {
-      if (deck.positions.length === 0) return;
+  // The positions where it's the user's move: the ones with a practice card
+  const askable = useMemo(() => positionsWithCards(deck.positions), [deck.positions]);
+  const movesToPractice = useMemo(() => countMoves(root, askable), [root, askable]);
 
-      const currentMode = stats?.mode ?? sessionStats.mode;
-      const remaining = stats?.remainingPositions ?? sessionStats.remainingPositions;
+  const newPractice = useCallback(() => {
+    if (deck.positions.length === 0) return;
 
-      let c: (typeof deck.positions)[0] | null | undefined;
+    const c = getCardForReview(deck.positions, practiceReviewOrder);
 
-      if (currentMode === "full") {
-        if (remaining.length > 0) {
-          c = deck.positions[remaining[0]];
-        } else {
-          c = null;
-        }
-      } else {
-        c = getCardForReview(deck.positions);
-      }
-
-      if (!c) {
-        setPracticeState({ phase: "idle" });
-        setPracticePath(null);
-        setInvisible(false);
-        setShowComments(true);
-        setEvalOpen(true);
-        return;
-      }
-      const path = findFen(c.fen, root);
-      goToMove(path);
-      setPracticePath(path);
-      setInvisible(true);
-      setShowComments(false);
-      setEvalOpen(false);
-      setCardStartTime(Date.now());
-      setPracticeState({ phase: "waiting", currentFen: c.fen });
-    },
-    [
-      deck.positions,
-      sessionStats.mode,
-      sessionStats.remainingPositions,
-      root,
-      goToMove,
-      setPracticePath,
-      setInvisible,
-      setShowComments,
-      setEvalOpen,
-      setCardStartTime,
-      setPracticeState,
-    ],
-  );
+    if (!c) {
+      setPracticeState({ phase: "idle" });
+      setPracticePath(null);
+      setInvisible(false);
+      setShowComments(true);
+      setEvalOpen(true);
+      return;
+    }
+    const path = findFen(c.fen, root);
+    goToMove(path);
+    setPracticePath(path);
+    setInvisible(true);
+    setShowComments(false);
+    setEvalOpen(false);
+    setCardStartTime(Date.now());
+    setPracticeState({
+      phase: "waiting",
+      currentFen: c.fen,
+      positionIndex: deck.positions.indexOf(c),
+    });
+  }, [
+    deck.positions,
+    practiceReviewOrder,
+    root,
+    goToMove,
+    setPracticePath,
+    setInvisible,
+    setShowComments,
+    setEvalOpen,
+    setCardStartTime,
+    setPracticeState,
+  ]);
 
   useEffect(() => {
     if (practiceState.phase === "correct") {
       if (sessionStats.mode === "full") {
         const timer = setTimeout(() => {
-          const remainingPositions = sessionStats.remainingPositions.slice(1);
+          // Carry on from the move just played (the board is on it)
+          const board = store.getState();
+          const practicedMoves = [
+            ...(sessionStats.practicedMoves ?? []),
+            moveKey(practiceState.currentFen!, board.currentNode().san!),
+          ];
           setSessionStats((prev) => ({
             ...prev,
-            remainingPositions,
-            correct: prev.correct + 1,
-            streak: prev.streak + 1,
-            bestStreak: Math.max(prev.bestStreak, prev.streak + 1),
+            practicedMoves,
+            visitedPaths: [...(prev.visitedPaths ?? []), board.position],
+            ...(!practiceState.afterMistake && {
+              correct: prev.correct + 1,
+              streak: prev.streak + 1,
+              bestStreak: Math.max(prev.bestStreak, prev.streak + 1),
+            }),
           }));
-          newPractice({ remainingPositions, mode: "full" });
-        }, 300);
+          setPracticeState({
+            phase: "moving",
+            plan: planNextQuestion(root, board.position, new Set(practicedMoves), askable, true),
+          });
+        });
+        return () => clearTimeout(timer);
+      } else if (practiceState.afterMistake) {
+        // The card was already rated "Again" when the wrong move was made
+        const timer = setTimeout(() => newPractice(), 300);
         return () => clearTimeout(timer);
       } else if (practiceAutoDifficulty !== "none" && practiceState.positionIndex !== undefined) {
         const positionIndex = practiceState.positionIndex;
@@ -219,17 +237,76 @@ function PracticePanel() {
   }, [
     practiceState.phase,
     practiceState.positionIndex,
+    practiceState.afterMistake,
+    practiceState.currentFen,
     sessionStats.mode,
-    sessionStats.remainingPositions,
+    sessionStats.practicedMoves,
     newPractice,
     setSessionStats,
+    setPracticeState,
     practiceAutoDifficulty,
     deck.positions,
     setDeck,
+    store,
+    root,
+    askable,
+  ]);
+
+  // Full practice: play the planned moves one at a time, then ask the next position
+  useEffect(() => {
+    const plan = practiceState.plan;
+    if (practiceState.phase !== "moving" || !plan) return;
+    const [step, ...steps] = plan.steps;
+    const timer = setTimeout(
+      () => {
+        if (step) {
+          goToMove(step.path);
+        }
+        if (steps.length > 0) {
+          setPracticeState({ phase: "moving", plan: { ...plan, steps } });
+        } else if (plan.ask) {
+          const ask = plan.ask;
+          goToMove(ask);
+          setPracticePath(ask);
+          setCardStartTime(Date.now());
+          setSessionStats((prev) => ({
+            ...prev,
+            visitedPaths: [...(prev.visitedPaths ?? []), ask],
+          }));
+          setPracticeState({ phase: "waiting", currentFen: getNodeAtPath(root, ask).fen });
+        } else {
+          setPracticeState({ phase: "idle" });
+          setPracticePath(null);
+          setInvisible(false);
+          setShowComments(true);
+          setEvalOpen(true);
+        }
+      },
+      // Hold the end of a line for a moment before going back to a branch point
+      !step ? 0 : step.jump ? 1000 : 400,
+    );
+    return () => clearTimeout(timer);
+  }, [
+    practiceState,
+    root,
+    goToMove,
+    setPracticeState,
+    setPracticePath,
+    setCardStartTime,
+    setSessionStats,
+    setInvisible,
+    setShowComments,
+    setEvalOpen,
   ]);
 
   function handleQualityRating(grade: 1 | 2 | 3 | 4) {
-    if (practiceState.phase !== "correct" || practiceState.positionIndex === undefined) return;
+    if (
+      practiceState.phase !== "correct" ||
+      practiceState.positionIndex === undefined ||
+      practiceState.afterMistake ||
+      practiceAutoDifficulty !== "none"
+    )
+      return;
 
     const { positionIndex } = practiceState;
     const card = deck.positions[positionIndex].card;
@@ -247,35 +324,62 @@ function PracticePanel() {
   function startPractice() {
     const stats: Partial<PracticeSessionStats> = {
       mode: "anki",
-      remainingPositions: [],
       correct: 0,
       incorrect: 0,
       streak: 0,
       bestStreak: 0,
     };
     setSessionStats((prev) => ({ ...prev, ...stats }));
-    newPractice(stats);
+    newPractice();
   }
 
   function startFullPractice() {
-    const indices = deck.positions.map((_, i) => i);
     const stats: Partial<PracticeSessionStats> = {
       mode: "full",
-      remainingPositions: indices,
+      practicedMoves: [],
+      visitedPaths: [],
       correct: 0,
       incorrect: 0,
       streak: 0,
       bestStreak: 0,
     };
     setSessionStats((prev) => ({ ...prev, ...stats }));
-    newPractice(stats);
+    goToMove([]);
+    setInvisible(true);
+    setShowComments(false);
+    setEvalOpen(false);
+    setPracticeState({
+      phase: "moving",
+      plan: planNextQuestion(root, [], new Set(), askable, false),
+    });
+  }
+
+  function stopPractice() {
+    setPracticeState({ phase: "idle" });
+    setPracticePath(null);
+    setInvisible(false);
+    setShowComments(true);
+    setEvalOpen(true);
+    setSessionStats({
+      mode: "anki",
+      correct: 0,
+      incorrect: 0,
+      streak: 0,
+      bestStreak: 0,
+    });
   }
 
   function skipCard() {
-    if (sessionStats.mode === "full" && sessionStats.remainingPositions.length > 0) {
-      const remainingPositions = sessionStats.remainingPositions.slice(1);
-      setSessionStats((prev) => ({ ...prev, remainingPositions }));
-      newPractice({ remainingPositions });
+    if (sessionStats.mode === "full") {
+      // Next plays a move for the user, preferably one not practiced yet; it counts as done
+      const practiced = new Set(sessionStats.practicedMoves);
+      const answers = getAnswers(root, boardPath);
+      const answer =
+        answers.find((a) => !practiced.has(moveKey(currentFen, a.san))) ??
+        answers.find((a) => hasMovesLeft(getNodeAtPath(root, a.path), practiced, askable)) ??
+        answers[0];
+      goToMove(answer.path);
+      setPracticeState({ ...practiceState, phase: "correct", afterMistake: true });
     } else {
       newPractice();
     }
@@ -301,6 +405,17 @@ function PracticePanel() {
   const [logsOpen, setLogsOpen] = useToggle();
   const [tab, setTab] = useAtom(currentPracticeTabAtom);
 
+  const lineProgress =
+    sessionStats.mode === "full" && practiceState.phase === "waiting"
+      ? getLineProgress(
+          root,
+          boardPath,
+          sessionStats.visitedPaths ?? [],
+          headers.orientation || "white",
+          headers.start || [],
+        )
+      : null;
+
   return (
     <>
       <Tabs
@@ -318,310 +433,322 @@ function PracticePanel() {
           <Tabs.Tab value="build">{t("Board.Practice.Build")}</Tabs.Tab>
         </Tabs.List>
 
-        <Tabs.Panel value="train" style={{ overflow: "hidden" }}>
-          <Stack p="sm" gap="md">
-            {stats.total === 0 && (
-              <Alert icon={<IconInfoCircle />}>
-                <Stack gap="xs">
-                  <Text fz="sm">{t("Board.Practice.NoPositionForTrain1")}</Text>
-                  <Button variant="light" size="xs" onClick={() => setTab("build")}>
-                    {t("Board.Practice.GoToBuild")}
-                  </Button>
-                </Stack>
-              </Alert>
-            )}
-            {syncMessage && (
-              <Alert
-                title={t("Board.Practice.DeckSynced")}
-                withCloseButton
-                onClose={() => setSyncMessage(null)}
-              >
-                {syncMessage.added > 0 &&
-                  t("Board.Practice.SyncAdded", {
-                    count: syncMessage.added ?? 0,
-                    number: formatNumber(syncMessage.added ?? 0),
-                  })}
-                {syncMessage.added > 0 && syncMessage.removed > 0 && " · "}
-                {syncMessage.removed > 0 &&
-                  t("Board.Practice.SyncRemoved", {
-                    count: syncMessage.removed ?? 0,
-                    number: formatNumber(syncMessage.removed ?? 0),
-                  })}
-              </Alert>
-            )}
-            {stats.total > 0 && (
-              <>
-                <Stack gap={4}>
-                  <Group justify="space-between">
-                    <Text fz="xs" fw={500}>
-                      {t("Board.Practice.Progress")}
-                    </Text>
-                    <Text fz="xs" c="dimmed">
-                      {Math.round((stats.practiced / stats.total) * 100)}%
-                    </Text>
-                  </Group>
-                  <Progress.Root size="sm">
-                    <Tooltip label={`${t("Board.Practice.Practiced")}: ${stats.practiced}`}>
-                      <Progress.Section
-                        value={(stats.practiced / stats.total) * 100}
-                        color="blue"
-                      />
-                    </Tooltip>
-                    <Tooltip label={`${t("Board.Practice.Due")}: ${stats.due}`}>
-                      <Progress.Section value={(stats.due / stats.total) * 100} color="yellow" />
-                    </Tooltip>
-                    <Tooltip label={`${t("Board.Practice.Unseen")}: ${stats.unseen}`}>
-                      <Progress.Section value={(stats.unseen / stats.total) * 100} color="gray" />
-                    </Tooltip>
-                  </Progress.Root>
-                </Stack>
+        <Tabs.Panel
+          value="train"
+          style={{
+            overflow: "hidden",
+            display: tab === "train" ? "flex" : "none",
+            flexDirection: "column",
+          }}
+        >
+          <ScrollArea flex={1} offsetScrollbars>
+            <Stack p="sm" gap="md">
+              {stats.total === 0 && (
+                <Alert icon={<IconInfoCircle />}>
+                  <Stack gap="xs">
+                    <Text fz="sm">{t("Board.Practice.NoPositionForTrain1")}</Text>
+                    <Button variant="light" size="xs" onClick={() => setTab("build")}>
+                      {t("Board.Practice.GoToBuild")}
+                    </Button>
+                  </Stack>
+                </Alert>
+              )}
+              {syncMessage && (
+                <Alert
+                  title={t("Board.Practice.DeckSynced")}
+                  withCloseButton
+                  onClose={() => setSyncMessage(null)}
+                >
+                  {syncMessage.added > 0 &&
+                    t("Board.Practice.SyncAdded", {
+                      count: syncMessage.added ?? 0,
+                      number: formatNumber(syncMessage.added ?? 0),
+                    })}
+                  {syncMessage.added > 0 && syncMessage.removed > 0 && " · "}
+                  {syncMessage.removed > 0 &&
+                    t("Board.Practice.SyncRemoved", {
+                      count: syncMessage.removed ?? 0,
+                      number: formatNumber(syncMessage.removed ?? 0),
+                    })}
+                </Alert>
+              )}
+              {stats.total > 0 && (
+                <>
+                  <Stack gap={4}>
+                    <Group justify="space-between">
+                      <Text fz="xs" fw={500}>
+                        {t("Board.Practice.Progress")}
+                      </Text>
+                      <Text fz="xs" c="dimmed">
+                        {Math.round((stats.practiced / stats.total) * 100)}%
+                      </Text>
+                    </Group>
+                    <Progress.Root size="sm">
+                      <Tooltip label={`${t("Board.Practice.Practiced")}: ${stats.practiced}`}>
+                        <Progress.Section
+                          value={(stats.practiced / stats.total) * 100}
+                          color="blue"
+                        />
+                      </Tooltip>
+                      <Tooltip label={`${t("Board.Practice.Due")}: ${stats.due}`}>
+                        <Progress.Section value={(stats.due / stats.total) * 100} color="yellow" />
+                      </Tooltip>
+                      <Tooltip label={`${t("Board.Practice.Unseen")}: ${stats.unseen}`}>
+                        <Progress.Section value={(stats.unseen / stats.total) * 100} color="gray" />
+                      </Tooltip>
+                    </Progress.Root>
+                  </Stack>
 
-                <SimpleGrid cols={3} spacing="xs">
-                  <Paper p="xs" withBorder radius="sm">
-                    <Text fz={10} tt="uppercase" c="dimmed" fw={600}>
-                      {t("Board.Practice.Practiced")}
-                    </Text>
-                    <Text fz="lg" fw={700} c="blue">
-                      {stats.practiced}
-                    </Text>
-                  </Paper>
-                  <Paper p="xs" withBorder radius="sm">
-                    <Text fz={10} tt="uppercase" c="dimmed" fw={600}>
-                      {t("Board.Practice.Due")}
-                    </Text>
-                    <Text fz="lg" fw={700} c="yellow">
-                      {stats.due}
-                    </Text>
-                  </Paper>
-                  <Paper p="xs" withBorder radius="sm">
-                    <Text fz={10} tt="uppercase" c="dimmed" fw={600}>
-                      {t("Board.Practice.Unseen")}
-                    </Text>
-                    <Text fz="lg" fw={700} c="dimmed">
-                      {stats.unseen}
-                    </Text>
-                  </Paper>
-                </SimpleGrid>
-
-                {(practiceState.phase !== "idle" ||
-                  sessionStats.correct > 0 ||
-                  sessionStats.incorrect > 0) && (
                   <SimpleGrid cols={3} spacing="xs">
                     <Paper p="xs" withBorder radius="sm">
-                      <Group gap={4} wrap="nowrap">
-                        <ThemeIcon size="xs" color="green" variant="transparent">
-                          <IconCheck size={12} />
-                        </ThemeIcon>
-                        <Text fz={10} tt="uppercase" c="dimmed" fw={600}>
-                          {t("Board.Practice.SessionCorrect")}
-                        </Text>
-                      </Group>
-                      <Text fz="lg" fw={700} c="green">
-                        {sessionStats.correct}
+                      <Text fz={10} tt="uppercase" c="dimmed" fw={600}>
+                        {t("Board.Practice.Practiced")}
+                      </Text>
+                      <Text fz="lg" fw={700} c="blue">
+                        {stats.practiced}
                       </Text>
                     </Paper>
                     <Paper p="xs" withBorder radius="sm">
-                      <Group gap={4} wrap="nowrap">
-                        <ThemeIcon size="xs" color="red" variant="transparent">
-                          <IconX size={12} />
-                        </ThemeIcon>
-                        <Text fz={10} tt="uppercase" c="dimmed" fw={600}>
-                          {t("Board.Practice.SessionIncorrect")}
-                        </Text>
-                      </Group>
-                      <Text fz="lg" fw={700} c="red">
-                        {sessionStats.incorrect}
+                      <Text fz={10} tt="uppercase" c="dimmed" fw={600}>
+                        {t("Board.Practice.Due")}
+                      </Text>
+                      <Text fz="lg" fw={700} c="yellow">
+                        {stats.due}
                       </Text>
                     </Paper>
                     <Paper p="xs" withBorder radius="sm">
-                      <Group gap={4} wrap="nowrap">
-                        {sessionStats.correct + sessionStats.incorrect > 0 ? (
-                          <ThemeIcon size="xs" color="teal" variant="transparent">
-                            <IconTarget size={12} />
-                          </ThemeIcon>
-                        ) : (
-                          <ThemeIcon size="xs" color="orange" variant="transparent">
-                            <IconFlame size={12} />
-                          </ThemeIcon>
-                        )}
-                        <Text fz={10} tt="uppercase" c="dimmed" fw={600}>
-                          {sessionStats.correct + sessionStats.incorrect > 0
-                            ? t("Board.Practice.Accuracy")
-                            : t("Board.Practice.Streak")}
-                        </Text>
-                      </Group>
-                      <Text
-                        fz="lg"
-                        fw={700}
-                        c={sessionStats.correct + sessionStats.incorrect > 0 ? "teal" : "orange"}
-                      >
-                        {sessionStats.correct + sessionStats.incorrect > 0
-                          ? `${Math.round(
-                              (sessionStats.correct /
-                                (sessionStats.correct + sessionStats.incorrect)) *
-                                100,
-                            )}%`
-                          : sessionStats.streak}
+                      <Text fz={10} tt="uppercase" c="dimmed" fw={600}>
+                        {t("Board.Practice.Unseen")}
+                      </Text>
+                      <Text fz="lg" fw={700} c="dimmed">
+                        {stats.unseen}
                       </Text>
                     </Paper>
                   </SimpleGrid>
-                )}
 
-                {practiceState.phase === "idle" && (
-                  <Stack gap="sm">
-                    {stats.due === 0 && stats.unseen === 0 ? (
-                      <Paper p="sm" withBorder>
-                        <Stack gap="xs" align="center">
-                          <ThemeIcon size="xl" radius="xl" color="green" variant="light">
-                            <IconCheck size={24} />
+                  {(practiceState.phase !== "idle" ||
+                    sessionStats.correct > 0 ||
+                    sessionStats.incorrect > 0) && (
+                    <SimpleGrid cols={3} spacing="xs">
+                      <Paper p="xs" withBorder radius="sm">
+                        <Group gap={4} wrap="nowrap">
+                          <ThemeIcon size="xs" color="green" variant="transparent">
+                            <IconCheck size={12} />
                           </ThemeIcon>
-                          <Text ta="center" fw={500}>
-                            {t("Board.Practice.PracticedAll1")}
+                          <Text fz={10} tt="uppercase" c="dimmed" fw={600}>
+                            {t("Board.Practice.SessionCorrect")}
                           </Text>
-                          <Text ta="center" fz="sm" c="dimmed">
-                            {t("Board.Practice.PracticedAll2")}{" "}
-                            {dayjs(stats.nextDue).format("MMM D, HH:mm")}
-                          </Text>
-                        </Stack>
+                        </Group>
+                        <Text fz="lg" fw={700} c="green">
+                          {sessionStats.correct}
+                        </Text>
                       </Paper>
-                    ) : (
+                      <Paper p="xs" withBorder radius="sm">
+                        <Group gap={4} wrap="nowrap">
+                          <ThemeIcon size="xs" color="red" variant="transparent">
+                            <IconX size={12} />
+                          </ThemeIcon>
+                          <Text fz={10} tt="uppercase" c="dimmed" fw={600}>
+                            {t("Board.Practice.SessionIncorrect")}
+                          </Text>
+                        </Group>
+                        <Text fz="lg" fw={700} c="red">
+                          {sessionStats.incorrect}
+                        </Text>
+                      </Paper>
+                      <Paper p="xs" withBorder radius="sm">
+                        <Group gap={4} wrap="nowrap">
+                          {sessionStats.correct + sessionStats.incorrect > 0 ? (
+                            <ThemeIcon size="xs" color="teal" variant="transparent">
+                              <IconTarget size={12} />
+                            </ThemeIcon>
+                          ) : (
+                            <ThemeIcon size="xs" color="orange" variant="transparent">
+                              <IconFlame size={12} />
+                            </ThemeIcon>
+                          )}
+                          <Text fz={10} tt="uppercase" c="dimmed" fw={600}>
+                            {sessionStats.correct + sessionStats.incorrect > 0
+                              ? t("Board.Practice.Accuracy")
+                              : t("Board.Practice.Streak")}
+                          </Text>
+                        </Group>
+                        <Text
+                          fz="lg"
+                          fw={700}
+                          c={sessionStats.correct + sessionStats.incorrect > 0 ? "teal" : "orange"}
+                        >
+                          {sessionStats.correct + sessionStats.incorrect > 0
+                            ? `${Math.round(
+                                (sessionStats.correct /
+                                  (sessionStats.correct + sessionStats.incorrect)) *
+                                  100,
+                              )}%`
+                            : sessionStats.streak}
+                        </Text>
+                      </Paper>
+                    </SimpleGrid>
+                  )}
+
+                  {practiceState.phase === "idle" && (
+                    <Stack gap="sm">
+                      {stats.due === 0 && stats.unseen === 0 ? (
+                        <Paper p="sm" withBorder>
+                          <Stack gap="xs" align="center">
+                            <ThemeIcon size="xl" radius="xl" color="green" variant="light">
+                              <IconCheck size={24} />
+                            </ThemeIcon>
+                            <Text ta="center" fw={500}>
+                              {t("Board.Practice.PracticedAll1")}
+                            </Text>
+                            <Text ta="center" fz="sm" c="dimmed">
+                              {t("Board.Practice.PracticedAll2")}{" "}
+                              {dayjs(stats.nextDue).format("MMM D, HH:mm")}
+                            </Text>
+                          </Stack>
+                        </Paper>
+                      ) : (
+                        <Button
+                          size="md"
+                          variant="light"
+                          fullWidth
+                          onClick={startPractice}
+                          leftSection={<IconTarget size={20} />}
+                          justify="space-between"
+                          rightSection={
+                            <Badge size="sm" variant="white">
+                              {stats.due + stats.unseen}
+                            </Badge>
+                          }
+                        >
+                          {t("Board.Practice.StartPractice")}
+                        </Button>
+                      )}
                       <Button
                         size="md"
                         variant="light"
+                        color="gray"
                         fullWidth
-                        onClick={startPractice}
-                        leftSection={<IconTarget size={20} />}
+                        onClick={startFullPractice}
+                        leftSection={<IconBook size={20} />}
                         justify="space-between"
                         rightSection={
-                          <Badge size="sm" variant="white" color="blue">
-                            {stats.due + stats.unseen}
+                          <Badge size="sm" variant="white" color="gray">
+                            {movesToPractice}
                           </Badge>
                         }
                       >
-                        {t("Board.Practice.StartPractice")}
-                      </Button>
-                    )}
-                    <Button
-                      size="md"
-                      variant="light"
-                      color="gray"
-                      fullWidth
-                      onClick={startFullPractice}
-                      leftSection={<IconBook size={20} />}
-                      justify="space-between"
-                      rightSection={
-                        <Badge size="sm" variant="white" color="gray">
-                          {deck.positions.length}
-                        </Badge>
-                      }
-                    >
-                      {t("Board.Practice.PracticeFullRepertoire")}
-                    </Button>
-                  </Stack>
-                )}
-
-                {practiceState.phase === "waiting" && (
-                  <Paper p="sm" withBorder>
-                    {practiceState.currentFen && currentFen !== practiceState.currentFen ? (
-                      <Stack gap="xs" align="center">
-                        <Text ta="center" fz="sm" c="dimmed">
-                          {t("Board.Practice.NotOnPosition")}
-                        </Text>
-                        <Button
-                          variant="light"
-                          size="xs"
-                          leftSection={<IconArrowBack size={14} />}
-                          onClick={() => {
-                            goToMove(findFen(practiceState.currentFen!, root));
-                            setInvisible(true);
-                          }}
-                        >
-                          {t("Board.Practice.GoBackToPosition")}
-                        </Button>
-                      </Stack>
-                    ) : (
-                      <Group gap="xs" justify="center">
-                        <Text ta="center" fz="sm" c="dimmed">
-                          {t("Board.Practice.MakeYourMove")}
-                        </Text>
-                        <Button
-                          variant="light"
-                          size="compact-xs"
-                          color="red"
-                          onClick={() => {
-                            setPracticeState({ phase: "idle" });
-                            setPracticePath(null);
-                            setInvisible(false);
-                            setShowComments(true);
-                            setEvalOpen(true);
-                            setSessionStats({
-                              mode: "anki",
-                              remainingPositions: [],
-                              correct: 0,
-                              incorrect: 0,
-                              streak: 0,
-                              bestStreak: 0,
-                            });
-                          }}
-                        >
-                          {t("Common.Stop")}
-                        </Button>
-                      </Group>
-                    )}
-                  </Paper>
-                )}
-
-                {practiceState.phase === "correct" && sessionStats.mode !== "full" && (
-                  <QualityRatingPanel
-                    onRate={handleQualityRating}
-                    card={
-                      practiceState.positionIndex !== undefined
-                        ? deck.positions[practiceState.positionIndex].card
-                        : undefined
-                    }
-                    timeTaken={practiceState.timeTaken}
-                  />
-                )}
-
-                {practiceState.phase === "incorrect" && (
-                  <Paper p="sm" withBorder>
-                    <Stack gap="xs" align="center">
-                      <Group gap="xs">
-                        <ThemeIcon size="md" color="red" variant="light" radius="xl">
-                          <IconX size={16} />
-                        </ThemeIcon>
-                        <Text fw={500} c="red">
-                          {t("Common.Incorrect")}
-                        </Text>
-                      </Group>
-                      <Text fz="sm" c="dimmed">
-                        {t("Board.Practice.CorrectMoveWas", {
-                          move: practiceState.answer,
-                        })}
-                      </Text>
-                      <Button variant="light" size="sm" onClick={skipCard}>
-                        {t("Board.Practice.NextPosition")}
+                        {t("Board.Practice.PracticeFullRepertoire")}
                       </Button>
                     </Stack>
-                  </Paper>
+                  )}
+
+                  {practiceState.phase === "waiting" && (
+                    <Paper p="sm" withBorder>
+                      {practiceState.currentFen && currentFen !== practiceState.currentFen ? (
+                        <Stack gap="xs" align="center">
+                          <Text ta="center" fz="sm" c="dimmed">
+                            {t("Board.Practice.NotOnPosition")}
+                          </Text>
+                          <Button
+                            variant="light"
+                            size="xs"
+                            leftSection={<IconArrowBack size={14} />}
+                            onClick={() => {
+                              goToMove(findFen(practiceState.currentFen!, root));
+                              setInvisible(true);
+                            }}
+                          >
+                            {t("Board.Practice.GoBackToPosition")}
+                          </Button>
+                        </Stack>
+                      ) : (
+                        <Group gap="xs" justify="center">
+                          {practiceState.alreadyPracticed ? (
+                            <>
+                              <ThemeIcon size="md" color="yellow" variant="light" radius="xl">
+                                <IconAlertTriangle size={16} />
+                              </ThemeIcon>
+                              <Text fw={500} c="yellow">
+                                {t("Board.Practice.AlreadyPracticed")}
+                              </Text>
+                            </>
+                          ) : (
+                            <Text ta="center" fz="sm" c="dimmed">
+                              {lineProgress
+                                ? t("Board.Practice.LineProgress", lineProgress)
+                                : t("Board.Practice.MakeYourMove")}
+                            </Text>
+                          )}
+                        </Group>
+                      )}
+                    </Paper>
+                  )}
+
+                  {practiceState.phase === "correct" &&
+                    sessionStats.mode !== "full" &&
+                    !practiceState.afterMistake &&
+                    practiceAutoDifficulty === "none" && (
+                      <QualityRatingPanel
+                        onRate={handleQualityRating}
+                        card={
+                          practiceState.positionIndex !== undefined
+                            ? deck.positions[practiceState.positionIndex].card
+                            : undefined
+                        }
+                        timeTaken={practiceState.timeTaken}
+                      />
+                    )}
+
+                  {practiceState.phase === "incorrect" && (
+                    <Paper p="sm" withBorder>
+                      <Stack gap="xs" align="center">
+                        <Group gap="xs">
+                          <ThemeIcon size="md" color="red" variant="light" radius="xl">
+                            <IconX size={16} />
+                          </ThemeIcon>
+                          <Text fw={500} c="red">
+                            {t("Common.Incorrect")}
+                          </Text>
+                        </Group>
+                        <Text fz="sm" c="dimmed">
+                          {t("Board.Practice.CorrectMoveWas", {
+                            move: practiceState.answer,
+                          })}
+                        </Text>
+                        <Button variant="light" size="sm" onClick={skipCard}>
+                          {t("Board.Practice.NextPosition")}
+                        </Button>
+                      </Stack>
+                    </Paper>
+                  )}
+                </>
+              )}
+            </Stack>
+          </ScrollArea>
+
+          {stats.total > 0 && (
+            <Stack px="sm" pb="sm" gap="md">
+              <Divider />
+
+              <Group gap="xs">
+                <Button variant="subtle" size="xs" onClick={() => setPositionsOpen(true)}>
+                  {t("Board.Practice.ShowAll")}
+                </Button>
+                <Button variant="subtle" size="xs" onClick={() => setLogsOpen(true)}>
+                  {t("Board.Practice.ShowLogs")}
+                </Button>
+                <Button variant="subtle" size="xs" color="red" onClick={() => toggleResetModal()}>
+                  {t("Common.Reset")}
+                </Button>
+                {practiceState.phase !== "idle" && (
+                  <Button variant="light" size="xs" color="red" ml="auto" onClick={stopPractice}>
+                    {t("Common.Stop")}
+                  </Button>
                 )}
-
-                <Divider />
-
-                <Group gap="xs">
-                  <Button variant="subtle" size="xs" onClick={() => setPositionsOpen(true)}>
-                    {t("Board.Practice.ShowAll")}
-                  </Button>
-                  <Button variant="subtle" size="xs" onClick={() => setLogsOpen(true)}>
-                    {t("Board.Practice.ShowLogs")}
-                  </Button>
-                  <Button variant="subtle" size="xs" color="red" onClick={() => toggleResetModal()}>
-                    {t("Common.Reset")}
-                  </Button>
-                </Group>
-              </>
-            )}
-          </Stack>
+              </Group>
+            </Stack>
+          )}
         </Tabs.Panel>
 
         <Tabs.Panel value="build" style={{ overflow: "hidden" }}>
@@ -646,7 +773,6 @@ function PracticePanel() {
           setEvalOpen(true);
           setSessionStats({
             mode: "anki",
-            remainingPositions: [],
             correct: 0,
             incorrect: 0,
             streak: 0,
@@ -804,7 +930,7 @@ function PositionsModal({
           const position = findFen(c.fen, root);
           const node = getNodeAtPath(root, position);
           return (
-            <Card key={c.fen}>
+            <Card key={`${c.fen} ${c.answer}`}>
               <Text>
                 {Math.floor(node.halfMoves / 2) + 1}
                 {node.halfMoves % 2 === 0 ? ". " : "... "}
@@ -881,7 +1007,7 @@ function LogsModal({
               <Text>
                 {Math.floor(node.halfMoves / 2) + 1}
                 {node.halfMoves % 2 === 0 ? ". " : "... "}
-                {node.san}
+                {log.answer ?? node.san}
               </Text>
 
               <Divider my="xs" />
