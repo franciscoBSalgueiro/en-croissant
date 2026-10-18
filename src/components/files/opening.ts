@@ -27,7 +27,7 @@ export function buildFromTree(tree: TreeNode, color: "white" | "black", start: n
     for (const item of iterator) {
         if (
             item.node.children.length === 0 ||
-            isPrefix(item.position, start) ||
+            (item.position.length < start.length && isPrefix(item.position, start)) ||
             !item.node.children[0].san ||
             cards.find((c) => c.fen === item.node.fen)
         ) {

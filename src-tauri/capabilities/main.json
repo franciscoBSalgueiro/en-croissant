@@ -44,6 +44,7 @@
             "identifier": "http:default",
             "allow": [
                 "https://www.encroissant.org/**",
+                "https://raw.githubusercontent.com/lichess-org/chess-openings/a6189a30dc273ccb21fc2536a9a2fefd5592a67a/**",
                 "https://api.chess.com/**",
                 "https://www.chess.com/**",
                 "https://lichess.org/**",
