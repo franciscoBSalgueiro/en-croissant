@@ -486,6 +486,8 @@
     "Menu.View": "Vue",
     "Menu.View.Fullscreen": "Permuter l'affichage en plein écran",
     "Menu.View.Reload": "Recharger",
+    "Menu.View.ToggleSidebar": "",
+    "Menu.View.ToggleTabBar": "",
     "Notation.HideComments": "Masquer les commentaires",
     "Notation.HideMoves": "Masquer les coups",
     "Notation.HideVariations": "Masquer les variantes",

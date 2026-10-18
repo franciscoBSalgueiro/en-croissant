@@ -453,6 +453,8 @@
     "Menu.View": "檢視",
     "Menu.View.Fullscreen": "",
     "Menu.View.Reload": "重新載入",
+    "Menu.View.ToggleSidebar": "",
+    "Menu.View.ToggleTabBar": "",
     "Notation.HideComments": "",
     "Notation.HideMoves": "",
     "Notation.HideVariations": "",
