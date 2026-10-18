@@ -395,7 +395,10 @@ function Board({
             flexWrap: "nowrap",
             overflow: "hidden",
             margin: "0 auto",
-            maxWidth: containerHeight > 0 ? containerHeight : undefined,
+            maxWidth:
+              containerHeight > 0
+                ? `calc(${containerHeight}px - 2 * ${BAR_HEIGHT} - 1rem + 25px + var(--mantine-spacing-sm))`
+                : undefined,
           }}
         >
           <BoardBar
@@ -428,6 +431,8 @@ function Board({
             style={{
               position: "relative",
               flexWrap: "nowrap",
+              flex: 1,
+              minHeight: 0,
             }}
             gap="sm"
           >
