@@ -1,5 +1,6 @@
 import type { DrawBrushes, DrawShape } from "@lichess-org/chessground/draw";
 import { ActionIcon, Box, Center, Group, Text, useMantineTheme } from "@mantine/core";
+import { useElementSize } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { IconChevronRight } from "@tabler/icons-react";
 import {
@@ -379,10 +380,11 @@ function Board({
 
   const topPlayer = orientation === "white" ? headers.black : headers.white;
   const bottomPlayer = orientation === "white" ? headers.white : headers.black;
+  const { ref: containerRef, height: containerHeight } = useElementSize();
 
   return (
     <>
-      <Box w="100%" h="100%">
+      <Box w="100%" h="100%" ref={containerRef}>
         <Box
           style={{
             display: "flex",
@@ -392,9 +394,8 @@ function Board({
             gap: "0.5rem",
             flexWrap: "nowrap",
             overflow: "hidden",
-            maxWidth:
-              //            topbar   bottompadding                tabs                                  bottomb    topbar   evalbar                                gaps    ???
-              `calc(100vh - 2.25rem - var(--mantine-spacing-sm) - 2.5rem - var(--mantine-spacing-sm) - ${BAR_HEIGHT} - ${BAR_HEIGHT} + 1.563rem + var(--mantine-spacing-md) - 1rem  - 0.2rem)`,
+            margin: "0 auto",
+            maxWidth: containerHeight > 0 ? containerHeight : undefined,
           }}
         >
           <BoardBar
