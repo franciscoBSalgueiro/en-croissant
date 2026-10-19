@@ -143,7 +143,74 @@ function Puzzles({ id }: { id: string }) {
     makeMove({ payload: parseUci(puzzle.moves[0])! });
   }
 
+  const [addOpened, setAddOpened] = useState(false);
+  const [deleteModalOpened, setDeleteModalOpened] = useState(false);
+  const [isPlayingSolution, setIsPlayingSolution] = useState(false);
   const solutionAbortRef = useRef<AbortController | null>(null);
+
+  const [progressive, setProgressive] = useAtom(progressivePuzzlesAtom);
+  const [hideRating, setHideRating] = useAtom(hidePuzzleRatingAtom);
+  const [trackTime, setTrackTime] = useAtom(trackPuzzleTimeAtom);
+  const [timerStart, setTimerStart] = useAtom(currentPuzzleTimerAtom);
+
+  const puzzleBufferRef = useRef<Puzzle[]>([]);
+  const isBufferingRef = useRef<boolean>(false);
+
+  const currentFiltersRef = useRef({
+    selectedDb,
+    ratingRange,
+    effectiveSelectedTheme,
+    progressive,
+    currentRating: puzzles[currentPuzzle]?.rating,
+  });
+
+  useEffect(() => {
+    currentFiltersRef.current = {
+      selectedDb,
+      ratingRange,
+      effectiveSelectedTheme,
+      progressive,
+      currentRating: puzzles[currentPuzzle]?.rating,
+    };
+  });
+
+  const refillBuffer = async () => {
+    if (isBufferingRef.current) return;
+    const {
+      selectedDb: db,
+      ratingRange: range,
+      effectiveSelectedTheme: theme,
+    } = currentFiltersRef.current;
+    if (!db) return;
+
+    isBufferingRef.current = true;
+    try {
+      while (puzzleBufferRef.current.length < 3) {
+        let currentRange = range;
+        if (currentFiltersRef.current.progressive) {
+          const rating =
+            puzzleBufferRef.current[puzzleBufferRef.current.length - 1]?.rating ??
+            currentFiltersRef.current.currentRating;
+          if (rating) {
+            currentRange = [rating + 50, rating + 100];
+          }
+        }
+        const res = await commands.getPuzzle(db, currentRange[0], currentRange[1], theme);
+        if (res.status !== "ok") break;
+        const puzzle = res.data;
+        const formatted: Puzzle = {
+          ...puzzle,
+          moves: puzzle.moves.split(" "),
+          completion: "incomplete",
+        };
+        puzzleBufferRef.current.push(formatted);
+      }
+    } catch (e) {
+      console.error("Failed to refill puzzle buffer:", e);
+    } finally {
+      isBufferingRef.current = false;
+    }
+  };
 
   async function generatePuzzle(db: string, force: boolean = false) {
     let nextIndex = puzzles.findIndex((p, i) => i > currentPuzzle && p.completion === "incomplete");
@@ -165,30 +232,69 @@ function Puzzles({ id }: { id: string }) {
     solutionAbortRef.current?.abort();
     setIsPlayingSolution(false);
 
-    let range = ratingRange;
-    if (progressive) {
-      const rating = puzzles[currentPuzzle]?.rating;
-      if (rating) {
-        range = [rating + 50, rating + 100];
-        setRatingRange([rating + 50, rating + 100]);
+    let nextPuzzle: Puzzle | undefined;
+    if (puzzleBufferRef.current.length > 0) {
+      nextPuzzle = puzzleBufferRef.current.shift();
+      refillBuffer();
+    } else {
+      let range = ratingRange;
+      if (progressive) {
+        const rating = puzzles[currentPuzzle]?.rating;
+        if (rating) {
+          range = [rating + 50, rating + 100];
+          setRatingRange([rating + 50, rating + 100]);
+        }
+      }
+      const res = await commands.getPuzzle(db, range[0], range[1], effectiveSelectedTheme);
+      const puzzle = unwrap(res);
+      nextPuzzle = {
+        ...puzzle,
+        moves: puzzle.moves.split(" "),
+        completion: "incomplete",
+      };
+      refillBuffer();
+    }
+
+    if (nextPuzzle) {
+      const puzzleToPlay = nextPuzzle;
+      const newIndex = puzzles.length;
+      setPuzzles((prev) => [...prev, puzzleToPlay]);
+      setCurrentPuzzle(newIndex);
+      setPuzzle(puzzleToPlay);
+      if (trackTime) {
+        setTimerStart(Date.now());
       }
     }
-    const res = await commands.getPuzzle(db, range[0], range[1], effectiveSelectedTheme);
-    const puzzle = unwrap(res);
-    const newPuzzle: Puzzle = {
-      ...puzzle,
-      moves: puzzle.moves.split(" "),
-      completion: "incomplete",
-    };
-    setPuzzles((puzzles) => {
-      return [...puzzles, newPuzzle];
-    });
-    setCurrentPuzzle(puzzles.length);
-    setPuzzle(newPuzzle);
-    if (trackTime) {
-      setTimerStart(Date.now());
-    }
   }
+
+  // Pre-fill buffer in background when database is loaded
+  useEffect(() => {
+    if (selectedDb) {
+      refillBuffer();
+    }
+  }, [selectedDb]);
+
+  // When filters change, clear the prefetch buffer and fetch a new puzzle if session is active
+  const prevFilterSigRef = useRef<string | null>(null);
+  const [minRating, maxRating] = ratingRange;
+  useEffect(() => {
+    const currentSig = `${selectedDb}:${minRating}-${maxRating}:${effectiveSelectedTheme}:${progressive}`;
+    if (prevFilterSigRef.current === null) {
+      prevFilterSigRef.current = currentSig;
+      return;
+    }
+
+    if (prevFilterSigRef.current !== currentSig) {
+      prevFilterSigRef.current = currentSig;
+      puzzleBufferRef.current = [];
+      if (selectedDb && puzzles.length > 0) {
+        generatePuzzle(selectedDb, true);
+      } else if (selectedDb) {
+        refillBuffer();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDb, minRating, maxRating, effectiveSelectedTheme, progressive]);
 
   async function changeCompletion(completion: Completion) {
     const timeSpent = timerStart !== null ? Date.now() - timerStart : 0;
@@ -216,15 +322,6 @@ function Puzzles({ id }: { id: string }) {
     }
   }
 
-  const [addOpened, setAddOpened] = useState(false);
-  const [deleteModalOpened, setDeleteModalOpened] = useState(false);
-  const [isPlayingSolution, setIsPlayingSolution] = useState(false);
-
-  const [progressive, setProgressive] = useAtom(progressivePuzzlesAtom);
-  const [hideRating, setHideRating] = useAtom(hidePuzzleRatingAtom);
-  const [trackTime, setTrackTime] = useAtom(trackPuzzleTimeAtom);
-
-  const [timerStart, setTimerStart] = useAtom(currentPuzzleTimerAtom);
   const [, setTick] = useState(0);
   const isPuzzleIncomplete = puzzles[currentPuzzle]?.completion === "incomplete";
   const elapsedTime =
