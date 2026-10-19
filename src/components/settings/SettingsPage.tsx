@@ -45,6 +45,7 @@ import {
   moveMethodAtom,
   moveNotationTypeAtom,
   nativeBarAtom,
+  pieceAnimationAtom,
   practiceAutoDifficultyAtom,
   previewBoardOnHoverAtom,
   flipBoardAfterMoveAtom,
@@ -177,6 +178,7 @@ export default function Page() {
   puzzlesDirectory = puzzlesDirectory || defaultPuzzlesDir;
 
   const [moveMethod, setMoveMethod] = useAtom(moveMethodAtom);
+  const [pieceAnimation, setPieceAnimation] = useAtom(pieceAnimationAtom);
   const [moveNotationType, setMoveNotationType] = useAtom(moveNotationTypeAtom);
   const [showCoordinates, setShowCoordinates] = useAtom(showCoordinatesAtom);
   const [materialDisplay, setMaterialDisplay] = useAtom(materialDisplayAtom);
@@ -251,6 +253,26 @@ export default function Page() {
             allowDeselect={false}
             value={moveMethod}
             onChange={(val) => setMoveMethod(val as "drag" | "select" | "both")}
+          />
+        ),
+      },
+      {
+        id: "piece-animation",
+        category: "board",
+        title: t("Settings.PieceAnimation"),
+        description: t("Settings.PieceAnimation.Desc"),
+        keywords: ["animation", "speed", "pieces", "move", "fast", "slow"],
+        render: () => (
+          <Select
+            data={[
+              { label: t("Settings.PieceAnimation.None"), value: "none" },
+              { label: t("Settings.PieceAnimation.Fast"), value: "fast" },
+              { label: t("Settings.PieceAnimation.Normal"), value: "normal" },
+              { label: t("Settings.PieceAnimation.Slow"), value: "slow" },
+            ]}
+            allowDeselect={false}
+            value={pieceAnimation}
+            onChange={(val) => setPieceAnimation(val as "none" | "fast" | "normal" | "slow")}
           />
         ),
       },
@@ -639,6 +661,8 @@ export default function Page() {
       i18n,
       moveNotationType,
       moveMethod,
+      pieceAnimation,
+      setPieceAnimation,
       isNative,
       showCoordinates,
       materialDisplay,
