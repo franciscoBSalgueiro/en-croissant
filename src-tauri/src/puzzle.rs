@@ -1,7 +1,8 @@
 use std::{collections::VecDeque, fs::remove_file, path::PathBuf, sync::Mutex};
 
-use diesel::{dsl::sql, sql_types::Bool, Connection, ExpressionMethods, QueryDsl, RunQueryDsl};
+use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl};
 use once_cell::sync::Lazy;
+use rand::{seq::SliceRandom, thread_rng, Rng};
 use serde::Serialize;
 use specta::Type;
 
@@ -48,24 +49,65 @@ impl PuzzleCache {
 
             let mut db = diesel::SqliteConnection::establish(file).expect("open database");
 
-            let new_puzzles: Vec<Puzzle> = if let Some(theme_name) = theme {
-                puzzles::table
+            let max_puzzle_id: i32 = puzzles::table
+                .select(puzzles::id)
+                .order(puzzles::id.desc())
+                .first::<i32>(&mut db)
+                .unwrap_or(0);
+
+            let random_start_id = if max_puzzle_id > 1 {
+                thread_rng().gen_range(1..=max_puzzle_id)
+            } else {
+                1
+            };
+
+            let mut new_puzzles: Vec<Puzzle> = if let Some(theme_name) = theme {
+                let mut results = puzzles::table
                     .inner_join(puzzle_themes::table.inner_join(themes::table))
                     .filter(themes::name.eq(theme_name))
+                    .filter(puzzles::id.ge(random_start_id))
                     .filter(puzzles::rating.le(max_rating as i32))
                     .filter(puzzles::rating.ge(min_rating as i32))
                     .select(puzzles::all_columns)
-                    .order(sql::<Bool>("RANDOM()"))
                     .limit(20)
-                    .load::<Puzzle>(&mut db)?
+                    .load::<Puzzle>(&mut db)?;
+
+                if results.len() < 20 {
+                    let needed = (20 - results.len()) as i64;
+                    let wrap_results = puzzles::table
+                        .inner_join(puzzle_themes::table.inner_join(themes::table))
+                        .filter(themes::name.eq(theme_name))
+                        .filter(puzzles::id.lt(random_start_id))
+                        .filter(puzzles::rating.le(max_rating as i32))
+                        .filter(puzzles::rating.ge(min_rating as i32))
+                        .select(puzzles::all_columns)
+                        .limit(needed)
+                        .load::<Puzzle>(&mut db)?;
+                    results.extend(wrap_results);
+                }
+                results
             } else {
-                puzzles::table
+                let mut results = puzzles::table
+                    .filter(puzzles::id.ge(random_start_id))
                     .filter(puzzles::rating.le(max_rating as i32))
                     .filter(puzzles::rating.ge(min_rating as i32))
-                    .order(sql::<Bool>("RANDOM()"))
                     .limit(20)
-                    .load::<Puzzle>(&mut db)?
+                    .load::<Puzzle>(&mut db)?;
+
+                if results.len() < 20 {
+                    let needed = (20 - results.len()) as i64;
+                    let wrap_results = puzzles::table
+                        .filter(puzzles::id.lt(random_start_id))
+                        .filter(puzzles::rating.le(max_rating as i32))
+                        .filter(puzzles::rating.ge(min_rating as i32))
+                        .limit(needed)
+                        .load::<Puzzle>(&mut db)?;
+                    results.extend(wrap_results);
+                }
+                results
             };
+
+            new_puzzles.shuffle(&mut thread_rng());
 
             self.cache = new_puzzles.into_iter().collect();
             self.min_rating = min_rating;

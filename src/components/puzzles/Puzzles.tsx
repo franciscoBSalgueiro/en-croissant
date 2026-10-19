@@ -192,22 +192,27 @@ function Puzzles({ id }: { id: string }) {
 
   async function changeCompletion(completion: Completion) {
     const timeSpent = timerStart !== null ? Date.now() - timerStart : 0;
-    const puzzle = puzzles[currentPuzzle];
+    const targetIndex = currentPuzzle;
+    const puzzle = puzzles[targetIndex];
+
     setPuzzles((puzzles) => {
-      puzzles[currentPuzzle].completion = completion;
-      puzzles[currentPuzzle].timeSpent = timeSpent;
+      if (!puzzles[targetIndex]) return puzzles;
+      puzzles[targetIndex].completion = completion;
+      puzzles[targetIndex].timeSpent = timeSpent;
       return [...puzzles];
     });
     setTimerStart(null);
 
     if (selectedDb && puzzle?.id) {
-      const res = await commands.getThemesForPuzzle(selectedDb, puzzle.id);
-      if (res.status === "ok") {
-        setPuzzles((puzzles) => {
-          puzzles[currentPuzzle].themes = res.data;
-          return [...puzzles];
-        });
-      }
+      commands.getThemesForPuzzle(selectedDb, puzzle.id).then((res) => {
+        if (res.status === "ok") {
+          setPuzzles((puzzles) => {
+            if (!puzzles[targetIndex]) return puzzles;
+            puzzles[targetIndex].themes = res.data;
+            return [...puzzles];
+          });
+        }
+      });
     }
   }
 

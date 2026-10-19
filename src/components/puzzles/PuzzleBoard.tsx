@@ -91,7 +91,7 @@ function PuzzleBoard({
     if (puzzle.moves[currentMove] === uci || newPos.isCheckmate()) {
       if (currentMove === puzzle.moves.length - 1) {
         if (puzzle.completion !== "incorrect") {
-          await changeCompletion("correct");
+          changeCompletion("correct");
         }
         setEnded(false);
 
