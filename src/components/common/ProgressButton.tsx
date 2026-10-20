@@ -1,14 +1,19 @@
+import { notifications } from "@mantine/notifications";
+import { useTranslation } from "react-i18next";
 import { ActionIcon, Box, Button, Group, Progress } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
-import { memo, useCallback, useEffect } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
+import { commands } from "@/bindings";
+import { formatBytes } from "@/utils/format";
 import { useProgress } from "@/hooks/useProgress";
 import classes from "./ProgressButton.module.css";
 
 type Props = {
   id: string;
   initInstalled: boolean;
-  onClick: (id: string) => void;
+  onClick: (id: string) => void | Promise<void>;
   onCancel?: () => void;
+  cancellableDownload?: boolean;
   leftIcon?: React.ReactNode;
   labels: {
     completed: string;
@@ -27,6 +32,7 @@ function ProgressButton({
   initInstalled,
   onClick,
   onCancel,
+  cancellableDownload = false,
   leftIcon,
   labels,
   disabled,
@@ -34,10 +40,13 @@ function ProgressButton({
   inProgress,
   setInProgress,
 }: Props) {
-  const { progress, finished, isActive, clear } = useProgress(id);
-  const completed = initInstalled || finished;
-
+  const { t } = useTranslation();
+  const [cancelling, setCancelling] = useState(false);
+  const isDownload = cancellableDownload;
+  const { progress, finished, isActive, clear, bytesPerSecond } = useProgress(id);
   const showProgress = isActive || inProgress;
+  // Engine registration is optimistic in Jotai; persistence may still fail.
+  const completed = (initInstalled || finished) && !(isDownload && showProgress);
 
   useEffect(() => {
     if (finished) {
@@ -45,13 +54,24 @@ function ProgressButton({
     }
   }, [finished, setInProgress]);
 
-  const handleCancel = useCallback(() => {
+  const handleCancel = useCallback(async () => {
+    if (isDownload && !onCancel) {
+      setCancelling(true);
+      try {
+        await commands.cancelDownload(id);
+      } catch (error) {
+        notifications.show({ color: "red", message: String(error) });
+      } finally {
+        setCancelling(false);
+      }
+      return;
+    }
     if (onCancel) {
       onCancel();
     }
     clear();
     setInProgress(false);
-  }, [onCancel, clear, setInProgress]);
+  }, [onCancel, clear, setInProgress, isDownload, id]);
 
   let label: string;
   if (completed) {
@@ -62,18 +82,36 @@ function ProgressButton({
     else label = labels.inProgress;
   }
 
+  const speedLabel =
+    isDownload && showProgress && !completed && progress < 100
+      ? `${bytesPerSecond && bytesPerSecond > 0 ? formatBytes(bytesPerSecond, 1) : "0 KB"}/s`
+      : null;
+
   return (
     <Group gap="xs" wrap="nowrap">
       <Button
         fullWidth
-        onClick={() => {
-          onClick(id);
+        onClick={async () => {
+          if (!isDownload) return onClick(id);
+          try {
+            await onClick(id);
+          } catch (error) {
+            if (!String(error).includes("Download cancelled")) {
+              notifications.show({ color: "red", message: String(error) });
+            }
+          } finally {
+            clear();
+            setInProgress(false);
+          }
         }}
         disabled={showProgress || (completed && !redoable) || disabled}
         leftSection={<Box className={classes.label}>{leftIcon}</Box>}
         autoContrast
       >
-        <span className={classes.label}>{label}</span>
+        <span className={classes.label}>
+          {label}
+          {speedLabel !== null ? ` · ${speedLabel}` : ""}
+        </span>
         {!completed && progress !== 0 && (
           <Progress
             pos="absolute"
@@ -84,8 +122,15 @@ function ProgressButton({
           />
         )}
       </Button>
-      {showProgress && onCancel && (
-        <ActionIcon variant="default" size="lg" onClick={handleCancel} title="Cancel">
+      {showProgress && (onCancel || (isDownload && isActive && progress < 100)) && (
+        <ActionIcon
+          variant="default"
+          size="lg"
+          onClick={handleCancel}
+          disabled={cancelling}
+          aria-label={t("Common.Cancel")}
+          title={t("Common.Cancel")}
+        >
           <IconX size="1rem" />
         </ActionIcon>
       )}

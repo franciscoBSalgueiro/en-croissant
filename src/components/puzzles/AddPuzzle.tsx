@@ -70,7 +70,8 @@ function PuzzleDbCard({
     setInProgress(true);
     const puzzlesDir = await getPuzzlesDir();
     const path = await resolve(puzzlesDir, `${name}.db3`);
-    await commands.downloadFile(`puzzle_db_${id}`, url, path, null, null, null);
+    const result = await commands.downloadFile(`puzzle_db_${id}`, url, path, null, null, null);
+    if (result.status === "error") throw new Error(result.error);
     setPuzzleDbs(await getPuzzleDatabases());
   }
 
@@ -104,6 +105,7 @@ function PuzzleDbCard({
             </Stack>
           </Group>
           <ProgressButton
+            cancellableDownload
             id={`puzzle_db_${databaseId}`}
             initInstalled={initInstalled}
             labels={{
@@ -114,7 +116,7 @@ function PuzzleDbCard({
             }}
             onClick={() => {
               if (!puzzleDb.downloadLink) return;
-              downloadDatabase(databaseId, puzzleDb.downloadLink, puzzleDb.title);
+              return downloadDatabase(databaseId, puzzleDb.downloadLink, puzzleDb.title);
             }}
             inProgress={inProgress}
             setInProgress={setInProgress}
