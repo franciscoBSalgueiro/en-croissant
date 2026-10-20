@@ -44,9 +44,9 @@ function ProgressButton({
   const [cancelling, setCancelling] = useState(false);
   const isDownload = cancellableDownload;
   const { progress, finished, isActive, clear, bytesPerSecond } = useProgress(id);
-  const completed = initInstalled || finished;
-
   const showProgress = isActive || inProgress;
+  // Engine registration is optimistic in Jotai; persistence may still fail.
+  const completed = (initInstalled || finished) && !(isDownload && showProgress);
 
   useEffect(() => {
     if (finished) {

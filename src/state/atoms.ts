@@ -150,13 +150,50 @@ const enginesFileStorage: AsyncStringStorage = {
     },
 };
 
-export const enginesAtom = unwrap(
-    atomWithStorage<Engine[]>(
-        "engines/engines.json",
-        [],
-        createAsyncZodStorage(zodArray(engineSchema), enginesFileStorage) as AsyncStorage<Engine[]>,
-    ),
+const storedEnginesAtom = atomWithStorage<Engine[]>(
+    "engines/engines.json",
+    [],
+    createAsyncZodStorage(zodArray(engineSchema), enginesFileStorage) as AsyncStorage<Engine[]>,
 );
+export const enginesAtom = unwrap(storedEnginesAtom);
+
+// Serialize registration and rollback per store. Downloads still run in parallel,
+// but a later registration cannot persist a failed attempt's optimistic entry.
+const engineRegistrationQueueAtom = atom(Promise.resolve());
+export const registerInstalledEngineAtom = atom(null, (get, set, engine: Engine) => {
+    const operation = get(engineRegistrationQueueAtom).then(async () => {
+        await get(storedEnginesAtom);
+        const update = (transform: (engines: Engine[]) => Engine[]) =>
+            set(storedEnginesAtom, (previous) =>
+                Array.isArray(previous) ? transform(previous) : previous.then(transform),
+            );
+        try {
+            await update((engines) => [...engines, engine]);
+        } catch (error) {
+            try {
+                await update((engines) => engines.filter((entry) => entry.id !== engine.id));
+            } catch (rollbackError) {
+                // Jotai applies the filtered value before awaiting persistence,
+                // so the failed entry is removed from memory even if this fails.
+                throw new AggregateError(
+                    [error, rollbackError],
+                    `Engine registration failed: ${String(error)}. Cleanup could not be saved: ${String(rollbackError)}`,
+                );
+            }
+            throw error;
+        }
+    });
+    // Keep the queue usable after errors while returning the original operation
+    // to the installer so its button waits and its error handler sees failures.
+    set(
+        engineRegistrationQueueAtom,
+        operation.then(
+            () => undefined,
+            () => undefined,
+        ),
+    );
+    return operation;
+});
 
 // Settings
 

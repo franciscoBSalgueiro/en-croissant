@@ -16,11 +16,11 @@ import {
 import { useForm } from "@mantine/form";
 import { IconAlertCircle, IconDatabase, IconTrophy } from "@tabler/icons-react";
 import { join, resolve } from "@tauri-apps/api/path";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { commands } from "@/bindings";
-import { enginesAtom } from "@/state/atoms";
+import { enginesAtom, registerInstalledEngineAtom } from "@/state/atoms";
 import { getEnginesDir } from "@/utils/directories";
 import {
   type LocalEngine,
@@ -202,7 +202,7 @@ function EngineCard({
   const { t } = useTranslation();
 
   const [inProgress, setInProgress] = useState<boolean>(false);
-  const [, setEngines] = useAtom(enginesAtom);
+  const registerEngine = useSetAtom(registerInstalledEngineAtom);
   const downloadEngine = useCallback(
     async (id: number, url: string) => {
       setInProgress(true);
@@ -223,25 +223,22 @@ function EngineCard({
       const engineConfig = await commands.getEngineConfig(enginePath);
       if (engineConfig.status === "error") throw new Error(engineConfig.error);
       const config = engineConfig.data;
-      setEngines(async (prev) => [
-        ...(await prev),
-        {
-          ...engine,
-          id: crypto.randomUUID(),
-          type: "local",
-          path: enginePath,
-          loaded: true,
-          settings: config.options
-            .filter((o) => requiredEngineSettings.includes(o.value.name))
-            .map((o) => ({
-              name: o.value.name,
-              // @ts-expect-error
-              value: o.value.default,
-            })),
-        },
-      ]);
+      await registerEngine({
+        ...engine,
+        id: crypto.randomUUID(),
+        type: "local",
+        path: enginePath,
+        loaded: true,
+        settings: config.options
+          .filter((o) => requiredEngineSettings.includes(o.value.name))
+          .map((o) => ({
+            name: o.value.name,
+            // @ts-expect-error
+            value: o.value.default,
+          })),
+      });
     },
-    [engine, setEngines],
+    [engine, registerEngine],
   );
 
   return (
