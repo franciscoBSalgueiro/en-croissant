@@ -26,6 +26,7 @@ import {
   eraseDrawablesOnClickAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
+import { svgToPngBlob } from "@/utils/snapshot";
 
 interface BoardControlsProps {
   editingMode: boolean;
@@ -90,11 +91,12 @@ function BoardControls({
 
     const { width, height } = board.getBoundingClientRect();
     domtoimage
-      .toBlob(snapshotTarget, {
+      .toSvg(snapshotTarget, {
         width,
         height,
         style: { padding: "0", margin: "0", overflow: "hidden" },
       })
+      .then((svg) => svgToPngBlob(svg, width, height))
       .then(async (blob) => {
         if (blob == null) return;
 
