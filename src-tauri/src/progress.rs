@@ -21,9 +21,9 @@ pub struct ProgressEvent {
 
 pub type ProgressStore = DashMap<String, ProgressItem>;
 
-pub fn update_progress(
+pub fn update_progress<R: tauri::Runtime>(
     store: &ProgressStore,
-    app: &tauri::AppHandle,
+    app: &tauri::AppHandle<R>,
     id: String,
     progress: f32,
     finished: bool,
