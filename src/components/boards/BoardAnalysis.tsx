@@ -10,12 +10,13 @@ import {
 import { useLoaderData } from "@tanstack/react-router";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import type { Piece } from "chessops";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useStore as useAtomStore } from "jotai";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import {
   allEnabledAtom,
+  activeTabAtom,
   autoSaveAtom,
   currentAnalysisTabAtom,
   currentPracticeTabAtom,
@@ -24,6 +25,7 @@ import {
   currentTabSelectedAtom,
   enableAllAtom,
   practiceStateAtom,
+  tabsAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { defaultPGN } from "@/utils/chess";
@@ -55,6 +57,14 @@ function BoardAnalysis() {
   const boardRef = useRef(null);
 
   const store = useContext(TreeStateContext)!;
+  const atoms = useAtomStore();
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const dirty = useStore(store, (s) => s.dirty);
 
@@ -62,23 +72,38 @@ function BoardAnalysis() {
   const clearShapes = useStore(store, (s) => s.clearShapes);
   const setAnnotation = useStore(store, (s) => s.setAnnotation);
 
-  const saveFile = useCallback(async () => {
-    saveToFile({
-      dir: documentDir,
-      setCurrentTab,
-      tab: currentTab,
-      store,
-    });
-  }, [setCurrentTab, currentTab, documentDir, store]);
-  const userSaveFile = useCallback(async () => {
-    saveToFile({
-      dir: documentDir,
-      setCurrentTab,
-      tab: currentTab,
-      store,
-      isUserSave: true,
-    });
-  }, [setCurrentTab, currentTab, documentDir, store]);
+  const saveFile = useCallback(
+    async (isUserSave = false) => {
+      const tab = currentTab;
+      if (!tab) return;
+      await saveToFile({
+        dir: documentDir,
+        setCurrentTab: (update) =>
+          atoms.set(tabsAtom, (tabs) =>
+            tabs.map((current) =>
+              current.value === tab.value
+                ? typeof update === "function"
+                  ? update(current)
+                  : update
+                : current,
+            ),
+          ),
+        tab,
+        store,
+        isUserSave,
+        isCurrent: () =>
+          mounted.current &&
+          atoms.get(activeTabAtom) === tab.value &&
+          atoms
+            .get(tabsAtom)
+            .some(
+              (current) => current.value === tab.value && current.gameOrigin === tab.gameOrigin,
+            ),
+      });
+    },
+    [atoms, currentTab, documentDir, store],
+  );
+  const userSaveFile = useCallback(() => saveFile(true), [saveFile]);
   useEffect(() => {
     if (hasPersistentOrigin && autoSave && dirty) {
       saveFile();

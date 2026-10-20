@@ -154,14 +154,17 @@ export async function saveToFile({
     setCurrentTab,
     store,
     isUserSave,
+    isCurrent = () => true,
 }: {
     dir: string;
     tab: Tab | undefined;
     setCurrentTab: React.Dispatch<React.SetStateAction<Tab>>;
     store: StoreApi<TreeStoreState>;
     isUserSave?: boolean;
-}) {
+    isCurrent?: () => boolean;
+}): Promise<"saved" | "cancelled" | "changed"> {
     let filePath: string;
+    let newOrigin: GameOrigin | undefined;
     const currentOrigin = tab?.gameOrigin;
     const fileOrigin =
         currentOrigin?.kind === "file" || currentOrigin?.kind === "temp_file"
@@ -169,18 +172,32 @@ export async function saveToFile({
             : undefined;
     const databaseOrigin = currentOrigin?.kind === "database" ? currentOrigin : undefined;
     const isTempFile = currentOrigin?.kind === "temp_file";
-    const pgn = `${getPGN(store.getState().root, {
-        headers: store.getState().headers,
+    const { root, headers } = store.getState();
+    const pgn = `${getPGN(root, {
+        headers,
         comments: true,
         extraMarkups: true,
         glyphs: true,
         variations: true,
     })}\n\n`;
 
+    function finishSave() {
+        if (!isCurrent()) return "changed" as const;
+        if (newOrigin) {
+            const gameOrigin = newOrigin;
+            setCurrentTab((prev) => ({ ...prev, gameOrigin }));
+        }
+        // Navigation does not change these references, but edits do. Never clean a
+        // newer tree just because an older snapshot finished writing successfully.
+        const current = store.getState();
+        if (current.root !== root || current.headers !== headers) return "changed" as const;
+        current.save();
+        return "saved" as const;
+    }
+
     if (databaseOrigin) {
-        await commands.writeDbGame(databaseOrigin.database, databaseOrigin.gameId, pgn);
-        store.getState().save();
-        return;
+        unwrap(await commands.writeDbGame(databaseOrigin.database, databaseOrigin.gameId, pgn));
+        return finishSave();
     }
 
     if (fileOrigin && !(isTempFile && isUserSave)) {
@@ -199,8 +216,9 @@ export async function saveToFile({
             ],
         });
         if (userChoice === null) {
-            return;
+            return "cancelled";
         }
+        if (!isCurrent()) return "changed";
         if (userChoice.endsWith(".pgn")) {
             filePath = userChoice;
         } else {
@@ -215,27 +233,23 @@ export async function saveToFile({
 
         const numGames = isTempFile && fileOrigin ? fileOrigin.file.numGames : 1;
         const gameNumber = fileOrigin?.gameNumber ?? 0;
-        setCurrentTab((prev) => {
-            return {
-                ...prev,
-                gameOrigin: {
-                    kind: "file",
-                    gameNumber,
-                    file: {
-                        type: "file",
-                        name: filePath,
-                        path: filePath,
-                        numGames,
-                        metadata: {
-                            tags: [],
-                            type: "game",
-                        },
-                        lastModified: Date.now(),
-                    },
+        newOrigin = {
+            kind: "file",
+            gameNumber,
+            file: {
+                type: "file",
+                name: filePath,
+                path: filePath,
+                numGames,
+                metadata: {
+                    tags: [],
+                    type: "game",
                 },
-            };
-        });
+                lastModified: Date.now(),
+            },
+        };
     }
+    if (!isCurrent()) return "changed";
     unwrap(await commands.writeGame(filePath, fileOrigin?.gameNumber ?? 0, pgn));
-    store.getState().save();
+    return finishSave();
 }
