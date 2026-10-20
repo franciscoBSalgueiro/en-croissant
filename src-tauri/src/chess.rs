@@ -36,6 +36,9 @@ use crate::{
     AppState,
 };
 
+#[cfg(test)]
+mod evaluation_terminal_tests;
+
 pub struct EngineProcess {
     base: BaseEngine,
     last_depth: u32,
@@ -637,6 +640,9 @@ fn count_material(position: &Chess) -> i32 {
     if position.is_checkmate() {
         return -10000;
     }
+    if position.is_stalemate() {
+        return 0;
+    }
     let material: ByColor<i32> = position.board().material().map(|p| {
         p.pawn as i32 * piece_value(Role::Pawn)
             + p.knight as i32 * piece_value(Role::Knight)
@@ -704,7 +710,7 @@ fn naive_eval(pos: &Chess) -> i32 {
             -qsearch(&new_position, i32::MIN, i32::MAX)
         })
         .max()
-        .unwrap_or(i32::MIN)
+        .unwrap_or_else(|| count_material(pos))
 }
 
 #[cfg(test)]
