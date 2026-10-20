@@ -570,6 +570,7 @@ function EngineSettings({
                 ...engine,
                 id: crypto.randomUUID(),
                 name: `${engine.name} (Copy)`,
+                settings: engine.settings?.map((setting) => ({ ...setting })),
               };
               setEngines(async (prev) => {
                 const copy = [...(await prev)];

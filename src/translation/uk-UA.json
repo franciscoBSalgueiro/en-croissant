@@ -482,6 +482,8 @@
     "Menu.View": "Вигляд",
     "Menu.View.Fullscreen": "",
     "Menu.View.Reload": "Перезавантажити",
+    "Menu.View.ToggleSidebar": "",
+    "Menu.View.ToggleTabBar": "",
     "Notation.HideComments": "",
     "Notation.HideMoves": "",
     "Notation.HideVariations": "",
