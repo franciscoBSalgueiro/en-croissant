@@ -600,6 +600,7 @@
     "Settings.MaterialDisplay.All": "Tüm Alınan Taşlar",
     "Settings.MaterialDisplay.Desc": "Net materyal farkını veya alınan tüm taşları göster",
     "Settings.MaterialDisplay.Diff": "Fark",
+    "Settings.MaterialDisplay.None": "",
     "Settings.MoveHighlight": "Hamle Vurgusu",
     "Settings.MoveHighlight.Desc": "Son hamleyi ve şahı vurgula",
     "Settings.MoveMethod": "Taş Hareket Yöntemi",

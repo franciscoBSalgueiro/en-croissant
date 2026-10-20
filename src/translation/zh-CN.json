@@ -593,6 +593,7 @@
     "Settings.MaterialDisplay.All": "所有已吃棋子",
     "Settings.MaterialDisplay.Desc": "显示净子力差值或所有已吃棋子",
     "Settings.MaterialDisplay.Diff": "差值",
+    "Settings.MaterialDisplay.None": "",
     "Settings.MoveHighlight": "着法高亮",
     "Settings.MoveHighlight.Desc": "显示最后一步和将军的高亮",
     "Settings.MoveMethod": "移动棋子的方式",

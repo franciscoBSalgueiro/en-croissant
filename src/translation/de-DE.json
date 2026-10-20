@@ -586,6 +586,7 @@
     "Settings.MaterialDisplay.All": "Geschlagene Figuren",
     "Settings.MaterialDisplay.Desc": "Anzeige des Materials als Differenz oder aller geschlagenen Figuren",
     "Settings.MaterialDisplay.Diff": "Differenz",
+    "Settings.MaterialDisplay.None": "",
     "Settings.MoveHighlight": "Hervorheben von Zügen",
     "Settings.MoveHighlight.Desc": "Letzten Zug sowie Schachgebote optisch hervorheben",
     "Settings.MoveMethod": "Eingabemethode von Zügen",

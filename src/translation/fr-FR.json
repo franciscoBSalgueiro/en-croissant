@@ -610,6 +610,7 @@
     "Settings.MaterialDisplay.All": "Toutes les pièces capturées",
     "Settings.MaterialDisplay.Desc": "Afficher la différence de matériel nette ou toutes les pièces capturées",
     "Settings.MaterialDisplay.Diff": "Différence",
+    "Settings.MaterialDisplay.None": "",
     "Settings.MoveHighlight": "Mettre en surbrillance le coup",
     "Settings.MoveHighlight.Desc": "Mettre en surbrillance le dernier coup et échec",
     "Settings.MoveMethod": "Options de déplacement des pièces",

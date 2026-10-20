@@ -591,6 +591,7 @@
     "Settings.MaterialDisplay.All": "잡은 기물 모두",
     "Settings.MaterialDisplay.Desc": "잡은 기물을 차이만 보여주거나 모두 보여줍니다",
     "Settings.MaterialDisplay.Diff": "차이만",
+    "Settings.MaterialDisplay.None": "",
     "Settings.MoveHighlight": "수 강조 표시",
     "Settings.MoveHighlight.Desc": "마지막 수와 체크를 강조 표시합니다",
     "Settings.MoveMethod": "기물 이동 방식",
