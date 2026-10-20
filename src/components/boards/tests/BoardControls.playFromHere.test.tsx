@@ -18,6 +18,7 @@ import {
   tabsAtom,
 } from "@/state/atoms";
 import { createTreeStore } from "@/state/store/tree";
+import english from "@/translation/en-US.json";
 import type { GameOrigin, Tab } from "@/utils/tabs";
 import {
   defaultTree,
@@ -41,7 +42,7 @@ vi.mock("@/utils/sound", () => ({ playSound: vi.fn() }));
 
 const i18n = createInstance();
 beforeAll(async () => {
-  await i18n.init({ lng: "en", fallbackLng: false, resources: { en: { translation: {} } } });
+  await i18n.init({ lng: "en", fallbackLng: false, resources: { en: english } });
 });
 
 const customFen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1";
@@ -184,14 +185,94 @@ async function renderSource(
     );
   });
 }
-async function clickMode() {
-  // The real ActionIcon has a tooltip rather than an accessible name today.
+function modeButton() {
   const button = container
     .querySelector(".tabler-icon-target, .tabler-icon-zoom-check")
     ?.closest("button");
   expect(button).not.toBeNull();
-  await act(async () => button!.click());
+  return button!;
 }
+async function clickMode() {
+  await act(async () => modeButton().click());
+}
+
+it.each([
+  ["analysis", "Play from here"],
+  ["play", "Analyze game"],
+] as const)("names the %s mode action accessibly", async (type, name) => {
+  await renderSource(origins[0], selections[0], type);
+  const button = modeButton();
+  expect(button.getAttribute("aria-label")).toBe(name);
+  expect(button.disabled).toBe(false);
+  button.focus();
+  expect(document.activeElement).toBe(button);
+});
+
+it("allows only one pending creation, then seeds one play tab and releases the control", async () => {
+  const selection = selections[1];
+  await renderSource(origins[0], selection);
+  const state = tree.getState();
+  const originalTab = atoms.get(tabsAtom)[0];
+  const originalJson = JSON.stringify(state);
+  const storage = { ...sessionStorage };
+  const players = atoms.get(currentPlayersAtom);
+  const pending = Promise.withResolvers<void>();
+  const parse = mocks.lexPgn.getMockImplementation()!;
+  mocks.lexPgn.mockImplementationOnce(async (pgn) => {
+    await pending.promise;
+    return parse(pgn);
+  });
+  const button = modeButton();
+  await act(async () => {
+    // Exercise reentrancy before React can render a disabled button.
+    button.click();
+    button.click();
+  });
+  expect(mocks.lexPgn).toHaveBeenCalledTimes(1);
+  expect(button.getAttribute("aria-label")).toBe("Play from here");
+  expect(button.getAttribute("aria-busy")).toBe("true");
+  expect(button.hasAttribute("data-loading")).toBe(true);
+  expect(button.disabled).toBe(true);
+  await clickMode();
+  expect(mocks.lexPgn).toHaveBeenCalledTimes(1);
+  expect(atoms.get(tabsAtom)).toEqual([source]);
+  expect(atoms.get(tabsAtom)[0]).toBe(originalTab);
+  expect(atoms.get(activeTabAtom)).toBe(source.value);
+  expect(atoms.get(currentGameStateAtom)).toBe("playing");
+  expect(atoms.get(currentGameIdAtom)).toBe("source-game");
+  expect(atoms.get(currentPlayersAtom)).toBe(players);
+  expect(tree.getState()).toBe(state);
+  expect(JSON.stringify(tree.getState())).toBe(originalJson);
+  expect({ ...sessionStorage }).toEqual(storage);
+
+  await act(async () => pending.resolve());
+  const tabs = atoms.get(tabsAtom);
+  expect(tabs).toHaveLength(2);
+  expect(tabs[0]).toBe(originalTab);
+  expect(tabs[1]).toMatchObject({ type: "play", gameOrigin: { kind: "none" } });
+  expect(atoms.get(activeTabAtom)).toBe(tabs[1].value);
+  expect(atoms.get(currentGameStateAtom)).toBe("settingUp");
+  expect(atoms.get(currentGameIdAtom)).toBeNull();
+  const saved: TreeState = JSON.parse(sessionStorage.getItem(tabs[1].value)!).state;
+  expect(saved.position).toEqual([0, 0, 0]);
+  expect(saved.headers).toMatchObject({ fen: selection.fen, result: "*", start: [] });
+  expect([...treeIteratorMainLine(saved.root)].slice(1).map(({ node }) => node.san)).toEqual(
+    selection.moves,
+  );
+  expect(getNodeAtPath(saved.root, saved.position).fen).toBe(
+    getNodeAtPath(state.root, selection.position).fen,
+  );
+  expect(getNodeAtPath(saved.root, saved.position).children).toEqual([]);
+  expect(tree.getState()).toBe(state);
+  expect(JSON.stringify(tree.getState())).toBe(originalJson);
+  expect(button.getAttribute("aria-busy")).toBe("false");
+  expect(button.disabled).toBe(false);
+  expect(button.getAttribute("aria-label")).toBe("Analyze game");
+  await act(async () => atoms.set(activeTabAtom, source.value));
+  await clickMode();
+  expect(mocks.lexPgn).toHaveBeenCalledTimes(2);
+  expect(atoms.get(tabsAtom)).toHaveLength(3);
+});
 
 for (const origin of origins) {
   describe(`play from a ${origin.kind}-backed analysis`, () => {
@@ -241,16 +322,21 @@ for (const origin of origins) {
 }
 
 it.each(["rejection", "error result"])(
-  "leaves source and tabs untouched on parser %s",
+  "leaves source and tabs untouched on parser %s and permits retry",
   async (failure) => {
     await renderSource();
     const state = tree.getState();
+    const originalTab = atoms.get(tabsAtom)[0];
     const storage = { ...sessionStorage };
-    if (failure === "rejection")
-      mocks.lexPgn.mockRejectedValueOnce(new Error("Cannot parse selected game"));
-    else
-      mocks.lexPgn.mockResolvedValueOnce({ status: "error", error: "Cannot parse selected game" });
+    const pending = Promise.withResolvers<Result<Token[], string>>();
+    mocks.lexPgn.mockReturnValueOnce(pending.promise);
     await clickMode();
+    expect(modeButton().getAttribute("aria-busy")).toBe("true");
+    expect(modeButton().disabled).toBe(true);
+    await act(async () => {
+      if (failure === "rejection") pending.reject(new Error("Cannot parse selected game"));
+      else pending.resolve({ status: "error", error: "Cannot parse selected game" });
+    });
     expect(mocks.lexPgn).toHaveBeenCalledTimes(1);
     expect(atoms.get(tabsAtom)).toEqual([source]);
     expect(atoms.get(activeTabAtom)).toBe(source.value);
@@ -263,6 +349,14 @@ it.each(["rejection", "error result"])(
         message: expect.stringContaining("Cannot parse selected game"),
       }),
     );
+    expect(modeButton().getAttribute("aria-busy")).toBe("false");
+    expect(modeButton().disabled).toBe(false);
+    await clickMode();
+    expect(mocks.lexPgn).toHaveBeenCalledTimes(2);
+    expect(atoms.get(tabsAtom)).toHaveLength(2);
+    expect(atoms.get(tabsAtom)[0]).toBe(originalTab);
+    expect(atoms.get(tabsAtom)[1].type).toBe("play");
+    expect(tree.getState()).toBe(state);
   },
 );
 

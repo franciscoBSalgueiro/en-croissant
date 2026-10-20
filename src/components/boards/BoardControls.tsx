@@ -17,7 +17,7 @@ import { writeFile } from "@tauri-apps/plugin-fs";
 import { error } from "@tauri-apps/plugin-log";
 import domtoimage from "dom-to-image-more";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { memo, useContext } from "react";
+import { memo, useContext, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
@@ -69,6 +69,11 @@ function BoardControls({
   const setActiveTab = useSetAtom(activeTabAtom);
   const autoSave = useAtomValue(autoSaveAtom);
   const eraseDrawablesOnClick = useAtomValue(eraseDrawablesOnClickAtom);
+  const creatingPlayTab = useRef(false);
+  const [isCreatingPlayTab, setIsCreatingPlayTab] = useState(false);
+  const modeActionLabel = t(
+    currentTab?.type === "analysis" ? "Board.Action.PlayFromHere" : "Board.Action.AnalyzeGame",
+  );
 
   const orientation = headers.orientation || "white";
   const toggleOrientation = () =>
@@ -79,13 +84,17 @@ function BoardControls({
     });
 
   async function changeTabType() {
+    if (creatingPlayTab.current) return;
     if (currentTab?.type !== "analysis") {
       setCurrentTab((tab) => ({ ...tab, type: "analysis" }));
       return;
     }
 
-    const playHeaders = { ...headers, fen: root.fen, result: "*" as const, start: [] };
+    // Block same-tick clicks before the loading state renders the button disabled.
+    creatingPlayTab.current = true;
+    setIsCreatingPlayTab(true);
     try {
+      const playHeaders = { ...headers, fen: root.fen, result: "*" as const, start: [] };
       // An empty path skips even the FEN headers, so serialize a childless root instead.
       const pgn = getPGN(selectedPosition.length ? root : { ...root, children: [] }, {
         headers: playHeaders,
@@ -107,6 +116,9 @@ function BoardControls({
       const message = cause instanceof Error ? cause.message : String(cause);
       void error(message).catch(console.error);
       notifications.show({ title: t("Common.Error"), message, color: "red" });
+    } finally {
+      creatingPlayTab.current = false;
+      setIsCreatingPlayTab(false);
     }
   }
 
@@ -155,15 +167,13 @@ function BoardControls({
           </ActionIcon>
         </Tooltip>
       )}
-      <Tooltip
-        position="right"
-        label={t(
-          currentTab?.type === "analysis"
-            ? "Board.Action.PlayFromHere"
-            : "Board.Action.AnalyzeGame",
-        )}
-      >
-        <ActionIcon onClick={changeTabType}>
+      <Tooltip position="right" label={modeActionLabel}>
+        <ActionIcon
+          onClick={changeTabType}
+          aria-label={modeActionLabel}
+          aria-busy={isCreatingPlayTab}
+          loading={isCreatingPlayTab}
+        >
           {currentTab?.type === "analysis" ? (
             <IconTarget size="1.2rem" />
           ) : (
