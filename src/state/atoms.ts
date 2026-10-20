@@ -463,6 +463,23 @@ export const currentPlayersAtom = tabValue(playersFamily);
 const gameIdFamily = atomFamily((_tab: string) => atom<string | null>(null));
 export const currentGameIdAtom = tabValue(gameIdFamily);
 
+export const restoreGameSessionAtom = atom(
+    null,
+    (
+        _get,
+        set,
+        session: {
+            tabId: string;
+            gameId: string;
+            players: { white: OpponentSettings; black: OpponentSettings };
+        },
+    ) => {
+        set(playersFamily(session.tabId), session.players);
+        set(gameIdFamily(session.tabId), session.gameId);
+        set(gameStateFamily(session.tabId), "playing");
+    },
+);
+
 // Practice
 
 const reviewLogSchema = z

@@ -7,6 +7,7 @@ use std::{
     time::Instant,
 };
 
+use crate::game_history::{self, GameArchive, SavedGame};
 use dashmap::DashMap;
 use log::{error, info};
 use pgn_reader::{BufferedReader, RawHeader, Skip, Visitor};
@@ -17,7 +18,7 @@ use shakmaty::{
     fen::Fen, san::SanPlus, uci::UciMove, CastlingMode, Chess, Color, EnPassantMode, Position,
 };
 use specta::Type;
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter, Manager};
 use tauri_specta::Event;
 use tokio::{
     sync::{watch, Mutex, RwLock},
@@ -53,7 +54,7 @@ pub struct TimeControl {
     pub increment: u64,
 }
 
-#[derive(Clone, Debug, Deserialize, Type)]
+#[derive(Clone, Debug, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct GameConfig {
     pub white: PlayerConfig,
@@ -64,9 +65,11 @@ pub struct GameConfig {
     #[serde(default)]
     pub initial_moves: Vec<String>,
     pub opening_book: Option<OpeningBookConfig>,
+    #[serde(default)]
+    pub source_pgn: Option<String>,
 }
 
-#[derive(Clone, Debug, Deserialize, Type)]
+#[derive(Clone, Debug, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct OpeningBookConfig {
     pub path: String,
@@ -78,7 +81,7 @@ fn default_opening_book_max_ply() -> usize {
     40
 }
 
-#[derive(Clone, Debug, Serialize, Type, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, Type, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub enum GameStatus {
     Playing,
@@ -112,7 +115,7 @@ pub enum DrawReason {
     Agreement,
 }
 
-#[derive(Clone, Debug, Serialize, Type)]
+#[derive(Clone, Debug, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct GameMove {
     pub uci: String,
@@ -123,7 +126,7 @@ pub struct GameMove {
     pub black_time: Option<u64>,
 }
 
-#[derive(Clone, Debug, Serialize, Type)]
+#[derive(Clone, Debug, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct GameState {
     pub game_id: GameId,
@@ -139,7 +142,7 @@ pub struct GameState {
     pub black_player: String,
 }
 
-#[derive(Clone, Debug, Serialize, Type, Event)]
+#[derive(Clone, Debug, Serialize, Deserialize, Type, Event)]
 #[serde(rename_all = "camelCase")]
 pub struct GameMoveEvent {
     pub game_id: GameId,
@@ -149,7 +152,7 @@ pub struct GameMoveEvent {
     pub black_time: Option<u64>,
 }
 
-#[derive(Clone, Debug, Serialize, Type, Event)]
+#[derive(Clone, Debug, Serialize, Deserialize, Type, Event)]
 #[serde(rename_all = "camelCase")]
 pub struct ClockUpdateEvent {
     pub game_id: GameId,
@@ -157,7 +160,7 @@ pub struct ClockUpdateEvent {
     pub black_time: Option<u64>,
 }
 
-#[derive(Clone, Debug, Serialize, Type, Event)]
+#[derive(Clone, Debug, Serialize, Deserialize, Type, Event)]
 #[serde(rename_all = "camelCase")]
 pub struct GameOverEvent {
     pub game_id: GameId,
@@ -165,6 +168,7 @@ pub struct GameOverEvent {
     pub moves: Vec<GameMove>,
 }
 
+#[derive(Clone)]
 struct ClockState {
     white_time: Option<u64>,
     black_time: Option<u64>,
@@ -174,6 +178,7 @@ struct ClockState {
 }
 
 struct GameController {
+    archive: Option<GameArchive>,
     game_id: GameId,
     config: GameConfig,
     initial_fen: String,
@@ -226,6 +231,7 @@ impl GameController {
         let initial_moves = config.initial_moves.clone();
 
         let mut controller = Self {
+            archive: None,
             game_id,
             config,
             initial_fen,
@@ -310,15 +316,14 @@ impl GameController {
         let uci = UciMove::from_ascii(uci_str.as_bytes())?;
         let mv = uci.to_move(&self.position)?;
 
+        let previous = (
+            self.position.clone(),
+            self.position_history.clone(),
+            self.moves.len(),
+            self.status.clone(),
+            self.clock.clone(),
+        );
         let san = SanPlus::from_move_and_play_unchecked(&mut self.position.clone(), &mv);
-
-        let clock = self.clock.as_ref().and_then(|c| {
-            if self.position.turn() == Color::White {
-                c.white_time
-            } else {
-                c.black_time
-            }
-        });
 
         self.position.play_unchecked(&mv);
 
@@ -349,6 +354,11 @@ impl GameController {
 
         let fen_after = Fen::from_position(self.position.clone(), EnPassantMode::Legal).to_string();
 
+        let clock = if self.position.turn() == Color::Black {
+            white_time
+        } else {
+            black_time
+        };
         let game_move = GameMove {
             uci: uci_str.to_string(),
             san: san.to_string(),
@@ -360,8 +370,48 @@ impl GameController {
 
         self.moves.push(game_move.clone());
         self.check_game_end();
-
+        if let Err(error) = self.save() {
+            self.position = previous.0;
+            self.position_history = previous.1;
+            self.moves.truncate(previous.2);
+            self.status = previous.3;
+            self.clock = previous.4;
+            return Err(error);
+        }
         Ok(game_move)
+    }
+
+    fn save(&self) -> Result<(), Error> {
+        if let Some(archive) = &self.archive {
+            archive.save(&self.config, self.get_state())?;
+        }
+        Ok(())
+    }
+    fn save_or_notify(&self, app: &AppHandle) {
+        if let Err(error) = self.save() {
+            error!("{}", error);
+            let _ = app.emit("game-save-error", error.to_string());
+        }
+    }
+    fn restore(&mut self, record: &SavedGame) -> Result<(), Error> {
+        self.moves = record.state.moves.clone();
+        self.rebuild_position_from_moves()?;
+        let actual_fen =
+            Fen::from_position(self.position.clone(), EnPassantMode::Legal).to_string();
+        if actual_fen != record.state.current_fen {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "Saved game position does not match its moves",
+            )
+            .into());
+        }
+        self.status = record.state.status.clone();
+        if let Some(clock) = &mut self.clock {
+            clock.white_time = record.state.white_time;
+            clock.black_time = record.state.black_time;
+            clock.last_tick = Instant::now();
+        }
+        Ok(())
     }
 
     fn apply_move_no_clock(&mut self, uci_str: &str) -> Result<GameMove, Error> {
@@ -549,7 +599,11 @@ impl GameController {
 
     fn get_current_times(&self) -> (Option<u64>, Option<u64>) {
         if let Some(ref clock) = self.clock {
-            let elapsed = clock.last_tick.elapsed().as_millis() as u64;
+            let elapsed = if self.status == GameStatus::Playing {
+                clock.last_tick.elapsed().as_millis() as u64
+            } else {
+                0
+            };
 
             let white_time = if self.position.turn() == Color::White {
                 clock.white_time.map(|t| t.saturating_sub(elapsed))
@@ -570,6 +624,12 @@ impl GameController {
     }
 
     fn end_game(&mut self, result: GameResult) {
+        let (white_time, black_time) = self.get_current_times();
+        if let Some(clock) = &mut self.clock {
+            clock.white_time = white_time;
+            clock.black_time = black_time;
+            clock.last_tick = Instant::now();
+        }
         self.status = GameStatus::Finished { result };
         if let Some(tx) = self.shutdown_tx.take() {
             let _ = tx.send(true);
@@ -584,12 +644,14 @@ impl GameController {
 }
 
 pub struct GameManager {
+    launch_lock: Mutex<()>,
     games: DashMap<GameId, Arc<RwLock<GameController>>>,
 }
 
 impl GameManager {
     pub fn new() -> Self {
         Self {
+            launch_lock: Mutex::new(()),
             games: DashMap::new(),
         }
     }
@@ -600,18 +662,51 @@ impl GameManager {
         config: GameConfig,
         app: AppHandle,
     ) -> Result<GameState, Error> {
-        if let Some((_, old_game)) = self.games.remove(&game_id) {
-            let mut game = old_game.write().await;
-            if let Some(tx) = game.shutdown_tx.take() {
-                let _ = tx.send(true);
+        self.launch_game(game_id, config, app, None).await
+    }
+
+    async fn launch_game(
+        &self,
+        game_id: GameId,
+        config: GameConfig,
+        app: AppHandle,
+        restored: Option<SavedGame>,
+    ) -> Result<GameState, Error> {
+        let _launch = self.launch_lock.lock().await;
+        if let Some(record) = &restored {
+            let games: Vec<_> = self
+                .games
+                .iter()
+                .map(|entry| entry.value().clone())
+                .collect();
+            for game in games {
+                let controller = game.read().await;
+                if controller.status == GameStatus::Playing
+                    && controller.shutdown_tx.is_some()
+                    && controller
+                        .archive
+                        .as_ref()
+                        .is_some_and(|archive| archive.id == record.id)
+                {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::AlreadyExists,
+                        "This game is already open. Return to its tab from Game history.",
+                    )
+                    .into());
+                }
             }
         }
+        self.abort_game(&game_id).await?;
 
         let OpeningBookResult {
-            config,
+            mut config,
             polyglot_book,
             polyglot_max_ply,
         } = apply_opening_book(config)?;
+        if let Some(record) = &restored {
+            config.initial_fen = Some(record.state.initial_fen.clone());
+            config.initial_moves = record.state.moves.iter().map(|m| m.uci.clone()).collect();
+        }
         let castling_mode = CastlingMode::detect(
             config
                 .clone()
@@ -625,6 +720,17 @@ impl GameManager {
         let mut controller = GameController::new(game_id.clone(), config.clone())?;
         controller.polyglot_book = polyglot_book;
         controller.polyglot_max_ply = polyglot_max_ply;
+        if let Some(record) = &restored {
+            controller.restore(record)?;
+        }
+        controller.archive = Some(match &restored {
+            Some(record) => GameArchive {
+                directory: history_directory(&app)?,
+                id: record.id.clone(),
+                started_at: record.started_at,
+            },
+            None => GameArchive::new(history_directory(&app)?),
+        });
 
         if let PlayerConfig::Engine { path, options, .. } = &config.white {
             let mut engine = BaseEngine::spawn(PathBuf::from(path)).await?;
@@ -668,6 +774,7 @@ impl GameManager {
         let (move_notify_tx, move_notify_rx) = tokio::sync::mpsc::channel(1);
         controller.move_notify_tx = Some(move_notify_tx);
 
+        controller.save()?;
         let state = controller.get_state();
         let controller = Arc::new(RwLock::new(controller));
         self.games.insert(game_id.clone(), controller.clone());
@@ -748,7 +855,17 @@ impl GameManager {
 
         let mut controller = game.write().await;
 
+        let previous_moves = controller.moves.clone();
+        let previous_status = controller.status.clone();
+        let previous_clock = controller.clock.clone();
         controller.take_back_move(ply)?;
+        if let Err(error) = controller.save() {
+            controller.moves = previous_moves;
+            controller.rebuild_position_from_moves()?;
+            controller.status = previous_status;
+            controller.clock = previous_clock;
+            return Err(error);
+        }
 
         let (white_time, black_time) = controller.get_current_times();
         let fen = Fen::from_position(controller.position.clone(), EnPassantMode::Legal).to_string();
@@ -802,6 +919,7 @@ impl GameManager {
         };
 
         controller.end_game(result.clone());
+        controller.save()?;
 
         GameOverEvent {
             game_id: game_id.to_string(),
@@ -816,6 +934,7 @@ impl GameManager {
     pub async fn abort_game(&self, game_id: &str) -> Result<(), Error> {
         if let Some((_, game)) = self.games.remove(game_id) {
             let mut controller = game.write().await;
+            let saved = controller.save();
             if let Some(tx) = controller.shutdown_tx.take() {
                 let _ = tx.send(true);
             }
@@ -828,6 +947,7 @@ impl GameManager {
                 let mut proc = engine.lock().await;
                 let _ = proc.quit().await;
             }
+            saved?;
         }
         Ok(())
     }
@@ -1224,6 +1344,7 @@ async fn game_loop(
     app: AppHandle,
 ) {
     let mut clock_interval = interval(Duration::from_millis(100));
+    let mut last_checkpoint = Instant::now();
     let mut engine_task: Option<tokio::task::JoinHandle<Result<(), Error>>> = None;
 
     if maybe_start_engine(&controller, &engine_task).await {
@@ -1259,6 +1380,13 @@ async fn game_loop(
                             engine_task = Some(spawn_engine_task(&game_id, &controller, &app));
                         }
                     }
+                    Some(Ok(Err(Error::GameSave(message)))) => {
+                        let _ = app.emit("game-save-error", format!("Game paused: could not save the move. {message}. Recover the last saved position from Game history."));
+                        let mut ctrl = controller.write().await;
+                        ctrl.engine_thinking = false;
+                        ctrl.shutdown_tx.take();
+                        break;
+                    }
                     Some(Ok(Err(e))) => {
                         error!("Engine move error: {:?}", e);
                         let mut ctrl = controller.write().await;
@@ -1269,6 +1397,7 @@ async fn game_loop(
                             GameResult::WhiteWins { reason: GameEndReason::Abandonment }
                         };
                         ctrl.end_game(result.clone());
+                        ctrl.save_or_notify(&app);
                         let _ = GameOverEvent { game_id: game_id.clone(), result, moves: ctrl.moves.clone() }.emit(&app);
                         break;
                     }
@@ -1281,6 +1410,7 @@ async fn game_loop(
                             GameResult::WhiteWins { reason: GameEndReason::Abandonment }
                         };
                         ctrl.end_game(result.clone());
+                        ctrl.save_or_notify(&app);
                         let _ = GameOverEvent { game_id: game_id.clone(), result, moves: ctrl.moves.clone() }.emit(&app);
                         break;
                     }
@@ -1306,10 +1436,15 @@ async fn game_loop(
 
                     if let Some(result) = ctrl.check_timeout() {
                         ctrl.end_game(result.clone());
+                        ctrl.save_or_notify(&app);
                         let _ = GameOverEvent { game_id: game_id.clone(), result, moves: ctrl.moves.clone() }.emit(&app);
                         break;
                     }
 
+                    if ctrl.clock.is_some() && last_checkpoint.elapsed() >= Duration::from_secs(1) {
+                        ctrl.save_or_notify(&app);
+                        last_checkpoint = Instant::now();
+                    }
                     let (white_time, black_time) = ctrl.get_current_times();
                     let _ = ClockUpdateEvent {
                         game_id: game_id.clone(),
@@ -1592,4 +1727,241 @@ pub async fn get_game_engine_logs(
     state: tauri::State<'_, crate::AppState>,
 ) -> Result<Vec<EngineLog>, Error> {
     state.game_manager.get_engine_logs(&game_id, &color).await
+}
+
+fn history_directory(app: &AppHandle) -> Result<PathBuf, Error> {
+    Ok(app.path().app_data_dir()?.join("game-history-v1"))
+}
+
+#[derive(Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct SavedGameSummary {
+    id: String,
+    started_at: i64,
+    updated_at: i64,
+    white: String,
+    black: String,
+    status: GameStatus,
+    ply: u32,
+    active_game_id: Option<String>,
+}
+#[tauri::command]
+#[specta::specta]
+pub async fn list_saved_games(
+    app: AppHandle,
+    state: tauri::State<'_, crate::AppState>,
+) -> Result<Vec<SavedGameSummary>, Error> {
+    let records = game_history::list(&history_directory(&app)?)?;
+    let games: Vec<_> = state
+        .game_manager
+        .games
+        .iter()
+        .map(|entry| entry.value().clone())
+        .collect();
+    let mut active = HashMap::new();
+    for game in games {
+        let controller = game.read().await;
+        if controller.status == GameStatus::Playing && controller.shutdown_tx.is_some() {
+            if let Some(archive) = &controller.archive {
+                active.insert(archive.id.clone(), controller.game_id.clone());
+            }
+        }
+    }
+    Ok(records
+        .into_iter()
+        .map(|record| SavedGameSummary {
+            active_game_id: active.get(&record.id).cloned(),
+            id: record.id,
+            started_at: record.started_at,
+            updated_at: record.updated_at,
+            white: record.state.white_player,
+            black: record.state.black_player,
+            status: record.state.status,
+            ply: record.state.ply,
+        })
+        .collect())
+}
+#[tauri::command]
+#[specta::specta]
+pub async fn load_saved_game(id: String, app: AppHandle) -> Result<SavedGame, Error> {
+    game_history::load(&history_directory(&app)?, &id)
+}
+#[tauri::command]
+#[specta::specta]
+pub async fn resume_saved_game(
+    id: String,
+    game_id: String,
+    app: AppHandle,
+    state: tauri::State<'_, crate::AppState>,
+) -> Result<GameState, Error> {
+    let record = game_history::load(&history_directory(&app)?, &id)?;
+    if record.state.status != GameStatus::Playing {
+        return Err(Error::GameNotInProgress);
+    }
+    state
+        .game_manager
+        .launch_game(game_id, record.config.clone(), app, Some(record))
+        .await
+}
+
+#[cfg(test)]
+mod recovery_tests {
+    use super::*;
+    fn config() -> GameConfig {
+        GameConfig {
+            white: PlayerConfig::Human {
+                name: "Alice".into(),
+            },
+            black: PlayerConfig::Human { name: "Bob".into() },
+            white_time_control: Some(TimeControl {
+                initial_time: 180_000,
+                increment: 2_000,
+            }),
+            black_time_control: Some(TimeControl {
+                initial_time: 180_000,
+                increment: 2_000,
+            }),
+            initial_fen: None,
+            initial_moves: vec![],
+            opening_book: None,
+            source_pgn: None,
+        }
+    }
+    #[test]
+    fn every_move_survives_controller_loss_and_restores_clocks_and_repetition() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut controller = GameController::new("old-session".into(), config()).unwrap();
+        controller.archive = Some(GameArchive::new(dir.path().into()));
+        controller.save().unwrap();
+        let id = controller.archive.as_ref().unwrap().id.clone();
+        for (index, uci) in ["g1f3", "g8f6", "f3g1", "f6g8"].iter().enumerate() {
+            controller.apply_move(uci).unwrap();
+            let disk = game_history::load(dir.path(), &id).unwrap();
+            assert_eq!(disk.state.moves.len(), index + 1);
+            assert_eq!(disk.state.current_fen, controller.get_state().current_fen);
+        }
+        let disk = game_history::load(dir.path(), &id).unwrap();
+        let repetitions = controller.position_history.clone();
+        drop(controller); // Simulate loss of all runtime state; restore only from disk.
+        let mut restored = GameController::new("new-session".into(), disk.config.clone()).unwrap();
+        restored.restore(&disk).unwrap();
+        assert_eq!(restored.position_history, repetitions);
+        assert_eq!(
+            restored.clock.as_ref().unwrap().white_time,
+            disk.state.white_time
+        );
+        assert_eq!(
+            restored.clock.as_ref().unwrap().black_time,
+            disk.state.black_time
+        );
+        assert_eq!(restored.get_state().current_fen, disk.state.current_fen);
+        assert_eq!(restored.moves[0].san, "Nf3");
+        assert_eq!(restored.get_state().white_player, "Alice");
+        restored.archive = Some(GameArchive {
+            directory: dir.path().into(),
+            id: id.clone(),
+            started_at: disk.started_at,
+        });
+        restored.apply_move("e2e4").unwrap();
+        assert_eq!(game_history::list(dir.path()).unwrap().len(), 1);
+        assert_eq!(
+            game_history::load(dir.path(), &id)
+                .unwrap()
+                .state
+                .moves
+                .len(),
+            5
+        );
+    }
+    #[test]
+    fn failed_write_rejects_the_move_without_changing_the_game() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut controller = GameController::new("session".into(), config()).unwrap();
+        let archive = GameArchive::new(dir.path().join("history"));
+        controller.archive = Some(archive.clone());
+        controller.save().unwrap();
+        let original = controller.get_state().current_fen;
+        // Make the destination directory unusable, while keeping the last snapshot.
+        let unavailable = dir.path().join("not-a-directory");
+        std::fs::write(&unavailable, "block").unwrap();
+        controller.archive.as_mut().unwrap().directory = unavailable;
+        assert!(matches!(
+            controller.apply_move("e2e4"),
+            Err(Error::GameSave(_))
+        ));
+        assert!(controller.moves.is_empty());
+        assert_eq!(controller.get_state().current_fen, original);
+        assert!(game_history::load(&archive.directory, &archive.id)
+            .unwrap()
+            .state
+            .moves
+            .is_empty());
+    }
+    #[test]
+    fn results_and_multiple_games_are_preserved_without_overwriting_previous_games() {
+        let dir = tempfile::tempdir().unwrap();
+        for _ in 0..2 {
+            let mut controller = GameController::new("same-tab-game".into(), config()).unwrap();
+            controller.archive = Some(GameArchive::new(dir.path().into()));
+            controller.apply_move("e2e4").unwrap();
+            controller.end_game(GameResult::BlackWins {
+                reason: GameEndReason::Resignation,
+            });
+            controller.save().unwrap();
+        }
+        let records = game_history::list(dir.path()).unwrap();
+        assert_eq!(records.len(), 2);
+        assert_ne!(records[0].id, records[1].id);
+        assert!(matches!(
+            records[0].state.status,
+            GameStatus::Finished { .. }
+        ));
+        assert!(game_history::load(dir.path(), "../outside").is_err());
+        std::fs::write(dir.path().join(format!("{}.json", records[0].id)), "broken").unwrap();
+        assert!(game_history::list(dir.path()).is_err());
+    }
+    #[test]
+    fn restore_rejects_inconsistent_positions() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut controller = GameController::new("session".into(), config()).unwrap();
+        controller.archive = Some(GameArchive::new(dir.path().into()));
+        controller.apply_move("e2e4").unwrap();
+        let mut record = game_history::list(dir.path()).unwrap().remove(0);
+        record.state.current_fen = "bad fen".into();
+        assert!(controller.restore(&record).is_err());
+    }
+    #[test]
+    fn snapshot_survives_abrupt_process_exit() {
+        let directory = tempfile::tempdir().unwrap();
+        let status = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "game::recovery_tests::abrupt_exit_writer",
+                "--ignored",
+            ])
+            .env("EN_CROISSANT_CRASH_TEST_DIRECTORY", directory.path())
+            .status()
+            .unwrap();
+        assert_eq!(status.code(), Some(73));
+        let records = game_history::list(directory.path()).unwrap();
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].state.moves[0].uci, "e2e4");
+        let mut restored =
+            GameController::new("recovered".into(), records[0].config.clone()).unwrap();
+        restored.restore(&records[0]).unwrap();
+        assert_eq!(
+            restored.get_state().current_fen,
+            records[0].state.current_fen
+        );
+    }
+    #[test]
+    #[ignore = "subprocess fixture: exits without running cleanup"]
+    fn abrupt_exit_writer() {
+        let directory =
+            std::env::var_os("EN_CROISSANT_CRASH_TEST_DIRECTORY").expect("test directory");
+        let mut controller = GameController::new("crashing".into(), config()).unwrap();
+        controller.archive = Some(GameArchive::new(directory.into()));
+        controller.apply_move("e2e4").unwrap();
+        std::process::exit(73);
+    }
 }
