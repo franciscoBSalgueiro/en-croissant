@@ -1,8 +1,9 @@
 import type { Color, Piece } from "@lichess-org/chessground/types";
+import { Portal } from "@mantine/core";
 import type { Square } from "chessops";
 import { squareFromCoords } from "chessops/util";
-import { type RefObject, useRef } from "react";
-import Draggable from "react-draggable";
+import { type RefObject, useRef, useState } from "react";
+import { DraggableCore } from "react-draggable";
 
 export default function PieceComponent({
   piece,
@@ -24,6 +25,7 @@ export default function PieceComponent({
   size = size || "100%";
   const pieceRef = useRef<HTMLDivElement>(null);
   const startPosition = useRef<{ x: number; y: number } | null>(null);
+  const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
 
   if (!boardRef || !putPiece) {
     return (
@@ -72,36 +74,64 @@ export default function PieceComponent({
     }
   };
 
+  // The piece stays in place; while it's dragged, a copy follows the cursor on top of the
+  // page, so the panel it sits in can't cut it off
   return (
-    <Draggable
-      nodeRef={pieceRef as RefObject<HTMLElement>}
-      position={{ x: 0, y: 0 }}
-      onStart={(e) => {
-        const { clientX, clientY } = e as MouseEvent;
-        startPosition.current = { x: clientX, y: clientY };
-      }}
-      onStop={(e) => {
-        const { clientX, clientY } = e as MouseEvent;
-        handleDrop({ x: clientX, y: clientY });
-      }}
-      scale={1}
-    >
-      <div
-        ref={pieceRef}
-        className={getPieceName(piece)}
-        style={{
-          height: size,
-          width: size,
-          backgroundSize: "contain",
-          backgroundRepeat: "no-repeat",
-          backgroundPosition: "center",
-          zIndex: 100,
-          cursor: onClick ? "pointer" : "default",
-          border: selected ? "2px solid #228be6" : "2px solid transparent",
-          borderRadius: "4px",
+    <>
+      <DraggableCore
+        nodeRef={pieceRef as RefObject<HTMLElement>}
+        onStart={(e) => {
+          const { clientX, clientY } = e as MouseEvent;
+          startPosition.current = { x: clientX, y: clientY };
         }}
-      />
-    </Draggable>
+        onDrag={(e) => {
+          const { clientX, clientY } = e as MouseEvent;
+          setDragPosition({ x: clientX, y: clientY });
+        }}
+        onStop={(e) => {
+          const { clientX, clientY } = e as MouseEvent;
+          setDragPosition(null);
+          handleDrop({ x: clientX, y: clientY });
+        }}
+        scale={1}
+      >
+        <div
+          ref={pieceRef}
+          className={getPieceName(piece)}
+          style={{
+            height: size,
+            width: size,
+            backgroundSize: "contain",
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "center",
+            zIndex: 100,
+            cursor: onClick ? "pointer" : "default",
+            border: selected ? "2px solid #228be6" : "2px solid transparent",
+            borderRadius: "4px",
+          }}
+        />
+      </DraggableCore>
+      {dragPosition && (
+        <Portal>
+          <div
+            className={getPieceName(piece)}
+            style={{
+              position: "fixed",
+              left: dragPosition.x,
+              top: dragPosition.y,
+              transform: "translate(-50%, -50%)",
+              height: size,
+              width: size,
+              backgroundSize: "contain",
+              backgroundRepeat: "no-repeat",
+              backgroundPosition: "center",
+              zIndex: 100,
+              pointerEvents: "none",
+            }}
+          />
+        </Portal>
+      )}
+    </>
   );
 }
 
