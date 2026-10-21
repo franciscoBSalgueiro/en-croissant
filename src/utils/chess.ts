@@ -460,8 +460,31 @@ function innerParsePGN(tokens: Token[], fen: string = INITIAL_FEN, halfMoves = 0
     return tree;
 }
 
+// Text the PGN reader keeps as written: quoted strings (header values), brace comments,
+// rest-of-line comments and "%" escape lines
+const PGN_VERBATIM = String.raw`"(?:[^"\\\n]|\\.)*"?|\{[^}]*\}?|;[^\n]*|^%[^\n]*`;
+// Spaces other than the plain space: no-break, en/em/thin/hair, narrow no-break, ideographic,
+// and the line and paragraph separators
+const UNICODE_SPACES = "\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000";
+// Invisible formatting characters: soft hyphen, zero-width space and (non-)joiners, direction
+// marks, embeddings and isolates, word joiner and invisible operators, byte order mark
+const INVISIBLE_CHARACTERS =
+    "\u00AD\u061C\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF";
+const PGN_CLEANUP = new RegExp(
+    `(${PGN_VERBATIM})|([${UNICODE_SPACES}])|[${INVISIBLE_CHARACTERS}]`,
+    "gm",
+);
+
+// Text copied from messaging apps, documents or web pages can carry invisible characters or
+// look-alike spaces. The PGN reader only separates tokens on plain whitespace, so a move next
+// to one is dropped (e.g. "1.\u2060 \u2060e4"). PGN only allows them in strings and comments,
+// so elsewhere spaces become plain spaces and invisible characters are removed.
+export function cleanPgnInvisibleCharacters(pgn: string): string {
+    return pgn.replace(PGN_CLEANUP, (_, verbatim, space) => verbatim ?? (space ? " " : ""));
+}
+
 export async function parsePGN(pgn: string, initialFen?: string): Promise<TreeState> {
-    const tokens = unwrap(await commands.lexPgn(pgn));
+    const tokens = unwrap(await commands.lexPgn(cleanPgnInvisibleCharacters(pgn)));
 
     const headers = getPgnHeaders(tokens);
     const fen = initialFen?.trim() || headers.fen.trim();
