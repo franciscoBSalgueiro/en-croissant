@@ -54,6 +54,7 @@ import "@/styles/global.css";
 
 import { commands } from "./bindings";
 import { handleDeepLink, openCommandLineFile } from "./utils/launch";
+import { setTelemetryEnabled } from "./utils/telemetry";
 
 const colorSchemeManager = localStorageColorSchemeManager({
   key: "mantine-color-scheme",
@@ -169,16 +170,13 @@ function useAppStartup() {
       const store = getDefaultStore();
       const telemetryEnabled = store.get(telemetryEnabledAtom);
 
-      posthog.init("phc_kgEBtifs0EgWlrl4ROYEbnsQ1b7BS2W5BKLNyXe7f8z", {
-        api_host: "https://app.posthog.com",
-        autocapture: false,
-        capture_pageview: false,
-        capture_pageleave: false,
-        disable_session_recording: true,
-      });
+      setTelemetryEnabled(telemetryEnabled);
 
       if (telemetryEnabled) {
-        posthog.capture("app_started", { version: await getVersion() });
+        const version = await getVersion();
+        if (store.get(telemetryEnabledAtom)) {
+          posthog.capture("app_started", { version });
+        }
       }
       const unlistenFile = await listen<string>("open-cli-file", ({ payload }) => {
         void openCommandLineFile(payload, setTabs, setActiveTab, navigateToBoard);
