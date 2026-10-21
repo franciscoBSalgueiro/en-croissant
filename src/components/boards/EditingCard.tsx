@@ -1,4 +1,4 @@
-import { Card, CloseButton, Divider } from "@mantine/core";
+import { Card, CloseButton, Divider, ScrollArea } from "@mantine/core";
 import type { Piece } from "chessops";
 import { useContext } from "react";
 import { useStore } from "zustand";
@@ -31,21 +31,23 @@ function EditingCard({
       withBorder
     >
       <CloseButton
-        style={{ position: "absolute", top: 10, right: 15 }}
+        style={{ position: "absolute", top: 10, right: 15, zIndex: 1 }}
         onClick={() => setEditingMode(false)}
       />
-      <FenInput currentFen={fen} />
-      <Divider my="md" />
-      <PiecesGrid
-        fen={fen}
-        boardRef={boardRef}
-        onPut={(newFen) => {
-          setFen(newFen);
-        }}
-        selectedPiece={selectedPiece}
-        onSelectPiece={setSelectedPiece}
-        orientation={headers.orientation}
-      />
+      <ScrollArea flex={1} offsetScrollbars>
+        <FenInput currentFen={fen} />
+        <Divider my="md" />
+        <PiecesGrid
+          fen={fen}
+          boardRef={boardRef}
+          onPut={(newFen) => {
+            setFen(newFen);
+          }}
+          selectedPiece={selectedPiece}
+          onSelectPiece={setSelectedPiece}
+          orientation={headers.orientation}
+        />
+      </ScrollArea>
     </Card>
   );
 }
