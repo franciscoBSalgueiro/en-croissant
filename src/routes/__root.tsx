@@ -6,6 +6,7 @@ import { Menu, MenuItem, PredefinedMenuItem, Submenu } from "@tauri-apps/api/men
 import { appLogDir, resolve } from "@tauri-apps/api/path";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask, message, open } from "@tauri-apps/plugin-dialog";
+import { error } from "@tauri-apps/plugin-log";
 import { platform } from "@tauri-apps/plugin-os";
 import { exit, relaunch } from "@tauri-apps/plugin-process";
 import { openPath, openUrl } from "@tauri-apps/plugin-opener";
@@ -121,19 +122,25 @@ function RootLayout() {
   }, [navigate, setActiveTab, setTabs, t]);
 
   const checkForUpdates = useCallback(async () => {
-    const update = await check();
-    if (update) {
-      const yes = await ask("Do you want to install the new version now?", {
-        title: "New version available",
-      });
-      if (yes) {
-        await update.downloadAndInstall();
-        await relaunch();
+    try {
+      const update = await check();
+      if (update) {
+        const yes = await ask("Do you want to install the new version now?", {
+          title: "New version available",
+        });
+        if (yes) {
+          await update.downloadAndInstall();
+          await relaunch();
+        }
+      } else {
+        await message("No updates available");
       }
-    } else {
-      await message("No updates available");
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : String(cause);
+      void error(message).catch(console.error);
+      notifications.show({ title: t("Common.Error"), message, color: "red" });
     }
-  }, []);
+  }, [t]);
 
   const openSettings = useCallback(async () => {
     navigate({ to: "/settings" });
