@@ -27,6 +27,7 @@ const mocks = vi.hoisted(() => ({
   >(),
   setAsAppMenu: vi.fn<() => Promise<void>>(),
   navigate: vi.fn<ReturnType<typeof import("@tanstack/react-router").useNavigate>>(),
+  translation: vi.fn<() => ((key: string) => string) | undefined>(),
   window: {
     listen: vi.fn<import("@tauri-apps/api/window").Window["listen"]>(),
     setDecorations: vi.fn<import("@tauri-apps/api/window").Window["setDecorations"]>(),
@@ -92,7 +93,7 @@ vi.mock("react-hotkeys-hook", () => ({
 vi.mock("react-i18next", () => {
   // Keep t stable so menu callbacks do not generate a new SWR key on every render.
   const t = (key: string) => key;
-  return { useTranslation: () => ({ t }) };
+  return { useTranslation: () => ({ t: mocks.translation() ?? t }) };
 });
 vi.mock("@/state/atoms", async () => {
   const { atom } = await import("jotai");
@@ -181,6 +182,94 @@ function expectError(message: string) {
 }
 
 describe.each(["macos", "linux"] as const)("manual updater via %s menu", (platform) => {
+  it.each(["check", "ask", "install", "relaunch", "message"] as const)(
+    "ignores duplicate actions while %s is pending",
+    async (stage) => {
+      const blocked = Promise.withResolvers<void>();
+      const update = { downloadAndInstall: mocks.install };
+      mocks.check.mockResolvedValue(stage === "message" ? null : update);
+      if (stage === "check") {
+        mocks.check.mockReturnValueOnce(blocked.promise.then(() => update));
+      } else if (stage === "ask") {
+        mocks.ask.mockReturnValueOnce(blocked.promise.then(() => true));
+      } else {
+        mocks[stage].mockReturnValueOnce(blocked.promise);
+      }
+      const action = await renderUpdateAction(platform);
+      const pending = action();
+      const duplicates: Promise<void>[] = [];
+      try {
+        // Do not yield for check: duplicate menu actions can arrive in the same tick.
+        if (stage !== "check") {
+          await vi.waitUntil(() => mocks[stage].mock.calls.length === 1);
+        }
+        duplicates.push(action(), action());
+        expect(mocks.check).toHaveBeenCalledTimes(1);
+        await expect(Promise.all(duplicates)).resolves.toEqual([undefined, undefined]);
+        expect(mocks.ask).toHaveBeenCalledTimes(stage === "check" || stage === "message" ? 0 : 1);
+        expect(mocks.install).toHaveBeenCalledTimes(
+          stage === "install" || stage === "relaunch" ? 1 : 0,
+        );
+        expect(mocks.relaunch).toHaveBeenCalledTimes(stage === "relaunch" ? 1 : 0);
+        expect(mocks.message).toHaveBeenCalledTimes(stage === "message" ? 1 : 0);
+      } finally {
+        blocked.resolve();
+        await Promise.all([pending, ...duplicates]);
+      }
+      // Ignored actions must not queue another workflow after the first finishes.
+      expect(mocks.check).toHaveBeenCalledTimes(1);
+      expect(mocks.ask).toHaveBeenCalledTimes(stage === "message" ? 0 : 1);
+      expect(mocks.install).toHaveBeenCalledTimes(stage === "message" ? 0 : 1);
+      expect(mocks.relaunch).toHaveBeenCalledTimes(stage === "message" ? 0 : 1);
+      expect(mocks.message).toHaveBeenCalledTimes(stage === "message" ? 1 : 0);
+      expect(mocks.notify).not.toHaveBeenCalled();
+    },
+  );
+
+  it("shares the guard with a fresh menu callback after a translation rerender", async () => {
+    const installation = Promise.withResolvers<void>();
+    mocks.check.mockResolvedValue({ downloadAndInstall: mocks.install });
+    mocks.install.mockReturnValueOnce(installation.promise);
+    const action = await renderUpdateAction(platform);
+    const pending = action();
+    try {
+      await vi.waitFor(() => expect(mocks.install).toHaveBeenCalledTimes(1));
+      mocks.translation.mockReturnValue((key: string) => key);
+      const RootLayout = Route.options.component!;
+      await act(async () => {
+        root.render(
+          <Provider>
+            <SWRConfig value={{ provider: () => new Map() }}>
+              <RootLayout />
+            </SWRConfig>
+          </Provider>,
+        );
+      });
+      const items = mocks.menuItem.mock.calls
+        .map(([options]) => options)
+        .filter((options) => options.id === "check_for_updates");
+      expect(items).toHaveLength(2);
+      const freshAction = items[1].action!;
+      expect(freshAction).not.toBe(action);
+      await expect(freshAction()).resolves.toBeUndefined();
+      expect(mocks.check).toHaveBeenCalledTimes(1);
+      expect(mocks.ask).toHaveBeenCalledTimes(1);
+      expect(mocks.install).toHaveBeenCalledTimes(1);
+      expect(mocks.relaunch).not.toHaveBeenCalled();
+      installation.resolve();
+      await pending;
+      await expect(freshAction()).resolves.toBeUndefined();
+      expect(mocks.check).toHaveBeenCalledTimes(2);
+      expect(mocks.ask).toHaveBeenCalledTimes(2);
+      expect(mocks.install).toHaveBeenCalledTimes(2);
+      expect(mocks.relaunch).toHaveBeenCalledTimes(2);
+      expect(mocks.notify).not.toHaveBeenCalled();
+    } finally {
+      installation.resolve();
+      await pending;
+    }
+  });
+
   it.each([new Error("Update server unavailable"), "Update server unavailable"])(
     "contains check rejection %s and permits the same action to retry",
     async (cause) => {
@@ -203,7 +292,7 @@ describe.each(["macos", "linux"] as const)("manual updater via %s menu", (platfo
     },
   );
 
-  it("preserves the exact no-update message", async () => {
+  it("preserves the exact no-update message and permits another check", async () => {
     const action = await renderUpdateAction(platform);
     await expect(action()).resolves.toBeUndefined();
     expect(mocks.message).toHaveBeenCalledExactlyOnceWith("No updates available");
@@ -211,9 +300,12 @@ describe.each(["macos", "linux"] as const)("manual updater via %s menu", (platfo
     expect(mocks.install).not.toHaveBeenCalled();
     expect(mocks.relaunch).not.toHaveBeenCalled();
     expect(mocks.notify).not.toHaveBeenCalled();
+    await expect(action()).resolves.toBeUndefined();
+    expect(mocks.check).toHaveBeenCalledTimes(2);
+    expect(mocks.message).toHaveBeenCalledTimes(2);
   });
 
-  it("preserves the install prompt and cancels when declined", async () => {
+  it("preserves the install prompt and permits retry after declining", async () => {
     mocks.check.mockResolvedValue({ downloadAndInstall: mocks.install });
     mocks.ask.mockResolvedValue(false);
     const action = await renderUpdateAction(platform);
@@ -226,6 +318,12 @@ describe.each(["macos", "linux"] as const)("manual updater via %s menu", (platfo
     expect(mocks.relaunch).not.toHaveBeenCalled();
     expect(mocks.message).not.toHaveBeenCalled();
     expect(mocks.notify).not.toHaveBeenCalled();
+    mocks.ask.mockResolvedValueOnce(true);
+    await expect(action()).resolves.toBeUndefined();
+    expect(mocks.check).toHaveBeenCalledTimes(2);
+    expect(mocks.ask).toHaveBeenCalledTimes(2);
+    expect(mocks.install).toHaveBeenCalledTimes(1);
+    expect(mocks.relaunch).toHaveBeenCalledTimes(1);
   });
 
   it("awaits installation before relaunch and awaits relaunch before resolving", async () => {
@@ -250,10 +348,14 @@ describe.each(["macos", "linux"] as const)("manual updater via %s menu", (platfo
     expect(settled).toBe(true);
     expect(mocks.message).not.toHaveBeenCalled();
     expect(mocks.notify).not.toHaveBeenCalled();
+    await expect(action()).resolves.toBeUndefined();
+    expect(mocks.check).toHaveBeenCalledTimes(2);
+    expect(mocks.install).toHaveBeenCalledTimes(2);
+    expect(mocks.relaunch).toHaveBeenCalledTimes(2);
   });
 
   it.each(["ask", "install", "relaunch", "message"] as const)(
-    "contains %s failure without continuing the flow",
+    "contains %s failure without continuing the flow and permits retry",
     async (failure) => {
       if (failure !== "message") {
         mocks.check.mockResolvedValue({ downloadAndInstall: mocks.install });
@@ -268,6 +370,15 @@ describe.each(["macos", "linux"] as const)("manual updater via %s menu", (platfo
       );
       expect(mocks.relaunch).toHaveBeenCalledTimes(failure === "relaunch" ? 1 : 0);
       expect(mocks.message).toHaveBeenCalledTimes(failure === "message" ? 1 : 0);
+      mocks.check.mockResolvedValueOnce({ downloadAndInstall: mocks.install });
+      await expect(action()).resolves.toBeUndefined();
+      expect(mocks.check).toHaveBeenCalledTimes(2);
+      expect(mocks.ask).toHaveBeenCalledTimes(failure === "message" ? 1 : 2);
+      expect(mocks.install).toHaveBeenCalledTimes(
+        failure === "install" || failure === "relaunch" ? 2 : 1,
+      );
+      expect(mocks.relaunch).toHaveBeenCalledTimes(failure === "relaunch" ? 2 : 1);
+      expect(mocks.notify).toHaveBeenCalledTimes(1);
     },
   );
 
