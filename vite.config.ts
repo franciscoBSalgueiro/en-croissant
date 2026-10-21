@@ -45,6 +45,11 @@ export default defineConfig({
             "@": resolve(import.meta.dirname, "./src"),
         },
     },
+    // The worker that reads positions from pictures is only loaded the first time it's used, too
+    // late for the dev server to find its dependency at startup: it would then reload the page
+    optimizeDeps: {
+        include: ["onnxruntime-web/wasm"],
+    },
     test: {
         environment: "jsdom",
     },
