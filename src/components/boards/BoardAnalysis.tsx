@@ -18,6 +18,7 @@ import {
   allEnabledAtom,
   autoSaveAtom,
   currentAnalysisTabAtom,
+  currentOpenInEditorAtom,
   currentPracticeTabAtom,
   currentReportModalOpenAtom,
   currentTabAtom,
@@ -46,6 +47,14 @@ function BoardAnalysis() {
   const { t } = useTranslation();
 
   const [editingMode, toggleEditingMode] = useToggle();
+  // Opened from the home screen's Board editor card
+  const [openInEditor, setOpenInEditor] = useAtom(currentOpenInEditorAtom);
+  useEffect(() => {
+    if (openInEditor) {
+      setOpenInEditor(false);
+      toggleEditingMode(true);
+    }
+  }, [openInEditor, setOpenInEditor, toggleEditingMode]);
   const [selectedPiece, setSelectedPiece] = useState<Piece | null>(null);
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
   const tabFile = getTabFile(currentTab);

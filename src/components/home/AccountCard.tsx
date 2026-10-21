@@ -23,13 +23,18 @@ import { basename } from "@tauri-apps/api/path";
 import { resolve } from "@tauri-apps/api/path";
 import { info } from "@tauri-apps/plugin-log";
 import { useAtom } from "jotai";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import type { DatabaseInfo } from "@/bindings";
 import { commands, events } from "@/bindings";
-import { databaseConversionStateAtom, storedDatabasesDirAtom } from "@/state/atoms";
+import {
+  accountDownloadingFamily,
+  accountDownloadProgressFamily,
+  databaseConversionStateAtom,
+  storedDatabasesDirAtom,
+} from "@/state/atoms";
 import { downloadChessCom } from "@/utils/chess.com/api";
-import { getDatabases, query_games } from "@/utils/db";
+import { getDatabases, query_games, type SuccessDatabaseInfo } from "@/utils/db";
 import { capitalize } from "@/utils/format";
 import { downloadLichess } from "@/utils/lichess/api";
 import { unwrap } from "@/utils/unwrap";
@@ -50,7 +55,18 @@ interface AccountCardProps {
   reload: () => void;
   setDatabases: (databases: DatabaseInfo[]) => void;
   token?: string;
+  // On the home screen: no remove button or Lichess login check, the name cut short rather than
+  // wrapped (for room), the games bar at the bottom of the card, and the account's games opening on
+  // a double-click. Compact: just the top bar (in its lists of accounts).
+  homeScreen?: boolean;
+  compact?: boolean;
+  onOpenDatabase?: (database: SuccessDatabaseInfo) => void;
 }
+
+export type AccountCardDisplay = Pick<
+  AccountCardProps,
+  "homeScreen" | "compact" | "onOpenDatabase"
+>;
 
 export function AccountCard({
   type,
@@ -63,6 +79,9 @@ export function AccountCard({
   reload,
   setDatabases,
   token,
+  homeScreen,
+  compact,
+  onOpenDatabase,
 }: AccountCardProps) {
   const { t } = useTranslation();
   const items = stats.map((stat) => {
@@ -96,8 +115,9 @@ export function AccountCard({
       </Group>
     );
   });
-  const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState<number | null>(null);
+  // Shared with every other card showing this account
+  const [loading, setLoading] = useAtom(accountDownloadingFamily(`${type}_${title}`));
+  const [progress, setProgress] = useAtom(accountDownloadProgressFamily(`${type}_${title}`));
   const [databaseDir] = useAtom(storedDatabasesDirAtom);
   const [, setConversionState] = useAtom(databaseConversionStateAtom);
 
@@ -150,7 +170,7 @@ export function AccountCard({
     return () => {
       unlisten.then((f) => f());
     };
-  }, [setDatabases]);
+  }, [setDatabases, setLoading, setProgress]);
 
   const downloadedGames = database?.type === "success" ? database.game_count : 0;
   const effectiveTotal = Math.max(total, downloadedGames);
@@ -177,19 +197,43 @@ export function AccountCard({
   }
 
   return (
-    <Card withBorder radius="md" padding="lg">
-      <Card.Section withBorder inheritPadding py="xs">
-        <Group justify="space-between">
-          <Group>
+    <Card
+      withBorder={!compact}
+      radius="md"
+      padding={compact ? 0 : "lg"}
+      bg={compact ? "transparent" : undefined}
+      onDoubleClick={(e) => {
+        // Not on its buttons
+        if (
+          onOpenDatabase &&
+          database?.type === "success" &&
+          !(e.target as Element).closest("button")
+        ) {
+          onOpenDatabase(database);
+        }
+      }}
+    >
+      <Card.Section withBorder={!compact} inheritPadding py={compact ? 0 : "xs"}>
+        <Group
+          justify="space-between"
+          wrap={homeScreen ? "nowrap" : undefined}
+          gap={homeScreen ? "xs" : undefined}
+        >
+          <Group
+            wrap={homeScreen ? "nowrap" : undefined}
+            gap={homeScreen ? "xs" : undefined}
+            // The room the buttons leave, so a long name is cut short rather than the buttons wrapping
+            style={homeScreen ? { flex: 1, minWidth: 0 } : undefined}
+          >
             {type === "lichess" ? (
               <LichessLogo />
             ) : (
               <img width={30} height={30} src="/chesscom.png" alt="chess.com" />
             )}
-            <Text fw={600} size="sm">
+            <Text fw={600} size="sm" truncate={homeScreen}>
               {title}
             </Text>
-            {type === "lichess" && token && (
+            {type === "lichess" && token && !homeScreen && (
               <Tooltip label={t("Home.Accounts.Authenticated")}>
                 <Text c="green" lh={0} style={{ cursor: "default" }}>
                   <IconCircleCheckFilled size="1.1rem" />
@@ -247,52 +291,64 @@ export function AccountCard({
                 <IconDownload size="1rem" />
               </ActionIcon>
             </Tooltip>
-            <Tooltip label={t("Home.Accounts.RemoveAccount")}>
-              <ActionIcon variant="subtle" color="red" onClick={() => logout()}>
-                <IconTrash size="1rem" />
-              </ActionIcon>
-            </Tooltip>
+            {!homeScreen && (
+              <Tooltip label={t("Home.Accounts.RemoveAccount")}>
+                <ActionIcon variant="subtle" color="red" onClick={() => logout()}>
+                  <IconTrash size="1rem" />
+                </ActionIcon>
+              </Tooltip>
+            )}
           </Group>
         </Group>
       </Card.Section>
 
-      <Card.Section inheritPadding py="md">
-        <SimpleGrid cols={1} spacing="xs">
-          {items}
-        </SimpleGrid>
-      </Card.Section>
+      {!compact && (
+        <>
+          {/* On the home screen the ratings take the room above the games bar (and are what's cut
+              off when there isn't enough) */}
+          <Card.Section
+            inheritPadding
+            py="md"
+            style={homeScreen ? { flex: 1, minHeight: 0, overflow: "hidden" } : undefined}
+          >
+            <SimpleGrid cols={1} spacing={homeScreen ? "md" : "xs"}>
+              {items}
+            </SimpleGrid>
+          </Card.Section>
 
-      <Card.Section inheritPadding pb="sm">
-        <Stack gap={4}>
-          <Group justify="space-between">
-            <Text size="xs" c="dimmed">
-              {t("Common.Games")}
-            </Text>
-            <Text size="xs" fw={500}>
-              {downloadedGames} / {effectiveTotal}
-            </Text>
-          </Group>
-          <Progress
-            value={loading ? 100 : (downloadedGames / effectiveTotal) * 100}
-            size="sm"
-            striped={loading}
-            animated={loading}
-          />
-          <Group justify="space-between" mt={4}>
-            <Text size="xs" c="dimmed">
-              {t("Home.Accounts.LastUpdate", {
-                date: new Date(updatedAt).toLocaleDateString(),
-                interpolation: { escapeValue: false },
-              })}
-            </Text>
-            {loading && progress && (
-              <Text size="xs" c="dimmed">
-                {progress.toFixed(0)}%
-              </Text>
-            )}
-          </Group>
-        </Stack>
-      </Card.Section>
+          <Card.Section inheritPadding pb="sm">
+            <Stack gap={4}>
+              <Group justify="space-between">
+                <Text size="xs" c="dimmed">
+                  {t("Common.Games")}
+                </Text>
+                <Text size="xs" fw={500}>
+                  {downloadedGames} / {effectiveTotal}
+                </Text>
+              </Group>
+              <Progress
+                value={loading ? 100 : (downloadedGames / effectiveTotal) * 100}
+                size="sm"
+                striped={loading}
+                animated={loading}
+              />
+              <Group justify="space-between" mt={4}>
+                <Text size="xs" c="dimmed">
+                  {t("Home.Accounts.LastUpdate", {
+                    date: new Date(updatedAt).toLocaleDateString(),
+                    interpolation: { escapeValue: false },
+                  })}
+                </Text>
+                {loading && progress && (
+                  <Text size="xs" c="dimmed">
+                    {progress.toFixed(0)}%
+                  </Text>
+                )}
+              </Group>
+            </Stack>
+          </Card.Section>
+        </>
+      )}
     </Card>
   );
 }

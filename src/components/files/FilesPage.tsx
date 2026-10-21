@@ -60,13 +60,17 @@ function findEntryByPath(entries: Entry[], path: string): Entry | null {
   return null;
 }
 
-const useFileDirectory = (dir: string) => {
-  const { data, error, isLoading, mutate } = useSWR<Entry[]>(["file-directory", dir], async () => {
-    const entries = await readDir(dir);
-    const allEntries = processEntriesRecursively(dir, entries);
+// Also used by the home screen, which reads the folder (dir) only when it shows something from it
+export const useFileDirectory = (dir: string | null) => {
+  const { data, error, isLoading, mutate } = useSWR<Entry[]>(
+    dir === null ? null : ["file-directory", dir],
+    async ([, dir]: [string, string]) => {
+      const entries = await readDir(dir);
+      const allEntries = processEntriesRecursively(dir, entries);
 
-    return allEntries;
-  });
+      return allEntries;
+    },
+  );
   return {
     files: data,
     isLoading,

@@ -16,7 +16,7 @@ import { sessionsAtom } from "@/state/atoms";
 import { getChessComAccount, getStats } from "@/utils/chess.com/api";
 import { getLichessAccount } from "@/utils/lichess/api";
 import type { Session } from "@/utils/session";
-import { AccountCard } from "../home/AccountCard";
+import { AccountCard, type AccountCardDisplay } from "../home/AccountCard";
 import { EmptyAccounts } from "../home/EmptyAccounts";
 
 function AccountCards({
@@ -173,16 +173,18 @@ function PlayerSession({
   );
 }
 
-function LichessOrChessCom({
+export function LichessOrChessCom({
   session,
   databases,
   setDatabases,
   setSessions,
+  display,
 }: {
   session: Session;
   databases: DatabaseInfo[];
   setDatabases: React.Dispatch<React.SetStateAction<DatabaseInfo[]>>;
   setSessions: React.Dispatch<React.SetStateAction<Session[]>>;
+  display?: AccountCardDisplay;
 }) {
   if (session.lichess?.account) {
     const account = session.lichess.account;
@@ -247,6 +249,7 @@ function LichessOrChessCom({
           );
         }}
         stats={stats}
+        {...display}
       />
     );
   }
@@ -294,6 +297,7 @@ function LichessOrChessCom({
           );
         }}
         setDatabases={setDatabases}
+        {...display}
       />
     );
   }
