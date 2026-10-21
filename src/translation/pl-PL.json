@@ -554,6 +554,8 @@
     "Settings.Appearance.Language.Desc": "Język używany w aplikacji",
     "Settings.Appearance.PieceSet": "Zestaw figur",
     "Settings.Appearance.PieceSet.Desc": "Figury używane na szachownicach",
+    "Settings.Appearance.ResetLayout": "",
+    "Settings.Appearance.ResetLayout.Desc": "",
     "Settings.Appearance.Theme": "Motyw",
     "Settings.Appearance.Theme.Auto": "",
     "Settings.Appearance.Theme.Dark": "Ciemny",

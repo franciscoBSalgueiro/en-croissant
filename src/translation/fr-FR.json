@@ -558,6 +558,8 @@
     "Settings.Appearance.Language.Desc": "Langue utilisée dans l'application",
     "Settings.Appearance.PieceSet": "Jeu de pièces",
     "Settings.Appearance.PieceSet.Desc": "Pièces utilisées sur l'échiquier",
+    "Settings.Appearance.ResetLayout": "",
+    "Settings.Appearance.ResetLayout.Desc": "",
     "Settings.Appearance.Theme": "Thème",
     "Settings.Appearance.Theme.Auto": "Auto",
     "Settings.Appearance.Theme.Dark": "Sombre",

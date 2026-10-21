@@ -539,6 +539,8 @@
     "Settings.Appearance.Language.Desc": "앱에서 사용할 언어",
     "Settings.Appearance.PieceSet": "기물 세트",
     "Settings.Appearance.PieceSet.Desc": "보드에서 사용할 기물 모양",
+    "Settings.Appearance.ResetLayout": "",
+    "Settings.Appearance.ResetLayout.Desc": "",
     "Settings.Appearance.Theme": "테마",
     "Settings.Appearance.Theme.Auto": "자동",
     "Settings.Appearance.Theme.Dark": "어둡게",

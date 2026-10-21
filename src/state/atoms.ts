@@ -12,6 +12,7 @@ import type {
     AsyncStringStorage,
     SyncStorage,
 } from "jotai/vanilla/utils/atomWithStorage";
+import type { MosaicNode } from "react-mosaic-component";
 import type { ReviewLog } from "ts-fsrs";
 import { z } from "zod";
 import type { BestMoves, GoMode } from "@/bindings";
@@ -215,6 +216,25 @@ export const sessionsAtom = atomWithStorage<Session[]>("sessions", []);
 export const nativeBarAtom = atomWithStorage<boolean>("native-bar", false);
 export const showSidebarAtom = atomWithStorage<boolean>("show-sidebar", true);
 export const showTabBarAtom = atomWithStorage<boolean>("show-tabbar", true);
+
+export type BoardViewId = "left" | "topRight" | "bottomRight";
+
+// The board page's panes and where their dividers are. Until the board's divider is dragged it
+// has no position here, and BoardsPage places it for the window; resetting brings that back.
+export const windowsStateAtom = atomWithStorage<{ currentNode: MosaicNode<BoardViewId> | null }>(
+    "windowsState",
+    {
+        currentNode: {
+            direction: "row",
+            first: "left",
+            second: {
+                direction: "column",
+                first: "topRight",
+                second: "bottomRight",
+            },
+        },
+    },
+);
 export const telemetryEnabledAtom = atomWithStorage<boolean>("telemetry-enabled", true, undefined, {
     getOnInit: true,
 });

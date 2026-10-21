@@ -548,6 +548,8 @@
     "Settings.Appearance.Language.Desc": "Uygulamada kullanılan dil",
     "Settings.Appearance.PieceSet": "Taş Seti",
     "Settings.Appearance.PieceSet.Desc": "Tahtada kullanılan taşlar",
+    "Settings.Appearance.ResetLayout": "",
+    "Settings.Appearance.ResetLayout.Desc": "",
     "Settings.Appearance.Theme": "Tema",
     "Settings.Appearance.Theme.Auto": "Otomatik",
     "Settings.Appearance.Theme.Dark": "Koyu",

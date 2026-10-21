@@ -548,6 +548,8 @@
     "Settings.Appearance.Language.Desc": "Language used in the app",
     "Settings.Appearance.PieceSet": "Piece Set",
     "Settings.Appearance.PieceSet.Desc": "Pieces used on the boards",
+    "Settings.Appearance.ResetLayout": "",
+    "Settings.Appearance.ResetLayout.Desc": "",
     "Settings.Appearance.Theme": "Theme",
     "Settings.Appearance.Theme.Auto": "",
     "Settings.Appearance.Theme.Dark": "Dark",

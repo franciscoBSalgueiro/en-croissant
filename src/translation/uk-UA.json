@@ -554,6 +554,8 @@
     "Settings.Appearance.Language.Desc": "Мова програми",
     "Settings.Appearance.PieceSet": "Набір фігур",
     "Settings.Appearance.PieceSet.Desc": "Фігури, що використовуються на дошці",
+    "Settings.Appearance.ResetLayout": "",
+    "Settings.Appearance.ResetLayout.Desc": "",
     "Settings.Appearance.Theme": "Тема",
     "Settings.Appearance.Theme.Auto": "",
     "Settings.Appearance.Theme.Dark": "Темна",

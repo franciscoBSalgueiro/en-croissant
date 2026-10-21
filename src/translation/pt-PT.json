@@ -544,6 +544,8 @@
     "Settings.Appearance.Language.Desc": "Linguagem usada na aplicação",
     "Settings.Appearance.PieceSet": "Conjunto de peças",
     "Settings.Appearance.PieceSet.Desc": "Peças usadas no tabuleiro",
+    "Settings.Appearance.ResetLayout": "",
+    "Settings.Appearance.ResetLayout.Desc": "",
     "Settings.Appearance.Theme": "Tema",
     "Settings.Appearance.Theme.Auto": "",
     "Settings.Appearance.Theme.Dark": "Escuro",

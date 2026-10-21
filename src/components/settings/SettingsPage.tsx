@@ -1,5 +1,6 @@
 import {
   ActionIcon,
+  Button,
   Card,
   Group,
   ScrollArea,
@@ -28,7 +29,7 @@ import {
 } from "@tabler/icons-react";
 import { useLoaderData } from "@tanstack/react-router";
 import { open } from "@tauri-apps/plugin-dialog";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import { RESET } from "jotai/utils";
 import posthog from "posthog-js";
 import { useMemo, useRef, useState } from "react";
@@ -60,6 +61,7 @@ import {
   storedEnginesDirAtom,
   storedPuzzlesDirAtom,
   telemetryEnabledAtom,
+  windowsStateAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import FileInput from "../common/FileInput";
@@ -175,6 +177,7 @@ export default function Page() {
   enginesDirectory = enginesDirectory || defaultEnginesDir;
   let [puzzlesDirectory, setPuzzlesDirectory] = useAtom(storedPuzzlesDirAtom);
   puzzlesDirectory = puzzlesDirectory || defaultPuzzlesDir;
+  const setWindowsState = useSetAtom(windowsStateAtom);
 
   const [moveMethod, setMoveMethod] = useAtom(moveMethodAtom);
   const [moveNotationType, setMoveNotationType] = useAtom(moveNotationTypeAtom);
@@ -496,6 +499,22 @@ export default function Page() {
           </div>
         ),
       },
+      {
+        id: "reset-layout",
+        category: "appearance",
+        title: t("Settings.Appearance.ResetLayout"),
+        description: t("Settings.Appearance.ResetLayout.Desc"),
+        keywords: ["reset", "layout", "panels", "dividers", "size"],
+        render: () => (
+          <Button
+            variant="default"
+            leftSection={<IconReload size="1rem" />}
+            onClick={() => setWindowsState(RESET)}
+          >
+            {t("Common.Reset")}
+          </Button>
+        ),
+      },
       // Repertoire settings
       {
         id: "repertoire-depth",
@@ -653,6 +672,7 @@ export default function Page() {
       setDatabasesDirectory,
       setEnginesDirectory,
       setPuzzlesDirectory,
+      setWindowsState,
       setShowCoordinates,
       setMaterialDisplay,
       practiceAutoDifficulty,

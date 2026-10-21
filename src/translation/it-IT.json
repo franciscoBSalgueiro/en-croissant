@@ -544,6 +544,8 @@
     "Settings.Appearance.Language.Desc": "Lingua utilizzata nell'applicazione",
     "Settings.Appearance.PieceSet": "Set pezzi",
     "Settings.Appearance.PieceSet.Desc": "Pezzi utilizzati sulle scacchiere",
+    "Settings.Appearance.ResetLayout": "",
+    "Settings.Appearance.ResetLayout.Desc": "",
     "Settings.Appearance.Theme": "Tema",
     "Settings.Appearance.Theme.Auto": "Automatico",
     "Settings.Appearance.Theme.Dark": "Scuro",

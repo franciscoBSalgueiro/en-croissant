@@ -541,6 +541,8 @@
     "Settings.Appearance.Language.Desc": "应用使用的语言",
     "Settings.Appearance.PieceSet": "棋子样式",
     "Settings.Appearance.PieceSet.Desc": "棋盘上使用的棋子",
+    "Settings.Appearance.ResetLayout": "",
+    "Settings.Appearance.ResetLayout.Desc": "",
     "Settings.Appearance.Theme": "主题",
     "Settings.Appearance.Theme.Auto": "自动",
     "Settings.Appearance.Theme.Dark": "深色",

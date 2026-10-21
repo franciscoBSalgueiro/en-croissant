@@ -568,6 +568,8 @@
     "Settings.Appearance.Language.Desc": "Язык приложения",
     "Settings.Appearance.PieceSet": "Набор фигур",
     "Settings.Appearance.PieceSet.Desc": "Фигуры, используемые на доске",
+    "Settings.Appearance.ResetLayout": "",
+    "Settings.Appearance.ResetLayout.Desc": "",
     "Settings.Appearance.Theme": "Тема",
     "Settings.Appearance.Theme.Auto": "",
     "Settings.Appearance.Theme.Dark": "Тёмная",

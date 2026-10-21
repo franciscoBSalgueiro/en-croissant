@@ -1,6 +1,6 @@
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
-import { ActionIcon, ScrollArea, Tabs } from "@mantine/core";
-import { useHotkeys, useToggle } from "@mantine/hooks";
+import { ActionIcon, Box, ScrollArea, Tabs } from "@mantine/core";
+import { useElementSize, useHotkeys, useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
 import { type ReactNode, startTransition, useCallback, useEffect } from "react";
@@ -8,8 +8,15 @@ import { useTranslation } from "react-i18next";
 import { Mosaic, type MosaicNode } from "react-mosaic-component";
 import { match } from "ts-pattern";
 import { commands } from "@/bindings";
-import { activeTabAtom, showTabBarAtom, tabsAtom } from "@/state/atoms";
+import {
+  activeTabAtom,
+  type BoardViewId,
+  showTabBarAtom,
+  tabsAtom,
+  windowsStateAtom,
+} from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
+import { defaultBoardSplit } from "@/utils/boardLayout";
 import { createTab, genID, isPersistentGameOrigin, type Tab } from "@/utils/tabs";
 import { unwrap } from "@/utils/unwrap";
 import BoardAnalysis from "../boards/BoardAnalysis";
@@ -24,7 +31,6 @@ import "react-mosaic-component/react-mosaic-component.css";
 
 import "@/styles/react-mosaic.css";
 import { platform } from "@tauri-apps/plugin-os";
-import { atomWithStorage } from "jotai/utils";
 import classes from "./BoardsPage.module.css";
 
 export default function BoardsPage() {
@@ -257,7 +263,7 @@ export default function BoardsPage() {
         </ScrollArea>
       )}
       {tabs.map((tab) => (
-        <Tabs.Panel key={tab.value} value={tab.value} h="100%" w="100%" pb="sm" px="xs">
+        <Tabs.Panel key={tab.value} value={tab.value} h="100%" w="100%" pb="0.5rem" px="xs">
           <TabSwitch
             tab={tab}
             saveModalOpened={saveModalOpened}
@@ -271,29 +277,22 @@ export default function BoardsPage() {
   );
 }
 
-type ViewId = "left" | "topRight" | "bottomRight";
-
 const fullLayout: { [viewId: string]: ReactNode } = {
   left: <div id="left" />,
   topRight: <div id="topRight" />,
   bottomRight: <div id="bottomRight" />,
 };
 
-interface WindowsState {
-  currentNode: MosaicNode<ViewId> | null;
+// Until the divider between the board and the right-hand column is dragged, it's placed for the
+// window, so the column starts the board's margin away from the board
+function placeBoardDivider(
+  node: MosaicNode<BoardViewId> | null,
+  layout: { width: number; height: number },
+): MosaicNode<BoardViewId> | null {
+  if (typeof node !== "object" || node === null || node.splitPercentage !== undefined) return node;
+  if (layout.width === 0) return node;
+  return { ...node, splitPercentage: defaultBoardSplit(layout, window.devicePixelRatio) };
 }
-
-const windowsStateAtom = atomWithStorage<WindowsState>("windowsState", {
-  currentNode: {
-    direction: "row",
-    first: "left",
-    second: {
-      direction: "column",
-      first: "topRight",
-      second: "bottomRight",
-    },
-  },
-});
 
 function TabSwitch({
   tab,
@@ -309,28 +308,30 @@ function TabSwitch({
   activeTab: string | null;
 }) {
   const [windowsState, setWindowsState] = useAtom(windowsStateAtom);
+  const { ref: layoutRef, width, height } = useElementSize();
+
+  const layout = (
+    <Box ref={layoutRef} h="100%" w="100%">
+      <Mosaic<BoardViewId>
+        renderTile={(id) => fullLayout[id]}
+        value={placeBoardDivider(windowsState.currentNode, { width, height })}
+        onChange={(currentNode) => setWindowsState({ currentNode })}
+        resize={{ minimumPaneSizePercentage: 0 }}
+      />
+    </Box>
+  );
 
   return match(tab.type)
     .with("new", () => <NewTabHome id={tab.value} />)
     .with("play", () => (
       <TreeStateProvider id={tab.value}>
-        <Mosaic<ViewId>
-          renderTile={(id) => fullLayout[id]}
-          value={windowsState.currentNode}
-          onChange={(currentNode) => setWindowsState({ currentNode })}
-          resize={{ minimumPaneSizePercentage: 0 }}
-        />
+        {layout}
         <BoardGame />
       </TreeStateProvider>
     ))
     .with("analysis", () => (
       <TreeStateProvider id={tab.value}>
-        <Mosaic<ViewId>
-          renderTile={(id) => fullLayout[id]}
-          value={windowsState.currentNode}
-          onChange={(currentNode) => setWindowsState({ currentNode })}
-          resize={{ minimumPaneSizePercentage: 0 }}
-        />
+        {layout}
         <BoardAnalysis />
         <ConfirmChangesModal
           opened={saveModalOpened}
@@ -341,12 +342,7 @@ function TabSwitch({
     ))
     .with("puzzles", () => (
       <TreeStateProvider id={tab.value}>
-        <Mosaic<ViewId>
-          renderTile={(id) => fullLayout[id]}
-          value={windowsState.currentNode}
-          onChange={(currentNode) => setWindowsState({ currentNode })}
-          resize={{ minimumPaneSizePercentage: 0 }}
-        />
+        {layout}
         <Puzzles id={tab.value} />
       </TreeStateProvider>
     ))

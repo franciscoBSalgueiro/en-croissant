@@ -1,5 +1,6 @@
 import type { DrawBrushes, DrawShape } from "@lichess-org/chessground/draw";
 import { ActionIcon, Box, Center, Group, Text, useMantineTheme } from "@mantine/core";
+import { useElementSize } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { IconChevronRight } from "@tabler/icons-react";
 import {
@@ -49,6 +50,7 @@ import {
 import { keyMapAtom } from "@/state/keybinds";
 import classes from "@/styles/Chessboard.module.css";
 import { ANNOTATION_INFO, isBasicAnnotation } from "@/utils/annotation";
+import { boardSize, EVAL_BAR_GAP, EVAL_BAR_WIDTH } from "@/utils/boardLayout";
 import { getVariationLine } from "@/utils/chess";
 import { chessopsError, forceEnPassant, positionFromFen } from "@/utils/chessops";
 import { getTabFile, getTabGameNumber } from "@/utils/tabs";
@@ -165,6 +167,8 @@ function Board({
   const currentTab = useAtomValue(currentTabAtom);
   const tabFile = getTabFile(currentTab);
   const [evalOpen, setEvalOpen] = useAtom(currentEvalOpenAtom);
+  const { ref: paneRef, width: paneWidth, height: paneHeight } = useElementSize();
+  const size = boardSize({ width: paneWidth, height: paneHeight }, window.devicePixelRatio);
 
   const [deck, setDeck] = useAtom(
     deckAtomFamily({
@@ -382,19 +386,22 @@ function Board({
 
   return (
     <>
-      <Box w="100%" h="100%">
+      {/* The board takes the size that keeps the same margin all around its squares, centred
+          up and down with its player bars (until the pane is measured, it fills the width) */}
+      <Box
+        ref={paneRef}
+        w="100%"
+        h="100%"
+        style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}
+      >
         <Box
           style={{
             display: "flex",
             flexDirection: "column",
-            width: "100%",
-            height: "100%",
+            width: size ? EVAL_BAR_WIDTH + EVAL_BAR_GAP + size : "100%",
             gap: "0.5rem",
             flexWrap: "nowrap",
             overflow: "hidden",
-            maxWidth:
-              //            topbar   bottompadding                tabs                                  bottomb    topbar   evalbar                                gaps    ???
-              `calc(100vh - 2.25rem - var(--mantine-spacing-sm) - 2.5rem - var(--mantine-spacing-sm) - ${BAR_HEIGHT} - ${BAR_HEIGHT} + 1.563rem + var(--mantine-spacing-md) - 1rem  - 0.2rem)`,
           }}
         >
           <BoardBar
@@ -428,7 +435,7 @@ function Board({
               position: "relative",
               flexWrap: "nowrap",
             }}
-            gap="sm"
+            gap={EVAL_BAR_GAP}
           >
             {showComments &&
               currentNode.annotations.length > 0 &&
@@ -447,7 +454,7 @@ function Board({
             <Box
               h="100%"
               style={{
-                width: 25,
+                width: EVAL_BAR_WIDTH,
               }}
             >
               {!evalOpen && (

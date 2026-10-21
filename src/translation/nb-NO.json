@@ -534,6 +534,8 @@
     "Settings.Appearance.Language.Desc": "Språk brukt i appen",
     "Settings.Appearance.PieceSet": "Brikker",
     "Settings.Appearance.PieceSet.Desc": "Brikker på sjakkbrette",
+    "Settings.Appearance.ResetLayout": "",
+    "Settings.Appearance.ResetLayout.Desc": "",
     "Settings.Appearance.Theme": "Tema",
     "Settings.Appearance.Theme.Auto": "",
     "Settings.Appearance.Theme.Dark": "Mørk",
