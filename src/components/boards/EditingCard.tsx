@@ -34,7 +34,7 @@ function EditingCard({
         style={{ position: "absolute", top: 10, right: 15, zIndex: 1 }}
         onClick={() => setEditingMode(false)}
       />
-      <ScrollArea flex={1} offsetScrollbars>
+      <ScrollArea flex={1} offsetScrollbars scrollbars="y">
         <FenInput currentFen={fen} />
         <Divider my="md" />
         <PiecesGrid
