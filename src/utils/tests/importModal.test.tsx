@@ -164,12 +164,43 @@ test.each([
     "lichess.org/game/abcdefgh",
     notFound("Lichess", "lichess.org"),
   ],
+  // A site's name is the same site in any case, as typed or auto-capitalized
+  [
+    "a Chess.com link with a capital C that isn't to a game",
+    "Chess.com/12345",
+    unsupported("https://www.chess.com/game/live/12345"),
+  ],
+  [
+    "a Chess.com event link with a capital C",
+    "https://www.Chess.com/events/2024-world-championship",
+    () => ({
+      title: "Event URLs not supported",
+      message: "Event URLs cannot be imported directly. Please import the PGN instead.",
+    }),
+  ],
+  [
+    "a Lichess game link with a capital L whose game can't be found",
+    "https://Lichess.org/abcdefgh",
+    notFound("Lichess", "lichess.org"),
+  ],
+  [
+    "a Lichess game link with a capital L and without https:// whose game can't be found",
+    "Lichess.org/game/abcdefgh",
+    notFound("Lichess", "lichess.org"),
+  ],
 ])("importing %s also explains it in a notification", async (_, link, expected) => {
   await importLink(link);
 
   expect(notifications.show).toHaveBeenCalledWith(
     expect.objectContaining({ ...expected(link), color: "red" }),
   );
+});
+
+test("a Lichess link with a capitalized site name asks Lichess for the game with its ID unchanged", async () => {
+  // Lichess game IDs are case-sensitive, so only the site's name may be read in any case
+  await importLink("https://Lichess.org/AbCdEfGh");
+
+  expect(fetch).toHaveBeenCalledWith("https://lichess.org/game/export/AbCdEfGh");
 });
 
 test.each([
