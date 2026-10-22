@@ -161,16 +161,24 @@ export function setHomePicks(layout: HomeLayout, id: string, items: string[]): H
 }
 
 // As many cards to a row as before the home screen could be customized
-const MAX_CARDS_PER_ROW = 5;
+const CARDS_PER_ROW = 5;
 
-// The cards are square and share their row's width: as many to a row as fit at their smallest
-// size (but no more than five), so they grow with the window
-export function homeCardGrid(width: number, gap: number, minCardSize: number) {
+// The cards are square, from their smallest size to their largest. Five to a row share its width;
+// a window wide enough for five at their largest fits as many as it can at that size rather than
+// making them bigger, and a narrower one fits fewer (never bigger than their largest either)
+export function homeCardGrid(width: number, gap: number, minCardSize: number, maxCardSize: number) {
+    const atLargest = Math.floor((width + gap) / (maxCardSize + gap));
+    if (atLargest >= CARDS_PER_ROW) {
+        return { cardsPerRow: atLargest, cardSize: maxCardSize };
+    }
     const cardsPerRow = Math.max(
         1,
-        Math.min(MAX_CARDS_PER_ROW, Math.floor((width + gap) / (minCardSize + gap))),
+        Math.min(CARDS_PER_ROW, Math.floor((width + gap) / (minCardSize + gap))),
     );
-    return { cardsPerRow, cardSize: (width - (cardsPerRow - 1) * gap) / cardsPerRow };
+    return {
+        cardsPerRow,
+        cardSize: Math.min(maxCardSize, (width - (cardsPerRow - 1) * gap) / cardsPerRow),
+    };
 }
 
 // What the home screen has room for, in CSS pixels

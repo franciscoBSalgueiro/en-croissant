@@ -86,6 +86,8 @@ const MIN_LIST_WIDTH = 20;
 const MIN_LIST_HEIGHT = 9;
 // The smallest a card can be: its icon, title and button still fit
 const MIN_CARD_SIZE = 13.5;
+// The largest, so a big screen fits more cards rather than bigger ones
+const MAX_CARD_SIZE = 17.5;
 // Mantine's md spacing: every margin, gap and padding on the home screen (as in the styles)
 const GAP = 1;
 
@@ -140,7 +142,12 @@ export default function HomeGrid({
   const showTabBar = useAtomValue(showTabBarAtom);
   const { ref: homeRef, width, height } = useContentSize();
   const gap = remToPx(GAP);
-  const { cardsPerRow, cardSize } = homeCardGrid(width, gap, remToPx(MIN_CARD_SIZE));
+  const { cardsPerRow, cardSize } = homeCardGrid(
+    width,
+    gap,
+    remToPx(MIN_CARD_SIZE),
+    remToPx(MAX_CARD_SIZE),
+  );
 
   // Leaving the home screen ends editing
   useEffect(() => () => setEditing(false), [setEditing]);

@@ -220,19 +220,24 @@ test("a picks card can be given as many things as its rows fit, at least one", (
     expect(picksThatFit(50, 60, 30, 2)).toBe(1);
 });
 
-test("cards fill their row five at a time down to their smallest size, then fewer and larger", () => {
-    // Five cards of exactly the smallest size, and the gaps between them
-    expect(homeCardGrid(5 * 216 + 4 * 16, 16, 216)).toEqual({ cardsPerRow: 5, cardSize: 216 });
+test("five cards share a row between their smallest and largest sizes; a wider window fits more, never bigger ones", () => {
+    const grid = (width: number) => homeCardGrid(width, 16, 216, 280);
+    // Five of exactly the smallest size, and the gaps between them
+    expect(grid(5 * 216 + 4 * 16)).toEqual({ cardsPerRow: 5, cardSize: 216 });
     // A pixel narrower, five would be too small: four, each larger than the smallest
-    const narrower = homeCardGrid(5 * 216 + 4 * 16 - 1, 16, 216);
+    const narrower = grid(5 * 216 + 4 * 16 - 1);
     expect(narrower.cardsPerRow).toBe(4);
     expect(narrower.cardSize).toBeGreaterThan(216);
-    // However wide the window, still five to a row, growing with it
-    const wide = homeCardGrid(3000, 16, 216);
-    expect(wide.cardsPerRow).toBe(5);
-    expect(wide.cardSize * 5 + 4 * 16).toBe(3000);
+    // In between (a laptop), five share the row
+    expect(grid(1432)).toEqual({ cardsPerRow: 5, cardSize: (1432 - 4 * 16) / 5 });
+    // From five of the largest size, a wider window fits more of that size, not bigger ones
+    expect(grid(5 * 280 + 4 * 16)).toEqual({ cardsPerRow: 5, cardSize: 280 });
+    expect(grid(1840)).toEqual({ cardsPerRow: 6, cardSize: 280 });
+    expect(grid(2480)).toEqual({ cardsPerRow: 8, cardSize: 280 });
+    // A narrow window's fewer cards aren't bigger than the largest either
+    expect(grid(900)).toEqual({ cardsPerRow: 3, cardSize: 280 });
     // Too narrow for even one at the smallest size: one, as wide as there is room for
-    expect(homeCardGrid(150, 16, 216)).toEqual({ cardsPerRow: 1, cardSize: 150 });
+    expect(grid(150)).toEqual({ cardsPerRow: 1, cardSize: 150 });
 });
 
 test("the gap between the cards and the lists comes out of the lists' room", () => {
