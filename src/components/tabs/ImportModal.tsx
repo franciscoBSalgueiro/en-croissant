@@ -26,6 +26,7 @@ import { parsePGN } from "@/utils/chess";
 import { chessopsError } from "@/utils/chessops";
 import { createFile, openFile } from "@/utils/files";
 import { getGameFromUrl } from "@/utils/import";
+import { sortFileTypes } from "@/utils/sort";
 import { isInTempDir, type Tab } from "@/utils/tabs";
 import { defaultTree, getGameName } from "@/utils/treeReducer";
 import { unwrap } from "@/utils/unwrap";
@@ -253,7 +254,11 @@ export default function ImportModal({
             </Text>
 
             <SimpleGrid cols={3}>
-              {FILE_TYPES.map((v) => (
+              {sortFileTypes(
+                FILE_TYPES,
+                (v) => v.value,
+                (v) => t(v.label),
+              ).map((v) => (
                 <GenericCard
                   key={v.value}
                   id={v.value}

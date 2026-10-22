@@ -39,6 +39,7 @@ import {
 } from "@/state/atoms";
 import { useActiveDatabaseViewStore } from "@/state/store/database";
 import { getDatabases, type SuccessDatabaseInfo } from "@/utils/db";
+import { sortDatabases } from "@/utils/sort";
 import { formatBytes, formatNumber } from "@/utils/format";
 import { unwrap } from "@/utils/unwrap";
 import ConfirmModal from "../common/ConfirmModal";
@@ -62,7 +63,7 @@ export default function DatabasesPage() {
     [databases, selected],
   );
   const visibleDatabases = useMemo(() => {
-    return (databases ?? []).filter((item) => {
+    return sortDatabases(databases ?? []).filter((item) => {
       if (!conversionState.inProgress || !conversionState.targetDatabasePath) {
         return true;
       }
