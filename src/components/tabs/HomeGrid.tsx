@@ -87,7 +87,7 @@ const MIN_LIST_HEIGHT = 9;
 // The smallest a card can be: its icon, title and button still fit
 const MIN_CARD_SIZE = 13.5;
 // The largest, so a big screen fits more cards rather than bigger ones
-const MAX_CARD_SIZE = 17.5;
+const MAX_CARD_SIZE = 16.5;
 // Mantine's md spacing: every margin, gap and padding on the home screen (as in the styles)
 const GAP = 1;
 
@@ -266,14 +266,12 @@ export default function HomeGrid({
     ...HOME_LIST_KINDS.map((kind) => entry("list", kind, lists[kind])),
   ].filter((e) => e !== null);
 
-  // How many rows a picks card has room for now (HomePanels' PicksCard: its padding, border and
-  // title; then a file's or database's rows, or an account's, which its 30px logo makes taller)
+  // How many rows a Multi card has room for now (HomePanels' PicksCard: its padding, the smaller
+  // padding below its rows, its border and title; then the styles' fixed row heights, an account's
+  // taller for its 30px logo)
   function picksLimit(kind: HomeCardKind) {
-    const chrome = 2 * remToPx(1) + 2 + remToPx(1.55) + remToPx(0.625);
-    const row =
-      kind === "accountPicks"
-        ? Math.max(30, remToPx(1.75)) + remToPx(0.25)
-        : remToPx(0.75 + 0.875 * 1.45);
+    const chrome = remToPx(1 + 1.55 + 0.625 + 0.5) + 2;
+    const row = remToPx(kind === "accountPicks" ? 2.125 : 2);
     return picksThatFit(cardSize, chrome, row, remToPx(0.125));
   }
 

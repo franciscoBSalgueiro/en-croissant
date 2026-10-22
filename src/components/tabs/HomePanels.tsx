@@ -167,17 +167,16 @@ function PanelRow({
   );
 }
 
-// A card showing a few things the user picked, one per row
+// A card showing a few things the user picked, one per row. Cards don't scroll: rows that don't fit
+// (only once the window is smaller than when they were picked) stay out of sight. Less padding
+// below the rows than elsewhere, so a sixth file fits a card of its largest size.
 export function PicksCard({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <Card shadow="sm" p="md" radius="md" withBorder h="100%">
+    <Card shadow="sm" p="md" radius="md" withBorder h="100%" style={{ paddingBottom: "0.5rem" }}>
       <Text fw={600} mb="xs" truncate>
         {title}
       </Text>
-      {/* On a small card (a narrow window) the rows scroll */}
-      <ScrollArea style={{ flex: 1, minHeight: 0 }}>
-        <Stack gap={2}>{children}</Stack>
-      </ScrollArea>
+      <div className={classes.picksRows}>{children}</div>
     </Card>
   );
 }
@@ -279,7 +278,7 @@ export function AccountRows({
     return session ? (
       // No side padding (unlike file rows, an account row has no hover highlight that needs it), so
       // the name has the room
-      <Box key={key} py={2}>
+      <Box key={key} py={2} className={classes.picksAccountRow}>
         <AccountPanel session={session} databases={databases} compact />
       </Box>
     ) : (

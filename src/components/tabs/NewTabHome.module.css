@@ -198,3 +198,26 @@
   padding: 6px var(--mantine-spacing-xs);
   border-radius: var(--mantine-radius-sm);
 }
+
+/* A Multi card's rows never scroll: one that doesn't fit wraps into a second column, out of sight */
+.picksRows {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  row-gap: 0.125rem;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Fixed heights (their natural ones), which the Multi card pickers count with (HomeGrid) */
+.picksRows > * {
+  flex: 0 0 auto;
+  width: 100%;
+  height: 2rem;
+}
+
+.picksRows > .picksAccountRow {
+  height: 2.125rem;
+}
