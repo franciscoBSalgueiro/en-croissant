@@ -71,6 +71,11 @@ export default function ImportModal({
   const store = useStore();
 
   async function handleSubmit() {
+    // Only a picked file fills the name in
+    if (save && importType !== "FEN" && !filename.trim()) {
+      setError(t("Common.RequireName"));
+      return;
+    }
     setLoading(true);
     if (importType === "PGN") {
       if (file || pgn) {
@@ -128,6 +133,19 @@ export default function ImportModal({
               type: fileInfo.metadata.type,
             });
           }
+        } else if (save) {
+          const newFile = await createFile({
+            filename,
+            filetype,
+            pgn,
+            dir: documentDir,
+          });
+          if (newFile.isErr) {
+            setError(newFile.error.message);
+            setLoading(false);
+            return;
+          }
+          await openFile(newFile.value, setTabs, setActiveTab);
         } else {
           const tempFile = await resolve(await tempDir(), `import_${Date.now()}.pgn`);
           await writeTextFile(tempFile, pgn);
@@ -147,18 +165,48 @@ export default function ImportModal({
         return;
       }
 
+      let fileInfo: FileMetadata | undefined;
+      if (save) {
+        const newFile = await createFile({
+          filename,
+          filetype,
+          pgn,
+          dir: documentDir,
+        });
+        if (newFile.isErr) {
+          setError(newFile.error.message);
+          setLoading(false);
+          return;
+        }
+        fileInfo = newFile.value;
+      }
+
       const tree = await parsePGN(pgn);
       setCurrentTab((prev) => {
         sessionStorage.setItem(prev.value, JSON.stringify({ version: 0, state: tree }));
         return {
           ...prev,
           name: getGameName(tree.headers),
-          gameOrigin: {
-            kind: "none",
-          },
+          gameOrigin: fileInfo
+            ? {
+                kind: "file",
+                file: fileInfo,
+                gameNumber: 0,
+              }
+            : {
+                kind: "none",
+              },
           type: "analysis",
         };
       });
+
+      if (fileInfo) {
+        store.set(addRecentFileAtom, {
+          name: fileInfo.name,
+          path: fileInfo.path,
+          type: fileInfo.metadata.type,
+        });
+      }
     } else if (importType === "FEN") {
       const res = parseFen(fen.trim());
       if (res.isErr) {
@@ -187,85 +235,48 @@ export default function ImportModal({
 
   const Input = match(importType)
     .with("PGN", () => (
-      <Stack>
-        <div>
-          <FileInput
-            label={t("Common.PGNFile")}
-            description={t("Import.PGN.ClickToSelect")}
-            onClick={async () => {
-              const selected = (await open({
-                multiple: false,
+      <div>
+        <FileInput
+          label={t("Common.PGNFile")}
+          description={t("Import.PGN.ClickToSelect")}
+          onClick={async () => {
+            const selected = (await open({
+              multiple: false,
 
-                filters: [
-                  {
-                    name: t("Common.PGNFile"),
-                    extensions: ["pgn"],
-                  },
-                ],
-              })) as string;
-              setFile(selected);
-              setFilename(
-                selected
-                  .split(/(\\|\/)/g)
-                  .pop()
-                  ?.replace(".pgn", "") || "",
-              );
-            }}
-            value={new File([new Blob()], file || "")}
-            onChange={(e) => {
-              if (e === null) {
-                setFile(null);
-                setFilename("");
-              }
-            }}
-            disabled={pgn !== ""}
-          />
-          <Divider pt="xs" label={t("Import.Or")} labelPosition="center" />
-          <Textarea
-            value={pgn}
-            disabled={file !== null}
-            onChange={(event) => setPgn(event.currentTarget.value)}
-            label={t("Common.PGNGame")}
-            data-autofocus
-            rows={8}
-          />
-        </div>
-
-        <Checkbox
-          label={t("Import.SaveToCollection")}
-          checked={save}
-          onChange={(e) => setSave(e.currentTarget.checked)}
+              filters: [
+                {
+                  name: t("Common.PGNFile"),
+                  extensions: ["pgn"],
+                },
+              ],
+            })) as string;
+            setFile(selected);
+            setFilename(
+              selected
+                .split(/(\\|\/)/g)
+                .pop()
+                ?.replace(".pgn", "") || "",
+            );
+          }}
+          value={new File([new Blob()], file || "")}
+          onChange={(e) => {
+            if (e === null) {
+              setFile(null);
+              setFilename("");
+            }
+          }}
+          disabled={pgn !== ""}
         />
-
-        {save && (
-          <>
-            <TextInput
-              label={t("Common.Name")}
-              placeholder={t("Common.EnterFileName")}
-              required
-              value={filename}
-              onChange={(e) => setFilename(e.currentTarget.value)}
-              error={error}
-            />
-
-            <Text fz="sm" fw="bold">
-              {t("Files.FileType")}
-            </Text>
-
-            <SimpleGrid cols={3}>
-              {FILE_TYPES.map((v) => (
-                <GenericCard
-                  key={v.value}
-                  id={v.value}
-                  isSelected={filetype === v.value}
-                  setSelected={setFiletype}
-                  Header={<Text ta="center">{t(v.label)}</Text>}
-                />
-              ))}
-            </SimpleGrid>
-          </>
-        )}
-      </Stack>
+        <Divider pt="xs" label={t("Import.Or")} labelPosition="center" />
+        <Textarea
+          value={pgn}
+          disabled={file !== null}
+          onChange={(event) => setPgn(event.currentTarget.value)}
+          label={t("Common.PGNGame")}
+          data-autofocus
+          rows={8}
+        />
+      </div>
     ))
     .with("Link", () => (
       <TextInput
@@ -328,6 +339,48 @@ export default function ImportModal({
       </Group>
 
       {Input}
+
+      {importType !== "FEN" && (
+        <Stack mt="md">
+          <Checkbox
+            label={t("Import.SaveToCollection")}
+            checked={save}
+            onChange={(e) => setSave(e.currentTarget.checked)}
+          />
+
+          {save && (
+            <>
+              <TextInput
+                label={t("Common.Name")}
+                placeholder={t("Common.EnterFileName")}
+                required
+                value={filename}
+                onChange={(e) => {
+                  setFilename(e.currentTarget.value);
+                  if (error) setError("");
+                }}
+                error={error}
+              />
+
+              <Text fz="sm" fw="bold">
+                {t("Files.FileType")}
+              </Text>
+
+              <SimpleGrid cols={3}>
+                {FILE_TYPES.map((v) => (
+                  <GenericCard
+                    key={v.value}
+                    id={v.value}
+                    isSelected={filetype === v.value}
+                    setSelected={setFiletype}
+                    Header={<Text ta="center">{t(v.label)}</Text>}
+                  />
+                ))}
+              </SimpleGrid>
+            </>
+          )}
+        </Stack>
+      )}
 
       <Button
         fullWidth
