@@ -413,6 +413,44 @@ export async function getLichessGame(gameId: string): Promise<string> {
   return await response.text();
 }
 
+// Like getChesscomGame: says what went wrong in a notification and returns null
+export async function getLichessGameFromUrl(gameURL: string) {
+  const excludedPathParts = ["game", "export", "white", "black"];
+  // A link without https:// works too, as it does for Chess.com
+  const url = /^https?:\/\//i.test(gameURL) ? gameURL : `https://${gameURL}`;
+  let gameId: string | undefined;
+  try {
+    gameId = new URL(url).pathname.split("/").find((x) => x && !excludedPathParts.includes(x));
+  } catch {
+    // Not a URL, so not a game link either
+  }
+  if (!gameId) {
+    error(`Unsupported Lichess URL format: ${gameURL}`);
+    notifications.show({
+      title: "Unsupported URL format",
+      message:
+        "The URL format is not recognized. Please use a direct game link like https://lichess.org/game/abcdefg/white",
+      color: "red",
+      icon: <IconX />,
+    });
+    return null;
+  }
+
+  // Not getLichessGame, which throws both for a missing game and for a failed connection
+  const response = await fetch(`https://lichess.org/game/export/${gameId.slice(0, 8)}`);
+  if (!response.ok) {
+    error(`Failed to fetch Lichess game: ${response.status} ${response.url}`);
+    notifications.show({
+      title: "Failed to fetch Lichess game",
+      message: `Could not find game "${gameURL}" on lichess.org`,
+      color: "red",
+      icon: <IconX />,
+    });
+    return null;
+  }
+  return await response.text();
+}
+
 export async function getTablebaseInfo(fen: string): Promise<TablebaseData> {
   const res = await fetch(`${tablebaseURL}/standard?fen=${fen}`, {
     headers: apiHeaders(),

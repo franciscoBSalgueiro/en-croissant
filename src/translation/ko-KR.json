@@ -314,7 +314,7 @@
     "Errors.InvalidEpSquare": "잘못된 앙파상 칸",
     "Errors.InvalidFen": "잘못된 FEN",
     "Errors.InvalidFullmoves": "잘못된 풀무브 번호",
-    "Errors.InvalidHaldmoves": "잘못된 하프무브 번호",
+    "Errors.InvalidHalfmoves": "잘못된 하프무브 번호",
     "Errors.InvalidKings": "잘못된 킹 개수",
     "Errors.InvalidPockets": "잘못된 포켓",
     "Errors.InvalidRemainingChecks": "잘못된 남은 체크",
