@@ -318,6 +318,7 @@
     "Fen.Start": "",
     "Fen.White": "",
     "Fen.WhiteToMove": "",
+    "Files.Create.ImportType": "",
     "Files.Create.PGNPlaceholder": "",
     "Files.Create.Title": "Crear archivo",
     "Files.CreateDirectory.AlreadyExists": "",

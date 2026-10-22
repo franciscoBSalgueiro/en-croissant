@@ -1,19 +1,6 @@
-import {
-  Button,
-  Checkbox,
-  Divider,
-  FileInput,
-  Group,
-  Modal,
-  SimpleGrid,
-  Stack,
-  Text,
-  Textarea,
-  TextInput,
-} from "@mantine/core";
+import { Button, Checkbox, Modal, SimpleGrid, Stack, Text, TextInput } from "@mantine/core";
 import { useLoaderData } from "@tanstack/react-router";
 import { resolve, tempDir } from "@tauri-apps/api/path";
-import { open } from "@tauri-apps/plugin-dialog";
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { makeFen, parseFen } from "chessops/fen";
 import { useAtom, useStore } from "jotai";
@@ -29,10 +16,9 @@ import { getGameFromUrl } from "@/utils/import";
 import { isInTempDir, type Tab } from "@/utils/tabs";
 import { defaultTree, getGameName } from "@/utils/treeReducer";
 import { unwrap } from "@/utils/unwrap";
+import GameSourceInput, { type ImportType } from "../common/GameSourceInput";
 import GenericCard from "../common/GenericCard";
 import type { FileMetadata, FileType } from "../files/file";
-
-type ImportType = "PGN" | "Link" | "FEN";
 
 const FILE_TYPES = [
   { label: "Files.FileType.Game", value: "game" },
@@ -50,6 +36,27 @@ export default function ImportModal({
 }: {
   openModal: boolean;
   setOpenModal: React.Dispatch<React.SetStateAction<boolean>>;
+  setTabs: React.Dispatch<React.SetStateAction<Tab[]>>;
+  setActiveTab: React.Dispatch<React.SetStateAction<string | null>>;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <Modal
+      opened={openModal}
+      onClose={() => setOpenModal(false)}
+      title={t("Home.Card.ImportGame.Title")}
+    >
+      <ImportGameForm setTabs={setTabs} setActiveTab={setActiveTab} />
+    </Modal>
+  );
+}
+
+// The Modal removes its content when it closes, so the dialog starts empty each time it opens
+function ImportGameForm({
+  setTabs,
+  setActiveTab,
+}: {
   setTabs: React.Dispatch<React.SetStateAction<Tab[]>>;
   setActiveTab: React.Dispatch<React.SetStateAction<string | null>>;
 }) {
@@ -185,113 +192,6 @@ export default function ImportModal({
     setLoading(false);
   }
 
-  const Input = match(importType)
-    .with("PGN", () => (
-      <Stack>
-        <div>
-          <FileInput
-            label={t("Common.PGNFile")}
-            description={t("Import.PGN.ClickToSelect")}
-            onClick={async () => {
-              const selected = (await open({
-                multiple: false,
-
-                filters: [
-                  {
-                    name: t("Common.PGNFile"),
-                    extensions: ["pgn"],
-                  },
-                ],
-              })) as string;
-              setFile(selected);
-              setFilename(
-                selected
-                  .split(/(\\|\/)/g)
-                  .pop()
-                  ?.replace(".pgn", "") || "",
-              );
-            }}
-            value={new File([new Blob()], file || "")}
-            onChange={(e) => {
-              if (e === null) {
-                setFile(null);
-                setFilename("");
-              }
-            }}
-            disabled={pgn !== ""}
-          />
-          <Divider pt="xs" label={t("Import.Or")} labelPosition="center" />
-          <Textarea
-            value={pgn}
-            disabled={file !== null}
-            onChange={(event) => setPgn(event.currentTarget.value)}
-            label={t("Common.PGNGame")}
-            data-autofocus
-            rows={8}
-          />
-        </div>
-
-        <Checkbox
-          label={t("Import.SaveToCollection")}
-          checked={save}
-          onChange={(e) => setSave(e.currentTarget.checked)}
-        />
-
-        {save && (
-          <>
-            <TextInput
-              label={t("Common.Name")}
-              placeholder={t("Common.EnterFileName")}
-              required
-              value={filename}
-              onChange={(e) => setFilename(e.currentTarget.value)}
-              error={error}
-            />
-
-            <Text fz="sm" fw="bold">
-              {t("Files.FileType")}
-            </Text>
-
-            <SimpleGrid cols={3}>
-              {FILE_TYPES.map((v) => (
-                <GenericCard
-                  key={v.value}
-                  id={v.value}
-                  isSelected={filetype === v.value}
-                  setSelected={setFiletype}
-                  Header={<Text ta="center">{t(v.label)}</Text>}
-                />
-              ))}
-            </SimpleGrid>
-          </>
-        )}
-      </Stack>
-    ))
-    .with("Link", () => (
-      <TextInput
-        value={link}
-        onChange={(event) => setLink(event.currentTarget.value)}
-        label={t("Import.GameURL")}
-        data-autofocus
-        onKeyDown={(e) => {
-          if (e.key === "Enter") handleSubmit();
-        }}
-      />
-    ))
-    .with("FEN", () => (
-      <TextInput
-        value={fen}
-        onChange={(event) => setFen(event.currentTarget.value)}
-        error={fenError}
-        label="FEN"
-        data-autofocus
-        onKeyDown={(e) => {
-          if (e.key === "Enter") handleSubmit();
-        }}
-      />
-    ))
-    .exhaustive();
-
   const disabled = match(importType)
     .with("PGN", () => !pgn && !file)
     .with("Link", () => !link)
@@ -299,35 +199,61 @@ export default function ImportModal({
     .exhaustive();
 
   return (
-    <Modal
-      opened={openModal}
-      onClose={() => setOpenModal(false)}
-      title={t("Home.Card.ImportGame.Title")}
-    >
-      <Group grow mb="sm">
-        <GenericCard
-          id={"PGN"}
-          isSelected={importType === "PGN"}
-          setSelected={setImportType}
-          Header={<Text ta="center">PGN</Text>}
-        />
+    <>
+      <GameSourceInput
+        importType={importType}
+        setImportType={setImportType}
+        pgn={pgn}
+        setPgn={setPgn}
+        file={file}
+        setFile={(file, name) => {
+          setFile(file);
+          setFilename(name);
+        }}
+        link={link}
+        setLink={setLink}
+        fen={{ value: fen, setValue: setFen, error: fenError }}
+        onSubmit={handleSubmit}
+      />
 
-        <GenericCard
-          id={"Link"}
-          isSelected={importType === "Link"}
-          setSelected={setImportType}
-          Header={<Text ta="center">{t("Import.Online")}</Text>}
-        />
+      {importType === "PGN" && (
+        <Stack mt="md">
+          <Checkbox
+            label={t("Import.SaveToCollection")}
+            checked={save}
+            onChange={(e) => setSave(e.currentTarget.checked)}
+          />
 
-        <GenericCard
-          id={"FEN"}
-          isSelected={importType === "FEN"}
-          setSelected={setImportType}
-          Header={<Text ta="center">FEN</Text>}
-        />
-      </Group>
+          {save && (
+            <>
+              <TextInput
+                label={t("Common.Name")}
+                placeholder={t("Common.EnterFileName")}
+                required
+                value={filename}
+                onChange={(e) => setFilename(e.currentTarget.value)}
+                error={error}
+              />
 
-      {Input}
+              <Text fz="sm" fw="bold">
+                {t("Files.FileType")}
+              </Text>
+
+              <SimpleGrid cols={3}>
+                {FILE_TYPES.map((v) => (
+                  <GenericCard
+                    key={v.value}
+                    id={v.value}
+                    isSelected={filetype === v.value}
+                    setSelected={setFiletype}
+                    Header={<Text ta="center">{t(v.label)}</Text>}
+                  />
+                ))}
+              </SimpleGrid>
+            </>
+          )}
+        </Stack>
+      )}
 
       <Button
         fullWidth
@@ -339,6 +265,6 @@ export default function ImportModal({
       >
         {loading ? t("Import.Importing") : t("Home.Card.ImportGame.Button")}
       </Button>
-    </Modal>
+    </>
   );
 }
