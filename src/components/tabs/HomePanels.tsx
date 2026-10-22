@@ -172,7 +172,8 @@ function PanelRow({
 // below the rows than elsewhere, so a sixth file fits a card of its largest size.
 export function PicksCard({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <Card shadow="sm" p="md" radius="md" withBorder h="100%" style={{ paddingBottom: "0.5rem" }}>
+    // Each side separately: Mantine applies a padding shorthand after a bottom padding in `style`
+    <Card shadow="sm" px="md" pt="md" pb={8} radius="md" withBorder h="100%">
       <Text fw={600} mb="xs" truncate>
         {title}
       </Text>
