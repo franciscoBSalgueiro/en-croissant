@@ -262,6 +262,8 @@
     "Databases.Player.One": "",
     "Databases.Player.ProcessingData": "",
     "Databases.Player.Two": "",
+    "Databases.Section.Accounts": "",
+    "Databases.Section.Other": "",
     "Databases.Settings.Actions": "Actions",
     "Databases.Settings.AddGames": "Add Games",
     "Databases.Settings.AdvancedTools": "Advanced tools",

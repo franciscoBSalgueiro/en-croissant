@@ -260,6 +260,8 @@
     "Databases.Player.One": "",
     "Databases.Player.ProcessingData": "",
     "Databases.Player.Two": "",
+    "Databases.Section.Accounts": "",
+    "Databases.Section.Other": "",
     "Databases.Settings.Actions": "操作",
     "Databases.Settings.AddGames": "新增對局",
     "Databases.Settings.AdvancedTools": "進階工具",
