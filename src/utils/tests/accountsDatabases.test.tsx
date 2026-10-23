@@ -57,6 +57,21 @@ beforeAll(async () => {
       disconnect() {}
     },
   );
+  // jsdom lays nothing out: anything measured is 700 by 500 pixels, so cards that wait for their
+  // width get one
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+    () =>
+      ({
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        bottom: 500,
+        right: 700,
+        width: 700,
+        height: 500,
+      }) as DOMRect,
+  );
 });
 
 const chessCom: Session = {
