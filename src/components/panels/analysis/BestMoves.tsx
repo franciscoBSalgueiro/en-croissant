@@ -230,7 +230,7 @@ function BestMovesComponent({
           </ActionIcon>
         </ActionIcon.Group>
       </Box>
-      <Collapse in={settingsOn} px={30} pb={15}>
+      <Collapse expanded={settingsOn} px={30} pb={15}>
         <EngineSettingsForm
           engine={engine}
           settings={settings}
