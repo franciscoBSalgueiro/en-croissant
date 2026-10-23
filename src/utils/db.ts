@@ -133,6 +133,15 @@ export function useDefaultDatabases(opened: boolean) {
     };
 }
 
+// Whether a database from the download list is already in the databases folder: one with its title,
+// or the file it's downloaded as. A database's own title can differ from the list's (Lumbra's
+// Gigabase is titled "LumbrasGigaBase" inside), so the title alone isn't enough.
+export function isDefaultDatabaseInstalled(databases: DatabaseInfo[], title: string) {
+    return databases.some(
+        (db) => db.type === "success" && (db.title === title || db.filename === `${title}.db3`),
+    );
+}
+
 export async function getDefaultPuzzleDatabases(): Promise<
     (PuzzleDatabaseInfo & { downloadLink: string })[]
 > {
