@@ -21,6 +21,7 @@ import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { positionFromFen, swapMove } from "@/utils/chessops";
 import type { SuccessDatabaseInfo } from "@/utils/db";
 import { type Engine, type EngineSettings, engineSchema } from "@/utils/engines";
+import { DEFAULT_HOME_LAYOUT, type HomeLayout } from "@/utils/homeLayout";
 import {
     type LichessGamesOptions,
     lichessGamesOptionsSchema,
@@ -212,6 +213,11 @@ export const boardImageAtom = atomWithStorage<string>("board-image", "gray.svg")
 export const is3dAtom = atomWithStorage<boolean>("is-3d", false);
 export const primaryColorAtom = atomWithStorage<MantineColor>("mantine-primary-color", "blue");
 export const sessionsAtom = atomWithStorage<Session[]>("sessions", []);
+// An account's game download (by "<site>_<username>"), the same on every card that shows it
+export const accountDownloadingFamily = atomFamily((_account: string) => atom(false));
+export const accountDownloadProgressFamily = atomFamily((_account: string) =>
+    atom<number | null>(null),
+);
 export const nativeBarAtom = atomWithStorage<boolean>("native-bar", false);
 export const isCompactLayoutAtom = atom<boolean>(false);
 export const showSidebarAtom = atomWithStorage<boolean>("show-sidebar", true);
@@ -229,7 +235,7 @@ export type RecentFile = {
     lastOpened: number;
 };
 
-const MAX_RECENT_FILES = 10;
+const MAX_RECENT_FILES = 25;
 
 export const recentFilesAtom = atomWithStorage<RecentFile[]>("recent-files", []);
 
@@ -239,6 +245,17 @@ export const addRecentFileAtom = atom(null, (get, set, file: Omit<RecentFile, "l
     const updated = [{ ...file, lastOpened: Date.now() }, ...filtered].slice(0, MAX_RECENT_FILES);
     set(recentFilesAtom, updated);
 });
+
+// Home screen
+
+// Read it through normalizeHomeLayout: a saved layout can come from another version of the app
+export const homeLayoutAtom = atomWithStorage<HomeLayout>(
+    "home-layout",
+    DEFAULT_HOME_LAYOUT,
+    undefined,
+    { getOnInit: true },
+);
+export const homeEditModeAtom = atom(false);
 
 // Database
 
@@ -377,6 +394,13 @@ export const currentShowVariationsAtom = tabValue(showVariationsFamily);
 
 export const tabFamily = atomFamily((_tab: string) => atom("info"));
 export const currentTabSelectedAtom = tabValue(tabFamily);
+
+// Set for a tab opened from the home screen and read once it opens: the board editor open, or
+// practice started ("due" for Start Practice, "full" for Practice Full Repertoire)
+export const openInEditorFamily = atomFamily((_tab: string) => atom(false));
+export const currentOpenInEditorAtom = tabValue(openInEditorFamily);
+export const startPracticeFamily = atomFamily((_tab: string) => atom<"due" | "full" | null>(null));
+export const currentStartPracticeAtom = tabValue(startPracticeFamily);
 
 const reportModalOpenFamily = atomFamily((_tab: string) => atom(false));
 export const currentReportModalOpenAtom = tabValue(reportModalOpenFamily);
