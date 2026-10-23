@@ -317,6 +317,7 @@
     "Fen.Start": "",
     "Fen.White": "",
     "Fen.WhiteToMove": "",
+    "Files.Create.ImportType": "",
     "Files.Create.PGNPlaceholder": "",
     "Files.Create.Title": "Lag fil",
     "Files.CreateDirectory.AlreadyExists": "",

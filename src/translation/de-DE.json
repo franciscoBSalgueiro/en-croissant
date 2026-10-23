@@ -317,6 +317,7 @@
     "Fen.Start": "Anfang",
     "Fen.White": "Weiss",
     "Fen.WhiteToMove": "Weiss am Zug",
+    "Files.Create.ImportType": "",
     "Files.Create.PGNPlaceholder": "Platzhalter",
     "Files.Create.Title": "Datei erstellen",
     "Files.CreateDirectory.AlreadyExists": "Existiert bereits",

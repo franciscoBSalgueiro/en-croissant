@@ -331,6 +331,7 @@
     "Fen.Start": "开始",
     "Fen.White": "白方",
     "Fen.WhiteToMove": "白方走棋",
+    "Files.Create.ImportType": "",
     "Files.Create.PGNPlaceholder": "留空以从头开始",
     "Files.Create.Title": "创建文件",
     "Files.CreateDirectory.AlreadyExists": "已存在同名文件夹",

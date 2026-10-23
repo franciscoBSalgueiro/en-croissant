@@ -315,6 +315,7 @@
     "Fen.Start": "",
     "Fen.White": "",
     "Fen.WhiteToMove": "",
+    "Files.Create.ImportType": "",
     "Files.Create.PGNPlaceholder": "",
     "Files.Create.Title": "建立檔案",
     "Files.CreateDirectory.AlreadyExists": "",

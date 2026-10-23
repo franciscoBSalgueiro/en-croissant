@@ -335,6 +335,7 @@
     "Fen.Start": "Начало",
     "Fen.White": "Белые",
     "Fen.WhiteToMove": "Ход белых",
+    "Files.Create.ImportType": "",
     "Files.Create.PGNPlaceholder": "",
     "Files.Create.Title": "Создать файл",
     "Files.CreateDirectory.AlreadyExists": "",

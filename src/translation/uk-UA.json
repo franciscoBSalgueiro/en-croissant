@@ -321,6 +321,7 @@
     "Fen.Start": "",
     "Fen.White": "",
     "Fen.WhiteToMove": "",
+    "Files.Create.ImportType": "",
     "Files.Create.PGNPlaceholder": "",
     "Files.Create.Title": "Створити файл",
     "Files.CreateDirectory.AlreadyExists": "",

@@ -319,6 +319,7 @@
     "Fen.Start": "Inizio",
     "Fen.White": "Bianco",
     "Fen.WhiteToMove": "Mossa al bianco",
+    "Files.Create.ImportType": "",
     "Files.Create.PGNPlaceholder": "Lascia vuoto per iniziare da capo",
     "Files.Create.Title": "Crea file",
     "Files.CreateDirectory.AlreadyExists": "Una cartella con questo nome esiste già",
