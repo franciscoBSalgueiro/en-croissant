@@ -633,6 +633,14 @@ function JSONModal({
 
   const [value, setValue] = useState(JSON.stringify(engine, null, 2));
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (opened) {
+      setValue(JSON.stringify(engine, null, 2));
+      setError(null);
+    }
+  }, [opened, engine]);
+
   return (
     <Modal opened={opened} onClose={toggleOpened} title={t("Engines.Settings.EditJSON")} size="xl">
       <JsonInput
