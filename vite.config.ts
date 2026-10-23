@@ -47,6 +47,8 @@ export default defineConfig({
     },
     test: {
         environment: "jsdom",
+        // Exercise the board stylesheet instead of Vitest's empty CSS mock.
+        css: { include: [/chessgroundBaseOverride\.css/] },
     },
     define: {
         "import.meta.env.VITE_PLATFORM": JSON.stringify(os.platform()),
