@@ -12,6 +12,7 @@ import { IconCheck, IconEdit, IconX } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
 import { useEffect, useRef, useState } from "react";
 import type { DatabaseInfo } from "@/bindings";
+import { useOpenDatabase } from "@/hooks/useOpenDatabase";
 import { sessionsAtom } from "@/state/atoms";
 import { getChessComAccount, getStats } from "@/utils/chess.com/api";
 import { getLichessAccount } from "@/utils/lichess/api";
@@ -73,6 +74,7 @@ function PlayerSession({
   setDatabases: React.Dispatch<React.SetStateAction<DatabaseInfo[]>>;
 }) {
   const [, setSessions] = useAtom(sessionsAtom);
+  const openDatabase = useOpenDatabase();
   const [edit, setEdit] = useState(false);
   const [text, setText] = useState(name);
   useEffect(() => {
@@ -166,6 +168,8 @@ function PlayerSession({
             databases={databases}
             setDatabases={setDatabases}
             setSessions={setSessions}
+            // A double-click opens the account's games, as on the home screen
+            display={{ onOpenDatabase: openDatabase }}
           />
         ))}
       </Group>

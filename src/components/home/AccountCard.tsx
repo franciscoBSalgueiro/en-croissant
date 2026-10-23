@@ -56,10 +56,11 @@ interface AccountCardProps {
   setDatabases: (databases: DatabaseInfo[]) => void;
   token?: string;
   // On the home screen: no remove button or Lichess login check, the name cut short rather than
-  // wrapped (for room), the games bar at the bottom of the card, and the account's games opening on
-  // a double-click. Compact: just the top bar (in its lists of accounts).
+  // wrapped (for room) and the games bar at the bottom of the card. Compact: just the top bar (in
+  // its lists of accounts).
   homeScreen?: boolean;
   compact?: boolean;
+  // Opens the account's games on a double-click (on the home screen and the User page)
   onOpenDatabase?: (database: SuccessDatabaseInfo) => void;
 }
 

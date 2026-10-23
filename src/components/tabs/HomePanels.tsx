@@ -11,7 +11,6 @@ import {
   UnstyledButton,
 } from "@mantine/core";
 import { IconBook, IconDatabase, IconQuestionMark, IconTarget } from "@tabler/icons-react";
-import { useNavigate } from "@tanstack/react-router";
 import { remove } from "@tauri-apps/plugin-fs";
 import { useAtomValue, useSetAtom, useStore } from "jotai";
 import { type MouseEvent, type ReactNode, useState } from "react";
@@ -26,6 +25,7 @@ import type { Directory, FileMetadata } from "@/components/files/file";
 import { FileIcon } from "@/components/files/FileIcon";
 import { getStats } from "@/components/files/opening";
 import { PracticeReminderBadge } from "@/components/files/PracticeReminderBadge";
+import { useOpenDatabase } from "@/hooks/useOpenDatabase";
 import {
   activeTabAtom,
   deckAtomFamily,
@@ -33,8 +33,7 @@ import {
   startPracticeFamily,
   tabsAtom,
 } from "@/state/atoms";
-import { useActiveDatabaseViewStore } from "@/state/store/database";
-import { query_games, type SuccessDatabaseInfo } from "@/utils/db";
+import { query_games } from "@/utils/db";
 import { openFile } from "@/utils/files";
 import { formatNumber } from "@/utils/format";
 import type { Session } from "@/utils/session";
@@ -80,16 +79,6 @@ export function flattenEntries(entries: Entry[]): { files: FileMetadata[]; folde
     }
   }
   return { files, folders };
-}
-
-function useOpenDatabase() {
-  const navigate = useNavigate();
-  const setActiveDatabase = useActiveDatabaseViewStore((s) => s.setDatabase);
-  // As Explore, or a double-click, on the Databases page
-  return (database: SuccessDatabaseInfo) => {
-    setActiveDatabase(database);
-    navigate({ to: "/databases/$databaseId", params: { databaseId: database.title } });
-  };
 }
 
 function useOpenFile() {
