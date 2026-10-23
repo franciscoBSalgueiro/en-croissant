@@ -1,5 +1,15 @@
 import type { DrawShape } from "@lichess-org/chessground/draw";
-import { type Color, type Move, makeSquare, makeUci, parseUci, type Role } from "chessops";
+import {
+    type Color,
+    type Move,
+    makeSquare,
+    makeUci,
+    parseSquare,
+    parseUci,
+    type Role,
+    roleToChar,
+    type Square,
+} from "chessops";
 import { type Chess, normalizeMove } from "chessops/chess";
 import { INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
 import { isPawns, parseComment } from "chessops/pgn";
@@ -136,6 +146,18 @@ export function getLastMainlinePosition(root: TreeNode): number[] {
     return position;
 }
 
+// The square a move lands on, as shown on the board. chessops records castling
+// as the king moving onto its rook, so castling (with or without a check or
+// mate suffix) is mapped to the king's destination instead.
+export function getMoveDestination(
+    node: Pick<TreeNode, "san" | "halfMoves" | "move">,
+): Square | undefined {
+    const san = node.san?.replace(/[+#]+$/, "");
+    if (san === "O-O") return parseSquare(node.halfMoves % 2 === 1 ? "g1" : "g8");
+    if (san === "O-O-O") return parseSquare(node.halfMoves % 2 === 1 ? "c1" : "c8");
+    return node.move?.to;
+}
+
 export function getMainLine(root: TreeNode): string[] {
     return getVariationLine(root, getLastMainlinePosition(root), true);
 }
@@ -178,6 +200,9 @@ export function headersToPGN(game: GameHeaders): string {
 [Black "${game.black || "?"}"]
 [Result "${game.result}"]
 `;
+    if (game.time) {
+        headers += `[UTCTime "${game.time}"]\n`;
+    }
     if (game.white_elo !== undefined && game.white_elo !== null) {
         headers += `[WhiteElo "${game.white_elo === 0 ? "-" : game.white_elo}"]\n`;
     }
@@ -493,6 +518,7 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
         BlackElo,
         WhiteElo,
         Date,
+        UTCTime,
         Site,
         Event,
         Result,
@@ -523,6 +549,7 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
         black_elo: BlackElo === "-" ? 0 : BlackElo ? Number.parseInt(BlackElo) : undefined,
         white_elo: WhiteElo === "-" ? 0 : WhiteElo ? Number.parseInt(WhiteElo) : undefined,
         date: Date ?? "",
+        time: UTCTime,
         site: Site ?? "",
         event: Event ?? "",
         start: JSON.parse(Start ?? "[]"),
@@ -669,4 +696,21 @@ export function hasMorePriority(position1: number[], position2: number[]): boole
     }
 
     return position1[i] < position2[i];
+}
+
+export function makeLan(node: Pick<TreeNode, "move" | "san">): string {
+    const { move, san } = node;
+    if (!move || !san) return san ?? "";
+    if (san.startsWith("O-O")) return san; // castling notation is the same in LAN
+
+    if (!("from" in move)) return san; // drops (variants) — fall back
+
+    const from = makeSquare(move.from);
+    const to = makeSquare(move.to);
+    const isCapture = san.includes("x");
+    const pieceLetter = san.match(/^[NBRQK]/)?.[0] ?? "";
+    const promotion = move.promotion ? `=${roleToChar(move.promotion).toUpperCase()}` : "";
+    const suffix = san.endsWith("#") ? "#" : san.endsWith("+") ? "+" : "";
+
+    return `${pieceLetter}${from}${isCapture ? "x" : "-"}${to}${promotion}${suffix}`;
 }

@@ -53,7 +53,7 @@ export async function openFile(
             name: file,
             path: file,
             numGames: count,
-            lastModified: new Date().getUTCSeconds(),
+            lastModified: Date.now(),
         };
 
         if (pgn) {
@@ -130,6 +130,6 @@ export async function createFile({
         path: file,
         numGames,
         metadata,
-        lastModified: new Date().getUTCSeconds(),
+        lastModified: Date.now(),
     });
 }

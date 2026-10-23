@@ -1,4 +1,5 @@
 import { Tooltip as MTTooltip, Progress } from "@mantine/core";
+import { useTranslation } from "react-i18next";
 
 function ResultsChart({
   won,
@@ -11,31 +12,20 @@ function ResultsChart({
   lost: number;
   size: string;
 }) {
-  const total = won + draw + lost;
+  const { t } = useTranslation();
+  const total = won + draw + lost || 1;
   return (
     <Progress.Root size={size}>
-      <MTTooltip label={`${won} wins`}>
-        <Progress.Section value={(won / total) * 100} color="green">
-          <Progress.Label style={{ textOverflow: "clip" }}>
-            {won / total > 0.15 ? `${((won / total) * 100).toFixed(1)}%` : undefined}
-          </Progress.Label>
-        </Progress.Section>
+      <MTTooltip label={t("Home.Personal.WinCount", { count: won })}>
+        <Progress.Section value={(won / total) * 100} color="teal.5" />
       </MTTooltip>
 
-      <MTTooltip label={`${draw} draws`}>
-        <Progress.Section value={(draw / total) * 100} color="gray">
-          <Progress.Label style={{ textOverflow: "clip" }}>
-            {draw / total > 0.15 ? `${((draw / total) * 100).toFixed(1)}%` : undefined}
-          </Progress.Label>
-        </Progress.Section>
+      <MTTooltip label={t("Home.Personal.DrawCount", { count: draw })}>
+        <Progress.Section value={(draw / total) * 100} color="gray.6" />
       </MTTooltip>
 
-      <MTTooltip label={`${lost} losses`}>
-        <Progress.Section value={(lost / total) * 100} color="red">
-          <Progress.Label style={{ textOverflow: "clip" }}>
-            {lost / total > 0.15 ? `${((lost / total) * 100).toFixed(1)}%` : undefined}
-          </Progress.Label>
-        </Progress.Section>
+      <MTTooltip label={t("Home.Personal.LossCount", { count: lost })}>
+        <Progress.Section value={(lost / total) * 100} color="red.4" />
       </MTTooltip>
     </Progress.Root>
   );

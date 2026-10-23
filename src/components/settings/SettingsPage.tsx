@@ -65,6 +65,7 @@ import { keyMapAtom } from "@/state/keybinds";
 import FileInput from "../common/FileInput";
 import BoardSelect from "./BoardSelect";
 import ColorControl from "./ColorControl";
+import DimensionToggle from "./DimensionToggle";
 import FontSizeSlider from "./FontSizeSlider";
 import KeybindInput from "./KeybindInput";
 import PiecesSelect from "./PiecesSelect";
@@ -227,10 +228,11 @@ export default function Page() {
             data={[
               { label: t("Settings.MoveNotation.Letters"), value: "letters" },
               { label: t("Settings.MoveNotation.Symbols"), value: "symbols" },
+              { label: "LAN (Large Algebraic Notation)", value: "lan" },
             ]}
             allowDeselect={false}
             value={moveNotationType}
-            onChange={(val) => setMoveNotationType(val as "letters" | "symbols")}
+            onChange={(val) => setMoveNotationType(val as "letters" | "symbols" | "lan")}
           />
         ),
       },
@@ -280,8 +282,8 @@ export default function Page() {
       {
         id: "auto-promote",
         category: "board",
-        title: t("Settings.AutoPromition"),
-        description: t("Settings.AutoPromition.Desc"),
+        title: t("Settings.AutoPromotion"),
+        description: t("Settings.AutoPromotion.Desc"),
         keywords: ["promote", "queen", "pawn"],
         render: () => <SettingsSwitch atom={autoPromoteAtom} />,
       },
@@ -474,6 +476,14 @@ export default function Page() {
         description: t("Settings.Appearance.BoardImage.Desc"),
         keywords: ["board", "image", "texture"],
         render: () => <BoardSelect />,
+      },
+      {
+        id: "3d-mode",
+        category: "appearance",
+        title: t("Settings.Appearance.3DMode"),
+        description: t("Settings.Appearance.3DMode.Desc"),
+        keywords: ["3d", "3d mode", "dimension"],
+        render: () => <DimensionToggle />,
       },
       {
         id: "accent-color",

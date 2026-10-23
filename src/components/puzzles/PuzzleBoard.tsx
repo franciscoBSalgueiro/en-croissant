@@ -9,11 +9,11 @@ import { useContext, useState } from "react";
 import { useStore } from "zustand";
 import { Chessground } from "@/chessground/Chessground";
 import {
+  eraseDrawablesOnClickAtom,
   jumpToNextPuzzleAtom,
   moveHighlightAtom,
   showCoordinatesAtom,
   showDestsAtom,
-  eraseDrawablesOnClickAtom,
 } from "@/state/atoms";
 import classes from "@/styles/Chessboard.module.css";
 import { positionFromFen } from "@/utils/chessops";
@@ -41,13 +41,13 @@ function PuzzleBoard({
   const moveHighlight = useAtomValue(moveHighlightAtom);
   const showDests = useAtomValue(showDestsAtom);
   const boardShapes = useStore(store, (s) => s.currentNode().shapes);
-  const clearShapes = useStore(store, (s) => s.clearShapes);
   const setShapes = useStore(store, (s) => s.setShapes);
+  const clearShapes = useStore(store, (s) => s.clearShapes);
+  const eraseDrawablesOnClick = useAtomValue(eraseDrawablesOnClickAtom);
   const makeMove = useStore(store, (s) => s.makeMove);
   const makeMoves = useStore(store, (s) => s.makeMoves);
   const reset = useForceUpdate();
   const [jumpToNextPuzzleImmediately] = useAtom(jumpToNextPuzzleAtom);
-  const eraseDrawablesOnClick = useAtomValue(eraseDrawablesOnClickAtom);
 
   const currentNode = getNodeAtPath(root, position);
 
@@ -129,11 +129,11 @@ function PuzzleBoard({
     <Box w="100%" h="100%" ref={parentRef}>
       <Box
         className={classes.chessboard}
-        style={{
-          maxWidth: parentHeight,
-        }}
         onClick={() => {
           eraseDrawablesOnClick && clearShapes();
+        }}
+        style={{
+          maxWidth: parentHeight,
         }}
       >
         <PromotionModal
@@ -171,8 +171,8 @@ function PuzzleBoard({
               (puzzle.completion === "incomplete" || puzzle.completion === "incorrect")
                 ? turn
                 : undefined,
-            dests: dests,
-            showDests: showDests,
+            dests,
+            showDests,
             events: {
               after: (orig, dest) => {
                 const from = parseSquare(orig)!;

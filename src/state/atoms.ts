@@ -167,7 +167,10 @@ export const fontSizeAtom = atomWithStorage(
     Number.parseInt(document.documentElement.style.fontSize) || 100,
 );
 
-export const moveNotationTypeAtom = atomWithStorage<"letters" | "symbols">("letters", "symbols");
+export const moveNotationTypeAtom = atomWithStorage<"letters" | "symbols" | "lan">(
+    "letters",
+    "symbols",
+);
 export const moveMethodAtom = atomWithStorage<"drag" | "select" | "both">("move-method", "both");
 export const spellCheckAtom = atomWithStorage<boolean>("spell-check", false);
 export const moveInputAtom = atomWithStorage<boolean>("move-input", false);
@@ -209,9 +212,13 @@ export const soundVolumeAtom = atomWithStorage<number>("sound-volume", 0.8, unde
 
 export const pieceSetAtom = atomWithStorage<string>("piece-set", "staunty");
 export const boardImageAtom = atomWithStorage<string>("board-image", "gray.svg");
+export const is3dAtom = atomWithStorage<boolean>("is-3d", false);
 export const primaryColorAtom = atomWithStorage<MantineColor>("mantine-primary-color", "blue");
 export const sessionsAtom = atomWithStorage<Session[]>("sessions", []);
 export const nativeBarAtom = atomWithStorage<boolean>("native-bar", false);
+export const isCompactLayoutAtom = atom<boolean>(false);
+export const showSidebarAtom = atomWithStorage<boolean>("show-sidebar", true);
+export const showTabBarAtom = atomWithStorage<boolean>("show-tabbar", true);
 export const telemetryEnabledAtom = atomWithStorage<boolean>("telemetry-enabled", true, undefined, {
     getOnInit: true,
 });

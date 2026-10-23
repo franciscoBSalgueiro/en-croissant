@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import Comment from "@/components/common/Comment";
+import { useDeleteMove } from "@/hooks/useDeleteMove";
 import { currentTabAtom } from "@/state/atoms";
 import type { Annotation } from "@/utils/annotation";
 import { hasMorePriority, stripClock } from "@/utils/chess";
@@ -91,7 +92,7 @@ function CompleteMoveCell({
     (a, b) => equal(a, b),
   );
   const goToMove = useStore(store, (s) => s.goToMove);
-  const deleteMove = useStore(store, (s) => s.deleteMove);
+  const deleteMove = useDeleteMove();
   const promoteVariation = useStore(store, (s) => s.promoteVariation);
   const promoteToMainline = useStore(store, (s) => s.promoteToMainline);
   const copyVariationPgn = useStore(store, (s) => s.copyVariationPgn);

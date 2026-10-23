@@ -33,7 +33,7 @@ use oauth::AuthState;
 #[cfg(debug_assertions)]
 use specta_typescript::{BigIntExportBehavior, Typescript};
 use sysinfo::SystemExt;
-use tauri::{Manager, Window};
+use tauri::{Emitter, Manager, Window};
 use tauri_plugin_log::{Target, TargetKind};
 
 use crate::chess::{
@@ -104,6 +104,22 @@ async fn close_splashscreen(window: Window) -> Result<(), String> {
         .show()
         .unwrap();
     Ok(())
+}
+
+pub fn file_from_args(args: &[String], cwd: &str) -> Option<String> {
+    let mut args = args.iter().skip(1);
+    let first = args.next()?;
+    let file = if first == "--" {
+        args.next()?
+    } else if first.starts_with('-') {
+        return None;
+    } else {
+        first
+    };
+    if args.next().is_some() || file.to_ascii_lowercase().starts_with("encroissant:") {
+        return None;
+    }
+    Some(std::path::Path::new(cwd).join(file).to_string_lossy().into_owned())
 }
 
 fn main() {
@@ -199,6 +215,19 @@ fn main() {
     ];
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
+            if let Some(file) = file_from_args(&args, &cwd) {
+                if let Err(err) = app.emit_to("main", "open-cli-file", file) {
+                    log::error!("Failed to forward command-line file: {err}");
+                }
+            }
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+            }
+        }))
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(
