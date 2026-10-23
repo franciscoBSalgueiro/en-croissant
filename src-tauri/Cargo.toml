@@ -21,15 +21,15 @@ tokio = { version = "1.33", features = ["full"] }
 futures-util = "0.3.24"
 flate2 = "1"
 reqwest = { version = "0.12.5", features = ["stream", "blocking", "json"] }
-shakmaty = "0.27.1"
-pgn-reader = "0.26.0"
+shakmaty = "0.30.0"
+pgn-reader = "0.29.0"
+aix-chess-compression = { git = "https://github.com/franciscoBSalgueiro/aix", package = "aix-chess-compression" }
 csv = "1.1.6"
 lazy_static = "1.4.0"
 btoi = "0.4.2"
 rusqlite = { version = "0.28.0", features = ["bundled"] }
 bzip2 = "0.4.3"
 zstd = "0.13"
-diesel = { version = "2.0.2", features = ["sqlite", "returning_clauses_for_sqlite_3_35", "r2d2"] }
 rayon = "1.6.1"
 chrono = "0.4.23"
 derivative = "2.2.0"
@@ -65,9 +65,10 @@ tauri-plugin-window-state = "2.4.1"
 tauri-plugin-opener = "2"
 tauri-plugin-deep-link = "2.0.0"
 tauri-plugin-single-instance = { version = "2.0.0", features = ["deep-link"] }
-memmap2 = "0.9"
-rkyv = { version = "0.8", features = ["bytecheck"] }
 polyglot-book-rs = "0.1.0"
+duckdb = { version = "=1.10506.0", features = ["bundled", "r2d2", "chrono", "appender-arrow"] }
+r2d2 = "0.8.10"
+lazy-regex = "3.5"
 
 [features]
 # by default Tauri runs in production mode

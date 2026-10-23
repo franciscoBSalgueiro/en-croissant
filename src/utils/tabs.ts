@@ -7,6 +7,7 @@ import { commands } from "@/bindings";
 import { type FileMetadata, fileMetadataSchema } from "@/components/files/file";
 import type { TreeStoreState } from "@/state/store/tree";
 import { getPGN, parsePGN } from "./chess";
+import { unwrap } from "./unwrap";
 import { type GameHeaders, getGameName } from "./treeReducer";
 
 const INVALID_FILENAME_CHARS = /[\\/:*?"<>|]+/g;
@@ -115,7 +116,11 @@ export async function createTab({
     if (pgn !== undefined) {
         const tree = await parsePGN(pgn, headers?.fen);
         if (headers) {
-            tree.headers = headers;
+            tree.headers = {
+                ...tree.headers,
+                ...headers,
+                other: { ...tree.headers.other, ...headers.other },
+            };
             if (position) {
                 tree.position = position;
             }
@@ -177,7 +182,7 @@ export async function saveToFile({
     })}\n\n`;
 
     if (databaseOrigin) {
-        await commands.writeDbGame(databaseOrigin.database, databaseOrigin.gameId, pgn);
+        unwrap(await commands.writeDbGame(databaseOrigin.database, databaseOrigin.gameId, pgn));
         store.getState().save();
         return;
     }

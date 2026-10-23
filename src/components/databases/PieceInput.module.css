@@ -1,0 +1,106 @@
+.countEditor {
+  width: 100%;
+  max-width: 440px;
+}
+
+.clearCounts {
+  margin-top: 22px;
+  height: 30px;
+  flex-shrink: 0;
+}
+
+.countGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sideRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.sideLabel {
+  flex: 0 0 40px;
+  padding-bottom: 6px;
+}
+
+.sideCounts {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.countCell {
+  min-width: 0;
+}
+
+.sideRow + .sideRow .pieceLabel,
+.pieceName {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.pieceLabel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dimmed);
+  white-space: nowrap;
+  cursor: pointer;
+  height: 22px;
+}
+
+.pieceSymbol {
+  font-family: serif;
+  font-size: 1.125rem;
+  line-height: 1.2;
+}
+
+.countInput {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--mantine-color-dimmed);
+}
+
+.countCell[data-active] .countInput {
+  color: var(--mantine-color-text);
+  font-weight: 600;
+  border-color: var(--mantine-primary-color-filled);
+  background: var(--mantine-primary-color-light);
+}
+
+.pieceToggle {
+  height: 30px;
+  width: 30px;
+  padding-inline: 6px;
+}
+
+@media (max-width: 48em) {
+  .clearCounts {
+    align-self: flex-end;
+    margin-top: 0;
+  }
+
+  .sideRow {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .sideLabel {
+    flex-basis: auto;
+    padding-bottom: 0;
+  }
+}

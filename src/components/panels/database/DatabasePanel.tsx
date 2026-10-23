@@ -11,12 +11,11 @@ import {
 import { useDebouncedValue } from "@mantine/hooks";
 import { Link } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
-import { memo, useContext, useEffect } from "react";
+import { memo, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr/immutable";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
-import { commands } from "@/bindings";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
   currentDbTabAtom,
@@ -28,10 +27,11 @@ import {
   referenceDbAtom,
   sessionsAtom,
 } from "@/state/atoms";
-import { getDatabases, type Opening, searchPosition } from "@/utils/db";
+import { getDatabases, type Opening, query_games, searchPosition } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 import { convertToNormalized, getLichessGames, getMasterGames } from "@/utils/lichess/api";
 import type { LichessGamesOptions, MasterGamesOptions } from "@/utils/lichess/explorer";
+import type { GameQuery } from "@/bindings";
 import DatabaseLoader from "./DatabaseLoader";
 import GamesTable from "./GamesTable";
 import NoDatabaseWarning from "./NoDatabaseWarning";
@@ -55,15 +55,8 @@ type DBType =
       token: string;
     };
 
-export type LocalOptions = {
+export type LocalOptions = Omit<GameQuery, "options"> & {
   path: string | null;
-  fen: string;
-  type: "exact" | "partial";
-  player: number | null;
-  color: "white" | "black";
-  start_date?: string;
-  end_date?: string;
-  result: "any" | "whitewon" | "draw" | "blackwon";
 };
 
 function sortOpenings(openings: Opening[]) {
@@ -131,7 +124,10 @@ function DatabasePanel() {
 
   useEffect(() => {
     if (db === "local") {
-      setLocalOptions((q) => ({ ...q, fen: debouncedFen }));
+      setLocalOptions((q) => ({
+        ...q,
+        position: { fen: debouncedFen, type_: "exact" },
+      }));
     }
   }, [debouncedFen, setLocalOptions, setMasterOptions, setLichessOptions, db]);
 
@@ -162,13 +158,36 @@ function DatabasePanel() {
 
   const tab = useAtomValue(currentTabAtom);
   const [tabType, setTabType] = useAtom(currentDbTabAtom);
+  const [gamesPagination, setGamesPagination] = useState({ key: "", page: 1 });
+  const localGamesKey = JSON.stringify(localOptions);
+  const gamesPage = gamesPagination.key === localGamesKey ? gamesPagination.page : 1;
+  const {
+    data: localGames,
+    isLoading: gamesLoading,
+    error: gamesError,
+  } = useSWR(
+    db === "local" && tabType === "games" && localOptions.path && localOptions.position?.fen
+      ? (["position-games", localOptions, gamesPage] as const)
+      : null,
+    ([, options, page]) =>
+      query_games(options.path!, {
+        ...options,
+        sides: options.sides ?? "WhiteBlack",
+        options: { page, pageSize: 20, skipCount: false, sort: "averageElo", direction: "desc" },
+      }),
+  );
 
   const {
     data: openingData,
     isLoading,
     error,
   } = useSWR(
-    tabType !== "options" && !missingExplorerToken ? dbType : null,
+    tabType !== "options" &&
+      (db !== "local" || tabType === "stats") &&
+      !missingExplorerToken &&
+      (dbType.type !== "local" || Boolean(dbType.options.path && dbType.options.position?.fen))
+      ? dbType
+      : null,
     async (dbType: DBType) => {
       return fetchOpening(dbType, tab?.value || "");
     },
@@ -197,8 +216,7 @@ function DatabasePanel() {
             <Select
               data={dbSelectData}
               value={referenceDatabase}
-              onChange={async (value) => {
-                await commands.clearGames();
+              onChange={(value) => {
                 setReferenceDatabase(value);
               }}
               placeholder={t("Board.Database.SelectReference")}
@@ -213,12 +231,16 @@ function DatabasePanel() {
         {tabType !== "options" && (
           <Text style={{ whiteSpace: "nowrap" }}>
             {t("Board.Database.Matches", {
-              matches: formatNumber(Math.max(grandTotal || 0, openingData?.games.length || 0)),
+              matches: formatNumber(
+                db === "local" && tabType === "games"
+                  ? (localGames?.count ?? 0)
+                  : Math.max(grandTotal || 0, openingData?.games.length || 0),
+              ),
             })}
           </Text>
         )}
       </Group>
-      <DatabaseLoader isLoading={isLoading} tab={tab?.value ?? null} />
+      <DatabaseLoader isLoading={isLoading || gamesLoading} tab={tab?.value ?? null} />
     </>
   );
 
@@ -235,12 +257,7 @@ function DatabasePanel() {
         style={{ overflow: "hidden" }}
       >
         <Tabs.List>
-          <Tabs.Tab
-            value="stats"
-            disabled={dbType.type === "local" && dbType.options.type === "partial"}
-          >
-            {t("Board.Database.Stats")}
-          </Tabs.Tab>
+          <Tabs.Tab value="stats">{t("Board.Database.Stats")}</Tabs.Tab>
           <Tabs.Tab value="games">{t("Board.Database.Games")}</Tabs.Tab>
           <Tabs.Tab value="options">{t("Board.Database.Options")}</Tabs.Tab>
         </Tabs.List>
@@ -256,15 +273,24 @@ function DatabasePanel() {
         </PanelWithError>
         <PanelWithError
           value="games"
-          error={error}
+          error={db === "local" ? gamesError : error}
           type={db}
           header={header}
           missingExplorerToken={missingExplorerToken}
         >
           <GamesTable
-            games={openingData?.games || []}
-            loading={isLoading}
+            games={db === "local" ? localGames?.data || [] : openingData?.games || []}
+            loading={db === "local" ? gamesLoading : isLoading}
             databasePath={dbType.type === "local" ? dbType.options.path : null}
+            pagination={
+              db === "local"
+                ? {
+                    page: gamesPage,
+                    totalRecords: localGames?.count ?? 0,
+                    onPageChange: (page) => setGamesPagination({ key: localGamesKey, page }),
+                  }
+                : undefined
+            }
           />
         </PanelWithError>
         <PanelWithError
@@ -276,7 +302,7 @@ function DatabasePanel() {
         >
           <ScrollArea flex={1} offsetScrollbars pt="sm">
             {match(db)
-              .with("local", () => <LocalOptionsPanel boardFen={debouncedFen} />)
+              .with("local", () => <LocalOptionsPanel />)
               .with("lch_all", () => <LichessOptionsPanel />)
               .with("lch_master", () => <MasterOptionsPanel />)
               .exhaustive()}
@@ -309,7 +335,7 @@ function PanelWithError(props: {
       </Alert>
     );
   }
-  if (props.error && props.type !== "local") {
+  if (props.error) {
     children = <Alert color="red">{props.error.toString()}</Alert>;
   }
 

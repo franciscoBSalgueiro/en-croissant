@@ -57,7 +57,7 @@ function RatingsPanel({
                 timeControl === "any" ||
                 getTimeControl(website, game.time_control) === timeControl),
           )
-          .map((game) => dayjs(game.date, "YYYY.MM.DD", true).valueOf())
+          .map((game) => dayjs(game.date, "YYYY-MM-DD", true).valueOf())
           .filter(Number.isFinite),
       ]),
     ).sort((a, b) => a - b);
@@ -83,14 +83,14 @@ function RatingsPanel({
               getTimeControl(website!, game.time_control) === timeControl),
         )
         .filter((game) => {
-          const gameDate = dayjs(game.date, "YYYY.MM.DD", true).valueOf();
+          const gameDate = dayjs(game.date, "YYYY-MM-DD", true).valueOf();
           return gameDate >= rangeStart && gameDate <= rangeEnd;
         }) ?? [];
 
     const ratingData = (() => {
       const map = new Map<number, { date: number; player_elo: number }>();
       for (const game of filteredGames) {
-        const date = dayjs(game.date, "YYYY.MM.DD", true).valueOf();
+        const date = dayjs(game.date, "YYYY-MM-DD", true).valueOf();
         if (!map.has(date) || map.get(date)!.player_elo < game.player_elo) {
           map.set(date, { date, player_elo: game.player_elo });
         }

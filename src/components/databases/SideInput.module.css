@@ -1,8 +1,11 @@
 .control {
   display: flex;
   align-items: center;
-  padding: 8px 15px 8px 15px;
-  border-radius: var(--mantine-radius-md);
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: var(--mantine-radius-sm);
   transition: background-color 150ms ease;
 }
 

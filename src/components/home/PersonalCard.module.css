@@ -86,10 +86,6 @@
   margin-right: 0;
   flex-shrink: 0;
 }
-.search {
-  flex: 1;
-  min-width: 10rem;
-}
 @media (max-width: 700px) {
   .profile {
     padding: 0.75rem;
