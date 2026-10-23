@@ -120,6 +120,14 @@ async getPlayersGameInfo(file: string, id: number) : Promise<Result<PlayerGameIn
     else return { status: "error", error: e  as any };
 }
 },
+async getLatestGameTimestamp(file: string) : Promise<Result<number | null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_latest_game_timestamp", { file }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getEngineConfig(path: string) : Promise<Result<EngineConfig, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_engine_config", { path }) };
