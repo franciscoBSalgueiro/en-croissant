@@ -1,5 +1,14 @@
 import type { DrawShape } from "@lichess-org/chessground/draw";
-import { type Color, type Move, makeSquare, makeUci, parseUci, type Role } from "chessops";
+import {
+    type Color,
+    type Move,
+    makeSquare,
+    makeUci,
+    parseSquare,
+    parseUci,
+    type Role,
+    type Square,
+} from "chessops";
 import { type Chess, normalizeMove } from "chessops/chess";
 import { INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
 import { isPawns, parseComment } from "chessops/pgn";
@@ -134,6 +143,18 @@ export function getLastMainlinePosition(root: TreeNode): number[] {
         }
     }
     return position;
+}
+
+// The square a move lands on, as shown on the board. chessops records castling
+// as the king moving onto its rook, so castling (with or without a check or
+// mate suffix) is mapped to the king's destination instead.
+export function getMoveDestination(
+    node: Pick<TreeNode, "san" | "halfMoves" | "move">,
+): Square | undefined {
+    const san = node.san?.replace(/[+#]+$/, "");
+    if (san === "O-O") return parseSquare(node.halfMoves % 2 === 1 ? "g1" : "g8");
+    if (san === "O-O-O") return parseSquare(node.halfMoves % 2 === 1 ? "c1" : "c8");
+    return node.move?.to;
 }
 
 export function getMainLine(root: TreeNode): string[] {
