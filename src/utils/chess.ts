@@ -1,5 +1,5 @@
 import type { DrawShape } from "@lichess-org/chessground/draw";
-import { type Color, type Move, makeSquare, makeUci, parseUci, type Role } from "chessops";
+import { type Color, type Move, makeSquare, makeUci, parseUci, type Role, roleToChar } from "chessops";
 import { type Chess, normalizeMove } from "chessops/chess";
 import { INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
 import { isPawns, parseComment } from "chessops/pgn";
@@ -682,7 +682,7 @@ export function makeLan(node: Pick<TreeNode, "move" | "san">): string {
     const to = makeSquare(move.to);
     const isCapture = san.includes("x");
     const pieceLetter = san.match(/^[NBRQK]/)?.[0] ?? "";
-    const promotion = move.promotion ? `=${move.promotion.charAt(0).toUpperCase()}` : "";
+    const promotion = move.promotion ? `=${roleToChar(move.promotion).toUpperCase()}` : "";
     const suffix = san.endsWith("#") ? "#" : san.endsWith("+") ? "+" : "";
 
     return `${pieceLetter}${from}${isCapture ? "x" : "-"}${to}${promotion}${suffix}`;
