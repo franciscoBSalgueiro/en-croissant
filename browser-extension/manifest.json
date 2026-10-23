@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Analyze in En Croissant",
+  "version": "1.0.0",
+  "description": "Open completed Chess.com and Lichess games in En Croissant for analysis.",
+  "homepage_url": "https://encroissant.org",
+  "icons": {
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.chess.com/*", "https://chess.com/*", "https://lichess.org/*"],
+      "js": ["src/core.js", "src/content.js"],
+      "css": ["src/content.css"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "analyze@encroissant.org",
+      "strict_min_version": "142.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  }
+}

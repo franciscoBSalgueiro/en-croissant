@@ -1,0 +1,14 @@
+{
+  "name": "en-croissant-browser-extension",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/*.node-test.mjs"
+  },
+  "devDependencies": {
+    "fflate": "0.8.2",
+    "jsdom": "26.1.0"
+  }
+}

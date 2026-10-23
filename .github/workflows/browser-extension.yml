@@ -1,0 +1,40 @@
+name: Browser extension
+
+on:
+  push:
+    paths:
+      - "browser-extension/**"
+      - ".github/workflows/browser-extension.yml"
+      - "LICENSE"
+  pull_request:
+    paths:
+      - "browser-extension/**"
+      - ".github/workflows/browser-extension.yml"
+      - "LICENSE"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-package:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: browser-extension
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: browser-extension/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - run: npm run build
+      - run: npx --yes web-ext@10.8.0 lint --source-dir dist/firefox --warnings-as-errors
+      - uses: actions/upload-artifact@v4
+        with:
+          name: en-croissant-browser-extensions
+          path: browser-extension/dist/*.zip
+          if-no-files-found: error
