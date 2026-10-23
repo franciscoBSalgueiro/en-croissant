@@ -387,8 +387,9 @@ function Board({
   return (
     <>
       {/* The board takes the size that keeps the same margin all around its squares, centred
-          up and down with its player bars. The pane is measured before the board is first drawn;
-          one with no size yet gets a board that fills its width */}
+          up and down with its player bars. The pane is measured before the board is first drawn,
+          and chessground is set up only then, at that size, rather than redrawn into it; a pane
+          too small for the margin gets a board that fills its width */}
       <Box
         ref={paneRef}
         w="100%"
@@ -514,99 +515,101 @@ function Board({
                 orientation={orientation}
               />
 
-              <Chessground
-                ref={cgRef}
-                setBoardFen={setBoardFen}
-                orientation={orientation}
-                fen={currentNode.fen}
-                animation={{ enabled: !editingMode }}
-                coordinates={showCoordinates !== "no"}
-                coordinatesOnSquares={showCoordinates === "all"}
-                movable={{
-                  free: editingMode,
-                  color: movableColor,
-                  dests:
-                    editingMode || viewOnly
-                      ? undefined
-                      : disableVariations && currentNode.children.length > 0
+              {paneWidth > 0 && (
+                <Chessground
+                  ref={cgRef}
+                  setBoardFen={setBoardFen}
+                  orientation={orientation}
+                  fen={currentNode.fen}
+                  animation={{ enabled: !editingMode }}
+                  coordinates={showCoordinates !== "no"}
+                  coordinatesOnSquares={showCoordinates === "all"}
+                  movable={{
+                    free: editingMode,
+                    color: movableColor,
+                    dests:
+                      editingMode || viewOnly
                         ? undefined
-                        : dests,
-                  showDests,
-                  events: {
-                    after(orig, dest, metadata) {
-                      if (!editingMode) {
-                        const from = parseSquare(orig)!;
-                        const to = parseSquare(dest)!;
+                        : disableVariations && currentNode.children.length > 0
+                          ? undefined
+                          : dests,
+                    showDests,
+                    events: {
+                      after(orig, dest, metadata) {
+                        if (!editingMode) {
+                          const from = parseSquare(orig)!;
+                          const to = parseSquare(dest)!;
 
-                        if (pos) {
-                          if (
-                            pos.board.get(from)?.role === "pawn" &&
-                            ((dest[1] === "8" && turn === "white") ||
-                              (dest[1] === "1" && turn === "black"))
-                          ) {
-                            if (autoPromote && !metadata.ctrlKey) {
-                              makeMove({
-                                from,
-                                to,
-                                promotion: "queen",
-                              });
+                          if (pos) {
+                            if (
+                              pos.board.get(from)?.role === "pawn" &&
+                              ((dest[1] === "8" && turn === "white") ||
+                                (dest[1] === "1" && turn === "black"))
+                            ) {
+                              if (autoPromote && !metadata.ctrlKey) {
+                                makeMove({
+                                  from,
+                                  to,
+                                  promotion: "queen",
+                                });
+                              } else {
+                                setPendingMove({
+                                  from,
+                                  to,
+                                });
+                              }
                             } else {
-                              setPendingMove({
+                              makeMove({
                                 from,
                                 to,
                               });
                             }
-                          } else {
-                            makeMove({
-                              from,
-                              to,
-                            });
                           }
+                        }
+                      },
+                    },
+                  }}
+                  events={{
+                    select: (key) => {
+                      if (editingMode && selectedPiece) {
+                        const square = parseSquare(key);
+                        if (square) {
+                          const setup = parseFen(currentNode.fen).unwrap();
+                          setup.board.set(square, selectedPiece);
+                          setFen(makeFen(setup));
                         }
                       }
                     },
-                  },
-                }}
-                events={{
-                  select: (key) => {
-                    if (editingMode && selectedPiece) {
-                      const square = parseSquare(key);
-                      if (square) {
-                        const setup = parseFen(currentNode.fen).unwrap();
-                        setup.board.set(square, selectedPiece);
-                        setFen(makeFen(setup));
-                      }
-                    }
-                  },
-                }}
-                turnColor={turn}
-                check={moveHighlight && pos?.isCheck()}
-                lastMove={moveHighlight && !editingMode ? lastMove : undefined}
-                premovable={{
-                  enabled: enablePremoves && !editingMode && !viewOnly,
-                }}
-                draggable={{
-                  enabled: true,
-                  deleteOnDropOff: editingMode,
-                }}
-                drawable={{
-                  enabled: true,
-                  visible: true,
-                  defaultSnapToValidMove: snapArrows,
-                  autoShapes: shapes,
-                  brushes: {
-                    variation: {
-                      key: "v",
-                      color: "#9b59b6",
-                      opacity: 0.8,
-                      lineWidth: 10,
+                  }}
+                  turnColor={turn}
+                  check={moveHighlight && pos?.isCheck()}
+                  lastMove={moveHighlight && !editingMode ? lastMove : undefined}
+                  premovable={{
+                    enabled: enablePremoves && !editingMode && !viewOnly,
+                  }}
+                  draggable={{
+                    enabled: true,
+                    deleteOnDropOff: editingMode,
+                  }}
+                  drawable={{
+                    enabled: true,
+                    visible: true,
+                    defaultSnapToValidMove: snapArrows,
+                    autoShapes: shapes,
+                    brushes: {
+                      variation: {
+                        key: "v",
+                        color: "#9b59b6",
+                        opacity: 0.8,
+                        lineWidth: 10,
+                      },
+                    } as unknown as DrawBrushes,
+                    onChange: (shapes) => {
+                      setShapes(shapes);
                     },
-                  } as unknown as DrawBrushes,
-                  onChange: (shapes) => {
-                    setShapes(shapes);
-                  },
-                }}
-              />
+                  }}
+                />
+              )}
             </Box>
           </Group>
           <BoardBar

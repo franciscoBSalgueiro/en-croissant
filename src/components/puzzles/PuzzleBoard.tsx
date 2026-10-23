@@ -1,5 +1,5 @@
 import { Box } from "@mantine/core";
-import { useElementSize, useForceUpdate } from "@mantine/hooks";
+import { useForceUpdate } from "@mantine/hooks";
 import { type Move, makeUci, type NormalMove, parseSquare } from "chessops";
 import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { parseFen } from "chessops/fen";
@@ -8,6 +8,7 @@ import { useAtom, useAtomValue } from "jotai";
 import { useContext, useState } from "react";
 import { useStore } from "zustand";
 import { Chessground } from "@/chessground/Chessground";
+import { useMeasuredSize } from "@/hooks/useMeasuredSize";
 import {
   eraseDrawablesOnClickAtom,
   jumpToNextPuzzleAtom,
@@ -15,6 +16,7 @@ import {
   showCoordinatesAtom,
 } from "@/state/atoms";
 import classes from "@/styles/Chessboard.module.css";
+import { boardSize, LEFT_OF_BOARD } from "@/utils/boardLayout";
 import { positionFromFen } from "@/utils/chessops";
 import type { Completion, Puzzle } from "@/utils/puzzles";
 import { getNodeAtPath, treeIteratorMainLine } from "@/utils/treeReducer";
@@ -121,17 +123,28 @@ function PuzzleBoard({
     reset();
   }
 
-  const { ref: parentRef, height: parentHeight } = useElementSize();
+  // The squares take an analysis board's size and place (past where its eval bar is), so they keep
+  // the same margin all around. The pane is measured before the board is first drawn, and
+  // chessground is set up only then, at that size
+  const { ref: paneRef, width: paneWidth, height: paneHeight } = useMeasuredSize<HTMLDivElement>();
+  const size = boardSize({ width: paneWidth, height: paneHeight }, window.devicePixelRatio);
 
   return (
-    <Box w="100%" h="100%" ref={parentRef}>
+    <Box
+      ref={paneRef}
+      w="100%"
+      h="100%"
+      style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}
+    >
       <Box
         className={classes.chessboard}
         onClick={() => {
           eraseDrawablesOnClick && clearShapes();
         }}
         style={{
-          maxWidth: parentHeight,
+          flex: "none",
+          marginLeft: LEFT_OF_BOARD,
+          width: size || undefined,
         }}
       >
         <PromotionModal
@@ -146,53 +159,55 @@ function PuzzleBoard({
           turn={turn}
           orientation={orientation}
         />
-        <Chessground
-          animation={{
-            enabled: true,
-          }}
-          coordinates={showCoordinates !== "no"}
-          coordinatesOnSquares={showCoordinates === "all"}
-          orientation={orientation}
-          drawable={{
-            enabled: true,
-            visible: true,
-            autoShapes: boardShapes,
-            onChange: (shapes) => {
-              setShapes(shapes);
-            },
-          }}
-          movable={{
-            free: false,
-            color:
-              puzzle &&
-              equal(position, Array(currentMove).fill(0)) &&
-              (puzzle.completion === "incomplete" || puzzle.completion === "incorrect")
-                ? turn
-                : undefined,
-            dests: dests,
-            events: {
-              after: (orig, dest) => {
-                const from = parseSquare(orig)!;
-                const to = parseSquare(dest)!;
-                const move: NormalMove = { from, to };
-                if (
-                  pos?.board.get(from)?.role === "pawn" &&
-                  ((dest[1] === "8" && turn === "white") || (dest[1] === "1" && turn === "black"))
-                ) {
-                  setPendingMove(move);
-                } else {
-                  checkMove(move);
-                }
+        {paneWidth > 0 && (
+          <Chessground
+            animation={{
+              enabled: true,
+            }}
+            coordinates={showCoordinates !== "no"}
+            coordinatesOnSquares={showCoordinates === "all"}
+            orientation={orientation}
+            drawable={{
+              enabled: true,
+              visible: true,
+              autoShapes: boardShapes,
+              onChange: (shapes) => {
+                setShapes(shapes);
               },
-            },
-          }}
-          lastMove={
-            moveHighlight && currentNode.move ? chessgroundMove(currentNode.move) : undefined
-          }
-          turnColor={turn}
-          fen={currentNode.fen}
-          check={moveHighlight && pos?.isCheck()}
-        />
+            }}
+            movable={{
+              free: false,
+              color:
+                puzzle &&
+                equal(position, Array(currentMove).fill(0)) &&
+                (puzzle.completion === "incomplete" || puzzle.completion === "incorrect")
+                  ? turn
+                  : undefined,
+              dests: dests,
+              events: {
+                after: (orig, dest) => {
+                  const from = parseSquare(orig)!;
+                  const to = parseSquare(dest)!;
+                  const move: NormalMove = { from, to };
+                  if (
+                    pos?.board.get(from)?.role === "pawn" &&
+                    ((dest[1] === "8" && turn === "white") || (dest[1] === "1" && turn === "black"))
+                  ) {
+                    setPendingMove(move);
+                  } else {
+                    checkMove(move);
+                  }
+                },
+              },
+            }}
+            lastMove={
+              moveHighlight && currentNode.move ? chessgroundMove(currentNode.move) : undefined
+            }
+            turnColor={turn}
+            fen={currentNode.fen}
+            check={moveHighlight && pos?.isCheck()}
+          />
+        )}
       </Box>
     </Box>
   );

@@ -1,8 +1,8 @@
 import type { MosaicNode } from "react-mosaic-component";
 
-// The analysis and play boards keep one margin all around their squares: from the left edge of the
-// tab to the squares (past the eval bar), from the tab bar and from the bottom of the window to the
-// squares (past the player bars), and, by default, from the squares to the right-hand column.
+// The analysis, play and puzzle boards keep one margin all around their squares: from the left edge
+// of the tab to the squares (past the eval bar), from the tab bar and from the bottom of the window
+// to the squares (past the player bars), and, by default, from the squares to the right-hand column.
 export const BOARD_MARGIN = 51;
 
 // What lies outside the board's pane, in CSS pixels: the layout's 3px margin around each pane
@@ -18,7 +18,7 @@ export const EVAL_BAR_WIDTH = 25;
 export const EVAL_BAR_GAP = BOARD_MARGIN - OUTSIDE_LEFT - EVAL_BAR_WIDTH;
 
 // Inside the pane, the room around the squares
-const LEFT_OF_BOARD = EVAL_BAR_WIDTH + EVAL_BAR_GAP;
+export const LEFT_OF_BOARD = EVAL_BAR_WIDTH + EVAL_BAR_GAP;
 const ABOVE_AND_BELOW_BOARD = BOARD_MARGIN - OUTSIDE_TOP_AND_BOTTOM;
 const RIGHT_OF_BOARD = BOARD_MARGIN - BETWEEN_PANES;
 
