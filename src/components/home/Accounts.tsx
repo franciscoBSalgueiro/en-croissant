@@ -13,6 +13,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useAtom, useAtomValue } from "jotai";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import useSWR from "swr";
 import type { DatabaseInfo } from "@/bindings";
 import { commands } from "@/bindings";
 import { sessionsAtom } from "@/state/atoms";
@@ -28,10 +29,13 @@ function Accounts() {
   const { t } = useTranslation();
   const [sessions, setSessions] = useAtom(sessionsAtom);
   const isListening = useRef(false);
-  const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
-  useEffect(() => {
-    getDatabases().then((dbs) => setDatabases(dbs));
-  }, []);
+  // The databases list the other pages share, so a visit after the first starts from the last list
+  // rather than none (the cards' games bars would fill up from empty every time)
+  const { data: databases = [], mutate } = useSWR("databases", () => getDatabases());
+  const setDatabases: React.Dispatch<React.SetStateAction<DatabaseInfo[]>> = (update) =>
+    mutate((current) => (typeof update === "function" ? update(current ?? []) : update), {
+      revalidate: false,
+    });
   const [open, setOpen] = useState(false);
 
   function addChessComSession(alias: string, session: ChessComSession) {
