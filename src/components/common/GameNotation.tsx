@@ -290,6 +290,7 @@ const TableNotation = memo(function TableNotation({
   const showVariations = useAtomValue(currentShowVariationsAtom);
   const showComments = useAtomValue(currentShowCommentsAtom);
   const root = useStore(store, (s) => s.root);
+  const moveNotationType = useAtomValue(moveNotationTypeAtom);
 
   const segments: Segment[] = [];
 
@@ -468,7 +469,6 @@ const TableNotation = memo(function TableNotation({
                 <td colSpan={3}>
                   <Box pl="sm" pt="xs">
                     {seg.variations.map((variation, vIdx) => {
-                      const moveNotationType = useAtomValue(moveNotationTypeAtom);
                       const variationPath = [...seg.parentPath, vIdx + 1];
                       return (
                         <Box key={variation.fen} className={styles.variationBorder} mb={4}>
