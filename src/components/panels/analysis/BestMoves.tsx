@@ -133,11 +133,13 @@ function BestMovesComponent({
   }
 
   const isGameOver = pos?.isEnd() ?? false;
+  const isCheck = pos?.isCheck() ?? false;
+  const effectiveThreat = threat && !isCheck;
   const finalFen = useMemo(() => (pos ? makeFen(pos.toSetup()) : null), [pos]);
 
   const { searchingFen, searchingMoves } = useMemo(
     () =>
-      match(threat)
+      match(effectiveThreat)
         .with(true, () => ({
           searchingFen: swapMove(finalFen || INITIAL_FEN),
           searchingMoves: [],
@@ -147,7 +149,7 @@ function BestMovesComponent({
           searchingMoves: moves,
         }))
         .exhaustive(),
-    [fen, moves, threat, finalFen],
+    [fen, moves, effectiveThreat, finalFen],
   );
 
   const engineVariations = useDeferredValue(
@@ -309,8 +311,8 @@ function BestMovesComponent({
                     moves={engineVariation.sanMoves}
                     score={engineVariation.score}
                     halfMoves={halfMoves}
-                    threat={threat}
-                    fen={threat ? swapMove(finalFen) : finalFen}
+                    threat={effectiveThreat}
+                    fen={effectiveThreat ? swapMove(finalFen) : finalFen}
                     orientation={orientation}
                   />
                 );
