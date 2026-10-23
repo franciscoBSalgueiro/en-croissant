@@ -649,10 +649,19 @@ mod tests {
         let result = get_move_after_match(&game, &None, &query).unwrap();
         assert_eq!(result, Some("e4".to_string()));
 
-        let query =
-            PositionQuery::exact_from_fen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR").unwrap();
+        let query = PositionQuery::exact_from_fen(
+            "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+        )
+        .unwrap();
         let result = get_move_after_match(&game, &None, &query).unwrap();
         assert_eq!(result, Some("e5".to_string()));
+
+        let wrong_turn_query = PositionQuery::exact_from_fen(
+            "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1",
+        )
+        .unwrap();
+        let result = get_move_after_match(&game, &None, &wrong_turn_query).unwrap();
+        assert_eq!(result, None);
 
         let query =
             PositionQuery::exact_from_fen("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR")
