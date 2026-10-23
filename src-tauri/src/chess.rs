@@ -334,6 +334,9 @@ pub async fn get_best_moves(
     let setup_validation = parse_fen_and_apply_moves(&options.fen, &options.moves);
     if let Err(e) = setup_validation {
         warn!("Invalid position for engine: {:?}", e);
+        if let Some(process) = state.engine_processes.get(&key) {
+            process.lock().await.stop().await?;
+        }
         return Ok(None);
     }
 
