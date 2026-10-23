@@ -20,14 +20,23 @@ import {
   ThemeIcon,
   Title,
   Tooltip,
+  UnstyledButton,
 } from "@mantine/core";
 import { useDebouncedValue, useToggle } from "@mantine/hooks";
-import { IconArrowRight, IconDatabase, IconPlus, IconSearch } from "@tabler/icons-react";
+import {
+  IconArrowRight,
+  IconChevronDown,
+  IconChevronUp,
+  IconDatabase,
+  IconPlus,
+  IconSearch,
+} from "@tabler/icons-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { basename } from "@tauri-apps/api/path";
 import { open as openDialog, save } from "@tauri-apps/plugin-dialog";
-import { useAtom } from "jotai";
-import { useEffect, useMemo, useState } from "react";
+import { useAtom, useAtomValue } from "jotai";
+import { atomWithStorage } from "jotai/utils";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 import type { DatabaseInfo } from "@/bindings";
@@ -35,17 +44,22 @@ import { commands } from "@/bindings";
 import {
   databaseConversionStateAtom,
   referenceDbAtom,
+  sessionsAtom,
   storedDatabasesDirAtom,
 } from "@/state/atoms";
 import { useActiveDatabaseViewStore } from "@/state/store/database";
 import { getDatabases, type SuccessDatabaseInfo } from "@/utils/db";
 import { formatBytes, formatNumber } from "@/utils/format";
+import { splitAccountDatabases } from "@/utils/session";
 import { unwrap } from "@/utils/unwrap";
 import ConfirmModal from "../common/ConfirmModal";
 import GenericCard from "../common/GenericCard";
 import OpenFolderButton from "../common/OpenFolderButton";
 import AddDatabase from "./AddDatabase";
 import { PlayerSearchInput } from "./PlayerSearchInput";
+
+// The sections of the page ("accounts", "other") that are collapsed, kept between sessions
+const collapsedSectionsAtom = atomWithStorage<string[]>("databases-collapsed-sections", []);
 
 export default function DatabasesPage() {
   const { t } = useTranslation();
@@ -88,6 +102,10 @@ export default function DatabasesPage() {
     });
   }, [visibleDatabases, search]);
   const hasSearch = search.trim().length > 0;
+  // Linked accounts' databases first, under their own heading
+  const sessions = useAtomValue(sessionsAtom);
+  const sections = splitAccountDatabases(filteredDatabases, sessions);
+  const [collapsedSections, setCollapsedSections] = useAtom(collapsedSectionsAtom);
   const [databaseDir] = useAtom(storedDatabasesDirAtom);
   // const [, setStorageSelected] = useAtom(selectedDatabaseAtom);
   const setActiveDatabase = useActiveDatabaseViewStore((store) => store.setDatabase);
@@ -210,58 +228,97 @@ export default function DatabasesPage() {
                   </>
                 )}
                 {!isLoading &&
-                  filteredDatabases?.map((item) => (
-                    <GenericCard
-                      id={item.file}
-                      key={item.filename}
-                      isSelected={selectedDatabase?.filename === item.filename}
-                      setSelected={setSelected}
-                      error={item.type === "error" ? item.error : ""}
-                      onDoubleClick={() => {
-                        if (item.type === "error") return;
-                        navigate({
-                          to: "/databases/$databaseId",
-                          params: {
-                            databaseId: item.title,
-                          },
-                        });
-                        setActiveDatabase(item);
-                        //setStorageSelected(item);
-                      }}
-                      Header={
-                        <Group wrap="nowrap" justify="space-between">
-                          <Group wrap="nowrap" miw={0}>
-                            <IconDatabase size="1.5rem" />
-                            <Box miw={0}>
-                              <Text fw={500} fz="sm">
-                                {item.type === "success" ? item.title : item.error}
-                              </Text>
-                              <Text size="xs" c="dimmed" style={{ wordWrap: "break-word" }}>
-                                {item.type === "error" ? item.file : item.description}
-                              </Text>
-                            </Box>
+                  [
+                    {
+                      key: "accounts",
+                      title: t("Databases.Section.Accounts"),
+                      items: sections.accounts,
+                    },
+                    { key: "other", title: t("Databases.Section.Other"), items: sections.others },
+                  ].map(({ key, title, items }) => (
+                    <Fragment key={key}>
+                      {sections.headings && (
+                        <UnstyledButton
+                          style={{ gridColumn: "1 / -1" }}
+                          onClick={() =>
+                            setCollapsedSections((prev) =>
+                              prev.includes(key)
+                                ? prev.filter((section) => section !== key)
+                                : [...prev, key],
+                            )
+                          }
+                        >
+                          <Group gap={4} wrap="nowrap">
+                            <Text size="xs" fw={700} tt="uppercase" c="dimmed">
+                              {title}
+                            </Text>
+                            {collapsedSections.includes(key) ? (
+                              <IconChevronDown size="0.9rem" color="var(--mantine-color-dimmed)" />
+                            ) : (
+                              <IconChevronUp size="0.9rem" color="var(--mantine-color-dimmed)" />
+                            )}
                           </Group>
-                          <Rating
-                            value={referenceDatabase === item.file ? 1 : 0}
-                            count={1}
-                            onChange={() => {
-                              changeReferenceDatabase(item.file);
+                        </UnstyledButton>
+                      )}
+                      {/* A collapsed section still shows what a search finds in it */}
+                      {(!sections.headings || hasSearch || !collapsedSections.includes(key)) &&
+                        items.map((item) => (
+                          <GenericCard
+                            id={item.file}
+                            key={item.filename}
+                            isSelected={selectedDatabase?.filename === item.filename}
+                            setSelected={setSelected}
+                            error={item.type === "error" ? item.error : ""}
+                            onDoubleClick={() => {
+                              if (item.type === "error") return;
+                              navigate({
+                                to: "/databases/$databaseId",
+                                params: {
+                                  databaseId: item.title,
+                                },
+                              });
+                              setActiveDatabase(item);
+                              //setStorageSelected(item);
                             }}
+                            Header={
+                              <Group wrap="nowrap" justify="space-between">
+                                <Group wrap="nowrap" miw={0}>
+                                  <IconDatabase size="1.5rem" />
+                                  <Box miw={0}>
+                                    <Text fw={500} fz="sm">
+                                      {item.type === "success" ? item.title : item.error}
+                                    </Text>
+                                    <Text size="xs" c="dimmed" style={{ wordWrap: "break-word" }}>
+                                      {item.type === "error" ? item.file : item.description}
+                                    </Text>
+                                  </Box>
+                                </Group>
+                                <Rating
+                                  value={referenceDatabase === item.file ? 1 : 0}
+                                  count={1}
+                                  onChange={() => {
+                                    changeReferenceDatabase(item.file);
+                                  }}
+                                />
+                              </Group>
+                            }
+                            stats={[
+                              {
+                                label: t("Databases.Card.Games"),
+                                value:
+                                  item.type === "success" ? formatNumber(item.game_count) : "???",
+                              },
+                              {
+                                label: t("Databases.Card.Storage"),
+                                value:
+                                  item.type === "success"
+                                    ? formatBytes(item.storage_size ?? 0)
+                                    : "???",
+                              },
+                            ]}
                           />
-                        </Group>
-                      }
-                      stats={[
-                        {
-                          label: t("Databases.Card.Games"),
-                          value: item.type === "success" ? formatNumber(item.game_count) : "???",
-                        },
-                        {
-                          label: t("Databases.Card.Storage"),
-                          value:
-                            item.type === "success" ? formatBytes(item.storage_size ?? 0) : "???",
-                        },
-                      ]}
-                    />
+                        ))}
+                    </Fragment>
                   ))}
               </SimpleGrid>
             </ScrollArea>

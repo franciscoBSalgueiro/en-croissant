@@ -263,6 +263,8 @@
     "Databases.Player.One": "棋手 1",
     "Databases.Player.ProcessingData": "正在处理棋手数据...",
     "Databases.Player.Two": "棋手 2",
+    "Databases.Section.Accounts": "",
+    "Databases.Section.Other": "",
     "Databases.Settings.Actions": "操作",
     "Databases.Settings.AddGames": "添加对局",
     "Databases.Settings.AdvancedTools": "高级工具",

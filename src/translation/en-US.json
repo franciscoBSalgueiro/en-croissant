@@ -263,6 +263,8 @@
     "Databases.Player.One": "Player 1",
     "Databases.Player.ProcessingData": "Processing player data...",
     "Databases.Player.Two": "Player 2",
+    "Databases.Section.Accounts": "Accounts",
+    "Databases.Section.Other": "Other databases",
     "Databases.Settings.Actions": "Actions",
     "Databases.Settings.AddGames": "Add Games",
     "Databases.Settings.AdvancedTools": "Advanced tools",
