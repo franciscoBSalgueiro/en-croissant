@@ -40,10 +40,10 @@ function fillMissingMonths(data: ActivityData[]): ActivityData[] {
   }
 
   const dataMap = new Map(data.map((item) => [item.name, item]));
-  const filledData = monthStrings.map((month) => ({
-    name: month,
-    ...(dataMap.get(month) ?? { count: 0, won: 0, draw: 0, lost: 0 }),
-  }));
+  const filledData = monthStrings.map((month) => {
+    const item = dataMap.get(month);
+    return item ?? { name: month, count: 0, won: 0, draw: 0, lost: 0 };
+  });
 
   return filledData;
 }
