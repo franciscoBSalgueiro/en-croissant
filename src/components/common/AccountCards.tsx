@@ -46,15 +46,6 @@ function AccountCards({
   onAddAccount: () => void;
 }) {
   const sessions = useAtomValue(sessionsAtom);
-  // Every card is as wide, sized for the width they have (and as tall: see AccountCard)
-  const { ref, width } = useElementSize();
-  const { cardSize } = cardGrid(
-    width,
-    remToPx(GAP),
-    remToPx(MIN_CARD_SIZE),
-    remToPx(MAX_CARD_SIZE),
-    CARDS_PER_ROW,
-  );
   const playerNames = Array.from(
     new Set(sessions.map((s) => s.player ?? s.lichess?.username ?? s.chessCom?.username)),
   );
@@ -69,6 +60,37 @@ function AccountCards({
   if (sessions.length === 0) {
     return <EmptyAccounts onAddAccount={onAddAccount} />;
   }
+
+  return (
+    <PlayerSessions
+      playerSessions={playerSessions}
+      databases={databases}
+      setDatabases={setDatabases}
+    />
+  );
+}
+
+// Its own component, so it's rendered along with the element whose width it measures: Mantine's
+// useElementSize only watches an element that's there when the component first renders, and
+// the first account added would otherwise replace EmptyAccounts unmeasured
+function PlayerSessions({
+  playerSessions,
+  databases,
+  setDatabases,
+}: {
+  playerSessions: { name: string | undefined; sessions: Session[] }[];
+  databases: DatabaseInfo[];
+  setDatabases: React.Dispatch<React.SetStateAction<DatabaseInfo[]>>;
+}) {
+  // Every card is as wide, sized for the width they have (and as tall: see AccountCard)
+  const { ref, width } = useElementSize();
+  const { cardSize } = cardGrid(
+    width,
+    remToPx(GAP),
+    remToPx(MIN_CARD_SIZE),
+    remToPx(MAX_CARD_SIZE),
+    CARDS_PER_ROW,
+  );
 
   return (
     <ScrollArea offsetScrollbars>
