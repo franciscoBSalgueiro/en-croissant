@@ -55,6 +55,8 @@ const keys: KeyMap = {
     GENERATE_REPORT: { name: "Generate game report", keys: "f12" },
     PREVIOUS_GAME: { name: "Previous game", keys: "pageup" },
     NEXT_GAME: { name: "Next game", keys: "pagedown" },
+    TOGGLE_SIDEBAR: { name: "Toggle Sidebar", keys: `${meta}+shift+b` },
+    TOGGLE_TAB_BAR: { name: "Toggle Tab Bar", keys: `${meta}+shift+t` },
 };
 
 export const keyMapAtom = atomWithStorage("keybinds", keys, defaultStorage(keys, localStorage));

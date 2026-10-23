@@ -463,6 +463,8 @@
     "Menu.View": "Vis",
     "Menu.View.Fullscreen": "",
     "Menu.View.Reload": "Last inn på nytt",
+    "Menu.View.ToggleSidebar": "",
+    "Menu.View.ToggleTabBar": "",
     "Notation.HideComments": "",
     "Notation.HideMoves": "",
     "Notation.HideVariations": "",

@@ -463,6 +463,8 @@
     "Menu.View": "Ansicht",
     "Menu.View.Fullscreen": "Vollbild",
     "Menu.View.Reload": "Neu laden",
+    "Menu.View.ToggleSidebar": "",
+    "Menu.View.ToggleTabBar": "",
     "Notation.HideComments": "Kommentare verbergen",
     "Notation.HideMoves": "Züge verbergen",
     "Notation.HideVariations": "Varianten verbergen",

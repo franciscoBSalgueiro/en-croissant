@@ -468,6 +468,8 @@
     "Menu.View": "화면",
     "Menu.View.Fullscreen": "전체 화면 전환",
     "Menu.View.Reload": "새로고침",
+    "Menu.View.ToggleSidebar": "",
+    "Menu.View.ToggleTabBar": "",
     "Notation.HideComments": "주석 숨기기",
     "Notation.HideMoves": "수 숨기기",
     "Notation.HideVariations": "변형 수순 숨기기",

@@ -470,6 +470,8 @@
     "Menu.View": "视图",
     "Menu.View.Fullscreen": "切换全屏",
     "Menu.View.Reload": "重新加载",
+    "Menu.View.ToggleSidebar": "",
+    "Menu.View.ToggleTabBar": "",
     "Notation.HideComments": "隐藏点评",
     "Notation.HideMoves": "隐藏着法",
     "Notation.HideVariations": "隐藏变着",

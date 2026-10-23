@@ -20,7 +20,13 @@ import type { Dirs } from "@/App";
 import AboutModal from "@/components/About";
 import { SideBar } from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
-import { activeTabAtom, nativeBarAtom, tabsAtom } from "@/state/atoms";
+import {
+  activeTabAtom,
+  nativeBarAtom,
+  showSidebarAtom,
+  showTabBarAtom,
+  tabsAtom,
+} from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { openFile } from "@/utils/files";
 import { createTab } from "@/utils/tabs";
@@ -139,10 +145,22 @@ function RootLayout() {
     await currentWindow.setFullscreen(!isFullscreen);
   }, []);
 
+  const [showSidebar, setShowSidebar] = useAtom(showSidebarAtom);
+  const toggleSidebar = useCallback(() => {
+    setShowSidebar((prev) => !prev);
+  }, [setShowSidebar]);
+
+  const [, setShowTabBar] = useAtom(showTabBarAtom);
+  const toggleTabBar = useCallback(() => {
+    setShowTabBar((prev) => !prev);
+  }, [setShowTabBar]);
+
   const [keyMap] = useAtom(keyMapAtom);
 
   useHotkeys(keyMap.NEW_TAB.keys, createNewTab);
   useHotkeys(keyMap.OPEN_FILE.keys, openNewFile);
+  useHotkeys(keyMap.TOGGLE_SIDEBAR.keys, toggleSidebar);
+  useHotkeys(keyMap.TOGGLE_TAB_BAR.keys, toggleTabBar);
   const [opened, setOpened] = useState(false);
 
   const isMacOS = platform() === "macos";
@@ -257,6 +275,22 @@ function RootLayout() {
         label: t("Menu.View"),
         options: [
           {
+            label: t("Menu.View.ToggleSidebar", {
+              defaultValue: "Toggle Sidebar",
+            }),
+            id: "toggle_sidebar",
+            shortcut: keyMap.TOGGLE_SIDEBAR.keys,
+            action: toggleSidebar,
+          },
+          {
+            label: t("Menu.View.ToggleTabBar", {
+              defaultValue: "Toggle Tab Bar",
+            }),
+            id: "toggle_tabbar",
+            shortcut: keyMap.TOGGLE_TAB_BAR.keys,
+            action: toggleTabBar,
+          },
+          {
             label: t("Menu.View.Reload"),
             id: "reload",
             shortcut: "Ctrl+R",
@@ -312,7 +346,16 @@ function RootLayout() {
         ],
       },
     ],
-    [t, checkForUpdates, createNewTab, keyMap, openNewFile, toggleFullscreen],
+    [
+      t,
+      checkForUpdates,
+      createNewTab,
+      keyMap,
+      openNewFile,
+      toggleFullscreen,
+      toggleSidebar,
+      toggleTabBar,
+    ],
   );
 
   const { data: menu } = useSWRImmutable(["menu", menuActions], () => createMenu(menuActions));
@@ -356,6 +399,10 @@ function RootLayout() {
       navbar={{
         width: "3rem",
         breakpoint: 0,
+        collapsed: {
+          desktop: !showSidebar,
+          mobile: !showSidebar,
+        },
       }}
       header={
         isNative ||
@@ -380,9 +427,11 @@ function RootLayout() {
             <TopBar menuActions={menuActions} />
           </AppShell.Header>
         )}
-      <AppShell.Navbar>
-        <SideBar />
-      </AppShell.Navbar>
+      {showSidebar && (
+        <AppShell.Navbar>
+          <SideBar />
+        </AppShell.Navbar>
+      )}
       <AppShell.Main>
         <Outlet />
       </AppShell.Main>

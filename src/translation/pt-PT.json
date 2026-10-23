@@ -473,6 +473,8 @@
     "Menu.View": "Ver",
     "Menu.View.Fullscreen": "",
     "Menu.View.Reload": "Recarregar",
+    "Menu.View.ToggleSidebar": "",
+    "Menu.View.ToggleTabBar": "",
     "Notation.HideComments": "",
     "Notation.HideMoves": "",
     "Notation.HideVariations": "",

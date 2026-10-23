@@ -473,6 +473,8 @@
     "Menu.View": "Visualizza",
     "Menu.View.Fullscreen": "",
     "Menu.View.Reload": "Ricarica",
+    "Menu.View.ToggleSidebar": "",
+    "Menu.View.ToggleTabBar": "",
     "Notation.HideComments": "Nascondi commenti",
     "Notation.HideMoves": "Nascondi mosse",
     "Notation.HideVariations": "Nascondi varianti",
