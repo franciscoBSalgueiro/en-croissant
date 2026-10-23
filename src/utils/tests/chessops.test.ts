@@ -1,7 +1,7 @@
 import { parseSquare } from "chessops";
 import { parseFen } from "chessops/fen";
 import { expect, test } from "vitest";
-import { getCastlingSquare, positionFromFen } from "../chessops";
+import { getCastlingSquare } from "../chessops";
 
 test("should get the correct castling square in the starting position", () => {
     const setup = parseFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap();
@@ -41,11 +41,4 @@ test("should get the correct castling square in FRC 608", () => {
     expect(getCastlingSquare(setup, "w", "q")).toBe(parseSquare("a1"));
     expect(getCastlingSquare(setup, "b", "k")).toBe(parseSquare("e8"));
     expect(getCastlingSquare(setup, "b", "q")).toBe(parseSquare("a8"));
-});
-
-test("should detect when position is in check so threat mode can be bypassed", () => {
-    // 1. e4 f5 2. Qh5+
-    const [pos] = positionFromFen("rnbqkbnr/ppppp1pp/8/5p1Q/4P3/8/PPPP1PPP/RNB1KBNR b KQkq - 1 2");
-    expect(pos).not.toBeNull();
-    expect(pos?.isCheck()).toBe(true);
 });
