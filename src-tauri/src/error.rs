@@ -84,6 +84,9 @@ pub enum Error {
     #[error("Invalid color: {0}")]
     InvalidColor(String),
 
+    #[error("Invalid input: {0}")]
+    InvalidInput(String),
+
     #[error("Engine not initialized")]
     EngineNotInitialized,
 
