@@ -1,18 +1,29 @@
-import { Box, Divider, Group, ScrollArea, Stack, Text } from "@mantine/core";
+import {
+  Box,
+  Group,
+  SegmentedControl,
+  Stack,
+  Text,
+  TextInput,
+  UnstyledButton,
+} from "@mantine/core";
+import { IconSearch } from "@tabler/icons-react";
+import { DataTable, type DataTableSortStatus } from "mantine-datatable";
 import { useNavigate } from "@tanstack/react-router";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import type { Color } from "chessops";
-import { useAtom, useAtomValue } from "jotai";
-import { useRef, useState } from "react";
+import { useAtom } from "jotai";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { PlayerGameInfo } from "@/bindings";
 import { commands, type GameOutcome } from "@/bindings";
-import { activeTabAtom, fontSizeAtom, tabsAtom } from "@/state/atoms";
+import { activeTabAtom, tabsAtom } from "@/state/atoms";
 import { parsePGN } from "@/utils/chess";
 import { createTab } from "@/utils/tabs";
 import { getTimeControl } from "@/utils/timeControl";
 import { countMainPly, defaultTree } from "@/utils/treeReducer";
 import { unwrap } from "@/utils/unwrap";
 import classes from "./OpeningsPanel.module.css";
+import cardClasses from "../PersonalCard.module.css";
 import ResultsChart from "./ResultsChart";
 import TimeControlSelector from "./TimeControlSelector";
 import WebsiteAccountSelector from "./WebsiteAccountSelector";
@@ -67,9 +78,17 @@ function OpeningsPanel({
   info: PlayerGameInfo;
   isDatabase?: boolean;
 }) {
+  const { t, i18n } = useTranslation();
   const [website, setWebsite] = useState<string | null>("All websites");
   const [account, setAccount] = useState<string | null>("All accounts");
   const [timeControl, setTimeControl] = useState<string | null>(null);
+  const [color, setColor] = useState<Color>("white");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [sort, setSort] = useState<DataTableSortStatus<OpeningStats>>({
+    columnAccessor: "games",
+    direction: "desc",
+  });
 
   const openingData =
     info?.site_stats_data
@@ -88,25 +107,23 @@ function OpeningsPanel({
         is_player_white: g.is_player_white,
       })) ?? [];
 
-  const whiteGames = openingData.filter((g) => g.is_player_white).length;
-  const blackGames = openingData.filter((g) => !g.is_player_white).length;
-
-  const whiteOpenings = aggregateOpenings(openingData, "white");
-  const blackOpenings = aggregateOpenings(openingData, "black");
-
-  const fontSize = useAtomValue(fontSizeAtom);
-
-  const parentRef = useRef<HTMLDivElement>(null);
-  const rowVirtualizer = useVirtualizer({
-    count: Math.max(whiteOpenings.length, blackOpenings.length),
-    estimateSize: () => 120 * (fontSize / 100),
-    getScrollElement: () => parentRef.current,
-  });
+  const totalGames = openingData.filter(
+    (game) => game.is_player_white === (color === "white"),
+  ).length;
+  const openings = aggregateOpenings(openingData, color)
+    .filter((opening) => opening.name.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      const comparison =
+        sort.columnAccessor === "name" ? a.name.localeCompare(b.name) : a.games - b.games;
+      return sort.direction === "asc" ? comparison : -comparison;
+    });
+  const pages = Math.max(1, Math.ceil(openings.length / 10));
+  const currentPage = Math.min(page, pages);
 
   return (
-    <Stack gap={0} h="100%">
-      <Group grow>
-        {!isDatabase && (
+    <Stack gap="md" h="100%" style={{ minHeight: 0 }}>
+      {!isDatabase && (
+        <Group grow>
           <WebsiteAccountSelector
             playerName={playerName}
             onWebsiteChange={(website) => {
@@ -115,110 +132,134 @@ function OpeningsPanel({
             onAccountChange={setAccount}
             allowAll={true}
           />
-        )}
+        </Group>
+      )}
+      <Group gap="sm" wrap="wrap">
+        <SegmentedControl
+          value={color}
+          onChange={(value) => {
+            setColor(value as Color);
+            setPage(1);
+          }}
+          data={[
+            { value: "white", label: t("Home.Personal.AsWhite") },
+            { value: "black", label: t("Home.Personal.AsBlack") },
+          ]}
+        />
         <TimeControlSelector
           website={website}
-          onTimeControlChange={setTimeControl}
+          onTimeControlChange={(value) => {
+            setTimeControl(value);
+            setPage(1);
+          }}
           allowAll={true}
+          showLabel={false}
+        />
+        <TextInput
+          className={cardClasses.search}
+          placeholder={t("Home.Personal.SearchOpening")}
+          aria-label={t("Home.Personal.SearchOpening")}
+          leftSection={<IconSearch size={18} />}
+          value={search}
+          onChange={(event) => {
+            setSearch(event.currentTarget.value);
+            setPage(1);
+          }}
         />
       </Group>
-
-      <Group grow pt="xl">
-        <Text ta="center" fw="bold">
-          White
-        </Text>
-        <Text ta="center" fw="bold">
-          Black
-        </Text>
-      </Group>
-      <Divider mt="md" />
-      <ScrollArea viewportRef={parentRef} flex={1}>
-        <Box
-          style={{
-            height: rowVirtualizer.getTotalSize(),
-            width: "100%",
-            position: "relative",
+      <Box flex={1} style={{ minHeight: 0 }}>
+        <DataTable<OpeningStats>
+          height="100%"
+          withTableBorder
+          highlightOnHover
+          idAccessor="name"
+          records={openings.slice((currentPage - 1) * 10, currentPage * 10)}
+          columns={[
+            {
+              accessor: "name",
+              title: t("Home.Personal.Opening"),
+              sortable: true,
+              render: (opening) => <OpeningDetail opening={opening} color={color} />,
+            },
+            {
+              accessor: "games",
+              title: t("Common.Games"),
+              sortable: true,
+              textAlign: "right",
+              render: (opening) => opening.games.toLocaleString(i18n.resolvedLanguage),
+            },
+            {
+              accessor: "played",
+              title: t("Home.Personal.Played"),
+              textAlign: "right",
+              render: (opening) =>
+                `${(totalGames ? (opening.games / totalGames) * 100 : 0).toFixed(1)}%`,
+            },
+            {
+              accessor: "results",
+              title: t("Board.Practice.Build.Results"),
+              width: "24%",
+              render: (opening) => (
+                <ResultsChart
+                  won={opening.won}
+                  draw={opening.draw}
+                  lost={opening.lost}
+                  size="0.5rem"
+                />
+              ),
+            },
+          ]}
+          sortStatus={sort}
+          onSortStatusChange={(value) => {
+            setSort(value);
+            setPage(1);
           }}
-        >
-          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-            const white = whiteOpenings[virtualRow.index];
-            const black = blackOpenings[virtualRow.index];
-            return (
-              <Box
-                key={virtualRow.index}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  height: virtualRow.size,
-                  transform: `translateY(${virtualRow.start}px)`,
-                }}
-              >
-                <Group grow>
-                  {white ? (
-                    <OpeningDetail opening={white} totalGames={whiteGames} color="white" />
-                  ) : (
-                    <div />
-                  )}
-                  {black ? (
-                    <OpeningDetail opening={black} totalGames={blackGames} color="black" />
-                  ) : (
-                    <div />
-                  )}
-                </Group>
-                <Divider />
-              </Box>
-            );
-          })}
-        </Box>
-      </ScrollArea>
+          totalRecords={openings.length}
+          recordsPerPage={10}
+          page={currentPage}
+          onPageChange={setPage}
+          paginationText={({ totalRecords }) =>
+            t("Home.Personal.OpeningCount", {
+              count: totalRecords,
+              formattedCount: totalRecords.toLocaleString(i18n.resolvedLanguage),
+            })
+          }
+          noRecordsText={t("Home.Personal.NoOpenings")}
+        />
+      </Box>
     </Stack>
   );
 }
 
-function OpeningDetail({
-  opening,
-  totalGames,
-  color,
-}: {
-  opening: OpeningStats;
-  totalGames: number;
-  color: Color;
-}) {
+function OpeningDetail({ opening, color }: { opening: OpeningStats; color: Color }) {
   const [, setTabs] = useAtom(tabsAtom);
   const [, setActiveTab] = useAtom(activeTabAtom);
   const navigate = useNavigate();
 
-  const openingRate = opening.games / totalGames;
   return (
-    <Stack py="sm" justify="space-between">
-      <Group justify="space-between" wrap="nowrap">
-        <Text
-          lineClamp={2}
-          className={classes.link}
-          onClick={async () => {
-            const pgn = unwrap(await commands.getOpeningFromName(opening.name));
-            const headers = defaultTree().headers;
-            const tree = await parsePGN(pgn);
-            headers.orientation = color;
-            createTab({
-              tab: { name: opening.name, type: "analysis" },
-              pgn,
-              headers,
-              setTabs,
-              setActiveTab,
-              position: Array(countMainPly(tree.root)).fill(0),
-            });
-            navigate({ to: "/" });
-          }}
-        >
-          {opening.name}
-        </Text>
-        <Text>{(openingRate * 100).toFixed(2)}%</Text>
-      </Group>
-      <ResultsChart won={opening.won} draw={opening.draw} lost={opening.lost} size="1.5rem" />
-    </Stack>
+    <UnstyledButton
+      w="100%"
+      className={classes.link}
+      onClick={async () => {
+        const pgn = unwrap(await commands.getOpeningFromName(opening.name));
+        const headers = defaultTree().headers;
+        const tree = await parsePGN(pgn);
+        headers.orientation = color;
+        await createTab({
+          tab: { name: opening.name, type: "analysis" },
+          pgn,
+          headers,
+          setTabs,
+          setActiveTab,
+          position: Array(countMainPly(tree.root)).fill(0),
+        });
+        navigate({ to: "/" });
+      }}
+    >
+      <Text size="sm" lineClamp={2}>
+        {opening.name}
+      </Text>
+    </UnstyledButton>
   );
 }
 

@@ -13,7 +13,7 @@ import {
 import { useLoaderData } from "@tanstack/react-router";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeFile } from "@tauri-apps/plugin-fs";
-import domtoimage from "dom-to-image";
+import domtoimage from "dom-to-image-more";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { memo, useContext } from "react";
 import { useTranslation } from "react-i18next";
@@ -85,25 +85,33 @@ function BoardControls({
 
   const takeSnapshot = async () => {
     const snapshotTarget = document.querySelector(".cg-wrap") as HTMLElement | null;
-    if (!snapshotTarget) return;
+    const board = snapshotTarget?.querySelector("cg-board");
+    if (!snapshotTarget || !board) return;
 
-    domtoimage.toBlob(snapshotTarget).then(async (blob) => {
-      if (blob == null) return;
+    const { width, height } = board.getBoundingClientRect();
+    domtoimage
+      .toBlob(snapshotTarget, {
+        width,
+        height,
+        style: { padding: "0", margin: "0", overflow: "hidden" },
+      })
+      .then(async (blob) => {
+        if (blob == null) return;
 
-      const filePath = await save({
-        title: "Save board snapshot",
-        defaultPath: documentDir,
-        filters: [
-          {
-            name: "PNG Image",
-            extensions: ["png"],
-          },
-        ],
+        const filePath = await save({
+          title: "Save board snapshot",
+          defaultPath: documentDir,
+          filters: [
+            {
+              name: "PNG Image",
+              extensions: ["png"],
+            },
+          ],
+        });
+        const arrayBuffer = await blob.arrayBuffer();
+        if (filePath == null) return;
+        await writeFile(filePath, new Uint8Array(arrayBuffer));
       });
-      const arrayBuffer = await blob.arrayBuffer();
-      if (filePath == null) return;
-      await writeFile(filePath, new Uint8Array(arrayBuffer));
-    });
   };
 
   return (
