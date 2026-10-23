@@ -64,9 +64,10 @@ function PersonalPlayerCard({
     : undefined;
   const Flag = Object.entries(Flags).find(([key]) => key === `${country?.a2}Flag`)?.[1];
   const sessions = useAtomValue(sessionsAtom);
+  // In alphabetical order, as on the rest of the Accounts page
   const players = Array.from(
     new Set(sessions.map((s) => s.player || s.lichess?.username || s.chessCom?.username || "")),
-  );
+  ).sort((a, b) => a.localeCompare(b));
 
   return (
     <Paper

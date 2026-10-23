@@ -5,6 +5,7 @@ import { exists, mkdir, rename, writeTextFile } from "@tauri-apps/plugin-fs";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { createFile } from "@/utils/files";
+import { sortFileTypes } from "@/utils/sort";
 import GenericCard from "../common/GenericCard";
 import type { Directory, FileMetadata, FileType } from "./file";
 
@@ -98,7 +99,11 @@ export function CreateModal({
           </Text>
 
           <SimpleGrid cols={3}>
-            {FILE_TYPES.map((v) => (
+            {sortFileTypes(
+              FILE_TYPES,
+              (v) => v.value,
+              (v) => t(`Files.FileType.${v.label}`),
+            ).map((v) => (
               <GenericCard
                 key={v.value}
                 id={v.value}
@@ -198,7 +203,11 @@ export function EditModal({
           </Text>
 
           <SimpleGrid cols={3}>
-            {FILE_TYPES.map((v) => (
+            {sortFileTypes(
+              FILE_TYPES,
+              (v) => v.value,
+              (v) => t(`Files.FileType.${v.label}`),
+            ).map((v) => (
               <GenericCard
                 key={v.value}
                 id={v.value}
