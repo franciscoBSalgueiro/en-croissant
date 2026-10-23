@@ -1,6 +1,5 @@
 import type { DrawBrushes, DrawShape } from "@lichess-org/chessground/draw";
 import { ActionIcon, Box, Center, Group, Text, useMantineTheme } from "@mantine/core";
-import { useElementSize } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { IconChevronRight } from "@tabler/icons-react";
 import {
@@ -23,6 +22,7 @@ import { match } from "ts-pattern";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import { Chessground, type ChessgroundRef } from "@/chessground/Chessground";
+import { useMeasuredSize } from "@/hooks/useMeasuredSize";
 import {
   autoPromoteAtom,
   bestMovesFamily,
@@ -167,7 +167,7 @@ function Board({
   const currentTab = useAtomValue(currentTabAtom);
   const tabFile = getTabFile(currentTab);
   const [evalOpen, setEvalOpen] = useAtom(currentEvalOpenAtom);
-  const { ref: paneRef, width: paneWidth, height: paneHeight } = useElementSize();
+  const { ref: paneRef, width: paneWidth, height: paneHeight } = useMeasuredSize<HTMLDivElement>();
   const size = boardSize({ width: paneWidth, height: paneHeight }, window.devicePixelRatio);
 
   const [deck, setDeck] = useAtom(
@@ -387,7 +387,8 @@ function Board({
   return (
     <>
       {/* The board takes the size that keeps the same margin all around its squares, centred
-          up and down with its player bars (until the pane is measured, it fills the width) */}
+          up and down with its player bars. The pane is measured before the board is first drawn;
+          one with no size yet gets a board that fills its width */}
       <Box
         ref={paneRef}
         w="100%"

@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 import {
     BOARD_MARGIN,
+    boardLayoutToSave,
     boardSize,
     defaultBoardSplit,
     EVAL_BAR_GAP,
@@ -56,4 +57,34 @@ test("when the board's pane is narrowed, the board shrinks and keeps the margin 
     const toColumn = pane.width - (EVAL_BAR_WIDTH + EVAL_BAR_GAP + board) + 2 * PANE_MARGIN;
     expect(toColumn).toBeGreaterThanOrEqual(BOARD_MARGIN);
     expect(toColumn).toBeLessThan(BOARD_MARGIN + 4);
+});
+
+// The board page's layout: the board, then the right-hand column of two panes, each divider at a
+// percentage once placed or dragged
+const layout = (board?: number, column?: number) => ({
+    direction: "row" as const,
+    first: "left",
+    second: {
+        direction: "column" as const,
+        first: "topRight",
+        second: "bottomRight",
+        splitPercentage: column,
+    },
+    splitPercentage: board,
+});
+
+test("dragging the divider between the right-hand panes leaves the board's divider placed for the window", () => {
+    // react-mosaic reports the whole layout, with the board's divider where it was placed
+    const saved = boardLayoutToSave(layout(), layout(52.5), layout(52.5, 70));
+
+    expect(saved).toEqual(layout(undefined, 70));
+    expect(saved).not.toHaveProperty("splitPercentage");
+});
+
+test("dragging the board's divider saves where it was put", () => {
+    expect(boardLayoutToSave(layout(), layout(52.5), layout(60))).toEqual(layout(60));
+});
+
+test("once dragged, the board's divider keeps its place when another divider moves", () => {
+    expect(boardLayoutToSave(layout(60), layout(60), layout(60, 70))).toEqual(layout(60, 70));
 });

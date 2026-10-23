@@ -1,6 +1,6 @@
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import { ActionIcon, Box, ScrollArea, Tabs } from "@mantine/core";
-import { useElementSize, useHotkeys, useToggle } from "@mantine/hooks";
+import { useHotkeys, useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
 import { type ReactNode, startTransition, useCallback, useEffect } from "react";
@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { Mosaic, type MosaicNode } from "react-mosaic-component";
 import { match } from "ts-pattern";
 import { commands } from "@/bindings";
+import { useMeasuredSize } from "@/hooks/useMeasuredSize";
 import {
   activeTabAtom,
   type BoardViewId,
@@ -16,7 +17,7 @@ import {
   windowsStateAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
-import { defaultBoardSplit } from "@/utils/boardLayout";
+import { boardLayoutToSave, defaultBoardSplit } from "@/utils/boardLayout";
 import { createTab, genID, isPersistentGameOrigin, type Tab } from "@/utils/tabs";
 import { unwrap } from "@/utils/unwrap";
 import BoardAnalysis from "../boards/BoardAnalysis";
@@ -308,14 +309,20 @@ function TabSwitch({
   activeTab: string | null;
 }) {
   const [windowsState, setWindowsState] = useAtom(windowsStateAtom);
-  const { ref: layoutRef, width, height } = useElementSize();
+  // Measured once a tab shows a board, which can be after it showed the home screen
+  const { ref: layoutRef, width, height } = useMeasuredSize<HTMLDivElement>();
+  const shown = placeBoardDivider(windowsState.currentNode, { width, height });
 
   const layout = (
     <Box ref={layoutRef} h="100%" w="100%">
       <Mosaic<BoardViewId>
         renderTile={(id) => fullLayout[id]}
-        value={placeBoardDivider(windowsState.currentNode, { width, height })}
-        onChange={(currentNode) => setWindowsState({ currentNode })}
+        value={shown}
+        onChange={(currentNode) =>
+          setWindowsState({
+            currentNode: boardLayoutToSave(windowsState.currentNode, shown, currentNode),
+          })
+        }
         resize={{ minimumPaneSizePercentage: 0 }}
       />
     </Box>

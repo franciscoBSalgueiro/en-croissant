@@ -1,3 +1,5 @@
+import type { MosaicNode } from "react-mosaic-component";
+
 // The analysis and play boards keep one margin all around their squares: from the left edge of the
 // tab to the squares (past the eval bar), from the tab bar and from the bottom of the window to the
 // squares (past the player bars), and, by default, from the squares to the right-hand column.
@@ -44,4 +46,29 @@ export function defaultBoardSplit(
     const paneWidth = LEFT_OF_BOARD + board + RIGHT_OF_BOARD;
     // A pane takes its share of the layout less its margin on each side
     return ((paneWidth + 2 * PANE_MARGIN) / layout.width) * 100;
+}
+
+// What to save when the layout changes. react-mosaic reports all of it, the board's divider
+// included even when another divider moved; until the user drags the board's divider, it isn't
+// saved, so it stays placed for the window
+export function boardLayoutToSave<T extends string>(
+    saved: MosaicNode<T> | null,
+    shown: MosaicNode<T> | null,
+    changed: MosaicNode<T> | null,
+): MosaicNode<T> | null {
+    if (typeof saved !== "object" || saved === null || saved.splitPercentage !== undefined) {
+        return changed;
+    }
+    if (
+        typeof shown !== "object" ||
+        shown === null ||
+        typeof changed !== "object" ||
+        changed === null ||
+        changed.splitPercentage !== shown.splitPercentage
+    ) {
+        return changed;
+    }
+    const unplaced = { ...changed };
+    delete unplaced.splitPercentage;
+    return unplaced;
 }
