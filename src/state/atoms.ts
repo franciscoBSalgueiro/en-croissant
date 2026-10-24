@@ -174,6 +174,7 @@ export const enginesAtom = unwrap(
         [],
         createAsyncZodStorage(enginesSchema, enginesFileStorage) as AsyncStorage<Engine[]>,
     ),
+    (prev) => prev,
 );
 
 // Settings

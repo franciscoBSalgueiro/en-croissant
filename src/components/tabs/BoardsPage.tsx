@@ -65,7 +65,7 @@ export default function BoardsPage() {
             startTransition(() => setActiveTab(null));
           }
         }
-        setTabs((prev) => prev.filter((tab) => tab.value !== value));
+        startTransition(() => setTabs((prev) => prev.filter((tab) => tab.value !== value)));
         unwrap(await commands.killEngines(value));
         await commands.abortGame(`${value}-game`);
       }
