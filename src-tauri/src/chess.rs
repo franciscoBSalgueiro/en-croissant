@@ -787,6 +787,9 @@ pub struct EngineConfig {
     pub options: Vec<UciOptionConfig>,
 }
 
+#[cfg(all(test, unix))]
+mod engine_config_tests;
+
 #[tauri::command]
 #[specta::specta]
 pub async fn get_engine_config(path: PathBuf) -> Result<EngineConfig, Error> {
@@ -797,7 +800,8 @@ pub async fn get_engine_config(path: PathBuf) -> Result<EngineConfig, Error> {
     let mut config = EngineConfig::default();
 
     let reader = base.reader_mut().ok_or(Error::EngineDisconnected)?;
-    while let Some(line) = reader.next_line().await? {
+    loop {
+        let line = reader.next_line().await?.ok_or(Error::EngineDisconnected)?;
         if let UciMessage::Id {
             name: Some(name),
             author: _,
