@@ -49,12 +49,8 @@ function getBoardCoordinateColors(boardImage: string): {
   );
 }
 
-// Lichess's choices: Normal stays at chessground's default, Slow is twice that (as on Lichess)
-// and Fast is Lichess's Fast
 const PIECE_ANIMATION_MS = { none: 0, fast: 120, normal: 200, slow: 400 };
 
-// The board's animation at the speed chosen in Settings; a board that turns animation off
-// (e.g. while editing the position) keeps it off
 export function pieceAnimation(
   speed: keyof typeof PIECE_ANIMATION_MS,
   animation: Config["animation"],
