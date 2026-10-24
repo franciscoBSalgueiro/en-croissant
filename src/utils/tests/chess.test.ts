@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 import { ANNOTATION_INFO, type Annotation, NAG_INFO } from "../annotation";
-import { hasMorePriority, headersToPGN } from "../chess";
+import { parseSquare } from "chessops";
+import { getMoveDestination, hasMorePriority, headersToPGN } from "../chess";
 
 test("NAGs are consistent", () => {
     for (const k of Object.keys(ANNOTATION_INFO)) {
@@ -36,4 +37,17 @@ test("PGN headers preserve UTC time", () => {
     });
 
     expect(pgn).toContain('[UTCTime "12:34:56"]');
+});
+
+test("castling destination ignores a check or mate suffix", () => {
+    const white = (san: string) =>
+        getMoveDestination({ san, halfMoves: 1, move: { from: 4, to: 0 } });
+    const black = (san: string) =>
+        getMoveDestination({ san, halfMoves: 2, move: { from: 60, to: 63 } });
+    expect(white("O-O-O")).toBe(parseSquare("c1"));
+    expect(white("O-O-O+")).toBe(parseSquare("c1"));
+    expect(white("O-O-O#")).toBe(parseSquare("c1"));
+    expect(black("O-O")).toBe(parseSquare("g8"));
+    expect(black("O-O+")).toBe(parseSquare("g8"));
+    expect(getMoveDestination({ san: "Nf3+", halfMoves: 1, move: { from: 6, to: 21 } })).toBe(21);
 });
