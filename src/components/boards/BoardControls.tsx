@@ -10,7 +10,6 @@ import {
   IconTarget,
   IconZoomCheck,
 } from "@tabler/icons-react";
-import { useLoaderData } from "@tanstack/react-router";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeFile } from "@tauri-apps/plugin-fs";
 import domtoimage from "dom-to-image-more";
@@ -26,6 +25,7 @@ import {
   eraseDrawablesOnClickAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
+import { svgToPngBlob } from "@/utils/snapshot";
 
 interface BoardControlsProps {
   editingMode: boolean;
@@ -49,7 +49,6 @@ function BoardControls({
   allowEditing,
 }: BoardControlsProps) {
   const { t } = useTranslation();
-  const { documentDir } = useLoaderData({ from: "/" });
 
   const store = useContext(TreeStateContext)!;
   const headers = useStore(store, (s) => s.headers);
@@ -90,17 +89,19 @@ function BoardControls({
 
     const { width, height } = board.getBoundingClientRect();
     domtoimage
-      .toBlob(snapshotTarget, {
+      .toSvg(snapshotTarget, {
         width,
         height,
         style: { padding: "0", margin: "0", overflow: "hidden" },
       })
+      .then((svg) => svgToPngBlob(svg, width, height))
       .then(async (blob) => {
         if (blob == null) return;
 
+        // No starting folder, so the dialog opens where it was last used, which the system
+        // remembers for the app (as it does for the app's file pickers)
         const filePath = await save({
           title: "Save board snapshot",
-          defaultPath: documentDir,
           filters: [
             {
               name: "PNG Image",
