@@ -66,7 +66,12 @@ tauri-plugin-opener = "2"
 tauri-plugin-deep-link = "2.0.0"
 tauri-plugin-single-instance = { version = "2.0.0", features = ["deep-link"] }
 polyglot-book-rs = "0.1.0"
-duckdb = { version = "=1.10506.0", features = ["bundled", "r2d2", "chrono", "appender-arrow"] }
+duckdb = { git = "https://github.com/duckdb/duckdb-rs", rev = "4acbea84794582c4cd962ee971a3d7a5dcb72e39", features = [
+  "bundled",
+  "r2d2",
+  "chrono",
+  "appender-arrow",
+] }
 r2d2 = "0.8.10"
 lazy-regex = "3.5"
 
