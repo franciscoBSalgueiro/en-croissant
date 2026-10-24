@@ -2439,4 +2439,80 @@ mod tests {
         assert_eq!(white_name.as_deref(), Some("Magnus"));
         assert_eq!(black_name.as_deref(), Some("Hikaru Nakamura"));
     }
+
+    #[test]
+    fn update_game_from_pgn_keeps_records_referenced_by_other_games() {
+        let db = &mut setup_test_db();
+        let player = create_player(db, "M").unwrap();
+        let opponent = create_player(db, "Hikaru").unwrap();
+        let event = create_event(db, "T").unwrap();
+        let site = create_site(db, "S").unwrap();
+
+        let new_game = |white_id: i32, black_id: i32, event_id: i32, site_id: i32| NewGame {
+            event_id,
+            site_id,
+            white_id,
+            black_id,
+            white_elo: None,
+            black_elo: None,
+            white_material: 0,
+            black_material: 0,
+            date: None,
+            time: None,
+            round: None,
+            result: None,
+            time_control: None,
+            eco: None,
+            ply_count: 0,
+            fen: None,
+            moves: &[],
+            pawn_home: 0,
+        };
+
+        let edited = create_game(
+            db,
+            new_game(player.id, opponent.id, event.id, site.id),
+        )
+        .unwrap();
+        let untouched = create_game(
+            db,
+            new_game(player.id, opponent.id, event.id, site.id),
+        )
+        .unwrap();
+
+        // The edited game stops referencing its original records, but another
+        // game still does. Autosave cleanup must not delete shared records.
+        update_game_from_pgn(
+            db,
+            edited.id,
+            "[Event \"To\"]\n[Site \"Sa\"]\n[White \"Ma\"]\n[Black \"Hikaru\"]\n\n1. e4 *\n",
+        )
+        .unwrap();
+
+        assert!(player_names(db).contains(&"M".to_string()));
+        assert!(event_names(db).contains(&"T".to_string()));
+        assert!(site_names(db).contains(&"S".to_string()));
+
+        let (white_id, black_id, event_id, site_id): (i32, i32, i32, i32) = games::table
+            .filter(games::id.eq(untouched.id))
+            .select((
+                games::white_id,
+                games::black_id,
+                games::event_id,
+                games::site_id,
+            ))
+            .first(db)
+            .unwrap();
+        assert_eq!((white_id, black_id), (player.id, opponent.id));
+        assert_eq!((event_id, site_id), (event.id, site.id));
+
+        let (edited_white, edited_event, edited_site): (i32, i32, i32) = games::table
+            .filter(games::id.eq(edited.id))
+            .select((games::white_id, games::event_id, games::site_id))
+            .first(db)
+            .unwrap();
+        assert_ne!(edited_white, player.id);
+        assert_ne!(edited_event, event.id);
+        assert_ne!(edited_site, site.id);
+    }
 }
