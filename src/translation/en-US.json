@@ -608,6 +608,7 @@
     "Settings.MaterialDisplay.All": "All Captured",
     "Settings.MaterialDisplay.Desc": "Show net material difference or all captured pieces",
     "Settings.MaterialDisplay.Diff": "Difference",
+    "Settings.MaterialDisplay.None": "None",
     "Settings.MoveHighlight": "Move Highlight",
     "Settings.MoveHighlight.Desc": "Show highlight for last move and check",
     "Settings.MoveMethod": "Ways to Move Pieces",

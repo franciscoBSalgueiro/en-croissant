@@ -371,10 +371,11 @@ export default function Page() {
             data={[
               { label: t("Settings.MaterialDisplay.Diff"), value: "diff" },
               { label: t("Settings.MaterialDisplay.All"), value: "all" },
+              { label: t("Settings.MaterialDisplay.None"), value: "none" },
             ]}
             allowDeselect={false}
             value={materialDisplay}
-            onChange={(val) => setMaterialDisplay(val as "diff" | "all")}
+            onChange={(val) => setMaterialDisplay(val as "diff" | "all" | "none")}
           />
         ),
       },

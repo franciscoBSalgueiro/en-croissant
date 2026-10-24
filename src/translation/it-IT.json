@@ -597,6 +597,7 @@
     "Settings.MaterialDisplay.All": "Pezzi catturati",
     "Settings.MaterialDisplay.Desc": "Mostra la differenza netta di materiale o tutti i pezzi catturati",
     "Settings.MaterialDisplay.Diff": "Differenza",
+    "Settings.MaterialDisplay.None": "",
     "Settings.MoveHighlight": "Evidenzia mossa",
     "Settings.MoveHighlight.Desc": "Mostra evidenziazione per ultima mossa e scacco",
     "Settings.MoveMethod": "Modalità di movimento dei pezzi",

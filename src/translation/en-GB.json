@@ -601,6 +601,7 @@
     "Settings.MaterialDisplay.All": "",
     "Settings.MaterialDisplay.Desc": "",
     "Settings.MaterialDisplay.Diff": "",
+    "Settings.MaterialDisplay.None": "",
     "Settings.MoveHighlight": "Move Highlight",
     "Settings.MoveHighlight.Desc": "Show highlight for last move and check",
     "Settings.MoveMethod": "",
