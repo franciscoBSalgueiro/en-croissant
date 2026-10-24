@@ -320,8 +320,8 @@ function Board({
   }
 
   const hasClock =
-    !!whiteTime ||
-    !!blackTime ||
+    whiteTime !== undefined ||
+    blackTime !== undefined ||
     !!headers.time_control ||
     !!headers.white_time_control ||
     !!headers.black_time_control;
