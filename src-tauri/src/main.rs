@@ -260,6 +260,15 @@ fn main() {
                 .lock()
                 .expect("aixchess extension path mutex poisoned") = Some(aixchess_extension_path);
 
+            #[cfg(any(target_os = "linux", windows))]
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+
+                if let Err(err) = app.deep_link().register_all() {
+                    log::warn!("Failed to register deep-link protocols: {err}");
+                }
+            }
+
             // #[cfg(any(windows, target_os = "macos"))]
             // set_shadow(&app.get_webview_window("main").unwrap(), true).unwrap();
 

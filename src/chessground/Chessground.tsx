@@ -4,7 +4,7 @@ import type { Config } from "@lichess-org/chessground/config";
 import { Box } from "@mantine/core";
 import { useAtomValue } from "jotai";
 import { type Ref, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { boardImageAtom, is3dAtom, moveMethodAtom } from "@/state/atoms";
+import { boardImageAtom, is3dAtom, moveMethodAtom, pieceAnimationAtom } from "@/state/atoms";
 import { syncBoardBounds } from "./syncBoardBounds";
 
 const BOARD_COORDINATE_COLORS: Record<string, { white: string; black: string }> = {
@@ -50,6 +50,16 @@ function getBoardCoordinateColors(boardImage: string): {
   );
 }
 
+const PIECE_ANIMATION_MS = { none: 0, fast: 120, normal: 200, slow: 400 };
+
+export function pieceAnimation(
+  speed: keyof typeof PIECE_ANIMATION_MS,
+  animation: Config["animation"],
+): Config["animation"] {
+  const duration = PIECE_ANIMATION_MS[speed];
+  return { ...animation, enabled: (animation?.enabled ?? true) && duration > 0, duration };
+}
+
 export interface ChessgroundRef {
   playPremove: () => boolean;
   cancelPremove: () => void;
@@ -67,6 +77,7 @@ export function Chessground({ ref, ...props }: ChessgroundProps) {
 
   const moveMethod = useAtomValue(moveMethodAtom);
   const is3d = useAtomValue(is3dAtom);
+  const animationSpeed = useAtomValue(pieceAnimationAtom);
 
   useImperativeHandle(
     ref,
@@ -117,6 +128,7 @@ export function Chessground({ ref, ...props }: ChessgroundProps) {
           enabled: moveMethod !== "drag",
         },
         addPieceZIndex: is3d,
+        animation: pieceAnimation(animationSpeed, props.animation),
       });
       setApi(chessgroundApi);
     }
@@ -142,8 +154,9 @@ export function Chessground({ ref, ...props }: ChessgroundProps) {
         enabled: moveMethod !== "drag",
       },
       addPieceZIndex: is3d,
+      animation: pieceAnimation(animationSpeed, props.animation),
     });
-  }, [api, props, moveMethod, is3d]);
+  }, [api, props, moveMethod, is3d, animationSpeed]);
 
   const boardImage = useAtomValue(boardImageAtom);
   const boardCoordColors = getBoardCoordinateColors(boardImage);

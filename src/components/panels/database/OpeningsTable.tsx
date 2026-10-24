@@ -9,11 +9,30 @@ import { addPieceSymbol } from "@/utils/annotation";
 import type { Opening } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 import classes from "./OpeningsTable.module.css";
+import { parseSan } from "chessops/san";
+import { makeLan } from "@/utils/chess";
+import { positionFromFen } from "@/utils/chessops";
 
-function OpeningsTable({ openings, loading }: { openings: Opening[]; loading: boolean }) {
+function OpeningsTable({
+  openings,
+  loading,
+  fen,
+}: {
+  openings: Opening[];
+  loading: boolean;
+  fen: string;
+}) {
   const store = useContext(TreeStateContext)!;
   const makeMove = useStore(store, (s) => s.makeMove);
   const [moveNotationType] = useAtom(moveNotationTypeAtom);
+  const [pos] = positionFromFen(fen);
+  function displayMove(move: string) {
+    if (move === "*" || move === "Total") return move;
+    if (moveNotationType !== "lan" || !pos) return move;
+    const parsed = parseSan(pos, move);
+    if (!parsed) return move;
+    return makeLan({ move: parsed, san: move });
+  }
 
   const whiteTotal = openings?.reduce((acc, curr) => acc + curr.white, 0);
   const blackTotal = openings?.reduce((acc, curr) => acc + curr.black, 0);
@@ -59,8 +78,9 @@ function OpeningsTable({ openings, loading }: { openings: Opening[]; loading: bo
                   Game end
                 </Text>
               );
+            const shown = moveNotationType === "lan" ? displayMove(move) : move;
             return (
-              <Text fz="sm">{moveNotationType === "symbols" ? addPieceSymbol(move) : move}</Text>
+              <Text fz="sm">{moveNotationType === "symbols" ? addPieceSymbol(shown) : shown}</Text>
             );
           },
         },

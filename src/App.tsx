@@ -7,6 +7,7 @@ import {
   MantineProvider,
   Textarea,
   TextInput,
+  v8CssVariablesResolver,
 } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
@@ -258,6 +259,7 @@ export default function App() {
   }, [setDatabaseConversionState]);
 
   const theme = createTheme({
+    defaultRadius: "sm",
     primaryColor,
     colors: {
       dark: [
@@ -321,12 +323,13 @@ export default function App() {
       />
 
       <MantineProvider
+        cssVariablesResolver={v8CssVariablesResolver}
         colorSchemeManager={colorSchemeManager}
         defaultColorScheme="dark"
         theme={theme}
       >
         <ContextMenuProvider>
-          <Notifications />
+          <Notifications pauseResetOnHover="notification" />
           <RouterProvider router={router} />
         </ContextMenuProvider>
       </MantineProvider>

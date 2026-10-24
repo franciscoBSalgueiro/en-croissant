@@ -168,7 +168,7 @@ function RuleEditor({
         )}
       </Box>
       {rule.type === "sub-fen" && (
-        <Collapse in={boardOpen} className={classes.boardDetails}>
+        <Collapse expanded={boardOpen} className={classes.boardDetails}>
           <SubFenEditor
             value={rule.values[0] ?? ""}
             onChange={(fen) => onChange({ ...rule, values: [fen, ...rule.values.slice(1)] })}
@@ -293,7 +293,7 @@ export function ConditionCard({
         </Group>
       </Group>
 
-      <Collapse in={!collapsed}>
+      <Collapse expanded={!collapsed}>
         <Stack gap={0}>
           {condition.rules.map((rule, ruleIdx) => (
             <RuleEditor

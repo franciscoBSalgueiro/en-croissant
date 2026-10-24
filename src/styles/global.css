@@ -6,7 +6,7 @@
 }
 
 cg-board square.move-dest {
-  background: radial-gradient(rgba(0, 0, 0, 0.3) 25%, rgba(0, 0, 0, 0) 0);
+  background: radial-gradient(rgba(0, 0, 0, 0.3) 25%, rgba(0, 0, 0, 0) calc(25% + 1px));
 }
 
 [data-mantine-color-scheme="dark"] cg-board square.move-dest:hover {

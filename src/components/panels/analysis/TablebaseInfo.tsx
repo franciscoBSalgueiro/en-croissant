@@ -54,7 +54,7 @@ function TablebaseInfo({ fen, turn }: { fen: string; turn: "white" | "black" }) 
               )}
               {error && (
                 <Text>
-                  {t("Common.Error")}: {error}
+                  {t("Common.Error")}: {error instanceof Error ? error.message : String(error)}
                 </Text>
               )}
               {data && <OutcomeBadge category={data.category} turn={turn} wins />}
