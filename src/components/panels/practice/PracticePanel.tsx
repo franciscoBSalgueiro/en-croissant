@@ -29,7 +29,7 @@ import {
 } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useEffectEvent, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { formatDate } from "ts-fsrs";
@@ -51,6 +51,7 @@ import {
   currentInvisibleAtom,
   currentPracticeTabAtom,
   currentShowCommentsAtom,
+  currentStartPracticeAtom,
   currentTabAtom,
   deckAtomFamily,
   type PracticeData,
@@ -270,6 +271,18 @@ function PracticePanel() {
     setSessionStats((prev) => ({ ...prev, ...stats }));
     newPractice(stats);
   }
+
+  // Opened from the home screen's Start Practice or Practice Full Repertoire: start once the
+  // repertoire's cards are there
+  const [startOnOpen, setStartOnOpen] = useAtom(currentStartPracticeAtom);
+  const start = useEffectEvent((mode: "due" | "full") =>
+    mode === "full" ? startFullPractice() : startPractice(),
+  );
+  useEffect(() => {
+    if (!startOnOpen || deck.positions.length === 0) return;
+    setStartOnOpen(null);
+    start(startOnOpen);
+  }, [startOnOpen, deck.positions.length, setStartOnOpen]);
 
   function skipCard() {
     if (sessionStats.mode === "full" && sessionStats.remainingPositions.length > 0) {

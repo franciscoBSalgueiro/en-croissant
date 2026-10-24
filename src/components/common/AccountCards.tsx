@@ -12,11 +12,12 @@ import { IconCheck, IconEdit, IconX } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
 import { useEffect, useRef, useState } from "react";
 import type { DatabaseInfo } from "@/bindings";
+import { useOpenDatabase } from "@/hooks/useOpenDatabase";
 import { sessionsAtom } from "@/state/atoms";
 import { getChessComAccount, getStats } from "@/utils/chess.com/api";
 import { getLichessAccount } from "@/utils/lichess/api";
 import type { Session } from "@/utils/session";
-import { AccountCard } from "../home/AccountCard";
+import { AccountCard, type AccountCardDisplay } from "../home/AccountCard";
 import { EmptyAccounts } from "../home/EmptyAccounts";
 
 function AccountCards({
@@ -73,6 +74,7 @@ function PlayerSession({
   setDatabases: React.Dispatch<React.SetStateAction<DatabaseInfo[]>>;
 }) {
   const [, setSessions] = useAtom(sessionsAtom);
+  const openDatabase = useOpenDatabase();
   const [edit, setEdit] = useState(false);
   const [text, setText] = useState(name);
   useEffect(() => {
@@ -166,6 +168,8 @@ function PlayerSession({
             databases={databases}
             setDatabases={setDatabases}
             setSessions={setSessions}
+            // A double-click opens the account's games, as on the home screen
+            display={{ onOpenDatabase: openDatabase }}
           />
         ))}
       </Group>
@@ -173,16 +177,18 @@ function PlayerSession({
   );
 }
 
-function LichessOrChessCom({
+export function LichessOrChessCom({
   session,
   databases,
   setDatabases,
   setSessions,
+  display,
 }: {
   session: Session;
   databases: DatabaseInfo[];
   setDatabases: React.Dispatch<React.SetStateAction<DatabaseInfo[]>>;
   setSessions: React.Dispatch<React.SetStateAction<Session[]>>;
+  display?: AccountCardDisplay;
 }) {
   if (session.lichess?.account) {
     const account = session.lichess.account;
@@ -247,6 +253,7 @@ function LichessOrChessCom({
           );
         }}
         stats={stats}
+        {...display}
       />
     );
   }
@@ -294,6 +301,7 @@ function LichessOrChessCom({
           );
         }}
         setDatabases={setDatabases}
+        {...display}
       />
     );
   }

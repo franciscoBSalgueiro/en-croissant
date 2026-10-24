@@ -5,3 +5,219 @@
 [data-mantine-color-scheme="light"] .recentFileRow:hover {
   background-color: var(--mantine-color-gray-1);
 }
+
+/* One spacing everywhere on the home screen (md): its margins, every gap, and the padding inside
+   cards and lists. It takes over the tab's own padding (BoardsPage: xs at the sides, sm below),
+   so what sticks out of the panels at its edges isn't cut off: their outlines while editing, and
+   the drop zones for a new first or last column. It never scrolls: the lists shrink to fit the
+   window (and scroll inside). */
+.home {
+  display: flex;
+  flex-direction: column;
+  height: calc(100% + var(--mantine-spacing-sm));
+  margin: 0 calc(var(--mantine-spacing-xs) * -1) calc(var(--mantine-spacing-sm) * -1);
+  padding: var(--mantine-spacing-md);
+  overflow: hidden;
+}
+
+/* Less the tab bar's own margin below it (BoardsPage) */
+.homeBelowTabBar {
+  padding-top: calc(var(--mantine-spacing-md) - 0.5rem);
+}
+
+.cardRows {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: var(--mantine-spacing-md);
+}
+
+/* The gaps between cards are margins (which dragging measures), on the left of each card: the
+   first one falls outside the row, which is that much wider than the screen */
+.cardRow {
+  display: flex;
+  justify-content: center;
+  margin-left: calc(var(--mantine-spacing-md) * -1);
+}
+
+.cardRow > .panel {
+  margin-left: var(--mantine-spacing-md);
+}
+
+/* Every column reaches the bottom of the screen */
+.columns {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  min-height: 0;
+  gap: var(--mantine-spacing-md);
+}
+
+.columnsBelowCards {
+  margin-top: var(--mantine-spacing-md);
+}
+
+/* The drop zones between the columns take the place of the gaps */
+.editingColumns {
+  gap: 0;
+}
+
+/* As with the cards: each list's gap is a margin above it, and the first one falls outside */
+.column {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-width: 0;
+  margin-top: calc(var(--mantine-spacing-md) * -1);
+}
+
+.column > .panel {
+  margin-top: var(--mantine-spacing-md);
+}
+
+/* The expanded lists in a column share its height */
+.expandedList {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.collapsedList {
+  flex: 0 0 auto;
+}
+
+.newColumn {
+  position: relative;
+  flex: 0 0 var(--mantine-spacing-md);
+  border-radius: var(--mantine-radius-sm);
+}
+
+/* The zones for a new first or last column sit outside the columns, in the home screen's padding */
+.newFirstColumn,
+.newLastColumn {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: var(--mantine-spacing-md);
+}
+
+.newFirstColumn {
+  left: calc(var(--mantine-spacing-md) * -1);
+}
+
+.newLastColumn {
+  right: calc(var(--mantine-spacing-md) * -1);
+}
+
+.newColumnPlaceholder {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.newColumnAvailable {
+  background-color: var(--mantine-primary-color-light);
+}
+
+.newColumnOver {
+  background-color: var(--mantine-primary-color-filled);
+}
+
+.panel {
+  position: relative;
+}
+
+/* What a panel shows fills it, even when it doesn't set its own height (an account's card) */
+.panelContent {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.panelContent > * {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.editingPanel {
+  cursor: grab;
+  border-radius: var(--mantine-radius-md);
+  outline: 1px dashed var(--mantine-color-dimmed);
+  outline-offset: 2px;
+}
+
+/* While editing, a click or drag anywhere on a card or list moves it, rather than using it */
+.editingPanel .panelContent {
+  pointer-events: none;
+}
+
+.panelButtons {
+  position: absolute;
+  top: var(--mantine-spacing-xs);
+  right: var(--mantine-spacing-xs);
+  z-index: 1;
+}
+
+.listHeader {
+  cursor: pointer;
+}
+
+.listBody {
+  flex: 1;
+  min-height: 0;
+}
+
+.editBar {
+  position: absolute;
+  right: var(--mantine-spacing-md);
+  bottom: var(--mantine-spacing-md);
+  z-index: 10;
+}
+
+.addEntry {
+  display: block;
+  width: 100%;
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+  border-radius: var(--mantine-radius-sm);
+}
+
+.addEntry:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+[data-mantine-color-scheme="dark"] .addEntry:not(:disabled):hover {
+  background-color: var(--mantine-color-dark-5);
+}
+
+[data-mantine-color-scheme="light"] .addEntry:not(:disabled):hover {
+  background-color: var(--mantine-color-gray-1);
+}
+
+.pickRow {
+  padding: 6px var(--mantine-spacing-xs);
+  border-radius: var(--mantine-radius-sm);
+}
+
+/* A Multi card's rows never scroll: one that doesn't fit wraps into a second column, out of sight */
+.picksRows {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  row-gap: 0.125rem;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Fixed heights (their natural ones), which the Multi card pickers count with (HomeGrid) */
+.picksRows > * {
+  flex: 0 0 auto;
+  width: 100%;
+  height: 2rem;
+}
+
+.picksRows > .picksAccountRow {
+  height: 2.125rem;
+}
