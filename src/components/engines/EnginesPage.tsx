@@ -570,6 +570,7 @@ function EngineSettings({
                 ...engine,
                 id: crypto.randomUUID(),
                 name: `${engine.name} (Copy)`,
+                settings: engine.settings?.map((setting) => ({ ...setting })),
               };
               setEngines(async (prev) => {
                 const copy = [...(await prev)];
@@ -591,7 +592,7 @@ function EngineSettings({
           opened={deleteModal}
           onClose={toggleDeleteModal}
           onConfirm={() => {
-            setEngines(async (prev) => (await prev).filter((e) => e.name !== engine.name));
+            setEngines(async (prev) => (await prev).filter((e) => e.id !== engine.id));
             setSelected(null);
             toggleDeleteModal();
           }}
@@ -599,14 +600,17 @@ function EngineSettings({
         />
       </Stack>
       <JSONModal
-        key={engine.name}
+        key={engine.id}
         opened={jsonModal}
         toggleOpened={toggleJSONModal}
         engine={engine}
         setEngine={(v) =>
           setEngines(async (prev) => {
             const copy = [...(await prev)];
-            copy[selected] = v;
+            const hasDuplicateId = copy.some(
+              (engine, index) => index !== selected && engine.id === v.id,
+            );
+            copy[selected] = hasDuplicateId ? { ...v, id: crypto.randomUUID() } : v;
             return copy;
           })
         }
@@ -630,6 +634,14 @@ function JSONModal({
 
   const [value, setValue] = useState(JSON.stringify(engine, null, 2));
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (opened) {
+      setValue(JSON.stringify(engine, null, 2));
+      setError(null);
+    }
+  }, [opened, engine]);
+
   return (
     <Modal opened={opened} onClose={toggleOpened} title={t("Engines.Settings.EditJSON")} size="xl">
       <JsonInput

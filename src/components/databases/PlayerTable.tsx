@@ -87,7 +87,7 @@ function PlayerTable() {
             </ActionIcon>
           </Flex>
 
-          <Collapse in={open}>
+          <Collapse expanded={open}>
             <Group mt="md">
               <NumberInput
                 label={t("Databases.Player.MinELO")}

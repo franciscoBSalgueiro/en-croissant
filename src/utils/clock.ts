@@ -14,7 +14,7 @@ function calculateProgress(
     if (tc) {
         return clock / (tc.seconds / 1000);
     }
-    if (timeControl) {
+    if (timeControl?.length) {
         return clock / (timeControl[0].seconds / 1000);
     }
     if (root.children.length > 0 && root.children[0].clock) {

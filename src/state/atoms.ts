@@ -156,11 +156,23 @@ const enginesFileStorage: AsyncStringStorage = {
     },
 };
 
+const enginesSchema = zodArray(engineSchema).transform((engines) => {
+    const ids = new Set<string>();
+
+    return engines.map((engine) => {
+        if (ids.has(engine.id)) {
+            return { ...engine, id: crypto.randomUUID() };
+        }
+        ids.add(engine.id);
+        return engine;
+    });
+});
+
 export const enginesAtom = unwrap(
     atomWithStorage<Engine[]>(
         "engines/engines.json",
         [],
-        createAsyncZodStorage(zodArray(engineSchema), enginesFileStorage) as AsyncStorage<Engine[]>,
+        createAsyncZodStorage(enginesSchema, enginesFileStorage) as AsyncStorage<Engine[]>,
     ),
 );
 
@@ -173,8 +185,15 @@ export const fontSizeAtom = atomWithStorage(
     Number.parseInt(document.documentElement.style.fontSize) || 100,
 );
 
-export const moveNotationTypeAtom = atomWithStorage<"letters" | "symbols">("letters", "symbols");
+export const moveNotationTypeAtom = atomWithStorage<"letters" | "symbols" | "lan">(
+    "letters",
+    "symbols",
+);
 export const moveMethodAtom = atomWithStorage<"drag" | "select" | "both">("move-method", "both");
+export const pieceAnimationAtom = atomWithStorage<"none" | "fast" | "normal" | "slow">(
+    "piece-animation",
+    "normal",
+);
 export const spellCheckAtom = atomWithStorage<boolean>("spell-check", false);
 export const moveInputAtom = atomWithStorage<boolean>("move-input", false);
 export const showDestsAtom = atomWithStorage<boolean>("show-dests", true);
@@ -192,7 +211,10 @@ export const autoSaveAtom = atomWithStorage<boolean>("auto-save", true);
 export const previewBoardOnHoverAtom = atomWithStorage<boolean>("preview-board-on-hover", true);
 export const flipBoardAfterMoveAtom = atomWithStorage<boolean>("flip-board-after-move", true);
 export const enableBoardScrollAtom = atomWithStorage<boolean>("board-scroll", true);
-export const materialDisplayAtom = atomWithStorage<"diff" | "all">("material-display", "diff");
+export const materialDisplayAtom = atomWithStorage<"diff" | "all" | "none">(
+    "material-display",
+    "diff",
+);
 export const defaultPanelTabAtom = atomWithStorage<"analysis" | "database" | "annotate" | "info">(
     "default-panel-tab",
     "info",
@@ -225,6 +247,9 @@ export const is3dAtom = atomWithStorage<boolean>("is-3d", false);
 export const primaryColorAtom = atomWithStorage<MantineColor>("mantine-primary-color", "blue");
 export const sessionsAtom = atomWithStorage<Session[]>("sessions", []);
 export const nativeBarAtom = atomWithStorage<boolean>("native-bar", false);
+export const isCompactLayoutAtom = atom<boolean>(false);
+export const showSidebarAtom = atomWithStorage<boolean>("show-sidebar", true);
+export const showTabBarAtom = atomWithStorage<boolean>("show-tabbar", true);
 export const telemetryEnabledAtom = atomWithStorage<boolean>("telemetry-enabled", true, undefined, {
     getOnInit: true,
 });
