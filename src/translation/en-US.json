@@ -317,7 +317,7 @@
     "Errors.InvalidEpSquare": "Invalid en passant square",
     "Errors.InvalidFen": "Invalid FEN",
     "Errors.InvalidFullmoves": "Invalid fullmove number",
-    "Errors.InvalidHaldmoves": "Invalid halfmove number",
+    "Errors.InvalidHalfmoves": "Invalid halfmove number",
     "Errors.InvalidKings": "Invalid number of kings",
     "Errors.InvalidPockets": "Invalid pockets",
     "Errors.InvalidRemainingChecks": "Invalid remaining checks",

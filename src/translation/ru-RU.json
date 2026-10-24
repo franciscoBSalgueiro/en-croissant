@@ -321,7 +321,7 @@
     "Errors.InvalidEpSquare": "Неверная клетка взятия на проходе",
     "Errors.InvalidFen": "Неверный FEN",
     "Errors.InvalidFullmoves": "Неверное число полных ходов",
-    "Errors.InvalidHaldmoves": "Неверное число полуходов",
+    "Errors.InvalidHalfmoves": "Неверное число полуходов",
     "Errors.InvalidKings": "Неверное количество королей",
     "Errors.InvalidPockets": "Неверные карманы",
     "Errors.InvalidRemainingChecks": "Неверное число оставшихся шахов",

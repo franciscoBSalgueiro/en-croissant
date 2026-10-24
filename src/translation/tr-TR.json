@@ -317,7 +317,7 @@
     "Errors.InvalidEpSquare": "Geçersiz geçerken alma karesi",
     "Errors.InvalidFen": "Geçersiz FEN",
     "Errors.InvalidFullmoves": "Geçersiz hamle numarası",
-    "Errors.InvalidHaldmoves": "Geçersiz yarım hamle sayısı",
+    "Errors.InvalidHalfmoves": "Geçersiz yarım hamle sayısı",
     "Errors.InvalidKings": "Geçersiz şah sayısı",
     "Errors.InvalidPockets": "Geçersiz cepler",
     "Errors.InvalidRemainingChecks": "Geçersiz kalan şah sayısı",
