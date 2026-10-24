@@ -1,11 +1,16 @@
 import { notifications } from "@mantine/notifications";
 import { fetch } from "@tauri-apps/plugin-http";
+import type { error, info } from "@tauri-apps/plugin-log";
+import type { getDatabasesDir } from "../directories";
 import { beforeEach, expect, test, vi } from "vitest";
 import { getChessComAccount, getStats } from "../chess.com/api";
 
-vi.mock("@tauri-apps/plugin-http", () => ({ fetch: vi.fn() }));
-vi.mock("@tauri-apps/plugin-log", () => ({ error: vi.fn(), info: vi.fn() }));
-vi.mock("../directories", () => ({ getDatabasesDir: vi.fn() }));
+vi.mock("@tauri-apps/plugin-http", () => ({ fetch: vi.fn<typeof fetch>() }));
+vi.mock("@tauri-apps/plugin-log", () => ({
+    error: vi.fn<typeof error>(),
+    info: vi.fn<typeof info>(),
+}));
+vi.mock("../directories", () => ({ getDatabasesDir: vi.fn<typeof getDatabasesDir>() }));
 
 beforeEach(() => {
     vi.resetAllMocks();
