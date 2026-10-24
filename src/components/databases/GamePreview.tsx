@@ -34,6 +34,7 @@ function GamePreviewWrapper({
         <GamePreview
           key={`${headers?.fen ?? ""}:${pgn}`}
           game={parsedGame}
+          orientation={headers?.orientation}
           hideControls={hideControls}
           showOpening={showOpening}
           startAtEnd={startAtEnd}
@@ -45,11 +46,13 @@ function GamePreviewWrapper({
 
 function GamePreview({
   game,
+  orientation,
   hideControls,
   showOpening,
   startAtEnd,
 }: {
   game: TreeState;
+  orientation?: "white" | "black";
   hideControls?: boolean;
   showOpening?: boolean;
   startAtEnd?: boolean;
@@ -65,7 +68,7 @@ function GamePreview({
       {showOpening && <OpeningName />}
       <Group align="end" grow style={{ overflow: "hidden", height: "100%" }}>
         <Box ref={boardRef}>
-          <PreviewBoard />
+          <PreviewBoard orientation={orientation} />
         </Box>
         {!hideControls && (
           <Stack style={{ height }} gap="xs">
@@ -78,7 +81,7 @@ function GamePreview({
   );
 }
 
-function PreviewBoard() {
+function PreviewBoard({ orientation }: { orientation?: "white" | "black" }) {
   const store = useContext(TreeStateContext)!;
   const goToNext = useStore(store, (s) => s.goToNext);
   const goToPrevious = useStore(store, (s) => s.goToPrevious);
@@ -102,7 +105,7 @@ function PreviewBoard() {
         coordinates={false}
         viewOnly={true}
         fen={fen}
-        orientation={headers.orientation || "white"}
+        orientation={orientation || headers.orientation || "white"}
       />
     </Box>
   );
