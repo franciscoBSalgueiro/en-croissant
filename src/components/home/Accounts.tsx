@@ -29,8 +29,6 @@ function Accounts() {
   const { t } = useTranslation();
   const [sessions, setSessions] = useAtom(sessionsAtom);
   const isListening = useRef(false);
-  // The databases list the other pages share, so a visit after the first starts from the last list
-  // rather than none (the cards' games bars would fill up from empty every time)
   const { data: databases = [], mutate } = useSWR("databases", () => getDatabases());
   const setDatabases: React.Dispatch<React.SetStateAction<DatabaseInfo[]>> = (update) =>
     mutate((current) => (typeof update === "function" ? update(current ?? []) : update), {

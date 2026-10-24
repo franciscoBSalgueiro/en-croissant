@@ -156,8 +156,6 @@ export const enginesAtom = unwrap(
         [],
         createAsyncZodStorage(zodArray(engineSchema), enginesFileStorage) as AsyncStorage<Engine[]>,
     ),
-    // The file is read again whenever the engines are shown again; meanwhile the last list stays,
-    // rather than none, so a new analysis tab doesn't start without its engines
     (prev) => prev,
 );
 

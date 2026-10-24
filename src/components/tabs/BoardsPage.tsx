@@ -65,8 +65,6 @@ export default function BoardsPage() {
             startTransition(() => setActiveTab(null));
           }
         }
-        // Along with selecting the next tab, so there's no moment with the closed tab gone and
-        // nothing shown in its place
         startTransition(() => setTabs((prev) => prev.filter((tab) => tab.value !== value)));
         unwrap(await commands.killEngines(value));
         await commands.abortGame(`${value}-game`);
