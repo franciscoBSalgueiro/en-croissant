@@ -580,6 +580,8 @@
     "Settings.Coordinates.Desc": "Show coordinates on the board",
     "Settings.Coordinates.Edge": "On the edge",
     "Settings.Coordinates.None": "No",
+    "Settings.DefaultPanelTab": "Default Panel Tab",
+    "Settings.DefaultPanelTab.Desc": "The tab a game or analysis board opens on (repertoires open on Practice)",
     "Settings.Directories": "Directories",
     "Settings.Directories.Databases": "Databases directory",
     "Settings.Directories.Databases.Desc": "This is where your databases are stored",

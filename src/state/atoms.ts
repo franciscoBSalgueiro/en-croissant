@@ -5,7 +5,13 @@ import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { atom, type PrimitiveAtom } from "jotai";
-import { atomFamily, atomWithStorage, createJSONStorage, unwrap } from "jotai/utils";
+import {
+    atomFamily,
+    atomWithDefault,
+    atomWithStorage,
+    createJSONStorage,
+    unwrap,
+} from "jotai/utils";
 import type { AtomFamily } from "jotai/vanilla/utils/atomFamily";
 import type {
     AsyncStorage,
@@ -209,6 +215,12 @@ export const materialDisplayAtom = atomWithStorage<"diff" | "all" | "none">(
     "material-display",
     "diff",
 );
+export const defaultPanelTabAtom = atomWithStorage<"analysis" | "database" | "annotate" | "info">(
+    "default-panel-tab",
+    "info",
+    undefined,
+    { getOnInit: true },
+);
 export const forcedEnPassantAtom = atomWithStorage<boolean>("forced-ep", false);
 export const showCoordinatesAtom = atomWithStorage<"no" | "edge" | "all">(
     "show-coordinates-v2",
@@ -397,7 +409,11 @@ export const currentShowCommentsAtom = tabValue(showCommentsFamily);
 const showVariationsFamily = atomFamily((_tab: string) => atom(true));
 export const currentShowVariationsAtom = tabValue(showVariationsFamily);
 
-export const tabFamily = atomFamily((_tab: string) => atom("info"));
+// A board shows the tab chosen in Settings until another one is picked (repertoires open
+// on "practice")
+export const tabFamily = atomFamily((_tab: string) =>
+    atomWithDefault<string>((get) => get(defaultPanelTabAtom)),
+);
 export const currentTabSelectedAtom = tabValue(tabFamily);
 
 const reportModalOpenFamily = atomFamily((_tab: string) => atom(false));

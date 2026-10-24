@@ -573,6 +573,8 @@
     "Settings.Coordinates.Desc": "Show coordinates on the board",
     "Settings.Coordinates.Edge": "",
     "Settings.Coordinates.None": "",
+    "Settings.DefaultPanelTab": "",
+    "Settings.DefaultPanelTab.Desc": "",
     "Settings.Directories": "Directories",
     "Settings.Directories.Databases": "Databases directory",
     "Settings.Directories.Databases.Desc": "This is where your databases are stored",

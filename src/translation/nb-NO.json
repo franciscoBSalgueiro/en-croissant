@@ -559,6 +559,8 @@
     "Settings.Coordinates.Desc": "Vis kordinater på brette",
     "Settings.Coordinates.Edge": "",
     "Settings.Coordinates.None": "",
+    "Settings.DefaultPanelTab": "",
+    "Settings.DefaultPanelTab.Desc": "",
     "Settings.Directories": "Mapper",
     "Settings.Directories.Databases": "Databasekatalog",
     "Settings.Directories.Databases.Desc": "Dette er hvor databasene dine blir lagret",

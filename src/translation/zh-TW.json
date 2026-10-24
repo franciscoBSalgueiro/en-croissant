@@ -550,6 +550,8 @@
     "Settings.Coordinates.Desc": "顯示棋盤座標",
     "Settings.Coordinates.Edge": "",
     "Settings.Coordinates.None": "",
+    "Settings.DefaultPanelTab": "",
+    "Settings.DefaultPanelTab.Desc": "",
     "Settings.Directories": "目錄",
     "Settings.Directories.Databases": "資料庫目錄",
     "Settings.Directories.Databases.Desc": "這是您的資料庫儲存的位置",

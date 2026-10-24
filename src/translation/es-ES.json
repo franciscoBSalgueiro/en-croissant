@@ -569,6 +569,8 @@
     "Settings.Coordinates.Desc": "Mostrar coordenadas en el tablero",
     "Settings.Coordinates.Edge": "",
     "Settings.Coordinates.None": "",
+    "Settings.DefaultPanelTab": "",
+    "Settings.DefaultPanelTab.Desc": "",
     "Settings.Directories": "Directorios",
     "Settings.Directories.Databases": "Directorio de bases de datos",
     "Settings.Directories.Databases.Desc": "Este es el lugar donde se almacenan sus bases de datos",
