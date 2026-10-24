@@ -37,7 +37,10 @@ use specta::Type;
 use std::{
     fs::{remove_file, File, OpenOptions},
     path::{Path, PathBuf},
-    sync::atomic::{AtomicUsize, Ordering},
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
     time::{Duration, Instant},
 };
 use std::{
@@ -1903,6 +1906,75 @@ pub fn clear_games(state: tauri::State<'_, AppState>) {
     *state = None;
 }
 
+async fn ensure_search_index_with<F, C>(
+    generation_locks: &DashMap<PathBuf, Arc<tokio::sync::Mutex<()>>>,
+    index_path: &Path,
+    cached: C,
+    generate: F,
+) -> Result<MmapSearchIndex, Error>
+where
+    C: Fn() -> Option<MmapSearchIndex>,
+    F: FnOnce() -> Result<(), Error>,
+{
+    let generation_lock = generation_locks
+        .entry(index_path.to_path_buf())
+        .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
+        .clone();
+    let _guard = generation_lock.lock().await;
+
+    // Recheck while holding the generation lock: another caller may have
+    // rebuilt the index while this caller was waiting.
+    if let Some(index) = cached() {
+        return Ok(index);
+    }
+
+    if let Ok(index) = MmapSearchIndex::open(index_path) {
+        return Ok(index);
+    }
+
+    info!(
+        "Search index at {:?} is missing or invalid, regenerating...",
+        index_path
+    );
+    generate().map_err(|error| {
+        Error::from(std::io::Error::other(format!(
+            "Failed to generate search index: {}",
+            error
+        )))
+    })?;
+
+    MmapSearchIndex::open(index_path).map_err(|error| {
+        Error::from(std::io::Error::other(format!(
+            "Search index at {:?} is still invalid after regeneration: {}",
+            index_path, error
+        )))
+    })
+}
+
+async fn load_search_index(
+    file: &Path,
+    state: &tauri::State<'_, AppState>,
+) -> Result<MmapSearchIndex, Error> {
+    if let Some(index) = state.db_cache.lock().unwrap().as_ref().cloned() {
+        return Ok(index);
+    }
+
+    let index = ensure_search_index_with(
+        &state.search_index_generation,
+        &get_index_path(file),
+        || state.db_cache.lock().unwrap().clone(),
+        || generate_search_index(file, state),
+    )
+    .await?;
+
+    let mut cache = state.db_cache.lock().unwrap();
+    if cache.is_none() {
+        *cache = Some(index.clone());
+    }
+
+    Ok(cache.as_ref().unwrap().clone())
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn preload_reference_db(
@@ -1910,25 +1982,12 @@ pub async fn preload_reference_db(
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
     let index_path = get_index_path(&file);
-
-    if !MmapSearchIndex::is_valid(&index_path) {
-        info!("Search index not found for reference database, generating...");
-        generate_search_index(&file, &state)?;
-    }
-
-    let mut cache = state.db_cache.lock().unwrap();
-    if cache.is_none() {
-        info!("Preloading reference database from {:?}", index_path);
-        match MmapSearchIndex::open(&index_path) {
-            Ok(index) => {
-                info!("Preloaded reference database with {} games", index.len());
-                *cache = Some(index);
-            }
-            Err(e) => {
-                return Err(Error::from(e));
-            }
-        }
-    }
+    let index = load_search_index(&file, &state).await?;
+    info!(
+        "Preloaded reference database from {:?} with {} games",
+        index_path,
+        index.len()
+    );
 
     Ok(())
 }
@@ -1937,6 +1996,109 @@ pub async fn preload_reference_db(
 mod tests {
     use super::*;
     use pgn_reader::BufferedReader;
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn concurrent_search_index_generation_runs_once() {
+        use std::sync::{
+            atomic::{AtomicUsize, Ordering},
+            Arc,
+        };
+
+        let dir = tempfile::tempdir().unwrap();
+        let index_path = dir.path().join("concurrent.ecsi");
+        let generation_locks = Arc::new(DashMap::new());
+        let generations = Arc::new(AtomicUsize::new(0));
+
+        let mut tasks = Vec::new();
+        for _ in 0..8 {
+            let index_path = index_path.clone();
+            let generation_locks = generation_locks.clone();
+            let generations = generations.clone();
+
+            tasks.push(tokio::spawn(async move {
+                ensure_search_index_with(
+                    &generation_locks,
+                    &index_path,
+                    || None,
+                    || {
+                        generations.fetch_add(1, Ordering::SeqCst);
+                        // Keep the first writer busy so the other tasks queue on
+                        // the generation lock instead of racing the file.
+                        std::thread::sleep(Duration::from_millis(25));
+
+                        let mut index = SearchIndex::new();
+                        index.push(SearchGameEntry {
+                            id: 1,
+                            white_id: 10,
+                            black_id: 20,
+                            date: None,
+                            result: super::search_index::GameResult::WhiteWin,
+                            pawn_home: 0,
+                            white_material: 39,
+                            black_material: 39,
+                            white_elo: 2500,
+                            black_elo: 2400,
+                            fen: None,
+                            moves: vec![12, 12],
+                        });
+                        index.write_to(&index_path).map_err(Error::from)
+                    },
+                )
+                .await
+            }));
+        }
+
+        for task in tasks {
+            let index = task.await.unwrap().unwrap();
+            assert_eq!(index.len(), 1);
+        }
+
+        assert_eq!(generations.load(Ordering::SeqCst), 1);
+        assert_eq!(MmapSearchIndex::open(&index_path).unwrap().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn corrupt_search_index_is_regenerated() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
+        let dir = tempfile::tempdir().unwrap();
+        let index_path = dir.path().join("corrupt.ecsi");
+        std::fs::write(&index_path, b"ECSI").unwrap();
+
+        let generation_locks = DashMap::new();
+        let generations = AtomicUsize::new(0);
+
+        let index = ensure_search_index_with(
+            &generation_locks,
+            &index_path,
+            || None,
+            || {
+                generations.fetch_add(1, Ordering::SeqCst);
+                let mut index = SearchIndex::new();
+                index.push(SearchGameEntry {
+                    id: 7,
+                    white_id: 70,
+                    black_id: 80,
+                    date: None,
+                    result: super::search_index::GameResult::Draw,
+                    pawn_home: 0,
+                    white_material: 39,
+                    black_material: 39,
+                    white_elo: 2000,
+                    black_elo: 1900,
+                    fen: None,
+                    moves: vec![],
+                });
+                index.write_to(&index_path).map_err(Error::from)
+            },
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(generations.load(Ordering::SeqCst), 1);
+        assert_eq!(index.len(), 1);
+        assert_eq!(index.get_entry_ref(0).unwrap().id, 7);
+    }
 
     #[test]
     fn home_row() {

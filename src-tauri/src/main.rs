@@ -86,6 +86,8 @@ pub struct AppState {
     new_request: Arc<Semaphore>,
     #[derivative(Default(value = "DashMap::new()"))]
     search_collisions: DashMap<(GameQuery, PathBuf), Arc<tokio::sync::Mutex<()>>>,
+    #[derivative(Default(value = "DashMap::new()"))]
+    search_index_generation: DashMap<PathBuf, Arc<tokio::sync::Mutex<()>>>,
     pgn_offsets: DashMap<String, Vec<u64>>,
 
     engine_processes: DashMap<(String, String), Arc<tokio::sync::Mutex<EngineProcess>>>,

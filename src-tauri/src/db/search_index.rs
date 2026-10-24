@@ -1,6 +1,6 @@
 use std::{
-    fs::{File, OpenOptions},
-    io::{self, BufReader, BufWriter, Read, Write},
+    fs::File,
+    io::{self, BufWriter, Write},
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -8,6 +8,7 @@ use std::{
 use memmap2::Mmap;
 use rayon::prelude::*;
 use rkyv::{Archive, Deserialize, Serialize};
+use tempfile::NamedTempFile;
 
 const MAGIC: &[u8; 4] = b"ECSI";
 const VERSION: u32 = 4;
@@ -112,23 +113,33 @@ impl SearchIndex {
     }
 
     pub fn write_to<P: AsRef<Path>>(&self, path: P) -> io::Result<()> {
-        let file = OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .open(path)?;
+        let path = path.as_ref();
+        let parent = path
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+            .unwrap_or_else(|| Path::new("."));
 
-        let mut writer = BufWriter::new(file);
+        let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(self)
+            .map_err(|e| io::Error::other(format!("Serialization error: {}", e)))?;
 
-        writer.write_all(MAGIC)?;
-        writer.write_all(&VERSION.to_le_bytes())?;
+        // Write to a temporary file in the same directory and publish it with
+        // an atomic rename. Existing readers keep their old mapping instead of
+        // observing a truncated file while a new index is being generated.
+        let mut temp = NamedTempFile::new_in(parent)?;
 
-        let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(self).map_err(|e| {
-            io::Error::other(format!("Serialization error: {}", e))
-        })?;
+        {
+            let mut writer = BufWriter::new(temp.as_file_mut());
 
-        writer.write_all(&bytes)?;
-        writer.flush()
+            writer.write_all(MAGIC)?;
+            writer.write_all(&VERSION.to_le_bytes())?;
+            writer.write_all(&bytes)?;
+            writer.flush()?;
+        }
+
+        temp.as_file().sync_all()?;
+        temp.persist(path).map_err(|error| error.error)?;
+
+        Ok(())
     }
 }
 
@@ -231,7 +242,13 @@ impl MmapSearchIndex {
         let mmap = Arc::new(mmap);
 
         let archived_bytes = &mmap[HEADER_SIZE..];
-        let archived = unsafe { rkyv::access_unchecked::<ArchivedSearchIndex>(archived_bytes) };
+        let archived = rkyv::access::<ArchivedSearchIndex, rkyv::rancor::Error>(archived_bytes)
+            .map_err(|error| {
+                io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("Invalid search index: {}", error),
+                )
+            })?;
 
         let archived: &'static ArchivedSearchIndex = unsafe { std::mem::transmute(archived) };
 
@@ -268,22 +285,7 @@ impl MmapSearchIndex {
     }
 
     pub fn is_valid<P: AsRef<Path>>(path: P) -> bool {
-        let path = path.as_ref();
-        if !path.exists() {
-            return false;
-        }
-
-        let Ok(file) = File::open(path) else {
-            return false;
-        };
-
-        let mut header = [0u8; HEADER_SIZE];
-        let mut reader = BufReader::new(file);
-        if reader.read_exact(&mut header).is_err() {
-            return false;
-        }
-
-        verify_header(&header).is_ok()
+        Self::open(path).is_ok()
     }
 
     #[allow(dead_code)]
@@ -485,5 +487,84 @@ mod tests {
         // Test parallel iteration
         let sum: i32 = mmap_index.par_iter().map(|e| e.id).sum();
         assert_eq!(sum, (0..100i32).sum::<i32>());
+    }
+
+    fn sample_entry(id: i32) -> SearchGameEntry {
+        SearchGameEntry {
+            id,
+            white_id: id,
+            black_id: id,
+            date: None,
+            result: GameResult::None,
+            pawn_home: 0,
+            white_material: 0,
+            black_material: 0,
+            white_elo: 0,
+            black_elo: 0,
+            fen: None,
+            moves: vec![],
+        }
+    }
+
+    #[test]
+    fn header_keeps_archived_index_aligned() {
+        // `open` hands the bytes after the header to `rkyv::access`, which
+        // requires the archived root to be properly aligned.
+        assert!(std::mem::align_of::<ArchivedSearchIndex>() <= HEADER_SIZE);
+    }
+
+    #[test]
+    fn test_rewrite_keeps_existing_mappings_readable() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("replace.ecsi");
+
+        let mut index = SearchIndex::new();
+        index.push(sample_entry(1));
+        index.write_to(&path).unwrap();
+
+        let old = MmapSearchIndex::open(&path).unwrap();
+        assert_eq!(old.len(), 1);
+
+        let mut index = SearchIndex::new();
+        index.push(sample_entry(2));
+        index.push(sample_entry(3));
+        index.write_to(&path).unwrap();
+
+        // Existing readers keep a consistent snapshot instead of observing a
+        // truncated file while the replacement is written.
+        assert_eq!(old.len(), 1);
+        assert_eq!(old.get_entry_ref(0).unwrap().id, 1);
+
+        let new = MmapSearchIndex::open(&path).unwrap();
+        assert_eq!(new.len(), 2);
+        assert_eq!(new.get_entry_ref(0).unwrap().id, 2);
+
+        let mut files: Vec<_> = std::fs::read_dir(dir.path())
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name())
+            .collect();
+        files.sort();
+        assert_eq!(files, vec![std::ffi::OsString::from("replace.ecsi")]);
+    }
+
+    #[test]
+    fn test_truncated_index_is_rejected() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("truncated.ecsi");
+
+        let mut index = SearchIndex::new();
+        index.push(sample_entry(1));
+        index.push(sample_entry(2));
+        index.write_to(&path).unwrap();
+        assert!(MmapSearchIndex::is_valid(&path));
+
+        let file = std::fs::OpenOptions::new().write(true).open(&path).unwrap();
+        file.set_len((HEADER_SIZE + 1) as u64).unwrap();
+        drop(file);
+
+        let error = MmapSearchIndex::open(&path)
+            .err()
+            .expect("truncated index must be rejected");
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
     }
 }

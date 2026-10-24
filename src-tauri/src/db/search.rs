@@ -26,7 +26,7 @@ use crate::{
         models::*,
         normalize_games,
         schema::*,
-        search_index::{get_index_path, GameResult, MmapSearchIndex, SearchGameEntryRef},
+        search_index::{GameResult, SearchGameEntryRef},
         ConnectionOptions, MaterialCount,
     },
     error::Error,
@@ -262,40 +262,12 @@ pub async fn search_position(
 
     let permit = state.new_request.acquire().await.unwrap();
 
-    let mmap_index = {
-        let mut cache = state.db_cache.lock().unwrap();
-        if cache.is_none() {
-            let index_path = get_index_path(&file);
-
-            if !MmapSearchIndex::is_valid(&index_path) {
-                info!("Search index not found, generating automatically...");
-                drop(cache);
-                if let Err(e) = super::generate_search_index(&file, &state) {
-                    return Err(Error::from(std::io::Error::other(format!(
-                        "Failed to generate search index: {}",
-                        e
-                    ))));
-                }
-                cache = state.db_cache.lock().unwrap();
-            }
-
-            info!("Loading games from mmap binary search index");
-            match MmapSearchIndex::open(&index_path) {
-                Ok(index) => {
-                    info!(
-                        "Opened mmap index with {} games: {:?}",
-                        index.len(),
-                        start.elapsed()
-                    );
-                    *cache = Some(index);
-                }
-                Err(e) => {
-                    return Err(Error::from(e));
-                }
-            }
-        }
-        cache.as_ref().unwrap().clone()
-    };
+    let mmap_index = super::load_search_index(&file, &state).await?;
+    info!(
+        "Opened mmap index with {} games: {:?}",
+        mmap_index.len(),
+        start.elapsed()
+    );
 
     let game_count = mmap_index.len();
 
@@ -491,40 +463,12 @@ pub async fn is_position_in_db(
 
     let permit = state.new_request.acquire().await.unwrap();
 
-    let mmap_index = {
-        let mut cache = state.db_cache.lock().unwrap();
-        if cache.is_none() {
-            let index_path = get_index_path(&file);
-
-            if !MmapSearchIndex::is_valid(&index_path) {
-                info!("Search index not found, generating automatically...");
-                drop(cache);
-                if let Err(e) = super::generate_search_index(&file, &state) {
-                    return Err(Error::from(std::io::Error::other(format!(
-                        "Failed to generate search index: {}",
-                        e
-                    ))));
-                }
-                cache = state.db_cache.lock().unwrap();
-            }
-
-            info!("Loading games from mmap binary search index");
-            match MmapSearchIndex::open(&index_path) {
-                Ok(index) => {
-                    info!(
-                        "Opened mmap index with {} games: {:?}",
-                        index.len(),
-                        start.elapsed()
-                    );
-                    *cache = Some(index);
-                }
-                Err(e) => {
-                    return Err(Error::from(e));
-                }
-            }
-        }
-        cache.as_ref().unwrap().clone()
-    };
+    let mmap_index = super::load_search_index(&file, &state).await?;
+    info!(
+        "Opened mmap index with {} games: {:?}",
+        mmap_index.len(),
+        start.elapsed()
+    );
 
     let check_entry = |entry: SearchGameEntryRef<'_>| -> bool {
         let end_material: MaterialCount = ByColor {
