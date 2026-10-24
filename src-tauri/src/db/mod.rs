@@ -1571,6 +1571,69 @@ fn delete_orphaned_data(db: &mut SqliteConnection) -> Result<(), Error> {
     Ok(())
 }
 
+fn delete_player_if_unreferenced(db: &mut SqliteConnection, id: i32) -> Result<(), Error> {
+    if id == 0 {
+        return Ok(());
+    }
+
+    let referenced: i64 = games::table
+        .filter(games::white_id.eq(id).or(games::black_id.eq(id)))
+        .count()
+        .get_result(db)?;
+    if referenced > 0 {
+        return Ok(());
+    }
+
+    if diesel::delete(players::table.filter(players::id.eq(id))).execute(db)? > 0 {
+        let count: i64 = players::table.count().get_result(db)?;
+        update_info_count(db, "PlayerCount", count)?;
+    }
+
+    Ok(())
+}
+
+fn delete_event_if_unreferenced(db: &mut SqliteConnection, id: i32) -> Result<(), Error> {
+    if id == 0 {
+        return Ok(());
+    }
+
+    let referenced: i64 = games::table
+        .filter(games::event_id.eq(id))
+        .count()
+        .get_result(db)?;
+    if referenced > 0 {
+        return Ok(());
+    }
+
+    if diesel::delete(events::table.filter(events::id.eq(id))).execute(db)? > 0 {
+        let count: i64 = events::table.count().get_result(db)?;
+        update_info_count(db, "EventCount", count)?;
+    }
+
+    Ok(())
+}
+
+fn delete_site_if_unreferenced(db: &mut SqliteConnection, id: i32) -> Result<(), Error> {
+    if id == 0 {
+        return Ok(());
+    }
+
+    let referenced: i64 = games::table
+        .filter(games::site_id.eq(id))
+        .count()
+        .get_result(db)?;
+    if referenced > 0 {
+        return Ok(());
+    }
+
+    if diesel::delete(sites::table.filter(sites::id.eq(id))).execute(db)? > 0 {
+        let count: i64 = sites::table.count().get_result(db)?;
+        update_info_count(db, "SiteCount", count)?;
+    }
+
+    Ok(())
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn delete_duplicated_games(
@@ -1795,6 +1858,27 @@ pub async fn write_db_game(
 ) -> Result<(), Error> {
     let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
 
+    update_game_from_pgn(db, game_id, &pgn)
+}
+
+fn update_game_from_pgn(db: &mut SqliteConnection, game_id: i32, pgn: &str) -> Result<(), Error> {
+    let (previous_white_id, previous_black_id, previous_event_id, previous_site_id): (
+        i32,
+        i32,
+        i32,
+        i32,
+    ) = games::table
+        .filter(games::id.eq(game_id))
+        .select((
+            games::white_id,
+            games::black_id,
+            games::event_id,
+            games::site_id,
+        ))
+        .first(db)
+        .optional()?
+        .ok_or_else(|| Error::GameNotFound(game_id.to_string()))?;
+
     let mut importer = Importer::new(None);
     let mut parsed = BufferedReader::new(pgn.as_bytes())
         .into_iter(&mut importer)
@@ -1855,6 +1939,14 @@ pub async fn write_db_game(
     if updated_rows == 0 {
         return Err(Error::GameNotFound(game_id.to_string()));
     }
+
+    // Autosave writes the game on every header edit, including each keystroke
+    // while a name is being typed. Remove only the records this game stopped
+    // referencing; unrelated unreferenced records must be left untouched.
+    delete_player_if_unreferenced(db, previous_white_id)?;
+    delete_player_if_unreferenced(db, previous_black_id)?;
+    delete_event_if_unreferenced(db, previous_event_id)?;
+    delete_site_if_unreferenced(db, previous_site_id)?;
 
     Ok(())
 }
@@ -2010,6 +2102,42 @@ mod tests {
         conn.batch_execute("PRAGMA foreign_keys = ON;").unwrap();
         conn.batch_execute(CREATE_TABLES_SQL).unwrap();
         conn
+    }
+
+    fn player_names(db: &mut SqliteConnection) -> Vec<String> {
+        let mut names = players::table
+            .select(players::name)
+            .load::<Option<String>>(db)
+            .unwrap()
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
+        names.sort();
+        names
+    }
+
+    fn event_names(db: &mut SqliteConnection) -> Vec<String> {
+        let mut names = events::table
+            .select(events::name)
+            .load::<Option<String>>(db)
+            .unwrap()
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
+        names.sort();
+        names
+    }
+
+    fn site_names(db: &mut SqliteConnection) -> Vec<String> {
+        let mut names = sites::table
+            .select(sites::name)
+            .load::<Option<String>>(db)
+            .unwrap()
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
+        names.sort();
+        names
     }
 
     #[test]
@@ -2201,5 +2329,114 @@ mod tests {
         assert_eq!(event_count, 1, "Only Unknown should remain");
         let site_count: i64 = sites::table.count().get_result(db).unwrap();
         assert_eq!(site_count, 1, "Only Unknown should remain");
+    }
+
+    #[test]
+    fn update_game_from_pgn_removes_players_orphaned_by_header_edits() {
+        let db = &mut setup_test_db();
+        let game = create_game(
+            db,
+            NewGame {
+                event_id: 0,
+                site_id: 0,
+                white_id: 0,
+                black_id: 0,
+                white_elo: None,
+                black_elo: None,
+                white_material: 0,
+                black_material: 0,
+                date: None,
+                time: None,
+                round: None,
+                result: None,
+                time_control: None,
+                eco: None,
+                ply_count: 0,
+                fen: None,
+                moves: &[],
+                pawn_home: 0,
+            },
+        )
+        .unwrap();
+
+        // An unrelated unreferenced player predates this edit. The autosave
+        // cleanup must not delete data this game never referenced.
+        create_player(db, "Existing Orphan").unwrap();
+
+        let write = |db: &mut SqliteConnection, pgn: &str| {
+            update_game_from_pgn(db, game.id, pgn).unwrap();
+        };
+
+        // Each keystroke autosaves the in-progress header values. Only the
+        // latest name should remain after the write, not every intermediate
+        // prefix.
+        write(
+            db,
+            "[Event \"T\"]\n[Site \"S\"]\n[White \"M\"]\n[Black \"Hikaru\"]\n\n1. e4 *\n",
+        );
+        assert_eq!(
+            player_names(db),
+            ["Existing Orphan", "Hikaru", "M", "Unknown"]
+        );
+        assert_eq!(event_names(db), ["T", "Unknown"]);
+        assert_eq!(site_names(db), ["S", "Unknown"]);
+
+        write(
+            db,
+            "[Event \"To\"]\n[Site \"Sa\"]\n[White \"Ma\"]\n[Black \"Hikaru\"]\n\n1. e4 *\n",
+        );
+        assert_eq!(
+            player_names(db),
+            ["Existing Orphan", "Hikaru", "Ma", "Unknown"]
+        );
+        assert_eq!(event_names(db), ["To", "Unknown"]);
+        assert_eq!(site_names(db), ["Sa", "Unknown"]);
+
+        write(
+            db,
+            "[Event \"Tournament\"]\n[Site \"Site\"]\n[White \"Magnus\"]\n[Black \"Hikaru\"]\n\n1. e4 *\n",
+        );
+        assert_eq!(
+            player_names(db),
+            ["Existing Orphan", "Hikaru", "Magnus", "Unknown"]
+        );
+        assert_eq!(event_names(db), ["Tournament", "Unknown"]);
+        assert_eq!(site_names(db), ["Site", "Unknown"]);
+
+        // Clearing the field should remove the now-unreferenced player too.
+        write(
+            db,
+            "[Event \"Tournament\"]\n[Site \"Site\"]\n[Black \"Hikaru\"]\n\n1. e4 *\n",
+        );
+        assert_eq!(player_names(db), ["Existing Orphan", "Hikaru", "Unknown"]);
+
+        write(
+            db,
+            "[Event \"Tournament\"]\n[Site \"Site\"]\n[White \"Magnus\"]\n[Black \"Hikaru Nakamura\"]\n\n1. e4 *\n",
+        );
+        assert_eq!(
+            player_names(db),
+            ["Existing Orphan", "Hikaru Nakamura", "Magnus", "Unknown"]
+        );
+        assert_eq!(event_names(db), ["Tournament", "Unknown"]);
+        assert_eq!(site_names(db), ["Site", "Unknown"]);
+
+        let (white_id, black_id): (i32, i32) = games::table
+            .filter(games::id.eq(game.id))
+            .select((games::white_id, games::black_id))
+            .first(db)
+            .unwrap();
+        let white_name: Option<String> = players::table
+            .find(white_id)
+            .select(players::name)
+            .first(db)
+            .unwrap();
+        let black_name: Option<String> = players::table
+            .find(black_id)
+            .select(players::name)
+            .first(db)
+            .unwrap();
+        assert_eq!(white_name.as_deref(), Some("Magnus"));
+        assert_eq!(black_name.as_deref(), Some("Hikaru Nakamura"));
     }
 }
