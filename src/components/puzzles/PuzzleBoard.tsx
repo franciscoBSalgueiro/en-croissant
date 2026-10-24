@@ -13,6 +13,7 @@ import {
   jumpToNextPuzzleAtom,
   moveHighlightAtom,
   showCoordinatesAtom,
+  showDestsAtom,
 } from "@/state/atoms";
 import classes from "@/styles/Chessboard.module.css";
 import { positionFromFen } from "@/utils/chessops";
@@ -38,6 +39,7 @@ function PuzzleBoard({
   const root = useStore(store, (s) => s.root);
   const position = useStore(store, (s) => s.position);
   const moveHighlight = useAtomValue(moveHighlightAtom);
+  const showDests = useAtomValue(showDestsAtom);
   const boardShapes = useStore(store, (s) => s.currentNode().shapes);
   const setShapes = useStore(store, (s) => s.setShapes);
   const clearShapes = useStore(store, (s) => s.clearShapes);
@@ -169,7 +171,8 @@ function PuzzleBoard({
               (puzzle.completion === "incomplete" || puzzle.completion === "incorrect")
                 ? turn
                 : undefined,
-            dests: dests,
+            dests,
+            showDests,
             events: {
               after: (orig, dest) => {
                 const from = parseSquare(orig)!;

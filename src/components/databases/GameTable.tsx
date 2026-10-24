@@ -118,7 +118,7 @@ function GameTable() {
                 file={file}
               />
             </Group>
-            <Collapse in={openedSettings} mx={10}>
+            <Collapse expanded={openedSettings} mx={10}>
               <Stack mt="md">
                 <Group grow>
                   <InputWrapper label="ELO">

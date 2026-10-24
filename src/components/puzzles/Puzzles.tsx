@@ -3,6 +3,7 @@ import {
   ActionIcon,
   Alert,
   Badge,
+  Box,
   Button,
   Divider,
   Group,
@@ -528,13 +529,28 @@ function Puzzles({ id }: { id: string }) {
             </Group>
           )}
           <Group justify="space-between">
-            <Text fz="1.75rem" fw={500}>
-              {!turnToMove
-                ? ""
-                : turnToMove === "white"
-                  ? t("Fen.BlackToMove")
-                  : t("Fen.WhiteToMove")}
-            </Text>
+            <Group gap="xs" wrap="nowrap">
+              {turnToMove && (
+                <Box
+                  aria-hidden="true"
+                  w="1.25rem"
+                  h="1.25rem"
+                  style={{
+                    flexShrink: 0,
+                    backgroundColor: turnToMove === "white" ? "#000" : "#fff",
+                    border: "1px solid var(--mantine-color-gray-6)",
+                    borderRadius: "2px",
+                  }}
+                />
+              )}
+              <Text fz="1.75rem" fw={500}>
+                {!turnToMove
+                  ? ""
+                  : turnToMove === "white"
+                    ? t("Fen.BlackToMove")
+                    : t("Fen.WhiteToMove")}
+              </Text>
+            </Group>
             <Group gap="xs">
               <Tooltip label={t("Puzzle.NewPuzzle")}>
                 <ActionIcon
