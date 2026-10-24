@@ -2,6 +2,7 @@
   "name": "en-croissant",
   "version": "0.15.1",
   "private": true,
+  "packageManager": "pnpm@12.15.0",
   "type": "module",
   "scripts": {
     "start-vite": "vite",
