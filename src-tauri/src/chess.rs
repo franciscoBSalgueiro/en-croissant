@@ -331,6 +331,15 @@ pub async fn get_best_moves(
 
     let key = (tab.clone(), id.clone());
 
+    let setup_validation = parse_fen_and_apply_moves(&options.fen, &options.moves);
+    if let Err(e) = setup_validation {
+        warn!("Invalid position for engine: {:?}", e);
+        if let Some(process) = state.engine_processes.get(&key) {
+            process.lock().await.stop().await?;
+        }
+        return Ok(None);
+    }
+
     if state.engine_processes.contains_key(&key) {
         {
             let process = state.engine_processes.get_mut(&key).unwrap();

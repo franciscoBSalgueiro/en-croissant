@@ -2,6 +2,7 @@ import { Paper, Portal, Stack, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import {
   IconDatabase,
+  IconFileText,
   IconInfoCircle,
   IconNotes,
   IconTargetArrow,
@@ -24,6 +25,7 @@ import {
   currentTabAtom,
   currentTabSelectedAtom,
   enableAllAtom,
+  isCompactLayoutAtom,
   practiceStateAtom,
   tabsAtom,
 } from "@/state/atoms";
@@ -194,6 +196,33 @@ function BoardAnalysis() {
     ],
   ]);
 
+  const isCompact = useAtomValue(isCompactLayoutAtom);
+
+  const notationPanel = editingMode ? (
+    <EditingCard
+      boardRef={boardRef}
+      setEditingMode={toggleEditingMode}
+      selectedPiece={selectedPiece}
+      setSelectedPiece={setSelectedPiece}
+    />
+  ) : (
+    <Stack h="100%" gap="xs">
+      <DetachedEval />
+      <GameNotation
+        topBar
+        controls={
+          <BoardControls
+            editingMode={editingMode}
+            toggleEditingMode={toggleEditingMode}
+            dirty={dirty}
+            saveFile={userSaveFile}
+          />
+        }
+      />
+      <MoveControls />
+    </Stack>
+  );
+
   return (
     <>
       <EvalListener />
@@ -217,7 +246,7 @@ function BoardAnalysis() {
             w="100%"
             h="100%"
             value={currentTabSelected}
-            onChange={(v) => setCurrentTabSelected(v || "info")}
+            onChange={(v) => setCurrentTabSelected(v || (isCompact ? "moves" : "info"))}
             keepMounted={false}
             activateTabWithKeyboard={false}
             style={{
@@ -236,6 +265,11 @@ function BoardAnalysis() {
             }}
           >
             <Tabs.List grow>
+              {isCompact && (
+                <Tabs.Tab value="moves" leftSection={<IconFileText size="1rem" />}>
+                  {t("Board.Tabs.Moves")}
+                </Tabs.Tab>
+              )}
               {isRepertoire && (
                 <Tabs.Tab value="practice" leftSection={<IconTargetArrow size="1rem" />}>
                   {t("Board.Tabs.Practice")}
@@ -254,6 +288,11 @@ function BoardAnalysis() {
                 {t("Board.Tabs.Info")}
               </Tabs.Tab>
             </Tabs.List>
+            {isCompact && (
+              <Tabs.Panel value="moves" flex={1} style={{ overflowY: "hidden" }}>
+                {notationPanel}
+              </Tabs.Panel>
+            )}
             {isRepertoire && (
               <Tabs.Panel value="practice" flex={1} style={{ overflowY: "hidden" }}>
                 <PracticePanel />
@@ -274,32 +313,11 @@ function BoardAnalysis() {
           </Tabs>
         </Paper>
       </Portal>
-      <Portal target="#bottomRight" style={{ height: "100%" }}>
-        {editingMode ? (
-          <EditingCard
-            boardRef={boardRef}
-            setEditingMode={toggleEditingMode}
-            selectedPiece={selectedPiece}
-            setSelectedPiece={setSelectedPiece}
-          />
-        ) : (
-          <Stack h="100%" gap="xs">
-            <DetachedEval />
-            <GameNotation
-              topBar
-              controls={
-                <BoardControls
-                  editingMode={editingMode}
-                  toggleEditingMode={toggleEditingMode}
-                  dirty={dirty}
-                  saveFile={userSaveFile}
-                />
-              }
-            />
-            <MoveControls />
-          </Stack>
-        )}
-      </Portal>
+      {!isCompact && (
+        <Portal target="#bottomRight" style={{ height: "100%" }}>
+          {notationPanel}
+        </Portal>
+      )}
     </>
   );
 }

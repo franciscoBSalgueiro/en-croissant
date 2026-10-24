@@ -119,7 +119,12 @@ pub fn file_from_args(args: &[String], cwd: &str) -> Option<String> {
     if args.next().is_some() || file.to_ascii_lowercase().starts_with("encroissant:") {
         return None;
     }
-    Some(std::path::Path::new(cwd).join(file).to_string_lossy().into_owned())
+    Some(
+        std::path::Path::new(cwd)
+            .join(file)
+            .to_string_lossy()
+            .into_owned(),
+    )
 }
 
 fn main() {
@@ -244,6 +249,15 @@ fn main() {
         .plugin(tauri_plugin_os::init())
         .setup(move |app| {
             log::info!("Setting up application");
+
+            #[cfg(any(target_os = "linux", windows))]
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+
+                if let Err(err) = app.deep_link().register_all() {
+                    log::warn!("Failed to register deep-link protocols: {err}");
+                }
+            }
 
             // #[cfg(any(windows, target_os = "macos"))]
             // set_shadow(&app.get_webview_window("main").unwrap(), true).unwrap();

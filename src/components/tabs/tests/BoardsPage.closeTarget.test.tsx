@@ -142,3 +142,29 @@ it("focus/unmount while saving cannot reopen the prompt on A or close either tab
   expect(document.querySelector('[role="dialog"]')).toBeNull();
   expect(JSON.parse(sessionStorage.getItem(source.value)!).state.dirty).toBe(true);
 });
+
+it("keeps the background close target while saving and permits retry after failure", async () => {
+  await render();
+  await middleClose(source.name);
+  const pending = Promise.withResolvers<Awaited<ReturnType<typeof commands.writeDbGame>>>();
+  vi.mocked(commands.writeDbGame).mockReturnValueOnce(pending.promise);
+  await saveAndClose();
+  expect(atoms.get(activeTabAtom)).toBe(source.value);
+  expect(atoms.get(tabsAtom)).toEqual([other, source]);
+  expect(commands.killEngines).not.toHaveBeenCalled();
+  await middleClose(other.name);
+  expect(atoms.get(tabsAtom)).toEqual([other, source]);
+
+  await act(async () => pending.reject(new Error("Disk unavailable")));
+  expect(document.querySelector('[role="alert"]')?.textContent).toBe("Disk unavailable");
+  expect(atoms.get(tabsAtom)).toEqual([other, source]);
+  expect(commands.abortGame).not.toHaveBeenCalled();
+  expect(JSON.parse(sessionStorage.getItem(source.value)!).state.dirty).toBe(true);
+
+  await saveAndClose();
+  expect(commands.writeDbGame).toHaveBeenCalledTimes(2);
+  expect(atoms.get(tabsAtom)).toEqual([other]);
+  expect(atoms.get(activeTabAtom)).toBe(other.value);
+  expect(commands.killEngines).toHaveBeenCalledExactlyOnceWith(source.value);
+  expect(commands.abortGame).toHaveBeenCalledExactlyOnceWith(`${source.value}-game`);
+});

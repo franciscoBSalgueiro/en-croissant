@@ -252,7 +252,7 @@ function DatabasePanel() {
           header={header}
           missingExplorerToken={missingExplorerToken}
         >
-          <OpeningsTable openings={openingData?.openings || []} loading={isLoading} />
+          <OpeningsTable openings={openingData?.openings || []} loading={isLoading} fen={fen} />
         </PanelWithError>
         <PanelWithError
           value="games"
