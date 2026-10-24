@@ -193,7 +193,7 @@ export default function ImportModal({
             label={t("Common.PGNFile")}
             description={t("Import.PGN.ClickToSelect")}
             onClick={async () => {
-              const selected = (await open({
+              const selected = await open({
                 multiple: false,
 
                 filters: [
@@ -202,7 +202,8 @@ export default function ImportModal({
                     extensions: ["pgn"],
                   },
                 ],
-              })) as string;
+              });
+              if (selected === null) return;
               setFile(selected);
               setFilename(
                 selected
