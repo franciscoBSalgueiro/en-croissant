@@ -184,6 +184,10 @@ export const moveNotationTypeAtom = atomWithStorage<"letters" | "symbols" | "lan
     "symbols",
 );
 export const moveMethodAtom = atomWithStorage<"drag" | "select" | "both">("move-method", "both");
+export const pieceAnimationAtom = atomWithStorage<"none" | "fast" | "normal" | "slow">(
+    "piece-animation",
+    "normal",
+);
 export const spellCheckAtom = atomWithStorage<boolean>("spell-check", false);
 export const moveInputAtom = atomWithStorage<boolean>("move-input", false);
 export const showDestsAtom = atomWithStorage<boolean>("show-dests", true);
