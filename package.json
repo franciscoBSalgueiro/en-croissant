@@ -2,7 +2,6 @@
   "name": "en-croissant",
   "version": "0.15.1",
   "private": true,
-  "packageManager": "pnpm@12.15.0",
   "type": "module",
   "scripts": {
     "start-vite": "vite",
@@ -103,5 +102,6 @@
     "typescript": "^7.0.2",
     "typescript-plugin-css-modules": "^5.2.0",
     "vitest": "^5.0.5"
-  }
+  },
+  "packageManager": "pnpm@12.15.0"
 }
