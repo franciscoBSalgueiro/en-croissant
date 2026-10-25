@@ -65,9 +65,9 @@ import EvalBar from "./EvalBar";
 import MoveInput from "./MoveInput";
 import PromotionModal from "./PromotionModal";
 
-const LARGE_BRUSH = 11;
-const MEDIUM_BRUSH = 7.5;
-const SMALL_BRUSH = 4;
+const LARGE_BRUSH = 9;
+const MEDIUM_BRUSH = 6.5;
+const SMALL_BRUSH = 3.5;
 const BAR_HEIGHT = "1.9rem";
 
 interface ChessboardProps {
@@ -594,6 +594,20 @@ function Board({
                       key: "v",
                       color: "#9b59b6",
                       opacity: 0.8,
+                      lineWidth: 10,
+                    },
+                    // chessground ships green/red/blue/yellow only, so the second
+                    // multi-pv arrow needs its own orange brush here
+                    orange: {
+                      key: "orange",
+                      color: "#e8871e",
+                      opacity: 1,
+                      lineWidth: 10,
+                    },
+                    paleOrange: {
+                      key: "paleOrange",
+                      color: "#e8871e",
+                      opacity: 0.4,
                       lineWidth: 10,
                     },
                   } as unknown as DrawBrushes,

@@ -49,8 +49,8 @@ import classes from "./BestMoves.module.css";
 import EngineSettingsForm, { type Settings } from "./EngineSettingsForm";
 
 export const arrowColors = [
-  { strong: "blue", pale: "paleBlue" },
   { strong: "green", pale: "paleGreen" },
+  { strong: "orange", pale: "paleOrange" },
   { strong: "red", pale: "paleRed" },
   { strong: "yellow", pale: "yellow" }, // there's no paleYellow in chessground
 ];
