@@ -133,7 +133,9 @@ export async function downloadChessCom(player: string, timestamp: number | null)
       return;
     }
 
-    writeTextFile(file, games.data.games.map((g) => g.pgn).join("\n"), {
+    // Like the Lichess download: only rated standard games, the ones the account's total counts
+    const ratedGames = games.data.games.filter((g) => g.rated && g.rules === "chess");
+    writeTextFile(file, ratedGames.map((g) => g.pgn).join("\n"), {
       append: true,
     });
     events.progressEvent.emit({
