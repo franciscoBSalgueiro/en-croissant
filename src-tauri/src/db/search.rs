@@ -4,7 +4,8 @@ use log::info;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use shakmaty::{
-    fen::Fen, san::SanPlus, Bitboard, ByColor, CastlingMode, Chess, FromSetup, Position, Setup,
+    fen::Fen, san::SanPlus, Bitboard, Board, ByColor, ByRole, CastlingMode, Chess, FromSetup,
+    Position, Setup,
 };
 use specta::Type;
 use std::{
@@ -117,13 +118,15 @@ impl PositionQuery {
         }
     }
 
-    fn is_reachable_by(&self, material: &MaterialCount, pawn_home: u16) -> bool {
+    fn is_reachable_by(&self, board: &Board) -> bool {
         match self {
             PositionQuery::Exact(ref data) => {
-                is_end_reachable(data.pawn_home, pawn_home)
-                    && is_material_reachable(&data.material, material)
+                is_end_reachable(data.pawn_home, get_pawn_home(board))
+                    && is_material_reachable_forward(board, data.position.board())
             }
-            PositionQuery::Partial(ref data) => is_material_reachable(&data.material, material),
+            PositionQuery::Partial(ref data) => {
+                is_material_reachable_forward(board, &data.piece_positions.board)
+            }
         }
     }
 
@@ -146,6 +149,28 @@ fn is_end_reachable(end: u16, pos: u16) -> bool {
 /// Returns true if the end material is reachable
 fn is_material_reachable(end: &MaterialCount, pos: &MaterialCount) -> bool {
     end.white <= pos.white && end.black <= pos.black
+}
+
+/// Returns true if the material of `end` can be reached by playing forward from
+/// `pos`. Pawns can only disappear, and the only way to gain material is a
+/// promotion, which turns one pawn into one other piece.
+fn is_color_material_reachable(pos: &ByRole<u8>, end: &ByRole<u8>) -> bool {
+    let promoted = pos.pawn.saturating_sub(end.pawn);
+    end.pawn <= pos.pawn
+        && end.knight.saturating_sub(pos.knight)
+            + end.bishop.saturating_sub(pos.bishop)
+            + end.rook.saturating_sub(pos.rook)
+            + end.queen.saturating_sub(pos.queen)
+            <= promoted
+}
+
+/// Returns true if the material of `end` can be reached by playing forward from
+/// `pos`, accounting for promotions
+fn is_material_reachable_forward(pos: &Board, end: &Board) -> bool {
+    let pos_material = pos.material();
+    let end_material = end.material();
+    is_color_material_reachable(&pos_material.white, &end_material.white)
+        && is_color_material_reachable(&pos_material.black, &end_material.black)
 }
 
 /// Returns true if the subset is contained in the container
@@ -204,7 +229,7 @@ fn get_move_after_match(
 
         if is_irreversible {
             let board = chess.board();
-            if !query.is_reachable_by(&get_material_count(board), get_pawn_home(board)) {
+            if !query.is_reachable_by(board) {
                 return Ok(None);
             }
         }
@@ -560,6 +585,10 @@ pub async fn is_position_in_db(
 
 #[cfg(test)]
 mod tests {
+    use shakmaty::san::San;
+
+    use crate::db::encoding::encode_move;
+
     use super::*;
 
     fn assert_partial_match(fen1: &str, fen2: &str) {
@@ -614,20 +643,40 @@ mod tests {
             PositionQuery::exact_from_fen("rnbqkb1r/pppp1ppp/5n2/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR")
                 .unwrap();
         let chess = Chess::default();
-        assert!(query.is_reachable_by(
-            &get_material_count(chess.board()),
-            get_pawn_home(chess.board())
-        ));
+        assert!(query.is_reachable_by(chess.board()));
     }
 
     #[test]
     fn correct_partial_is_reachable() {
         let query = PositionQuery::partial_from_fen("8/8/8/8/8/8/8/8").unwrap();
         let chess = Chess::default();
-        assert!(query.is_reachable_by(
-            &get_material_count(chess.board()),
-            get_pawn_home(chess.board())
-        ));
+        assert!(query.is_reachable_by(chess.board()));
+    }
+
+    fn chess_from_fen(fen: &str) -> Chess {
+        let fen = Fen::from_ascii(fen.as_bytes()).unwrap();
+        Chess::from_setup(fen.into_setup(), CastlingMode::Chess960).unwrap()
+    }
+
+    #[test]
+    fn promoted_material_is_reachable() {
+        // A pawn on a7 turns into a queen on a8, so the query position has one
+        // pawn less and one piece more than the position it is reached from.
+        let query = PositionQuery::exact_from_fen("Q7/8/8/8/3k4/8/8/7K b - - 0 1").unwrap();
+        assert!(query.is_reachable_by(chess_from_fen("8/P7/8/8/3k4/8/8/7K w - - 0 1").board()));
+        // Two promotions need two pawns.
+        let query = PositionQuery::exact_from_fen("Q3Q3/8/8/8/3k4/8/8/7K b - - 0 1").unwrap();
+        assert!(query.is_reachable_by(chess_from_fen("8/P3P3/8/8/3k4/8/8/7K w - - 0 1").board()));
+    }
+
+    #[test]
+    fn unreachable_material_is_unreachable() {
+        // No pawn is missing, so the extra queen cannot have been promoted.
+        let query = PositionQuery::exact_from_fen("Q7/P7/8/8/3k4/8/8/7K b - - 0 1").unwrap();
+        assert!(!query.is_reachable_by(chess_from_fen("8/P7/8/8/3k4/8/8/7K w - - 0 1").board()));
+        // Two extra pieces, but only one pawn to promote.
+        let query = PositionQuery::exact_from_fen("Q3Q3/8/8/8/3k4/8/8/7K b - - 0 1").unwrap();
+        assert!(!query.is_reachable_by(chess_from_fen("8/P7/8/8/3k4/8/8/7K w - - 0 1").board()));
     }
 
     #[test]
@@ -649,8 +698,10 @@ mod tests {
         let result = get_move_after_match(&game, &None, &query).unwrap();
         assert_eq!(result, Some("e4".to_string()));
 
-        let query =
-            PositionQuery::exact_from_fen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR").unwrap();
+        let query = PositionQuery::exact_from_fen(
+            "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b - - 0 1",
+        )
+        .unwrap();
         let result = get_move_after_match(&game, &None, &query).unwrap();
         assert_eq!(result, Some("e5".to_string()));
 
@@ -668,5 +719,35 @@ mod tests {
         let query = PositionQuery::partial_from_fen("8/pppppppp/8/8/8/8/PPPPPPPP/8").unwrap();
         let result = get_move_after_match(&game, &None, &query).unwrap();
         assert_eq!(result, Some("e4".to_string()));
+    }
+
+    fn encode_game(start_fen: &str, moves: &[&str]) -> Vec<u8> {
+        let mut chess = chess_from_fen(start_fen);
+        let mut blob = Vec::new();
+        for san in moves {
+            let m = San::from_ascii(san.as_bytes())
+                .unwrap()
+                .to_move(&chess)
+                .unwrap();
+            blob.push(encode_move(&m, &chess).unwrap());
+            chess.play_unchecked(&m);
+        }
+        blob
+    }
+
+    #[test]
+    fn get_move_after_promotion_match_test() {
+        let fen = "8/P7/8/8/3k4/8/8/7K w - - 0 1";
+        let game = encode_game(fen, &["a8=Q", "Ke5", "Kh2"]);
+
+        let query = PositionQuery::exact_from_fen("8/P7/8/8/3k4/8/8/7K w - - 0 1").unwrap();
+        let result = get_move_after_match(&game, &Some(fen), &query).unwrap();
+        assert_eq!(result, Some("a8=Q".to_string()));
+
+        // The position right after the promotion used to be dropped, because the
+        // promoted queen looked like material the game never had.
+        let query = PositionQuery::exact_from_fen("Q7/8/8/8/3k4/8/8/7K b - - 0 1").unwrap();
+        let result = get_move_after_match(&game, &Some(fen), &query).unwrap();
+        assert_eq!(result, Some("Ke5".to_string()));
     }
 }
