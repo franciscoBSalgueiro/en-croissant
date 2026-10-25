@@ -54,10 +54,10 @@ export async function computeTreeCoverage(
                 .filter((op) => op.move !== "*")
                 .map((op) => ({
                     move: op.move,
-                    games: op.white + op.draw + op.black,
+                    games: op.total,
                 }));
 
-            const gamesEndingHere = summary ? summary.white + summary.draw + summary.black : 0;
+            const gamesEndingHere = summary?.total ?? 0;
 
             const gamesContinuing = moves.reduce((acc, m) => acc + m.games, 0);
 

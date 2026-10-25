@@ -60,7 +60,7 @@ export type LocalOptions = Omit<GameQuery, "options"> & {
 };
 
 function sortOpenings(openings: Opening[]) {
-  return openings.sort((a, b) => b.black + b.draw + b.white - (a.black + a.draw + a.white));
+  return openings.sort((a, b) => b.total - a.total);
 }
 
 async function fetchOpening(db: DBType, tab: string) {
@@ -70,6 +70,7 @@ async function fetchOpening(db: DBType, tab: string) {
       return {
         openings: data.moves.map((move) => ({
           move: move.san,
+          total: move.white + move.black + move.draws,
           white: move.white,
           black: move.black,
           draw: move.draws,
@@ -82,6 +83,7 @@ async function fetchOpening(db: DBType, tab: string) {
       return {
         openings: data.moves.map((move) => ({
           move: move.san,
+          total: move.white + move.black + move.draws,
           white: move.white,
           black: move.black,
           draw: move.draws,
@@ -193,10 +195,7 @@ function DatabasePanel() {
     },
   );
 
-  const grandTotal = openingData?.openings?.reduce(
-    (acc, curr) => acc + curr.black + curr.white + curr.draw,
-    0,
-  );
+  const grandTotal = openingData?.openings?.reduce((acc, curr) => acc + curr.total, 0);
 
   const header = (
     <>

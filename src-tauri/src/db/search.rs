@@ -14,7 +14,7 @@ use std::{
 
 use crate::{db::models::*, error::Error, AppState};
 
-use super::{duckdb_pool_key, get_duckdb_pool, GameQuery, Sides};
+use super::{duckdb_pool_key, get_duckdb_pool, Connection, GameQuery, Sides};
 
 const POSITION_CACHE_CAPACITY: usize = 4096;
 
@@ -73,6 +73,7 @@ pub struct PositionQueryJs {
 pub struct PositionStats {
     #[serde(rename = "move")]
     pub move_: String,
+    pub total: i32,
     pub white: i32,
     pub draw: i32,
     pub black: i32,
@@ -307,23 +308,9 @@ pub async fn search_position(
         format!("WHERE {}", where_clauses.join(" AND "))
     };
 
-    let sql = format!(
-        "WITH matching_positions AS (
-            SELECT result, next_move_at_fen(movedata, {full_fen}, fen) AS next_move
-            FROM games
-            {where_clause}
-        )
-        SELECT
-            next_move,
-            COUNT(*) AS total_games,
-            SUM(CASE WHEN result = '1-0' THEN 1 ELSE 0 END) AS white_wins,
-            SUM(CASE WHEN result = '0-1' THEN 1 ELSE 0 END) AS black_wins,
-            SUM(CASE WHEN result = '1/2-1/2' THEN 1 ELSE 0 END) AS draws
-        FROM matching_positions
-        GROUP BY next_move
-        ORDER BY total_games DESC;",
-        full_fen = sql_literal(&position_query.fen),
-        where_clause = where_sql,
+    let matching_positions = format!(
+        "SELECT result, next_move_at_fen(movedata, {}, fen) AS next_move FROM games {where_sql}",
+        sql_literal(&position_query.fen),
     );
 
     let key = position_cache_key(&reference_position, &where_sql);
@@ -333,22 +320,8 @@ pub async fn search_position(
             .map_err(|_| std::io::Error::other("position cache mutex poisoned"))?;
         let openings = cache.get_or_compute(key, || {
             let db = db_pool.get()?;
-            let openings = db
-                .prepare(&sql)?
-                .query_map([], |row| {
-                    let Some(move_) = row.get::<_, Option<String>>("next_move")? else {
-                        return Ok(None);
-                    };
-                    Ok(Some(PositionStats {
-                        move_,
-                        white: row.get::<_, i32>("white_wins")?,
-                        draw: row.get::<_, i32>("draws")?,
-                        black: row.get::<_, i32>("black_wins")?,
-                    }))
-                })?
-                .collect::<Result<Vec<_>, _>>()?
+            let openings = query_position_stats(&db, &matching_positions)?
                 .into_iter()
-                .flatten()
                 .map(|mut stat| {
                     stat.move_ = uci_to_san(&stat.move_, &reference_position);
                     stat
@@ -361,6 +334,37 @@ pub async fn search_position(
     })
     .await
     .map_err(|err| std::io::Error::other(err.to_string()))?
+}
+
+fn query_position_stats(
+    db: &Connection,
+    matching_positions: &str,
+) -> Result<Vec<PositionStats>, Error> {
+    let sql = format!(
+        "WITH matching_positions AS ({matching_positions})
+        SELECT next_move,
+            COUNT(*) AS total_games,
+            SUM(CASE WHEN result = '1-0' THEN 1 ELSE 0 END) AS white_wins,
+            SUM(CASE WHEN result = '0-1' THEN 1 ELSE 0 END) AS black_wins,
+            SUM(CASE WHEN result = '1/2-1/2' THEN 1 ELSE 0 END) AS draws
+        FROM matching_positions
+        WHERE next_move IS NOT NULL
+        GROUP BY next_move
+        ORDER BY total_games DESC;"
+    );
+    let openings = db
+        .prepare(&sql)?
+        .query_map([], |row| {
+            Ok(PositionStats {
+                move_: row.get("next_move")?,
+                total: row.get("total_games")?,
+                white: row.get("white_wins")?,
+                draw: row.get("draws")?,
+                black: row.get("black_wins")?,
+            })
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(openings)
 }
 
 pub async fn is_position_in_db(

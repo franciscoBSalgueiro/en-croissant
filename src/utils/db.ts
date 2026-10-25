@@ -13,6 +13,7 @@ import {
     type QueryResponse,
     type TournamentQuery,
     type Event,
+    type PositionStats,
 } from "@/bindings";
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { getDatabasesDir } from "@/utils/directories";
@@ -173,12 +174,7 @@ export async function getDefaultPuzzleDatabases(): Promise<
     })[];
 }
 
-export interface Opening {
-    move: string;
-    white: number;
-    black: number;
-    draw: number;
-}
+export type Opening = PositionStats;
 
 export async function getTournamentGames(file: string, name: string) {
     return await query_games(file, {

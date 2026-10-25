@@ -28,7 +28,7 @@ import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { coverageMinGamesAtom, currentTabAtom, referenceDbAtom } from "@/state/atoms";
-import { searchPosition } from "@/utils/db";
+import { searchPosition, type Opening } from "@/utils/db";
 import { roundKeepSum } from "@/utils/format";
 import { isPrefix } from "@/utils/misc";
 import {
@@ -69,9 +69,7 @@ function RepertoireInfo() {
 
   const rootStructureHash = useMemo(() => getTreeStructureHash(root), [root]);
 
-  const [rawOpenings, setRawOpenings] = useState<
-    { move: string; white: number; draw: number; black: number }[]
-  >([]);
+  const [rawOpenings, setRawOpenings] = useState<Opening[]>([]);
   const [loading, setLoading] = useState(false);
 
   const currentFenRef = useRef(currentNode.fen);
@@ -144,11 +142,12 @@ function RepertoireInfo() {
   }, [rootStructureHash, orientation, referenceDb, startPathKey, minGames]);
 
   const positionMoves = useMemo(() => {
-    const total = rawOpenings.reduce((acc, op) => acc + op.white + op.black + op.draw, 0);
+    const total = rawOpenings.reduce((acc, op) => acc + op.total, 0);
 
     const fromDb: PositionMove[] = rawOpenings
       .map((op) => {
-        const games = op.white + op.black + op.draw;
+        const games = op.total;
+        const completedGames = op.white + op.black + op.draw;
         const childIndex = currentNode.children.findIndex((c) => c.san === op.move);
         const inRepertoire = childIndex !== -1;
         const coveragePath = [...position, childIndex].join(",");
@@ -159,9 +158,9 @@ function RepertoireInfo() {
           games,
           totalGames: total,
           frequency: total > 0 ? games / total : 0,
-          white: games > 0 ? op.white / games : 0,
-          draw: games > 0 ? op.draw / games : 0,
-          black: games > 0 ? op.black / games : 0,
+          white: completedGames > 0 ? op.white / completedGames : 0,
+          draw: completedGames > 0 ? op.draw / completedGames : 0,
+          black: completedGames > 0 ? op.black / completedGames : 0,
           inRepertoire,
           coverage,
           childIndex,
