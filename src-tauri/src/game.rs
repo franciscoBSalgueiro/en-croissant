@@ -43,6 +43,8 @@ pub enum PlayerConfig {
         #[serde(default)]
         options: Vec<EngineOption>,
         go: Option<GoMode>,
+        #[serde(default)]
+        opponent_book: Option<OpponentBook>,
     },
 }
 
@@ -76,6 +78,21 @@ pub struct OpeningBookConfig {
 
 fn default_opening_book_max_ply() -> usize {
     40
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct BookMove {
+    pub uci: String,
+    pub san: String,
+    pub weight: u32,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Type, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct OpponentBook {
+    pub max_ply: u16,
+    pub positions: HashMap<String, Vec<BookMove>>,
 }
 
 #[derive(Clone, Debug, Serialize, Type, PartialEq)]
@@ -189,6 +206,8 @@ struct GameController {
     engine_thinking: bool,
     polyglot_book: Option<PolyglotBook>,
     polyglot_max_ply: usize,
+    white_opponent_book: Option<OpponentBook>,
+    black_opponent_book: Option<OpponentBook>,
 }
 
 impl GameController {
@@ -241,6 +260,8 @@ impl GameController {
             engine_thinking: false,
             polyglot_book: None,
             polyglot_max_ply: 0,
+            white_opponent_book: None,
+            black_opponent_book: None,
         };
 
         for uci_str in &initial_moves {
@@ -626,7 +647,7 @@ impl GameManager {
         controller.polyglot_book = polyglot_book;
         controller.polyglot_max_ply = polyglot_max_ply;
 
-        if let PlayerConfig::Engine { path, options, .. } = &config.white {
+        if let PlayerConfig::Engine { path, options, opponent_book, .. } = &config.white {
             let mut engine = BaseEngine::spawn(PathBuf::from(path)).await?;
             engine.init_uci().await?;
             for opt in options {
@@ -641,9 +662,10 @@ impl GameManager {
                 engine.set_option("UCI_Chess960", "false").await?;
             }
             controller.white_engine = Some(Arc::new(Mutex::new(engine)));
+            controller.white_opponent_book = opponent_book.clone();
         }
 
-        if let PlayerConfig::Engine { path, options, .. } = &config.black {
+        if let PlayerConfig::Engine { path, options, opponent_book, .. } = &config.black {
             let mut engine = BaseEngine::spawn(PathBuf::from(path)).await?;
             engine.init_uci().await?;
             for opt in options {
@@ -658,6 +680,7 @@ impl GameManager {
                 engine.set_option("UCI_Chess960", "false").await?;
             }
             controller.black_engine = Some(Arc::new(Mutex::new(engine)));
+            controller.black_opponent_book = opponent_book.clone();
         }
 
         controller.reset_clock();
@@ -1064,15 +1087,15 @@ fn normalize_polyglot_uci(uci: &str) -> String {
     }
 }
 
-fn choose_weighted_index(weights: &[u16], rng: &mut impl Rng) -> usize {
-    let total: u64 = weights.iter().map(|w| *w as u64).sum();
+fn choose_weighted_index<W: Copy + Into<u64>>(weights: &[W], rng: &mut impl Rng) -> usize {
+    let total: u64 = weights.iter().map(|w| (*w).into()).sum();
     if total == 0 {
         return rng.gen_range(0..weights.len());
     }
 
     let mut target = rng.gen_range(0..total);
     for (index, weight) in weights.iter().enumerate() {
-        let weight = *weight as u64;
+        let weight = (*weight).into();
         if target < weight {
             return index;
         }
@@ -1346,6 +1369,40 @@ async fn game_loop(
     info!("Game loop ended for {}", game_id);
 }
 
+fn try_opponent_book_move(controller: &GameController) -> Option<String> {
+    let book = if controller.position.turn() == Color::White {
+        controller.white_opponent_book.as_ref()
+    } else {
+        controller.black_opponent_book.as_ref()
+    }?;
+
+    if controller.moves.len() >= book.max_ply as usize {
+        return None;
+    }
+
+    let fen = Fen::from_position(controller.position.clone(), EnPassantMode::Legal).to_string();
+    let key = fen.split_whitespace().take(4).collect::<Vec<_>>().join(" ");
+    let entries = book.positions.get(&key)?;
+
+    let mut rng = rand::thread_rng();
+    let legal_moves = entries
+        .iter()
+        .filter_map(|entry| {
+            let parsed = UciMove::from_ascii(entry.uci.as_bytes()).ok()?;
+            parsed.to_move(&controller.position).ok()?;
+            Some((entry.uci.clone(), entry.weight))
+        })
+        .collect::<Vec<_>>();
+
+    if legal_moves.is_empty() {
+        return None;
+    }
+
+    let weights = legal_moves.iter().map(|(_, w)| *w).collect::<Vec<_>>();
+    let selected = choose_weighted_index(&weights, &mut rng);
+    Some(legal_moves[selected].0.clone())
+}
+
 fn try_polyglot_book_move(controller: &GameController) -> Option<String> {
     let book = controller.polyglot_book.as_ref()?;
 
@@ -1385,10 +1442,11 @@ async fn request_engine_move(
     controller: &Arc<RwLock<GameController>>,
     app: &AppHandle,
 ) -> Result<(), Error> {
-    // Try polyglot book move first (only for engine turns with a loaded book)
+    // Try opponent book move first, then polyglot book (only for engine turns
+    // with a loaded book)
     {
         let ctrl = controller.read().await;
-        let book_move = try_polyglot_book_move(&ctrl);
+        let book_move = try_opponent_book_move(&ctrl).or_else(|| try_polyglot_book_move(&ctrl));
         let turn = ctrl.position.turn();
         drop(ctrl);
 
