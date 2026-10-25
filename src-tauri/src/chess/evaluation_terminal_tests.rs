@@ -92,7 +92,7 @@ fn naive_eval_can_choose_stalemate_instead_of_a_material_loss() {
     assert!(count_material(&pos) < 0);
     let stalemating_move = "f7f8".parse::<UciMove>().unwrap().to_move(&pos).unwrap();
     let mut child = pos.clone();
-    child.play_unchecked(&stalemating_move);
+    child.play_unchecked(stalemating_move);
     assert!(child.is_stalemate());
     assert_eq!(naive_eval(&pos), 0);
 }
