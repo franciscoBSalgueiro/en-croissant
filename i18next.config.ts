@@ -33,6 +33,7 @@ export default defineConfig({
         preservePatterns: [
             "Files.FileType.*",
             "SideBar.*",
+            "Settings.Keybinds.Actions.*",
             "TimeControl.*",
             "Annotate.*",
             "GoMode.*",
