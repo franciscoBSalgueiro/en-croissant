@@ -10,6 +10,7 @@ import { match } from "ts-pattern";
 import { commands } from "@/bindings";
 import { activeTabAtom, isCompactLayoutAtom, showTabBarAtom, tabsAtom } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
+import { flushPendingSessionStorage } from "@/state/store/debouncedStorage";
 import { createTab, genID, isPersistentGameOrigin, type Tab } from "@/utils/tabs";
 import { unwrap } from "@/utils/unwrap";
 import BoardAnalysis from "../boards/BoardAnalysis";
@@ -57,6 +58,8 @@ export default function BoardsPage() {
     async (value: string | null, forced?: boolean) => {
       if (saveTargetRef.current !== null && (!forced || value !== saveTargetRef.current)) return;
       if (value !== null) {
+        // The close check and a remounted tree must see edits still in the debounce buffer.
+        flushPendingSessionStorage();
         const closedTab = tabs.find((tab) => tab.value === value);
         const tabState = JSON.parse(sessionStorage.getItem(value) || "{}");
         if (isPersistentGameOrigin(closedTab) && tabState.state?.dirty && !forced) {

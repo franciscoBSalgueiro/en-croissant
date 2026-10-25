@@ -142,3 +142,87 @@ it("focus/unmount while saving cannot reopen the prompt on A or close either tab
   expect(document.querySelector('[role="dialog"]')).toBeNull();
   expect(JSON.parse(sessionStorage.getItem(source.value)!).state.dirty).toBe(true);
 });
+
+it("rehydrates buffered data without reusing another tree's mutation methods", () => {
+  window.dispatchEvent(new Event("pagehide"));
+  try {
+    const first = createTreeStore("buffered-rehydration");
+    first.getState().setComment("First edit");
+    const restored = createTreeStore("buffered-rehydration");
+    expect(restored.getState().root.comment).toBe("First edit");
+    restored.getState().setComment("Restored edit");
+    expect(restored.getState().root.comment).toBe("Restored edit");
+    expect(first.getState().root.comment).toBe("First edit");
+  } finally {
+    window.dispatchEvent(new Event("pagehide"));
+  }
+});
+
+it.each(["active", "background"])(
+  "saves a dirty %s tab even when its storage flush is pending",
+  async (location) => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      window.dispatchEvent(new Event("pagehide"));
+      const clean = createTreeStore();
+      sessionStorage.setItem(source.value, JSON.stringify({ version: 0, state: clean.getState() }));
+      const live = createTreeStore(source.value);
+      live.getState().setComment("Edit still in the persistence buffer");
+      expect(live.getState().dirty).toBe(true);
+      expect(JSON.parse(sessionStorage.getItem(source.value)!).state.dirty).toBe(false);
+      if (location === "active") atoms.set(activeTabAtom, source.value);
+      await render();
+      await middleClose(source.name);
+      expect(atoms.get(tabsAtom)).toEqual([other, source]);
+      expect(commands.killEngines).not.toHaveBeenCalled();
+      expect(document.querySelector('[role="dialog"]')).not.toBeNull();
+      await saveAndClose();
+      expect(commands.writeDbGame).toHaveBeenCalledExactlyOnceWith(
+        "/games/b.db3",
+        2,
+        expect.stringContaining("Edit still in the persistence buffer"),
+      );
+      expect(atoms.get(tabsAtom)).toEqual([other]);
+    } finally {
+      window.dispatchEvent(new Event("pagehide"));
+      vi.useRealTimers();
+    }
+  },
+);
+
+it("closes a clean tab without a save prompt", async () => {
+  window.dispatchEvent(new Event("pagehide"));
+  const clean = createTreeStore();
+  sessionStorage.setItem(source.value, JSON.stringify({ version: 0, state: clean.getState() }));
+  await render();
+  await middleClose(source.name);
+  expect(atoms.get(tabsAtom)).toEqual([other]);
+  expect(commands.writeDbGame).not.toHaveBeenCalled();
+  expect(document.querySelector('[role="dialog"]')).toBeNull();
+});
+
+it("keeps the background close target while saving and permits retry after failure", async () => {
+  await render();
+  await middleClose(source.name);
+  const pending = Promise.withResolvers<Awaited<ReturnType<typeof commands.writeDbGame>>>();
+  vi.mocked(commands.writeDbGame).mockReturnValueOnce(pending.promise);
+  await saveAndClose();
+  expect(atoms.get(activeTabAtom)).toBe(source.value);
+  expect(atoms.get(tabsAtom)).toEqual([other, source]);
+  expect(commands.killEngines).not.toHaveBeenCalled();
+  await middleClose(other.name);
+  expect(atoms.get(tabsAtom)).toEqual([other, source]);
+
+  await act(async () => pending.reject(new Error("Disk unavailable")));
+  expect(document.querySelector('[role="alert"]')?.textContent).toBe("Disk unavailable");
+  expect(atoms.get(tabsAtom)).toEqual([other, source]);
+  expect(commands.abortGame).not.toHaveBeenCalled();
+  expect(JSON.parse(sessionStorage.getItem(source.value)!).state.dirty).toBe(true);
+
+  await saveAndClose();
+  expect(commands.writeDbGame).toHaveBeenCalledTimes(2);
+  expect(atoms.get(tabsAtom)).toEqual([other]);
+  expect(atoms.get(activeTabAtom)).toBe(other.value);
+  expect(commands.killEngines).toHaveBeenCalledExactlyOnceWith(source.value);
+  expect(commands.abortGame).toHaveBeenCalledExactlyOnceWith(`${source.value}-game`);
+});
