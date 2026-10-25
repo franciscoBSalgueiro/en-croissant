@@ -459,6 +459,22 @@ async getSoundServerPort() : Promise<Result<number, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async runSimulation(id: string, config: SimulationConfig) : Promise<Result<SimulationResult, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("run_simulation", { id, config }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async cancelSimulation(id: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cancel_simulation", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -471,14 +487,16 @@ clockUpdateEvent: ClockUpdateEvent,
 databaseProgress: DatabaseProgress,
 gameMoveEvent: GameMoveEvent,
 gameOverEvent: GameOverEvent,
-progressEvent: ProgressEvent
+progressEvent: ProgressEvent,
+simulationUpdateEvent: SimulationUpdateEvent
 }>({
 bestMovesPayload: "best-moves-payload",
 clockUpdateEvent: "clock-update-event",
 databaseProgress: "database-progress",
 gameMoveEvent: "game-move-event",
 gameOverEvent: "game-over-event",
-progressEvent: "progress-event"
+progressEvent: "progress-event",
+simulationUpdateEvent: "simulation-update-event"
 })
 
 /** user-defined constants **/
@@ -517,6 +535,7 @@ export type NormalizedGame = { id: number; fen: string; event: string; event_id:
 export type OpeningBookConfig = { path: string; maxPly?: bigint }
 export type OutOpening = { name: string; fen: string }
 export type Outcome = "1-0" | "0-1" | "1/2-1/2" | "*"
+export type PiecePath = { from: string; to: string; count: number }
 export type Player = { id: number; name: string | null; elo: number | null }
 export type PlayerConfig = { type: "human"; name: string } | { type: "engine"; name: string; path: string; options?: EngineOption[]; go: GoMode | null }
 export type PlayerGameInfo = { site_stats_data: SiteStatsData[] }
@@ -546,6 +565,10 @@ export type ScoreValue =
  */
 { type: "mate"; value: number }
 export type Sides = "BlackWhite" | "WhiteBlack" | "Any"
+export type SimulationConfig = { fen: string; moves: string[]; engine_path: string; engine_options: EngineOption[]; movetime_ms: number; games: number; max_plies: number; multipv: number; temperature: number }
+export type SimulationFirstMove = { uci: string; san: string; total: number; white: number; draw: number; black: number; avg_length: number }
+export type SimulationResult = { games: number; white: number; draw: number; black: number; avg_length: number; first_moves: SimulationFirstMove[]; piece_paths: PiecePath[] }
+export type SimulationUpdateEvent = { id: string; games_done: number; white: number; draw: number; black: number }
 export type SiteStatsData = { site: string; player: string; data: StatsData[] }
 export type SortDirection = "asc" | "desc"
 export type StatsData = { date: string; is_player_white: boolean; player_elo: number; result: GameOutcome; time_control: string; opening: string }
