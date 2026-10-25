@@ -1571,9 +1571,9 @@ fn delete_orphaned_data(db: &mut SqliteConnection) -> Result<(), Error> {
     Ok(())
 }
 
-fn delete_player_if_unreferenced(db: &mut SqliteConnection, id: i32) -> Result<(), Error> {
+fn delete_player_if_unreferenced(db: &mut SqliteConnection, id: i32) -> Result<bool, Error> {
     if id == 0 {
-        return Ok(());
+        return Ok(false);
     }
 
     let referenced: i64 = games::table
@@ -1581,20 +1581,21 @@ fn delete_player_if_unreferenced(db: &mut SqliteConnection, id: i32) -> Result<(
         .count()
         .get_result(db)?;
     if referenced > 0 {
-        return Ok(());
+        return Ok(false);
     }
 
-    if diesel::delete(players::table.filter(players::id.eq(id))).execute(db)? > 0 {
+    let deleted = diesel::delete(players::table.filter(players::id.eq(id))).execute(db)? > 0;
+    if deleted {
         let count: i64 = players::table.count().get_result(db)?;
         update_info_count(db, "PlayerCount", count)?;
     }
 
-    Ok(())
+    Ok(deleted)
 }
 
-fn delete_event_if_unreferenced(db: &mut SqliteConnection, id: i32) -> Result<(), Error> {
+fn delete_event_if_unreferenced(db: &mut SqliteConnection, id: i32) -> Result<bool, Error> {
     if id == 0 {
-        return Ok(());
+        return Ok(false);
     }
 
     let referenced: i64 = games::table
@@ -1602,20 +1603,21 @@ fn delete_event_if_unreferenced(db: &mut SqliteConnection, id: i32) -> Result<()
         .count()
         .get_result(db)?;
     if referenced > 0 {
-        return Ok(());
+        return Ok(false);
     }
 
-    if diesel::delete(events::table.filter(events::id.eq(id))).execute(db)? > 0 {
+    let deleted = diesel::delete(events::table.filter(events::id.eq(id))).execute(db)? > 0;
+    if deleted {
         let count: i64 = events::table.count().get_result(db)?;
         update_info_count(db, "EventCount", count)?;
     }
 
-    Ok(())
+    Ok(deleted)
 }
 
-fn delete_site_if_unreferenced(db: &mut SqliteConnection, id: i32) -> Result<(), Error> {
+fn delete_site_if_unreferenced(db: &mut SqliteConnection, id: i32) -> Result<bool, Error> {
     if id == 0 {
-        return Ok(());
+        return Ok(false);
     }
 
     let referenced: i64 = games::table
@@ -1623,15 +1625,16 @@ fn delete_site_if_unreferenced(db: &mut SqliteConnection, id: i32) -> Result<(),
         .count()
         .get_result(db)?;
     if referenced > 0 {
-        return Ok(());
+        return Ok(false);
     }
 
-    if diesel::delete(sites::table.filter(sites::id.eq(id))).execute(db)? > 0 {
+    let deleted = diesel::delete(sites::table.filter(sites::id.eq(id))).execute(db)? > 0;
+    if deleted {
         let count: i64 = sites::table.count().get_result(db)?;
         update_info_count(db, "SiteCount", count)?;
     }
 
-    Ok(())
+    Ok(deleted)
 }
 
 #[tauri::command]
@@ -1862,6 +1865,18 @@ pub async fn write_db_game(
 }
 
 fn update_game_from_pgn(db: &mut SqliteConnection, game_id: i32, pgn: &str) -> Result<(), Error> {
+    // BEGIN IMMEDIATE makes concurrent autosaves queue before reading the
+    // previous header IDs. Without it, two deferred transactions could both
+    // read the same previous ID and leave the loser's intermediate record
+    // unreferenced.
+    db.immediate_transaction(|db| update_game_from_pgn_in_transaction(db, game_id, pgn))
+}
+
+fn update_game_from_pgn_in_transaction(
+    db: &mut SqliteConnection,
+    game_id: i32,
+    pgn: &str,
+) -> Result<(), Error> {
     let (previous_white_id, previous_black_id, previous_event_id, previous_site_id): (
         i32,
         i32,
@@ -1943,10 +1958,29 @@ fn update_game_from_pgn(db: &mut SqliteConnection, game_id: i32, pgn: &str) -> R
     // Autosave writes the game on every header edit, including each keystroke
     // while a name is being typed. Remove only the records this game stopped
     // referencing; unrelated unreferenced records must be left untouched.
-    delete_player_if_unreferenced(db, previous_white_id)?;
-    delete_player_if_unreferenced(db, previous_black_id)?;
-    delete_event_if_unreferenced(db, previous_event_id)?;
-    delete_site_if_unreferenced(db, previous_site_id)?;
+    // When no old row was removed but an ID changed, the edit only created a
+    // record. Recount so the cached count still reflects the new row.
+    let white_deleted = delete_player_if_unreferenced(db, previous_white_id)?;
+    let black_deleted = delete_player_if_unreferenced(db, previous_black_id)?;
+    if !white_deleted
+        && !black_deleted
+        && (white_id != previous_white_id || black_id != previous_black_id)
+    {
+        let count: i64 = players::table.count().get_result(db)?;
+        update_info_count(db, "PlayerCount", count)?;
+    }
+
+    let event_deleted = delete_event_if_unreferenced(db, previous_event_id)?;
+    if !event_deleted && event_id != previous_event_id {
+        let count: i64 = events::table.count().get_result(db)?;
+        update_info_count(db, "EventCount", count)?;
+    }
+
+    let site_deleted = delete_site_if_unreferenced(db, previous_site_id)?;
+    if !site_deleted && site_id != previous_site_id {
+        let count: i64 = sites::table.count().get_result(db)?;
+        update_info_count(db, "SiteCount", count)?;
+    }
 
     Ok(())
 }
@@ -2138,6 +2172,14 @@ mod tests {
             .collect::<Vec<_>>();
         names.sort();
         names
+    }
+
+    fn info_value(db: &mut SqliteConnection, name: &str) -> Option<String> {
+        info::table
+            .filter(info::name.eq(name))
+            .select(info::value)
+            .first::<Option<String>>(db)
+            .unwrap()
     }
 
     #[test]
@@ -2380,6 +2422,9 @@ mod tests {
         );
         assert_eq!(event_names(db), ["T", "Unknown"]);
         assert_eq!(site_names(db), ["S", "Unknown"]);
+        assert_eq!(info_value(db, "PlayerCount").as_deref(), Some("4"));
+        assert_eq!(info_value(db, "EventCount").as_deref(), Some("2"));
+        assert_eq!(info_value(db, "SiteCount").as_deref(), Some("2"));
 
         write(
             db,
@@ -2420,6 +2465,9 @@ mod tests {
         );
         assert_eq!(event_names(db), ["Tournament", "Unknown"]);
         assert_eq!(site_names(db), ["Site", "Unknown"]);
+        assert_eq!(info_value(db, "PlayerCount").as_deref(), Some("4"));
+        assert_eq!(info_value(db, "EventCount").as_deref(), Some("2"));
+        assert_eq!(info_value(db, "SiteCount").as_deref(), Some("2"));
 
         let (white_id, black_id): (i32, i32) = games::table
             .filter(games::id.eq(game.id))
@@ -2469,16 +2517,15 @@ mod tests {
             pawn_home: 0,
         };
 
-        let edited = create_game(
-            db,
-            new_game(player.id, opponent.id, event.id, site.id),
-        )
-        .unwrap();
-        let untouched = create_game(
-            db,
-            new_game(player.id, opponent.id, event.id, site.id),
-        )
-        .unwrap();
+        let edited = create_game(db, new_game(player.id, opponent.id, event.id, site.id)).unwrap();
+        let untouched =
+            create_game(db, new_game(player.id, opponent.id, event.id, site.id)).unwrap();
+        let player_count: i64 = players::table.count().get_result(db).unwrap();
+        let event_count: i64 = events::table.count().get_result(db).unwrap();
+        let site_count: i64 = sites::table.count().get_result(db).unwrap();
+        update_info_count(db, "PlayerCount", player_count).unwrap();
+        update_info_count(db, "EventCount", event_count).unwrap();
+        update_info_count(db, "SiteCount", site_count).unwrap();
 
         // The edited game stops referencing its original records, but another
         // game still does. Autosave cleanup must not delete shared records.
@@ -2492,6 +2539,9 @@ mod tests {
         assert!(player_names(db).contains(&"M".to_string()));
         assert!(event_names(db).contains(&"T".to_string()));
         assert!(site_names(db).contains(&"S".to_string()));
+        assert_eq!(info_value(db, "PlayerCount").as_deref(), Some("4"));
+        assert_eq!(info_value(db, "EventCount").as_deref(), Some("3"));
+        assert_eq!(info_value(db, "SiteCount").as_deref(), Some("3"));
 
         let (white_id, black_id, event_id, site_id): (i32, i32, i32, i32) = games::table
             .filter(games::id.eq(untouched.id))
