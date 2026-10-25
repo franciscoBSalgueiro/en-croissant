@@ -498,7 +498,7 @@ impl<'a> PgnProcessor<'a> {
     ) -> <Self as Visitor>::Output {
         let game = movetext.finish();
         if let (Some(cutoff), Some(timestamp)) = (self.timestamp, game.timestamp()) {
-            if timestamp < i64::from(cutoff) * 1_000_000 {
+            if timestamp <= i64::from(cutoff) * 1_000_000 {
                 return Ok(());
             }
         }
