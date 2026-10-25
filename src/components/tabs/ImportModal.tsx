@@ -21,7 +21,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 import { commands } from "@/bindings";
-import { addRecentFileAtom, currentTabAtom } from "@/state/atoms";
+import { addRecentFileAtom, currentBoardEditingAtom, currentTabAtom } from "@/state/atoms";
 import { parsePGN } from "@/utils/chess";
 import { chessopsError } from "@/utils/chessops";
 import { createFile, openFile } from "@/utils/files";
@@ -30,6 +30,7 @@ import { isInTempDir, type Tab } from "@/utils/tabs";
 import { defaultTree, getGameName } from "@/utils/treeReducer";
 import { unwrap } from "@/utils/unwrap";
 import GenericCard from "../common/GenericCard";
+import ImportImageButton from "../common/ImportImageButton";
 import type { FileMetadata, FileType } from "../files/file";
 
 type ImportType = "PGN" | "Link" | "FEN";
@@ -70,7 +71,35 @@ export default function ImportModal({
   const { documentDir } = useLoaderData({ from: "/" });
   const store = useStore();
 
+  function selectImportType(type: ImportType) {
+    if (!loading) setImportType(type);
+  }
+
+  function openPosition(position: string, editingMode: boolean) {
+    const res = parseFen(position.trim());
+    if (res.isErr) {
+      setFenError(chessopsError(res.error));
+      return;
+    }
+    setFenError("");
+    const parsedFen = makeFen(res.value);
+    const currentTab = store.get(currentTabAtom);
+    if (!currentTab) return;
+    const tree = defaultTree(parsedFen);
+    tree.headers.fen = parsedFen;
+    sessionStorage.setItem(currentTab.value, JSON.stringify({ version: 0, state: tree }));
+    store.set(currentBoardEditingAtom, editingMode);
+    setCurrentTab({
+      ...currentTab,
+      name: t("Home.Card.AnalysisBoard.Title"),
+      gameOrigin: { kind: "none" },
+      type: "analysis",
+    });
+    setOpenModal(false);
+  }
+
   async function handleSubmit() {
+    if (loading) return;
     setLoading(true);
     if (importType === "PGN") {
       if (file || pgn) {
@@ -142,7 +171,7 @@ export default function ImportModal({
       let pgn = "";
       try {
         pgn = await getGameFromUrl(link);
-      } catch (e) {
+      } catch {
         setLoading(false);
         return;
       }
@@ -160,27 +189,7 @@ export default function ImportModal({
         };
       });
     } else if (importType === "FEN") {
-      const res = parseFen(fen.trim());
-      if (res.isErr) {
-        setFenError(chessopsError(res.error));
-        setLoading(false);
-        return;
-      }
-      setFenError("");
-      const parsedFen = makeFen(res.value);
-      setCurrentTab((prev) => {
-        const tree = defaultTree(parsedFen);
-        tree.headers.fen = parsedFen;
-        sessionStorage.setItem(prev.value, JSON.stringify({ version: 0, state: tree }));
-        return {
-          ...prev,
-          name: t("Home.Card.AnalysisBoard.Title"),
-          gameOrigin: {
-            kind: "none",
-          },
-          type: "analysis",
-        };
-      });
+      openPosition(fen, false);
     }
     setLoading(false);
   }
@@ -284,6 +293,14 @@ export default function ImportModal({
         onChange={(event) => setFen(event.currentTarget.value)}
         error={fenError}
         label="FEN"
+        disabled={loading}
+        rightSection={
+          <ImportImageButton
+            onImport={(fen) => openPosition(fen, true)}
+            onLoadingChange={setLoading}
+          />
+        }
+        rightSectionPointerEvents="auto"
         data-autofocus
         onKeyDown={(e) => {
           if (e.key === "Enter") handleSubmit();
@@ -301,28 +318,33 @@ export default function ImportModal({
   return (
     <Modal
       opened={openModal}
-      onClose={() => setOpenModal(false)}
+      onClose={() => {
+        if (!loading) setOpenModal(false);
+      }}
+      closeOnEscape={!loading}
+      closeOnClickOutside={!loading}
+      withCloseButton={!loading}
       title={t("Home.Card.ImportGame.Title")}
     >
-      <Group grow mb="sm">
+      <Group grow mb="sm" style={loading ? { pointerEvents: "none", opacity: 0.6 } : undefined}>
         <GenericCard
           id={"PGN"}
           isSelected={importType === "PGN"}
-          setSelected={setImportType}
+          setSelected={selectImportType}
           Header={<Text ta="center">PGN</Text>}
         />
 
         <GenericCard
           id={"Link"}
           isSelected={importType === "Link"}
-          setSelected={setImportType}
+          setSelected={selectImportType}
           Header={<Text ta="center">{t("Import.Online")}</Text>}
         />
 
         <GenericCard
           id={"FEN"}
           isSelected={importType === "FEN"}
-          setSelected={setImportType}
+          setSelected={selectImportType}
           Header={<Text ta="center">FEN</Text>}
         />
       </Group>

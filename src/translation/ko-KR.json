@@ -442,6 +442,8 @@
     "Home.RecentFiles.NoRecentFiles": "최근에 열린 파일이 없습니다",
     "Home.RecentFiles.Title": "최근 파일",
     "Import.GameURL": "게임 URL",
+    "Import.Image": "",
+    "Import.Image.Select": "",
     "Import.Importing": "가져오는 중...",
     "Import.Online": "온라인",
     "Import.Or": "또는",

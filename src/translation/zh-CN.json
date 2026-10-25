@@ -444,6 +444,8 @@
     "Home.RecentFiles.NoRecentFiles": "近期未打开任何文件",
     "Home.RecentFiles.Title": "最近的文件",
     "Import.GameURL": "对局链接 (lichess 或 chess.com)",
+    "Import.Image": "",
+    "Import.Image.Select": "",
     "Import.Importing": "正在导入...",
     "Import.Online": "在线",
     "Import.Or": "或",

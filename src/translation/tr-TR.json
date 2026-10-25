@@ -450,6 +450,8 @@
     "Home.RecentFiles.NoRecentFiles": "Son zamanlarda açılan dosya yok",
     "Home.RecentFiles.Title": "Son Dosyalar",
     "Import.GameURL": "Oyun URL'si (lichess veya chess.com)",
+    "Import.Image": "",
+    "Import.Image.Select": "",
     "Import.Importing": "İçe aktarılıyor...",
     "Import.Online": "Çevrimiçi",
     "Import.Or": "VEYA",

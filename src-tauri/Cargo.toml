@@ -13,6 +13,9 @@ edition = "2021"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+candle-core = "0.11.0"
+candle-nn = "0.11.0"
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "webp", "bmp"] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 tauri = { version = "2.10.2", features = ["protocol-asset"] }

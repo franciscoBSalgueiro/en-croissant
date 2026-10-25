@@ -436,6 +436,8 @@
     "Home.RecentFiles.NoRecentFiles": "Benutzte Dateien",
     "Home.RecentFiles.Title": "",
     "Import.GameURL": "",
+    "Import.Image": "",
+    "Import.Image.Select": "",
     "Import.Importing": "Importiere",
     "Import.Online": "Online",
     "Import.Or": "Oder",

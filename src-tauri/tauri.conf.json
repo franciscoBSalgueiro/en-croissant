@@ -35,7 +35,8 @@
     },
     "resources": {
       "../sound/": "sound/",
-      "../aixchess.duckdb_extension": "aixchess.duckdb_extension"
+      "../aixchess.duckdb_extension": "aixchess.duckdb_extension",
+      "resources/vision/": "vision/"
     },
     "targets": "all",
     "createUpdaterArtifacts": "v1Compatible"
