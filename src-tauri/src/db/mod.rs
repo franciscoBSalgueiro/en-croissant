@@ -1,6 +1,7 @@
 mod encoding;
 mod models;
 mod ops;
+mod player_report;
 mod schema;
 mod search;
 mod search_index;
@@ -59,6 +60,7 @@ pub use self::models::Puzzle;
 pub use self::schema::puzzle_themes;
 pub use self::schema::puzzles;
 pub use self::schema::themes;
+pub use self::player_report::player_report;
 pub use self::search::{is_position_in_db, search_position, PositionQueryJs, PositionStats};
 
 const DATABASE_VERSION: &str = "1.0.0";

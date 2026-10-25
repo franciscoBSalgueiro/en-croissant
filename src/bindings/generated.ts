@@ -459,6 +459,14 @@ async getSoundServerPort() : Promise<Result<number, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async playerReport(file: string, playerId: number) : Promise<Result<PlayerReport, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("player_report", { file, playerId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -520,7 +528,9 @@ export type Outcome = "1-0" | "0-1" | "1/2-1/2" | "*"
 export type Player = { id: number; name: string | null; elo: number | null }
 export type PlayerConfig = { type: "human"; name: string } | { type: "engine"; name: string; path: string; options?: EngineOption[]; go: GoMode | null }
 export type PlayerGameInfo = { site_stats_data: SiteStatsData[] }
+export type PlayerOpening = { eco: string; games: number; wins: number; draws: number; losses: number }
 export type PlayerQuery = { options: QueryOptions<PlayerSort>; name?: string | null; range?: [number, number] | null }
+export type PlayerReport = { name: string; elo: number | null; games: number; wins: number; draws: number; losses: number; avg_opponent_elo: number | null; first_year: string | null; last_year: string | null; openings: PlayerOpening[]; best_games: NormalizedGame[] }
 export type PlayerSort = "id" | "name" | "elo"
 export type PlayersTime = { white: number; black: number; winc: number; binc: number }
 export type PositionQueryJs = { fen: string; type_: string }
