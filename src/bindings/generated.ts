@@ -459,6 +459,14 @@ async getSoundServerPort() : Promise<Result<number, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async openingReport(file: string, query: GameQuery) : Promise<Result<OpeningMoveReport[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("opening_report", { file, query }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -494,6 +502,7 @@ export type ClockUpdateEvent = { gameId: string; whiteTime: bigint | null; black
 export type DatabaseInfo = { title: string; description: string; player_count: number; event_count: number; game_count: number; storage_size: bigint; filename: string; indexed: boolean }
 export type DatabaseProgress = { id: string; progress: number }
 export type DrawReason = "stalemate" | "insufficientMaterial" | "threefoldRepetition" | "fiftyMoveRule" | "agreement"
+export type EloBucketStat = { bucket: string; total: number; white: number; draw: number; black: number }
 export type EngineConfig = { name: string; options: UciOptionConfig[] }
 export type EngineLog = { type: "gui"; value: string } | { type: "engine"; value: string }
 export type EngineOption = { name: string; value: string }
@@ -515,6 +524,7 @@ export type GoMode = { t: "PlayersTime"; c: PlayersTime } | { t: "Depth"; c: num
 export type MoveAnalysis = { best: BestMoves[]; novelty: boolean; is_sacrifice: boolean }
 export type NormalizedGame = { id: number; fen: string; event: string; event_id: number; site: string; site_id: number; date?: string | null; time?: string | null; round?: string | null; white: string; white_id: number; white_elo?: number | null; black: string; black_id: number; black_elo?: number | null; result: Outcome; time_control?: string | null; eco?: string | null; ply_count?: number | null; moves: string }
 export type OpeningBookConfig = { path: string; maxPly?: bigint }
+export type OpeningMoveReport = { move_: string; total: number; white: number; draw: number; black: number; avg_elo: number | null; elo_buckets: EloBucketStat[]; yearly: YearStat[] }
 export type OutOpening = { name: string; fen: string }
 export type Outcome = "1-0" | "0-1" | "1/2-1/2" | "*"
 export type Player = { id: number; name: string | null; elo: number | null }
@@ -625,6 +635,7 @@ name: string;
  * The default value of this string option.
  */
 default: string | null } }
+export type YearStat = { year: string; total: number; white: number; draw: number; black: number }
 
 /** tauri-specta globals **/
 
