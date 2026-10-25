@@ -9,7 +9,7 @@ use shakmaty::{
 use specta::Type;
 use std::{
     cmp::Reverse,
-    collections::BinaryHeap,
+    collections::{BinaryHeap, HashMap},
     path::PathBuf,
     sync::{
         atomic::{AtomicUsize, Ordering},
@@ -558,6 +558,304 @@ pub async fn is_position_in_db(
     Ok(exists)
 }
 
+#[derive(Debug, Serialize, Clone, Type)]
+pub struct ModelPlayerStat {
+    pub name: String,
+    pub elo: Option<i32>,
+    pub games: u32,
+    pub wins: u32,
+    pub draws: u32,
+    pub losses: u32,
+}
+
+#[derive(Serialize, Clone, Type)]
+pub struct ModelGamesReport {
+    pub players: Vec<ModelPlayerStat>,
+    pub games: Vec<NormalizedGame>,
+}
+
+const MAX_MODEL_PLAYERS: usize = 10;
+const MAX_MODEL_GAMES: usize = 30;
+
+#[derive(Default)]
+struct PlayerAccum {
+    games: u32,
+    wins: u32,
+    draws: u32,
+    losses: u32,
+    white_elo: i16,
+    black_elo: i16,
+}
+
+impl PlayerAccum {
+    /// Records one game for this player. Wins count games the player won with
+    /// either color; "*" results do not count towards wins/draws/losses.
+    fn record(&mut self, result: GameResult, as_white: bool, elo: i16) {
+        self.games += 1;
+        match result {
+            GameResult::WhiteWin => {
+                if as_white {
+                    self.wins += 1;
+                } else {
+                    self.losses += 1;
+                }
+            }
+            GameResult::BlackWin => {
+                if as_white {
+                    self.losses += 1;
+                } else {
+                    self.wins += 1;
+                }
+            }
+            GameResult::Draw => self.draws += 1,
+            GameResult::Other | GameResult::None => {}
+        }
+        if as_white {
+            self.white_elo = self.white_elo.max(elo);
+        } else {
+            self.black_elo = self.black_elo.max(elo);
+        }
+    }
+
+    fn max_elo(&self) -> i16 {
+        self.white_elo.max(self.black_elo)
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn model_games(
+    file: PathBuf,
+    query: GameQuery,
+    state: tauri::State<'_, AppState>,
+) -> Result<ModelGamesReport, Error> {
+    let start = Instant::now();
+    info!("start loading games for model games report");
+
+    let permit = state.new_request.acquire().await.unwrap();
+
+    let mmap_index = {
+        let mut cache = state.db_cache.lock().unwrap();
+        if cache.is_none() {
+            let index_path = get_index_path(&file);
+
+            if !MmapSearchIndex::is_valid(&index_path) {
+                info!("Search index not found, generating automatically...");
+                drop(cache);
+                if let Err(e) = super::generate_search_index(&file, &state) {
+                    return Err(Error::from(std::io::Error::other(format!(
+                        "Failed to generate search index: {}",
+                        e
+                    ))));
+                }
+                cache = state.db_cache.lock().unwrap();
+            }
+
+            info!("Loading games from mmap binary search index");
+            match MmapSearchIndex::open(&index_path) {
+                Ok(index) => {
+                    info!(
+                        "Opened mmap index with {} games: {:?}",
+                        index.len(),
+                        start.elapsed()
+                    );
+                    *cache = Some(index);
+                }
+                Err(e) => {
+                    return Err(Error::from(e));
+                }
+            }
+        }
+        cache.as_ref().unwrap().clone()
+    };
+
+    let game_count = mmap_index.len();
+
+    info!(
+        "Ready to search {} games: {:?}",
+        game_count,
+        start.elapsed()
+    );
+
+    let player_stats: DashMap<i32, PlayerAccum> = DashMap::new();
+    // Min-heap of (elo_key, game_id) to track the top-rated model games.
+    // Using Reverse so peek() returns the entry with the lowest ELO,
+    // which we can evict when a higher-rated game is found.
+    let top_games: Mutex<BinaryHeap<Reverse<(i16, i32)>>> =
+        Mutex::new(BinaryHeap::with_capacity(MAX_MODEL_GAMES + 1));
+
+    let parsed_position_query: Option<PositionQuery> = if let Some(pq) = &query.position {
+        Some(convert_position_query(pq.clone())?)
+    } else {
+        None
+    };
+
+    let wanted_result = query.wanted_result.as_ref().and_then(|r| match r.as_str() {
+        "whitewon" => Some(GameResult::WhiteWin),
+        "blackwon" => Some(GameResult::BlackWin),
+        "draw" => Some(GameResult::Draw),
+        _ => None,
+    });
+
+    info!("start model games search");
+
+    let process_entry = |entry: SearchGameEntryRef<'_>| {
+        if let Some(white) = query.player1 {
+            if white != entry.white_id {
+                return;
+            }
+        }
+
+        if let Some(black) = query.player2 {
+            if black != entry.black_id {
+                return;
+            }
+        }
+
+        if let Some(wanted) = wanted_result {
+            if entry.result != wanted {
+                return;
+            }
+        }
+
+        if let Some(start_date) = &query.start_date {
+            if let Some(date) = entry.date {
+                if date < start_date.as_str() {
+                    return;
+                }
+            }
+        }
+
+        if let Some(end_date) = &query.end_date {
+            if let Some(date) = entry.date {
+                if date > end_date.as_str() {
+                    return;
+                }
+            }
+        }
+
+        if let Some(position_query) = &parsed_position_query {
+            let end_material: MaterialCount = ByColor {
+                white: entry.white_material,
+                black: entry.black_material,
+            };
+            if position_query.can_reach(&end_material, entry.pawn_home) {
+                if get_move_after_match(entry.moves, &entry.fen, position_query)
+                    .unwrap_or(None)
+                    .is_some()
+                {
+                    let elo_key = entry.white_elo.max(entry.black_elo);
+                    let mut heap = top_games.lock().unwrap();
+                    if heap.len() < MAX_MODEL_GAMES {
+                        heap.push(Reverse((elo_key, entry.id)));
+                    } else if let Some(&Reverse((min_elo, _))) = heap.peek() {
+                        if elo_key > min_elo {
+                            heap.pop();
+                            heap.push(Reverse((elo_key, entry.id)));
+                        }
+                    }
+                    drop(heap);
+
+                    player_stats
+                        .entry(entry.white_id)
+                        .or_default()
+                        .record(entry.result, true, entry.white_elo);
+                    player_stats
+                        .entry(entry.black_id)
+                        .or_default()
+                        .record(entry.result, false, entry.black_elo);
+                }
+            }
+        }
+    };
+
+    mmap_index.par_iter().for_each(process_entry);
+
+    if player_stats.is_empty() {
+        info!("finished model games search in {:?}", start.elapsed());
+        drop(permit);
+        return Ok(ModelGamesReport {
+            players: Vec::new(),
+            games: Vec::new(),
+        });
+    }
+
+    let mut ranked_players: Vec<(i32, PlayerAccum)> = player_stats.into_iter().collect();
+    ranked_players.sort_by(|(id_a, a), (id_b, b)| {
+        b.games
+            .cmp(&a.games)
+            .then_with(|| b.max_elo().cmp(&a.max_elo()))
+            .then_with(|| id_a.cmp(id_b))
+    });
+    ranked_players.truncate(MAX_MODEL_PLAYERS);
+
+    let game_ids: Vec<i32> = top_games
+        .into_inner()
+        .unwrap()
+        .into_iter()
+        .map(|Reverse((_, id))| id)
+        .collect();
+
+    info!("finished model games search in {:?}", start.elapsed());
+
+    let db = &mut get_db_or_create(&state, file.to_str().unwrap(), ConnectionOptions::default())?;
+
+    let player_ids: Vec<i32> = ranked_players.iter().map(|(id, _)| *id).collect();
+    let stored_players: Vec<Player> = players::table
+        .filter(players::id.eq_any(player_ids))
+        .load(db)?;
+    let stored_by_id: HashMap<i32, Player> =
+        stored_players.into_iter().map(|p| (p.id, p)).collect();
+
+    let model_players: Vec<ModelPlayerStat> = ranked_players
+        .into_iter()
+        .map(|(id, accum)| {
+            let stored = stored_by_id.get(&id);
+            let name = stored
+                .and_then(|p| p.name.clone())
+                .unwrap_or_else(|| format!("Player {id}"));
+            let elo = stored
+                .and_then(|p| p.elo)
+                .or_else(|| {
+                    let max_seen = accum.max_elo();
+                    (max_seen > 0).then_some(i32::from(max_seen))
+                });
+            ModelPlayerStat {
+                name,
+                elo,
+                games: accum.games,
+                wins: accum.wins,
+                draws: accum.draws,
+                losses: accum.losses,
+            }
+        })
+        .collect();
+
+    let (white_players, black_players) = diesel::alias!(players as white, players as black);
+    let games: Vec<(Game, Player, Player, Event, Site)> = games::table
+        .inner_join(white_players.on(games::white_id.eq(white_players.field(players::id))))
+        .inner_join(black_players.on(games::black_id.eq(black_players.field(players::id))))
+        .inner_join(events::table.on(games::event_id.eq(events::id)))
+        .inner_join(sites::table.on(games::site_id.eq(sites::id)))
+        .filter(games::id.eq_any(game_ids))
+        .order((games::white_elo.desc(), games::black_elo.desc()))
+        .load(db)?;
+
+    let mut model_games_list = normalize_games(games);
+    model_games_list.sort_by(|a, b| {
+        let a_key = a.white_elo.unwrap_or(0).max(a.black_elo.unwrap_or(0));
+        let b_key = b.white_elo.unwrap_or(0).max(b.black_elo.unwrap_or(0));
+        b_key.cmp(&a_key)
+    });
+
+    drop(permit);
+
+    Ok(ModelGamesReport {
+        players: model_players,
+        games: model_games_list,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -668,5 +966,21 @@ mod tests {
         let query = PositionQuery::partial_from_fen("8/pppppppp/8/8/8/8/PPPPPPPP/8").unwrap();
         let result = get_move_after_match(&game, &None, &query).unwrap();
         assert_eq!(result, Some("e4".to_string()));
+    }
+
+    #[test]
+    fn player_accum_record_test() {
+        let mut accum = PlayerAccum::default();
+        accum.record(GameResult::WhiteWin, true, 2700);
+        accum.record(GameResult::WhiteWin, false, 2500);
+        accum.record(GameResult::BlackWin, false, 2600);
+        accum.record(GameResult::Draw, true, 0);
+        accum.record(GameResult::Other, true, 2400);
+
+        assert_eq!(accum.games, 5);
+        assert_eq!(accum.wins, 2);
+        assert_eq!(accum.draws, 1);
+        assert_eq!(accum.losses, 1);
+        assert_eq!(accum.max_elo(), 2700);
     }
 }
