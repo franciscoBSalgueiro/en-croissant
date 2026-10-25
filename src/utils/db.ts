@@ -160,6 +160,12 @@ export function useDefaultDatabases(opened: boolean) {
     };
 }
 
+export function isDefaultDatabaseInstalled(databases: DatabaseInfo[], title: string) {
+    return databases.some(
+        (db) => db.type === "success" && (db.title === title || db.filename === `${title}.duckdb`),
+    );
+}
+
 export async function getDefaultPuzzleDatabases(): Promise<
     (PuzzleDatabaseInfo & { downloadLink: string })[]
 > {

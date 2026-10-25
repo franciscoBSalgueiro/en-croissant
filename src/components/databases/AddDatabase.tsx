@@ -25,7 +25,12 @@ import { useTranslation } from "react-i18next";
 import type { KeyedMutator } from "swr";
 import { commands, type DatabaseInfo } from "@/bindings";
 import { databaseConversionStateAtom, storedDatabasesDirAtom } from "@/state/atoms";
-import { getDatabases, type SuccessDatabaseInfo, useDefaultDatabases } from "@/utils/db";
+import {
+  getDatabases,
+  isDefaultDatabaseInstalled,
+  type SuccessDatabaseInfo,
+  useDefaultDatabases,
+} from "@/utils/db";
 import { capitalize, formatBytes, formatNumber } from "@/utils/format";
 import { unwrap } from "@/utils/unwrap";
 import FileInput from "../common/FileInput";
@@ -134,9 +139,7 @@ function AddDatabase({
                   databaseId={i}
                   key={i}
                   setDatabases={setDatabases}
-                  initInstalled={databases.some(
-                    (e) => e.type === "success" && e.title === db.title,
-                  )}
+                  initInstalled={isDefaultDatabaseInstalled(databases, db.title)}
                 />
               ))}
               {error && (
