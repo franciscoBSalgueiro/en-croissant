@@ -18,7 +18,7 @@ import { useTranslation } from "react-i18next";
 import useSWR from "swr/immutable";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
-import { commands, type NormalizedGame } from "@/bindings";
+import { commands } from "@/bindings";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
   currentDbTabAtom,
@@ -38,6 +38,7 @@ import DatabaseLoader from "./DatabaseLoader";
 import GamesTable from "./GamesTable";
 import NoDatabaseWarning from "./NoDatabaseWarning";
 import OpeningReportTable from "./OpeningReportTable";
+import StrategyTrainerModal from "./StrategyTrainerModal";
 import OpeningsTable from "./OpeningsTable";
 import LichessOptionsPanel from "./options/LichessOptionsPanel";
 import LocalOptionsPanel from "./options/LocalOptionsPanel";
@@ -189,6 +190,8 @@ function DatabasePanel() {
     },
   );
 
+  const [trainerOpen, setTrainerOpen] = useState(false);
+
   const grandTotal = openingData?.openings?.reduce(
     (acc, curr) => acc + curr.black + curr.white + curr.draw,
     0,
@@ -307,6 +310,17 @@ function DatabasePanel() {
           header={header}
           missingExplorerToken={missingExplorerToken}
         >
+          <Group justify="flex-end" pb={4}>
+            <Button
+              size="xs"
+              variant="light"
+              leftSection={<IconTarget size="1rem" />}
+              disabled={dbType.type !== "local" || !dbType.options.path}
+              onClick={() => setTrainerOpen(true)}
+            >
+              {t("Board.Database.TrainLines")}
+            </Button>
+          </Group>
           <OpeningReportTable report={reportData || []} loading={reportLoading} />
         </PanelWithError>
         <PanelWithError
@@ -325,6 +339,12 @@ function DatabasePanel() {
           </ScrollArea>
         </PanelWithError>
       </Tabs>
+      <StrategyTrainerModal
+        opened={trainerOpen}
+        setOpened={setTrainerOpen}
+        fen={debouncedFen}
+        path={dbType.type === "local" ? (dbType.options.path ?? "") : ""}
+      />{" "}
     </Stack>
   );
 }
