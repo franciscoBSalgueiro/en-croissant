@@ -982,8 +982,12 @@ export default function Page() {
                     <Table.Tbody>
                       {Object.entries(keyMap).map(([action, keybind]) => {
                         return (
-                          <Table.Tr key={keybind.name}>
-                            <Table.Td>{keybind.name}</Table.Td>
+                          <Table.Tr key={action}>
+                            <Table.Td>
+                              {t(`Settings.Keybinds.Actions.${action}`, {
+                                defaultValue: keybind.name,
+                              })}
+                            </Table.Td>
                             <Table.Td>
                               <KeybindInput action={action} keybind={keybind} />
                             </Table.Td>

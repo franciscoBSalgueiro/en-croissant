@@ -5,6 +5,7 @@ import { Box } from "@mantine/core";
 import { useAtomValue } from "jotai";
 import { type Ref, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { boardImageAtom, is3dAtom, moveMethodAtom, pieceAnimationAtom } from "@/state/atoms";
+import { syncBoardBounds } from "./syncBoardBounds";
 
 const BOARD_COORDINATE_COLORS: Record<string, { white: string; black: string }> = {
   blue: { white: "#dee3e6", black: "#788a94" },
@@ -86,6 +87,11 @@ export function Chessground({ ref, ...props }: ChessgroundProps) {
     }),
     [api],
   );
+
+  useEffect(() => {
+    if (!api || !boardRef.current) return;
+    return syncBoardBounds(boardRef.current, api);
+  }, [api]);
 
   useEffect(() => {
     if (boardRef?.current == null) return;

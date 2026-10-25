@@ -11,6 +11,9 @@ import {
     type PlayerQuery,
     type PuzzleDatabaseInfo,
     type QueryResponse,
+    type TournamentQuery,
+    type Event,
+    type PositionStats,
 } from "@/bindings";
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
 import { getDatabasesDir } from "@/utils/directories";
@@ -45,27 +48,33 @@ export async function query_games(
     db: string,
     query: GameQuery,
 ): Promise<QueryResponse<NormalizedGame[]>> {
-    return unwrap(
-        await commands.getGames(db, {
-            player1: query.player1,
-            range1: normalizeRange(query.range1),
-            player2: query.player2,
-            range2: normalizeRange(query.range2),
-            tournament_id: query.tournament_id,
-            sides: query.sides,
-            outcome: query.outcome,
-            start_date: query.start_date,
-            end_date: query.end_date,
-            position: null,
-            options: {
-                skipCount: query.options?.skipCount ?? false,
-                page: query.options?.page,
-                pageSize: query.options?.pageSize,
-                sort: query.options?.sort || "id",
-                direction: query.options?.direction || "desc",
-            },
-        }),
-    );
+    return unwrap(await commands.getGames(db, normalizeGameQuery(query)));
+}
+
+export function normalizeGameQuery(query: GameQuery): GameQuery {
+    const position =
+        query.position?.type_ === "exact" || query.position?.type_ === "scoutfish"
+            ? query.position
+            : null;
+    return {
+        player1: query.player1,
+        range1: normalizeRange(query.range1),
+        player2: query.player2,
+        range2: normalizeRange(query.range2),
+        tournament: query.tournament,
+        sides: query.sides,
+        outcome: query.outcome,
+        start_date: query.start_date,
+        end_date: query.end_date,
+        position,
+        options: {
+            skipCount: query.options?.skipCount ?? false,
+            page: query.options?.page,
+            pageSize: query.options?.pageSize,
+            sort: query.options?.sort || "id",
+            direction: query.options?.direction || "desc",
+        },
+    };
 }
 
 export async function query_players(
@@ -87,10 +96,28 @@ export async function query_players(
     );
 }
 
+export async function query_tournaments(
+    db: string,
+    query: TournamentQuery,
+): Promise<QueryResponse<Event[]>> {
+    return unwrap(
+        await commands.getTournaments(db, {
+            options: {
+                skipCount: query.options?.skipCount || false,
+                page: query.options?.page,
+                pageSize: query.options?.pageSize,
+                sort: query.options?.sort || "games_count",
+                direction: query.options?.direction || "desc",
+            },
+            name: query.name || null,
+        }),
+    );
+}
+
 export async function getDatabases(): Promise<DatabaseInfo[]> {
     const dbDir = await getDatabasesDir();
     const files = await readDir(dbDir);
-    const dbs = files.filter((file) => file.name?.endsWith(".db3"));
+    const dbs = files.filter((file) => /\.(duckdb|db3)$/i.test(file.name ?? ""));
     return (await Promise.allSettled(dbs.map((db) => getDatabase(db.name))))
         .filter((r) => r.status === "fulfilled")
         .map((r) => (r as PromiseFulfilledResult<DatabaseInfo>).value);
@@ -102,7 +129,7 @@ async function getDatabase(name: string): Promise<DatabaseInfo> {
     const res = await commands.getDbInfo(path);
     if (res.status === "ok") {
         return {
-            type: "success",
+            type: res.data.needs_conversion ? "legacy" : "success",
             ...res.data,
             file: path,
         };
@@ -133,6 +160,12 @@ export function useDefaultDatabases(opened: boolean) {
     };
 }
 
+export function isDefaultDatabaseInstalled(databases: DatabaseInfo[], title: string) {
+    return databases.some(
+        (db) => db.type === "success" && (db.title === title || db.filename === `${title}.duckdb`),
+    );
+}
+
 export async function getDefaultPuzzleDatabases(): Promise<
     (PuzzleDatabaseInfo & { downloadLink: string })[]
 > {
@@ -147,37 +180,31 @@ export async function getDefaultPuzzleDatabases(): Promise<
     })[];
 }
 
-export interface Opening {
-    move: string;
-    white: number;
-    black: number;
-    draw: number;
-}
+export type Opening = PositionStats;
 
-export async function getTournamentGames(file: string, id: number) {
+export async function getTournamentGames(file: string, name: string) {
     return await query_games(file, {
         options: {
             direction: "asc",
             sort: "id",
             skipCount: true,
         },
-        tournament_id: id,
+        tournament: name,
     });
 }
 
 export async function searchPosition(options: LocalOptions, tab: string) {
+    const { path, ...queryOptions } = options;
     const res = await commands.searchPosition(
-        options.path!,
+        path!,
         {
-            player1: options.color === "white" ? options.player : undefined,
-            player2: options.color === "black" ? options.player : undefined,
+            ...queryOptions,
+            range1: normalizeRange(queryOptions.range1),
+            range2: normalizeRange(queryOptions.range2),
             position: {
-                fen: options.fen,
-                type_: options.type,
+                fen: queryOptions.position?.fen || "",
+                type_: "exact",
             },
-            start_date: options.start_date,
-            end_date: options.end_date,
-            wanted_result: options.result,
         },
         tab,
     );

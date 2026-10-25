@@ -392,6 +392,9 @@ export const scoreTypeFamily = atomFamily((_engine: string) => atom<"cp" | "wdl"
 
 // Per tab settings
 
+export const boardEditingFamily = atomFamily((_tab: string) => atom(false));
+export const currentBoardEditingAtom = tabValue(boardEditingFamily);
+
 const threatFamily = atomFamily((_tab: string) => atom(false));
 export const currentThreatAtom = tabValue(threatFamily);
 
@@ -423,11 +426,6 @@ export const currentReportModalOpenAtom = tabValue(reportModalOpenFamily);
 const localOptionsFamily = atomFamily((_tab: string) =>
     atom<LocalOptions>({
         path: null,
-        type: "exact",
-        fen: "",
-        player: null,
-        color: "white",
-        result: "any",
     }),
 );
 export const currentLocalOptionsAtom = tabValue(localOptionsFamily);

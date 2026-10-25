@@ -6,22 +6,24 @@ function GridLayout({
   search,
   table,
   preview,
+  compactSearch = false,
 }: {
   search: ReactNode;
   table: ReactNode;
   preview: ReactNode;
+  compactSearch?: boolean;
 }) {
   return (
     <Group grow h="100%">
       <Box
         style={{
           display: "flex",
-          gap: "1rem",
+          gap: compactSearch ? "0.5rem" : "1rem",
           flexDirection: "column",
           height: "100%",
         }}
       >
-        <Box className={classes.search}>{search}</Box>
+        <Box className={compactSearch ? classes.compactSearch : classes.search}>{search}</Box>
         {table}
       </Box>
 
