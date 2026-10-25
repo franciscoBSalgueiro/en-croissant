@@ -1,5 +1,6 @@
 import {
   Alert,
+  Button,
   Group,
   ScrollArea,
   SegmentedControl,
@@ -10,8 +11,9 @@ import {
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import { Link } from "@tanstack/react-router";
+import { IconTarget } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
-import { memo, useContext, useEffect } from "react";
+import { memo, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr/immutable";
 import { match } from "ts-pattern";
@@ -28,13 +30,15 @@ import {
   referenceDbAtom,
   sessionsAtom,
 } from "@/state/atoms";
-import { getDatabases, type Opening, searchPosition } from "@/utils/db";
+import { getDatabases, type Opening, openingReport, searchPosition } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 import { convertToNormalized, getLichessGames, getMasterGames } from "@/utils/lichess/api";
 import type { LichessGamesOptions, MasterGamesOptions } from "@/utils/lichess/explorer";
 import DatabaseLoader from "./DatabaseLoader";
 import GamesTable from "./GamesTable";
 import NoDatabaseWarning from "./NoDatabaseWarning";
+import OpeningReportTable from "./OpeningReportTable";
+import StrategyTrainerModal from "./StrategyTrainerModal";
 import OpeningsTable from "./OpeningsTable";
 import LichessOptionsPanel from "./options/LichessOptionsPanel";
 import LocalOptionsPanel from "./options/LocalOptionsPanel";
@@ -174,6 +178,20 @@ function DatabasePanel() {
     },
   );
 
+  const {
+    data: reportData,
+    isLoading: reportLoading,
+    error: reportError,
+  } = useSWR(
+    tabType === "report" && dbType.type === "local" && dbType.options.path ? dbType : null,
+    async (dbType: DBType) => {
+      if (dbType.type !== "local") throw Error("Missing reference database");
+      return openingReport(dbType.options);
+    },
+  );
+
+  const [trainerOpen, setTrainerOpen] = useState(false);
+
   const grandTotal = openingData?.openings?.reduce(
     (acc, curr) => acc + curr.black + curr.white + curr.draw,
     0,
@@ -242,6 +260,24 @@ function DatabasePanel() {
             {t("Board.Database.Stats")}
           </Tabs.Tab>
           <Tabs.Tab value="games">{t("Board.Database.Games")}</Tabs.Tab>
+          <Tabs.Tab
+            value="report"
+            disabled={dbType.type === "local" ? dbType.options.type === "partial" : true}
+          >
+            {t("Board.Database.Report")}
+          </Tabs.Tab>
+          <Tabs.Tab
+            value="models"
+            disabled={dbType.type === "local" ? dbType.options.type === "partial" : true}
+          >
+            {t("Board.Database.Models")}
+          </Tabs.Tab>
+          <Tabs.Tab
+            value="structures"
+            disabled={dbType.type === "local" ? dbType.options.type === "partial" : true}
+          >
+            {t("Board.Database.Structures")}
+          </Tabs.Tab>
           <Tabs.Tab value="options">{t("Board.Database.Options")}</Tabs.Tab>
         </Tabs.List>
 
@@ -268,6 +304,26 @@ function DatabasePanel() {
           />
         </PanelWithError>
         <PanelWithError
+          value="report"
+          error={reportError}
+          type={db}
+          header={header}
+          missingExplorerToken={missingExplorerToken}
+        >
+          <Group justify="flex-end" pb={4}>
+            <Button
+              size="xs"
+              variant="light"
+              leftSection={<IconTarget size="1rem" />}
+              disabled={dbType.type !== "local" || !dbType.options.path}
+              onClick={() => setTrainerOpen(true)}
+            >
+              {t("Board.Database.TrainLines")}
+            </Button>
+          </Group>
+          <OpeningReportTable report={reportData || []} loading={reportLoading} />
+        </PanelWithError>
+        <PanelWithError
           value="options"
           error={error}
           type={db}
@@ -283,13 +339,19 @@ function DatabasePanel() {
           </ScrollArea>
         </PanelWithError>
       </Tabs>
+      <StrategyTrainerModal
+        opened={trainerOpen}
+        setOpened={setTrainerOpen}
+        fen={debouncedFen}
+        path={dbType.type === "local" ? (dbType.options.path ?? "") : ""}
+      />{" "}
     </Stack>
   );
 }
 
 function PanelWithError(props: {
   value: string;
-  error: string;
+  error?: string;
   type: string;
   header: React.ReactNode;
   children: React.ReactNode;
