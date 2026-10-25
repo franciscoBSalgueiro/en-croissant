@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { ANNOTATION_INFO, type Annotation, NAG_INFO } from "../annotation";
 import { parseSquare } from "chessops";
-import { getMoveDestination, hasMorePriority, headersToPGN } from "../chess";
+import { getMoveDestination, hasMorePriority, headersToPGN, parsePGNTokens } from "../chess";
 
 test("NAGs are consistent", () => {
     for (const k of Object.keys(ANNOTATION_INFO)) {
@@ -50,4 +50,27 @@ test("castling destination ignores a check or mate suffix", () => {
     expect(black("O-O")).toBe(parseSquare("g8"));
     expect(black("O-O+")).toBe(parseSquare("g8"));
     expect(getMoveDestination({ san: "Nf3+", halfMoves: 1, move: { from: 6, to: 21 } })).toBe(21);
+});
+
+test("adjacent comments are merged instead of overwritten", () => {
+    const tree = parsePGNTokens([
+        { type: "San", value: "e4" },
+        { type: "Comment", value: "first comment" },
+        { type: "Comment", value: "second comment" },
+        { type: "San", value: "e5" },
+        { type: "Comment", value: "only comment here" },
+    ]);
+
+    expect(tree.root.children[0].comment).toBe("first comment second comment");
+    expect(tree.root.children[0].children[0].comment).toBe("only comment here");
+});
+
+test("chess.com timestamps are stripped before comments are merged", () => {
+    const tree = parsePGNTokens([
+        { type: "San", value: "d4" },
+        { type: "Comment", value: "opening [%timestamp 12] idea" },
+        { type: "Comment", value: "[%timestamp 34]" },
+    ]);
+
+    expect(tree.root.children[0].comment).toBe("opening idea");
 });

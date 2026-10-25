@@ -375,7 +375,11 @@ export async function getOpening(root: TreeNode, position: number[]): Promise<st
     return "";
 }
 
-function innerParsePGN(tokens: Token[], fen: string = INITIAL_FEN, halfMoves = 0): TreeState {
+export function parsePGNTokens(
+    tokens: Token[],
+    fen: string = INITIAL_FEN,
+    halfMoves = 0,
+): TreeState {
     const tree = defaultTree(fen);
     let root = tree.root;
     let prevNode = root;
@@ -426,7 +430,11 @@ function innerParsePGN(tokens: Token[], fen: string = INITIAL_FEN, halfMoves = 0
             }
 
             // Strip [%timestamp N] annotations (chess.com export format) from comment text
-            root.comment = comment.text.replace(/\s?\[%timestamp\s+\d+\]\s?/g, " ").trim();
+            const text = comment.text.replace(/\s?\[%timestamp\s+\d+\]\s?/g, " ").trim();
+            // A move can carry several comments; append instead of overwriting
+            if (text) {
+                root.comment = root.comment ? `${root.comment} ${text}` : text;
+            }
         } else if (token.type === "ParenOpen") {
             const variation = [];
             let subvariations = 0;
@@ -440,7 +448,7 @@ function innerParsePGN(tokens: Token[], fen: string = INITIAL_FEN, halfMoves = 0
                 variation.push(tokens[i]);
                 i++;
             }
-            const newTree = innerParsePGN(variation, prevNode.fen, root.halfMoves - 1);
+            const newTree = parsePGNTokens(variation, prevNode.fen, root.halfMoves - 1);
             if (newTree.root.children.length > 0) {
                 prevNode.children.push(newTree.root.children[0]);
             }
@@ -490,7 +498,7 @@ export async function parsePGN(pgn: string, initialFen?: string): Promise<TreeSt
 
     const [pos] = positionFromFen(fen);
 
-    const tree = innerParsePGN(
+    const tree = parsePGNTokens(
         tokens,
         initialFen?.trim() || headers.fen.trim(),
         pos?.turn === "black" ? 1 : 0,
