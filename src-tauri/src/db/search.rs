@@ -9,7 +9,7 @@ use shakmaty::{
 use specta::Type;
 use std::{
     cmp::Reverse,
-    collections::BinaryHeap,
+    collections::{BinaryHeap, HashMap},
     path::PathBuf,
     sync::{
         atomic::{AtomicUsize, Ordering},
@@ -461,6 +461,268 @@ pub async fn search_position(
     Ok((openings, normalized_games))
 }
 
+#[derive(Debug, Serialize, Clone, Type)]
+pub struct EloBucketStat {
+    pub bucket: String,
+    pub total: u32,
+    pub white: u32,
+    pub draw: u32,
+    pub black: u32,
+}
+
+#[derive(Debug, Serialize, Clone, Type)]
+pub struct YearStat {
+    pub year: String,
+    pub total: u32,
+    pub white: u32,
+    pub draw: u32,
+    pub black: u32,
+}
+
+#[derive(Debug, Serialize, Clone, Type)]
+pub struct OpeningMoveReport {
+    pub move_: String,
+    pub total: u32,
+    pub white: u32,
+    pub draw: u32,
+    pub black: u32,
+    pub avg_elo: Option<f64>,
+    pub elo_buckets: Vec<EloBucketStat>,
+    pub yearly: Vec<YearStat>,
+}
+
+const ELO_BUCKET_LABELS: [&str; 5] = ["<1200", "1200-1499", "1500-1799", "1800-2099", ">=2100"];
+
+/// Returns the index into `ELO_BUCKET_LABELS` for an Elo value,
+/// or `None` when the value is missing (0).
+fn elo_bucket_index(elo: i16) -> Option<usize> {
+    match elo {
+        ..=0 => None,
+        ..=1199 => Some(0),
+        1200..=1499 => Some(1),
+        1500..=1799 => Some(2),
+        1800..=2099 => Some(3),
+        _ => Some(4),
+    }
+}
+
+#[derive(Default)]
+struct ResultCount {
+    total: u32,
+    white: u32,
+    draw: u32,
+    black: u32,
+}
+
+impl ResultCount {
+    fn record(&mut self, result: GameResult) {
+        self.total += 1;
+        match result {
+            GameResult::WhiteWin => self.white += 1,
+            GameResult::BlackWin => self.black += 1,
+            GameResult::Draw | GameResult::Other | GameResult::None => self.draw += 1,
+        }
+    }
+}
+
+#[derive(Default)]
+struct OpeningMoveAccum {
+    results: ResultCount,
+    elo_sum: i64,
+    elo_count: u32,
+    buckets: [ResultCount; 5],
+    years: HashMap<String, ResultCount>,
+}
+
+impl OpeningMoveAccum {
+    fn record(&mut self, result: GameResult, date: Option<&str>, elo: i16) {
+        self.results.record(result);
+        if let Some(bucket) = elo_bucket_index(elo) {
+            self.elo_sum += i64::from(elo);
+            self.elo_count += 1;
+            self.buckets[bucket].record(result);
+        }
+        if let Some(year) = date.and_then(|d| d.get(..4)) {
+            self.years.entry(year.to_string()).or_default().record(result);
+        }
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn opening_report(
+    file: PathBuf,
+    query: GameQuery,
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<OpeningMoveReport>, Error> {
+    let start = Instant::now();
+    info!("start loading games for opening report");
+
+    let permit = state.new_request.acquire().await.unwrap();
+
+    let mmap_index = {
+        let mut cache = state.db_cache.lock().unwrap();
+        if cache.is_none() {
+            let index_path = get_index_path(&file);
+
+            if !MmapSearchIndex::is_valid(&index_path) {
+                info!("Search index not found, generating automatically...");
+                drop(cache);
+                if let Err(e) = super::generate_search_index(&file, &state) {
+                    return Err(Error::from(std::io::Error::other(format!(
+                        "Failed to generate search index: {}",
+                        e
+                    ))));
+                }
+                cache = state.db_cache.lock().unwrap();
+            }
+
+            info!("Loading games from mmap binary search index");
+            match MmapSearchIndex::open(&index_path) {
+                Ok(index) => {
+                    info!(
+                        "Opened mmap index with {} games: {:?}",
+                        index.len(),
+                        start.elapsed()
+                    );
+                    *cache = Some(index);
+                }
+                Err(e) => {
+                    return Err(Error::from(e));
+                }
+            }
+        }
+        cache.as_ref().unwrap().clone()
+    };
+
+    let game_count = mmap_index.len();
+
+    info!(
+        "Ready to search {} games: {:?}",
+        game_count,
+        start.elapsed()
+    );
+
+    let openings: DashMap<String, OpeningMoveAccum> = DashMap::new();
+
+    let parsed_position_query: Option<PositionQuery> = if let Some(pq) = &query.position {
+        Some(convert_position_query(pq.clone())?)
+    } else {
+        None
+    };
+
+    let wanted_result = query.wanted_result.as_ref().and_then(|r| match r.as_str() {
+        "whitewon" => Some(GameResult::WhiteWin),
+        "blackwon" => Some(GameResult::BlackWin),
+        "draw" => Some(GameResult::Draw),
+        _ => None,
+    });
+
+    info!("start opening report search");
+
+    let process_entry = |entry: SearchGameEntryRef<'_>| {
+        if let Some(white) = query.player1 {
+            if white != entry.white_id {
+                return;
+            }
+        }
+
+        if let Some(black) = query.player2 {
+            if black != entry.black_id {
+                return;
+            }
+        }
+
+        if let Some(wanted) = wanted_result {
+            if entry.result != wanted {
+                return;
+            }
+        }
+
+        if let Some(start_date) = &query.start_date {
+            if let Some(date) = entry.date {
+                if date < start_date.as_str() {
+                    return;
+                }
+            }
+        }
+
+        if let Some(end_date) = &query.end_date {
+            if let Some(date) = entry.date {
+                if date > end_date.as_str() {
+                    return;
+                }
+            }
+        }
+
+        if let Some(position_query) = &parsed_position_query {
+            let end_material: MaterialCount = ByColor {
+                white: entry.white_material,
+                black: entry.black_material,
+            };
+            if position_query.can_reach(&end_material, entry.pawn_home) {
+                if let Ok(Some(m)) = get_move_after_match(entry.moves, &entry.fen, position_query) {
+                    let elo = entry.white_elo.max(entry.black_elo);
+                    openings.entry(m).or_default().record(entry.result, entry.date, elo);
+                }
+            }
+        }
+    };
+
+    mmap_index.par_iter().for_each(process_entry);
+
+    let mut reports: Vec<OpeningMoveReport> = openings
+        .into_iter()
+        .map(|(move_, accum)| {
+            let OpeningMoveAccum { results, elo_sum, elo_count, buckets, years } = accum;
+            let mut yearly: Vec<YearStat> = years
+                .into_iter()
+                .map(|(year, count)| YearStat {
+                    year,
+                    total: count.total,
+                    white: count.white,
+                    draw: count.draw,
+                    black: count.black,
+                })
+                .collect();
+            yearly.sort_by(|a, b| a.year.cmp(&b.year));
+            OpeningMoveReport {
+                move_,
+                total: results.total,
+                white: results.white,
+                draw: results.draw,
+                black: results.black,
+                avg_elo: if elo_count > 0 {
+                    Some(elo_sum as f64 / f64::from(elo_count))
+                } else {
+                    None
+                },
+                elo_buckets: buckets
+                    .into_iter()
+                    .zip(ELO_BUCKET_LABELS)
+                    .filter(|(count, _)| count.total > 0)
+                    .map(|(count, bucket)| EloBucketStat {
+                        bucket: bucket.to_string(),
+                        total: count.total,
+                        white: count.white,
+                        draw: count.draw,
+                        black: count.black,
+                    })
+                    .collect(),
+                yearly,
+            }
+        })
+        .collect();
+
+    reports.sort_by(|a, b| b.total.cmp(&a.total).then_with(|| a.move_.cmp(&b.move_)));
+
+    info!("finished opening report in {:?}", start.elapsed());
+
+    drop(permit);
+
+    Ok(reports)
+}
+
 pub async fn is_position_in_db(
     file: PathBuf,
     query: GameQuery,
@@ -669,4 +931,10 @@ mod tests {
         let result = get_move_after_match(&game, &None, &query).unwrap();
         assert_eq!(result, Some("e4".to_string()));
     }
+
+
+
+
+
+
 }
