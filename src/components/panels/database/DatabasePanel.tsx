@@ -34,6 +34,7 @@ import { convertToNormalized, getLichessGames, getMasterGames } from "@/utils/li
 import type { LichessGamesOptions, MasterGamesOptions } from "@/utils/lichess/explorer";
 import DatabaseLoader from "./DatabaseLoader";
 import GamesTable from "./GamesTable";
+import StructureSearch from "./StructureSearch";
 import NoDatabaseWarning from "./NoDatabaseWarning";
 import OpeningsTable from "./OpeningsTable";
 import LichessOptionsPanel from "./options/LichessOptionsPanel";
@@ -241,10 +242,15 @@ function DatabasePanel() {
           >
             {t("Board.Database.Stats")}
           </Tabs.Tab>
-          <Tabs.Tab value="games">{t("Board.Database.Games")}</Tabs.Tab>
+          <Tabs.Tab value="games">{t("Board.Database.Games")}</Tabs.Tab>{" "}
+          <Tabs.Tab
+            value="structures"
+            disabled={dbType.type === "local" ? dbType.options.type === "partial" : true}
+          >
+            {t("Board.Database.Structures")}
+          </Tabs.Tab>
           <Tabs.Tab value="options">{t("Board.Database.Options")}</Tabs.Tab>
         </Tabs.List>
-
         <PanelWithError
           value="stats"
           error={error}
@@ -265,6 +271,17 @@ function DatabasePanel() {
             games={openingData?.games || []}
             loading={isLoading}
             databasePath={dbType.type === "local" ? dbType.options.path : null}
+          />
+        </PanelWithError>{" "}
+        <PanelWithError
+          value="structures"
+          type={db}
+          header={header}
+          missingExplorerToken={missingExplorerToken}
+        >
+          <StructureSearch
+            path={dbType.type === "local" ? (dbType.options.path ?? "") : ""}
+            fen={debouncedFen}
           />
         </PanelWithError>
         <PanelWithError
@@ -289,7 +306,7 @@ function DatabasePanel() {
 
 function PanelWithError(props: {
   value: string;
-  error: string;
+  error?: string;
   type: string;
   header: React.ReactNode;
   children: React.ReactNode;

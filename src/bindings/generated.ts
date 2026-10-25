@@ -459,6 +459,14 @@ async getSoundServerPort() : Promise<Result<number, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async similarGames(file: string, fen: string, limit: number) : Promise<Result<SimilarGame[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("similar_games", { file, fen, limit }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -546,6 +554,7 @@ export type ScoreValue =
  */
 { type: "mate"; value: number }
 export type Sides = "BlackWhite" | "WhiteBlack" | "Any"
+export type SimilarGame = { game: NormalizedGame; ply: number; matched_plies: number }
 export type SiteStatsData = { site: string; player: string; data: StatsData[] }
 export type SortDirection = "asc" | "desc"
 export type StatsData = { date: string; is_player_white: boolean; player_elo: number; result: GameOutcome; time_control: string; opening: string }
