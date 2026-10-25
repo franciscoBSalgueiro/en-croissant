@@ -37,6 +37,10 @@ export default defineConfig({
             "Annotate.*",
             "GoMode.*",
             "Errors.*",
+            // Insights sentences are selected dynamically from `bullet.key`
+            // (and motif keys from `motifTranslationKey`), so the extractor
+            // cannot see them as static `t("...")` calls.
+            "Insights.*",
         ],
         sort: true,
     },

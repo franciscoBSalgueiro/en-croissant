@@ -1,6 +1,7 @@
 import { Paper, Portal, Stack, Tabs } from "@mantine/core";
 import { useHotkeys, useToggle } from "@mantine/hooks";
 import {
+  IconBulb,
   IconDatabase,
   IconFileText,
   IconInfoCircle,
@@ -38,6 +39,7 @@ import AnalysisPanel from "../panels/analysis/AnalysisPanel";
 import AnnotationPanel from "../panels/annotation/AnnotationPanel";
 import DatabasePanel from "../panels/database/DatabasePanel";
 import InfoPanel from "../panels/info/InfoPanel";
+import InsightsPanel from "../panels/insights/InsightsPanel";
 import PracticePanel from "../panels/practice/PracticePanel";
 import Board from "./Board";
 import BoardControls from "./BoardControls";
@@ -259,6 +261,9 @@ function BoardAnalysis() {
               <Tabs.Tab value="annotate" leftSection={<IconNotes size="1rem" />}>
                 {t("Board.Tabs.Annotate")}
               </Tabs.Tab>
+              <Tabs.Tab value="insights" leftSection={<IconBulb size="1rem" />}>
+                {t("Board.Analysis.Insights")}
+              </Tabs.Tab>
               <Tabs.Tab value="info" leftSection={<IconInfoCircle size="1rem" />}>
                 {t("Board.Tabs.Info")}
               </Tabs.Tab>
@@ -281,6 +286,9 @@ function BoardAnalysis() {
             </Tabs.Panel>
             <Tabs.Panel value="annotate" flex={1} style={{ overflowY: "hidden" }}>
               <AnnotationPanel />
+            </Tabs.Panel>
+            <Tabs.Panel value="insights" flex={1} style={{ overflowY: "hidden" }}>
+              <InsightsPanel />
             </Tabs.Panel>
             <Tabs.Panel value="analysis" flex={1} style={{ overflowY: "hidden" }}>
               <AnalysisPanel />

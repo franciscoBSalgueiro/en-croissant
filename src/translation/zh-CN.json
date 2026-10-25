@@ -45,6 +45,7 @@
     "Board.Analysis.GenerateReport": "生成报告",
     "Board.Analysis.GeneratingReport": "正在生成报告",
     "Board.Analysis.InactiveEngine": "引擎未启用",
+    "Board.Analysis.Insights": "",
     "Board.Analysis.Logs": "日志",
     "Board.Analysis.ManageEngines": "管理引擎",
     "Board.Analysis.Middlegame": "中局",
