@@ -1,6 +1,4 @@
 export function getTimeControl(website: string | null, timeControl: string) {
-    // Daily and correspondence controls are unambiguous from the control string
-    // itself, so classify them before falling back to website-specific thresholds.
     if (timeControl.startsWith("1/")) {
         return "daily";
     }

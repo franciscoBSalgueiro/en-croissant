@@ -50,9 +50,6 @@ export default function GameSelector({
           }),
         )
       ).filter((entry) => entry !== null);
-      // Wait for the names before notifying React, and merge into the latest state
-      // instead of the snapshot captured when the request started, so overlapping
-      // loads cannot drop each other's results.
       setGames((prev) => {
         const newGames = new Map(prev);
         for (const [index, name] of entries) {

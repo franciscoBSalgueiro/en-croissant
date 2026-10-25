@@ -741,7 +741,6 @@ mod tests {
     #[test]
     fn eval_hanging_pawn() {
         let position = pos("r1bqkbnr/ppp1pppp/2n5/1B1p4/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3");
-        // One pawn up, and piece_value(Pawn) is 90 since e77eba32 ("adjust piece values").
         assert_eq!(naive_eval(&position), 90);
     }
 
@@ -759,25 +758,16 @@ mod tests {
 
     #[test]
     fn eval_rook_stack() {
-        // Qb2-g2# is mate in one, so count_material returns the -10000 mate sentinel
-        // and naive_eval negates it back to 10000.
         let position = pos("rnrq4/8/8/1R6/1R6/1R5K/1Q6/7k w - - 0 1");
         assert_eq!(naive_eval(&position), 10000);
     }
 
     #[test]
     fn eval_rook_stack2() {
-        // Qb4-e1# is mate in one, so count_material returns the -10000 mate sentinel
-        // and naive_eval negates it back to 10000.
         let position = pos("rnrq4/8/8/1R6/1Q6/1R5K/1R6/7k w - - 0 1");
         assert_eq!(naive_eval(&position), 10000);
     }
 
-    // These two fixtures never matched the evaluator: at 1394ac25, where they were
-    // added, the same positions score -150 and -25, and no later change moved them
-    // closer to -100 and 0. The values below are what the current search returns,
-    // and they are also its exact minimax values over the capture tree, so they do
-    // not depend on the capture ordering in qsearch.
     #[test]
     fn eval_opera_game1() {
         let position = pos("4kb1r/p2rqppp/5n2/1B2p1B1/4P3/1Q6/PPP2PPP/2K4R w k - 0 14");
