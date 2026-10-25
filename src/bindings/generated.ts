@@ -459,6 +459,30 @@ async getSoundServerPort() : Promise<Result<number, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async startTreeAnalysis(id: string, tab: string, config: TreeConfig) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("start_tree_analysis", { id, tab, config }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async stopTreeAnalysis(id: string) : Promise<Result<IdeaTree, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("stop_tree_analysis", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getTree(id: string) : Promise<Result<IdeaTree | null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_tree", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -471,14 +495,16 @@ clockUpdateEvent: ClockUpdateEvent,
 databaseProgress: DatabaseProgress,
 gameMoveEvent: GameMoveEvent,
 gameOverEvent: GameOverEvent,
-progressEvent: ProgressEvent
+progressEvent: ProgressEvent,
+treeUpdateEvent: TreeUpdateEvent
 }>({
 bestMovesPayload: "best-moves-payload",
 clockUpdateEvent: "clock-update-event",
 databaseProgress: "database-progress",
 gameMoveEvent: "game-move-event",
 gameOverEvent: "game-over-event",
-progressEvent: "progress-event"
+progressEvent: "progress-event",
+treeUpdateEvent: "tree-update-event"
 })
 
 /** user-defined constants **/
@@ -512,6 +538,7 @@ export type GameSort = "id" | "date" | "whiteElo" | "blackElo" | "ply_count"
 export type GameState = { gameId: string; status: GameStatus; initialFen: string; moves: GameMove[]; currentFen: string; ply: number; turn: string; whiteTime: bigint | null; blackTime: bigint | null; whitePlayer: string; blackPlayer: string }
 export type GameStatus = "playing" | { finished: { result: GameResult } }
 export type GoMode = { t: "PlayersTime"; c: PlayersTime } | { t: "Depth"; c: number } | { t: "Time"; c: number } | { t: "Nodes"; c: number } | { t: "Infinite" }
+export type IdeaTree = { nodes: TreeNode[]; config: TreeConfig | null; updated_at: bigint }
 export type MoveAnalysis = { best: BestMoves[]; novelty: boolean; is_sacrifice: boolean }
 export type NormalizedGame = { id: number; fen: string; event: string; event_id: number; site: string; site_id: number; date?: string | null; time?: string | null; round?: string | null; white: string; white_id: number; white_elo?: number | null; black: string; black_id: number; black_elo?: number | null; result: Outcome; time_control?: string | null; eco?: string | null; ply_count?: number | null; moves: string }
 export type OpeningBookConfig = { path: string; maxPly?: bigint }
@@ -553,6 +580,9 @@ export type TimeControl = { initialTime: bigint; increment: bigint }
 export type Token = { type: "ParenOpen" } | { type: "ParenClose" } | { type: "Comment"; value: string } | { type: "San"; value: string } | { type: "Header"; value: { tag: string; value: string } } | { type: "Nag"; value: string } | { type: "Outcome"; value: string }
 export type TournamentQuery = { options: QueryOptions<TournamentSort>; name: string | null }
 export type TournamentSort = "id" | "name"
+export type TreeConfig = { fen: string; moves: string[]; engine_path: string; engine_options: EngineOption[]; depth: number; branching: number; max_nodes: number }
+export type TreeNode = { id: number; parent: number | null; uci: string | null; san: string; fen: string; score_cp: number | null; children: number[]; evaluated: boolean }
+export type TreeUpdateEvent = { id: string; tab: string; nodes_done: number; best_line_san: string[]; best_score_cp: number | null; tree: IdeaTree }
 /**
  * Represents a UCI option definition.
  */
