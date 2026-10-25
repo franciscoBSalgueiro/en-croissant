@@ -197,6 +197,8 @@ export async function searchPosition(options: LocalOptions, tab: string) {
         path!,
         {
             ...queryOptions,
+            range1: normalizeRange(queryOptions.range1),
+            range2: normalizeRange(queryOptions.range2),
             position: {
                 fen: queryOptions.position?.fen || "",
                 type_: "exact",
