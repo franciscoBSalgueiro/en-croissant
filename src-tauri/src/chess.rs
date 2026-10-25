@@ -758,14 +758,18 @@ mod tests {
 
     #[test]
     fn eval_rook_stack() {
+        // Qb2-g2# is mate in one, so count_material returns the -10000 mate sentinel
+        // and naive_eval negates it back to 10000.
         let position = pos("rnrq4/8/8/1R6/1R6/1R5K/1Q6/7k w - - 0 1");
-        assert_eq!(naive_eval(&position), 500);
+        assert_eq!(naive_eval(&position), 10000);
     }
 
     #[test]
     fn eval_rook_stack2() {
+        // Qb4-e1# is mate in one, so count_material returns the -10000 mate sentinel
+        // and naive_eval negates it back to 10000.
         let position = pos("rnrq4/8/8/1R6/1Q6/1R5K/1R6/7k w - - 0 1");
-        assert_eq!(naive_eval(&position), 200);
+        assert_eq!(naive_eval(&position), 10000);
     }
 
     #[test]
