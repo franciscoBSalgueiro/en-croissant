@@ -35,6 +35,29 @@ pub use self::models::Puzzle;
 pub(crate) use self::search::PositionCache;
 pub use self::search::{is_position_in_db, search_position, PositionQueryJs};
 
+const GAME_COLUMNS: &[&str] = &[
+    "event",
+    "site",
+    "round",
+    "fen",
+    "white",
+    "black",
+    "white_rating",
+    "black_rating",
+    "white_title",
+    "black_title",
+    "result",
+    "time_control",
+    "ply_count",
+    "utc_timestamp",
+    "movedata",
+    "annotations",
+];
+
+fn game_appender(db: &Connection) -> duckdb::Result<duckdb::Appender<'_>> {
+    db.appender_with_columns("games", GAME_COLUMNS)
+}
+
 #[derive(Debug)]
 struct DuckdbConnectionCustomizer {
     extension_path: PathBuf,
@@ -272,7 +295,7 @@ pub async fn convert_pgn(
     )?;
 
     let start = Instant::now();
-    let appender = db.appender("games")?;
+    let appender = game_appender(&db)?;
     let mut proc = pgn::PgnProcessor::new(appender, AixCompressionLevel::Low, true, timestamp);
     let mut next_progress_emit = 10_000u32;
 
@@ -668,13 +691,13 @@ fn build_game_order_clause(query_options: &QueryOptions<GameSort>) -> String {
     };
 
     let col = match query_options.sort {
-        GameSort::Id => "rowid",
+        GameSort::Id => "id",
         GameSort::Date => "utc_timestamp",
         GameSort::WhiteElo => "white_rating",
         GameSort::BlackElo => "black_rating",
         GameSort::AverageElo => {
             return format!(
-                "ORDER BY (COALESCE(white_rating::INTEGER, 0) + COALESCE(black_rating::INTEGER, 0)) / 2.0 {dir}, rowid DESC"
+                "ORDER BY (COALESCE(white_rating::INTEGER, 0) + COALESCE(black_rating::INTEGER, 0)) / 2.0 {dir}, id DESC"
             );
         }
         GameSort::PlyCount => "ply_count",
@@ -764,7 +787,7 @@ pub async fn get_games(
 
     let data_sql = format!(
         "SELECT
-            CAST(rowid AS INTEGER) AS id,
+            id,
             event,
             site,
             strftime(utc_timestamp, '%Y.%m.%d') AS date,
@@ -1276,15 +1299,15 @@ fn remove_duplicated_games(db: &Connection) -> duckdb::Result<()> {
     db.execute_batch(
         "
         DELETE FROM games
-        WHERE rowid IN (
-            SELECT rowid
+        WHERE id IN (
+            SELECT id
             FROM (
-                SELECT rowid,
+                SELECT id,
                     ROW_NUMBER() OVER (
                         PARTITION BY event, site, round, fen, white, black,
                             white_rating, black_rating, white_title, black_title,
                             result, time_control, ply_count, movedata, utc_timestamp, annotations
-                        ORDER BY rowid
+                        ORDER BY id
                     ) AS row_num
                 FROM games
             )
@@ -1379,12 +1402,12 @@ pub async fn export_to_pgn(
 
     let mut writer = BufWriter::new(output_file);
     let mut statement = db.prepare(
-        "SELECT CAST(rowid AS INTEGER) AS id, event, site, round, fen, white, black,
+        "SELECT id, event, site, round, fen, white, black,
             white_rating, black_rating, white_title, black_title, result, time_control, ply_count,
             strftime(utc_timestamp, '%Y.%m.%d') AS date,
             strftime(utc_timestamp, '%H:%M:%S') AS time,
             movedata, annotations
-         FROM games ORDER BY rowid;",
+         FROM games ORDER BY id;",
     )?;
     let rows = statement.query_map([], export_game)?;
     for row in rows {
@@ -1406,7 +1429,7 @@ pub async fn delete_db_game(
     let db = db_pool.get()?;
     let _invalidate_caches = DatabaseCacheInvalidation::new(&state, &file);
 
-    db.execute("DELETE FROM games WHERE rowid = ?;", params![game_id])?;
+    db.execute("DELETE FROM games WHERE id = ?;", params![game_id])?;
 
     Ok(())
 }
@@ -1438,7 +1461,7 @@ fn update_game(db: &Connection, game_id: i32, pgn: &str) -> Result<(), Error> {
             white = ?, black = ?, white_rating = ?, black_rating = ?,
             white_title = ?, black_title = ?, result = ?, time_control = ?,
             ply_count = ?, utc_timestamp = ?, movedata = ?, annotations = ?
-         WHERE rowid = ?;",
+         WHERE id = ?;",
         duckdb::params_from_iter(values),
     )?;
     if changed == 0 {
@@ -1475,6 +1498,61 @@ pub async fn merge_players(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn game_ids_survive_checkpoints_reopening_and_compaction() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("stable-ids.duckdb");
+        {
+            let db = Connection::open(&path).unwrap();
+            db.execute_batch(include_str!("init-database.sql")).unwrap();
+            db.execute_batch(
+                "INSERT INTO games (white) SELECT 'Game ' || i FROM range(1000000) AS t(i);
+                 CHECKPOINT;
+                 DELETE FROM games WHERE (id < 500000 AND id % 2 = 0) OR id = 999999;
+                 CHECKPOINT;",
+            )
+            .unwrap();
+        }
+        {
+            let db = Connection::open(&path).unwrap();
+            assert_eq!(
+                db.query_row("SELECT white FROM games WHERE id = 300001", [], |row| {
+                    row.get::<_, String>(0)
+                })
+                .unwrap(),
+                "Game 300001"
+            );
+            update_game(&db, 300001, "[White \"Edited\"]\n\n1. e4 *").unwrap();
+        }
+        compact_db(&path).unwrap();
+        let db = Connection::open(&path).unwrap();
+        assert_eq!(
+            db.query_row("SELECT white FROM games WHERE id = 300001", [], |row| {
+                row.get::<_, String>(0)
+            })
+            .unwrap(),
+            "Edited"
+        );
+        assert_eq!(
+            db.query_row("SELECT white FROM games WHERE id = 354243", [], |row| {
+                row.get::<_, String>(0)
+            })
+            .unwrap(),
+            "Game 354243"
+        );
+        let id: i32 = db
+            .query_row(
+                "INSERT INTO games (white) VALUES ('New') RETURNING id",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(
+            id >= 1_000_000,
+            "Compaction must retain the sequence's high-water mark"
+        );
+    }
 
     #[test]
     fn name_search_ignores_word_order_and_punctuation() {
@@ -1587,11 +1665,11 @@ mod tests {
 ( {Variation introduction} 1. d4 $2 {Sibling} d5 (1... Nf6 {Nested [%eval #-3,22]}) 2. c4 )
 (1. c4 {Other sibling}) 1... e5 2. Nf3 *"#;
 
-    const READ_TEST_GAME: &str = "SELECT CAST(rowid AS INTEGER) AS id, event, site, round, fen,
+    const READ_TEST_GAME: &str = "SELECT id, event, site, round, fen,
         white, black, white_rating, black_rating, white_title, black_title, result, time_control, ply_count,
         strftime(utc_timestamp, '%Y.%m.%d') AS date,
         strftime(utc_timestamp, '%H:%M:%S') AS time,
-        movedata, annotations FROM games WHERE rowid = 0";
+        movedata, annotations FROM games WHERE id = 0";
 
     #[test]
     fn supported_headers_export_from_columns_and_utc_timestamp() {
@@ -1600,7 +1678,7 @@ mod tests {
         let input = "[Event \"Test\"]\n[Site \"Lisboa\"]\n[Round \"1\"]\n[White \"White\"]\n[Black \"Black\"]\n[Date \"2020.??.??\"]\n[Time \"01:02:03\"]\n[UTCDate \"2026.10.15\"]\n[UTCTime \"12:34:56\"]\n[WhiteElo \"02300\"]\n[BlackElo \"invalid\"]\n[UnknownTag \"discard\"]\n\n1. e4 *";
         let game = pgn::parse_single_game(input).unwrap();
         {
-            let mut appender = db.appender("games").unwrap();
+            let mut appender = game_appender(&db).unwrap();
             appender
                 .append_row(duckdb::appender_params_from_iter(game.database_values()))
                 .unwrap();
@@ -1624,7 +1702,7 @@ mod tests {
         {
             let db = Connection::open(&path).unwrap();
             db.execute_batch(include_str!("init-database.sql")).unwrap();
-            let appender = db.appender("games").unwrap();
+            let appender = game_appender(&db).unwrap();
             let mut processor =
                 pgn::PgnProcessor::new(appender, AixCompressionLevel::Low, false, None);
             pgn_reader::Reader::new(ANNOTATED_PGN.as_bytes())
@@ -1743,7 +1821,7 @@ mod tests {
         assert_eq!(restored, format!("1. e4 {{{comment}}}"));
         let db = Connection::open_in_memory().unwrap();
         db.execute_batch(include_str!("init-database.sql")).unwrap();
-        db.appender("games")
+        game_appender(&db)
             .unwrap()
             .append_row(duckdb::appender_params_from_iter(game.database_values()))
             .unwrap();
@@ -1770,7 +1848,7 @@ mod tests {
         let db = Connection::open_in_memory().unwrap();
         db.execute_batch(include_str!("init-database.sql")).unwrap();
         {
-            let mut appender = db.appender("games").unwrap();
+            let mut appender = game_appender(&db).unwrap();
             for input in [
                 "1. e4 {First} *",
                 "[Unsupported \"ignored\"]\n\n1. e4 {First} *",

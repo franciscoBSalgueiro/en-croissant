@@ -1,3 +1,5 @@
+CREATE SEQUENCE game_id_sequence MINVALUE 0 START 0 MAXVALUE 2147483647;
+
 CREATE TABLE games (
   event VARCHAR,
   site VARCHAR,
@@ -17,5 +19,6 @@ CREATE TABLE games (
   ply_count USMALLINT,
   utc_timestamp TIMESTAMP,
   movedata BLOB,
-  annotations BLOB
+  annotations BLOB,
+  id INTEGER PRIMARY KEY DEFAULT nextval('game_id_sequence')
 );

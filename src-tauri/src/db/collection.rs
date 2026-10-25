@@ -21,7 +21,7 @@ impl<'a> SelectedIds<'a> {
     }
 
     fn predicate(&self) -> String {
-        format!("rowid IN (SELECT id FROM temp.main.{})", self.name)
+        format!("id IN (SELECT id FROM temp.main.{})", self.name)
     }
 }
 
@@ -53,7 +53,7 @@ fn matching_ids(db: &Connection, query: &GameQuery) -> Result<Vec<i32>, Error> {
         clauses.join(" AND ")
     };
     let mut stmt = db.prepare(&format!(
-        "SELECT CAST(rowid AS INTEGER) FROM games WHERE {filter} ORDER BY rowid"
+        "SELECT id FROM games WHERE {filter} ORDER BY id"
     ))?;
     let ids = stmt
         .query_map([], |row| row.get(0))?
@@ -134,7 +134,7 @@ pub async fn export_collection(
 
 fn write_pgn(db: &Connection, ids: &[i32], writer: &mut impl Write) -> Result<(), Error> {
     let selection = SelectedIds::new(db, ids)?;
-    let mut stmt = db.prepare(&format!("SELECT CAST(rowid AS INTEGER) AS id, *, strftime(utc_timestamp, '%Y.%m.%d') AS date, strftime(utc_timestamp, '%H:%M:%S') AS time FROM games WHERE {} ORDER BY rowid", selection.predicate()))?;
+    let mut stmt = db.prepare(&format!("SELECT *, strftime(utc_timestamp, '%Y.%m.%d') AS date, strftime(utc_timestamp, '%H:%M:%S') AS time FROM games WHERE {} ORDER BY id", selection.predicate()))?;
     for game in stmt.query_map([], export_game)? {
         writer.write_all(game?.as_bytes())?;
     }
@@ -196,7 +196,7 @@ fn copy_ids(
 ) -> Result<usize, Error> {
     let selection = SelectedIds::new(source, ids)?;
     let mut stmt = source.prepare(&format!(
-        "SELECT * FROM games WHERE {} ORDER BY rowid",
+        "SELECT * EXCLUDE (id) FROM games WHERE {} ORDER BY id",
         selection.predicate()
     ))?;
     let batches = stmt.stream_arrow([])?;
@@ -206,7 +206,7 @@ fn copy_ids(
     }
     let mut count = 0;
     {
-        let mut appender = tx.appender("games")?;
+        let mut appender = game_appender(&tx)?;
         for batch in batches {
             count += batch.num_rows();
             appender.append_record_batch(batch)?;
@@ -245,10 +245,20 @@ mod tests {
         );
         assert_eq!(delete_ids(&mut db, &[0, 2, 2]).unwrap(), 2);
         assert_eq!(delete_ids(&mut db, &[]).unwrap(), 0);
+        db.execute("INSERT INTO games (white) VALUES ('New')", [])
+            .unwrap();
+        assert!(delete_ids(&mut db, &[2]).is_err());
         assert_eq!(
-            db.query_row("SELECT white FROM games", [], |r| r.get::<_, String>(0))
+            db.query_row("SELECT white FROM games WHERE id = 1", [], |r| r
+                .get::<_, String>(0))
                 .unwrap(),
             "Second"
+        );
+        assert_eq!(
+            db.query_row("SELECT id FROM games WHERE white = 'New'", [], |r| r
+                .get::<_, i32>(0))
+                .unwrap(),
+            3
         );
     }
 
@@ -277,7 +287,7 @@ mod tests {
         let original = pgn::parse_single_game(input).unwrap();
         let expected_annotations = original.annotations.clone();
         {
-            let mut appender = db.appender("games").unwrap();
+            let mut appender = game_appender(&db).unwrap();
             appender
                 .append_row(duckdb::appender_params_from_iter(
                     original.database_values(),
@@ -306,6 +316,22 @@ mod tests {
         assert_eq!(copy_ids(&source, &mut target, &[0, 2], true).unwrap(), 2);
         assert_eq!(copy_ids(&source, &mut target, &[1], false).unwrap(), 1);
         assert_eq!(copy_ids(&source, &mut target, &[], false).unwrap(), 0);
+        assert_eq!(
+            target
+                .query_row("SELECT id FROM games WHERE white = 'Second'", [], |r| r
+                    .get::<_, i32>(0))
+                .unwrap(),
+            2
+        );
+        delete_ids(&mut target, &[2]).unwrap();
+        assert_eq!(copy_ids(&source, &mut target, &[1], false).unwrap(), 1);
+        assert_eq!(
+            target
+                .query_row("SELECT id FROM games WHERE white = 'Second'", [], |r| r
+                    .get::<_, i32>(0))
+                .unwrap(),
+            3
+        );
         let mut stmt = target
             .prepare("SELECT movedata, annotations FROM games")
             .unwrap();

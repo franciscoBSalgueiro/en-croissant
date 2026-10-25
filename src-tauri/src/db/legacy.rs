@@ -140,7 +140,7 @@ fn convert(
         )
         .map_err(sqlite_error)?;
     let mut rows = statement.query([]).map_err(sqlite_error)?;
-    let mut appender = destination.appender("games")?;
+    let mut appender = super::game_appender(destination)?;
     let mut count = 0;
     while let Some(row) = rows.next().map_err(sqlite_error)? {
         let id: i64 = row.get("id").map_err(sqlite_error)?;
