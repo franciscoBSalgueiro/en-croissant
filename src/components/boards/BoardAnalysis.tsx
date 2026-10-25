@@ -1,5 +1,5 @@
 import { Paper, Portal, Stack, Tabs } from "@mantine/core";
-import { useHotkeys, useToggle } from "@mantine/hooks";
+import { useHotkeys } from "@mantine/hooks";
 import {
   IconDatabase,
   IconFileText,
@@ -19,6 +19,7 @@ import {
   allEnabledAtom,
   autoSaveAtom,
   currentAnalysisTabAtom,
+  currentBoardEditingAtom,
   currentPracticeTabAtom,
   currentReportModalOpenAtom,
   currentTabAtom,
@@ -47,7 +48,13 @@ import EvalListener from "./EvalListener";
 function BoardAnalysis() {
   const { t } = useTranslation();
 
-  const [editingMode, toggleEditingMode] = useToggle();
+  const [editingMode, setEditingMode] = useAtom(currentBoardEditingAtom);
+  const toggleEditingMode = useCallback(
+    (value?: boolean) => {
+      setEditingMode((current) => value ?? !current);
+    },
+    [setEditingMode],
+  );
   const [selectedPiece, setSelectedPiece] = useState<Piece | null>(null);
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
   const tabFile = getTabFile(currentTab);

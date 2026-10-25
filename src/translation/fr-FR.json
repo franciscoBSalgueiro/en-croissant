@@ -459,6 +459,8 @@
     "Home.RecentFiles.NoRecentFiles": "Aucun fichier ouvert récemment",
     "Home.RecentFiles.Title": "Fichiers récents",
     "Import.GameURL": "URL de la partie (lichess ou chess.com)",
+    "Import.Image": "",
+    "Import.Image.Select": "",
     "Import.Importing": "Importation...",
     "Import.Online": "En ligne",
     "Import.Or": "OU",

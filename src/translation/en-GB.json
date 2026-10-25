@@ -450,6 +450,8 @@
     "Home.RecentFiles.NoRecentFiles": "",
     "Home.RecentFiles.Title": "",
     "Import.GameURL": "",
+    "Import.Image": "Image",
+    "Import.Image.Select": "Import from image",
     "Import.Importing": "",
     "Import.Online": "",
     "Import.Or": "",

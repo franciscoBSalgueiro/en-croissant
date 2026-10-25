@@ -8,6 +8,7 @@ mod db;
 mod engine;
 mod error;
 mod game;
+mod vision;
 
 mod fs;
 mod lexer;
@@ -125,6 +126,7 @@ fn main() {
     let specta_builder = tauri_specta::Builder::new()
         .commands(tauri_specta::collect_commands!(
             close_splashscreen,
+            vision::recognize_chess_image,
             get_best_moves,
             analyze_game,
             cancel_analysis,
