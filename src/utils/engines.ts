@@ -3,6 +3,7 @@ import type { Platform } from "@tauri-apps/plugin-os";
 import useSWR from "swr";
 import { z } from "zod";
 import { type BestMoves, commands, type EngineOptions, type GoMode } from "@/bindings";
+import { resolveEnginePath } from "./directories";
 import { unwrap } from "./unwrap";
 
 export const requiredEngineSettings = ["MultiPV", "Threads", "Hash"];
@@ -81,15 +82,16 @@ export function killEngine(engine: LocalEngine, tab: string): Promise<void> {
     });
 }
 
-export function getBestMoves(
+export async function getBestMoves(
     engine: LocalEngine,
     tab: string,
     goMode: GoMode,
     options: EngineOptions,
 ): Promise<[number, BestMoves[]] | null> {
-    return commands
-        .getBestMoves(engine.id, engine.path, tab, goMode, options)
-        .then((r) => unwrap(r));
+    // engine paths are absolute in engines.json and become stale when the
+    // engines directory changes
+    const path = await resolveEnginePath(engine.path);
+    return commands.getBestMoves(engine.id, path, tab, goMode, options).then((r) => unwrap(r));
 }
 
 export function useDefaultEngines(os: Platform | undefined, opened: boolean) {
