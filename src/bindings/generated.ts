@@ -459,6 +459,29 @@ async getSoundServerPort() : Promise<Result<number, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+/**
+ * Named pawn-structure motifs plus raw structure features for a position.
+ */
+async structureReport(fen: string) : Promise<Result<StructureReport, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("structure_report", { fen }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Natural-language-friendly position summary atoms: material balance,
+ * castling/development heuristics, hanging pieces and the structure report.
+ */
+async positionInsights(fen: string) : Promise<Result<PositionInsights, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("position_insights", { fen }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -523,6 +546,7 @@ export type PlayerGameInfo = { site_stats_data: SiteStatsData[] }
 export type PlayerQuery = { options: QueryOptions<PlayerSort>; name?: string | null; range?: [number, number] | null }
 export type PlayerSort = "id" | "name" | "elo"
 export type PlayersTime = { white: number; black: number; winc: number; binc: number }
+export type PositionInsights = { material_diff: number; white_castled: boolean; black_castled: boolean; white_minor_developed: number; black_minor_developed: number; hanging_white: string[]; hanging_black: string[]; structure: StructureReport }
 export type PositionQueryJs = { fen: string; type_: string }
 export type PositionStats = { move: string; white: number; draw: number; black: number }
 export type ProgressEvent = { id: string; progress: number; finished: boolean }
@@ -549,6 +573,8 @@ export type Sides = "BlackWhite" | "WhiteBlack" | "Any"
 export type SiteStatsData = { site: string; player: string; data: StatsData[] }
 export type SortDirection = "asc" | "desc"
 export type StatsData = { date: string; is_player_white: boolean; player_elo: number; result: GameOutcome; time_control: string; opening: string }
+export type StructureFeatures = { white_doubled: number; black_doubled: number; white_isolated: number; black_isolated: number; white_passed: number; black_passed: number; white_islands: number; black_islands: number; open_files: string[]; semi_open_white: string[]; semi_open_black: string[] }
+export type StructureReport = { fen: string; motifs: string[]; features: StructureFeatures }
 export type TimeControl = { initialTime: bigint; increment: bigint }
 export type Token = { type: "ParenOpen" } | { type: "ParenClose" } | { type: "Comment"; value: string } | { type: "San"; value: string } | { type: "Header"; value: { tag: string; value: string } } | { type: "Nag"; value: string } | { type: "Outcome"; value: string }
 export type TournamentQuery = { options: QueryOptions<TournamentSort>; name: string | null }

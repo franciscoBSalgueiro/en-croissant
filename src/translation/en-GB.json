@@ -45,6 +45,7 @@
     "Board.Analysis.GenerateReport": "Generate report",
     "Board.Analysis.GeneratingReport": "Generating report",
     "Board.Analysis.InactiveEngine": "Engine isn't enabled",
+    "Board.Analysis.Insights": "",
     "Board.Analysis.Logs": "Logs",
     "Board.Analysis.ManageEngines": "",
     "Board.Analysis.Middlegame": "",
