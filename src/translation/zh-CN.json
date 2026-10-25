@@ -322,7 +322,7 @@
     "Errors.InvalidEpSquare": "吃过路兵格无效",
     "Errors.InvalidFen": "FEN 无效",
     "Errors.InvalidFullmoves": "完整回合数无效",
-    "Errors.InvalidHaldmoves": "半回合数无效",
+    "Errors.InvalidHalfmoves": "半回合数无效",
     "Errors.InvalidKings": "王的数量无效",
     "Errors.InvalidPockets": "口袋棋子无效",
     "Errors.InvalidRemainingChecks": "剩余将军次数无效",

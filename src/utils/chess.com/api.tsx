@@ -161,7 +161,7 @@ export async function getChesscomGame(gameURL: string) {
   const match = gameURL.match(regex);
 
   if (!match) {
-    const eventRegex = /chess.com\/events/;
+    const eventRegex = /chess.com\/events/i;
     if (gameURL.match(eventRegex)) {
       error(`Event URLs are not supported: ${gameURL}`);
       notifications.show({

@@ -1,6 +1,7 @@
 import { Combobox, Group, InputBase, Loader, ScrollArea, Text, useCombobox } from "@mantine/core";
 import { type FenError, parseFen } from "chessops/fen";
 import { use, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import useSWRImmutable from "swr/immutable";
 import { useStore } from "zustand";
 import { commands } from "@/bindings";
@@ -8,6 +9,7 @@ import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { chessopsError } from "@/utils/chessops";
 
 export default function FenSearch({ currentFen: currentFenInput }: { currentFen?: string }) {
+  const { t } = useTranslation();
   const combobox = useCombobox({
     onDropdownClose: () => combobox.resetSelectedOption(),
   });
@@ -94,7 +96,7 @@ export default function FenSearch({ currentFen: currentFenInput }: { currentFen?
     >
       <Combobox.Target>
         <InputBase
-          error={error && chessopsError(error)}
+          error={error && t(chessopsError(error))}
           rightSection={isLoading && <Loader size={18} />}
           value={search}
           onChange={(event) => {
