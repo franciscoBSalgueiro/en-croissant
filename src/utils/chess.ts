@@ -78,11 +78,15 @@ export function getMoveText(
         }
         moveText += tree.san;
         if (opt.glyphs) {
+            // A move carries at most one glyph, so the first basic annotation wins
+            // and the remaining non basic annotations are written as NAGs.
+            const glyph = tree.annotations.find((annotation) => isBasicAnnotation(annotation));
+            if (glyph) {
+                moveText += glyph;
+            }
             for (const annotation of tree.annotations) {
-                if (annotation === "") continue;
-                moveText += isBasicAnnotation(annotation)
-                    ? tree.annotations
-                    : ` $${ANNOTATION_INFO[annotation].nag}`;
+                if (annotation === "" || isBasicAnnotation(annotation)) continue;
+                moveText += ` $${ANNOTATION_INFO[annotation].nag}`;
             }
         }
         moveText += " ";
