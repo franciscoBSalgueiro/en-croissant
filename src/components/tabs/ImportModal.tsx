@@ -21,7 +21,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 import { commands } from "@/bindings";
-import { addRecentFileAtom, currentBoardEditingAtom, currentTabAtom } from "@/state/atoms";
+import { addRecentFileAtom, boardEditingFamily, currentTabAtom, tabsAtom } from "@/state/atoms";
 import { parsePGN } from "@/utils/chess";
 import { chessopsError } from "@/utils/chessops";
 import { createFile, openFile } from "@/utils/files";
@@ -62,7 +62,7 @@ export default function ImportModal({
   const [importType, setImportType] = useState<ImportType>("PGN");
   const [filetype, setFiletype] = useState<FileType>("game");
   const [loading, setLoading] = useState(false);
-  const [, setCurrentTab] = useAtom(currentTabAtom);
+  const [importTab, setCurrentTab] = useAtom(currentTabAtom);
   const [fenError, setFenError] = useState("");
 
   const [save, setSave] = useState(false);
@@ -83,18 +83,24 @@ export default function ImportModal({
     }
     setFenError("");
     const parsedFen = makeFen(res.value);
-    const currentTab = store.get(currentTabAtom);
-    if (!currentTab) return;
+    const currentTab = store.get(tabsAtom).find((tab) => tab.value === importTab?.value);
+    if (!currentTab || currentTab.type !== "new") return;
     const tree = defaultTree(parsedFen);
     tree.headers.fen = parsedFen;
     sessionStorage.setItem(currentTab.value, JSON.stringify({ version: 0, state: tree }));
-    store.set(currentBoardEditingAtom, editingMode);
-    setCurrentTab({
-      ...currentTab,
-      name: t("Home.Card.AnalysisBoard.Title"),
-      gameOrigin: { kind: "none" },
-      type: "analysis",
-    });
+    store.set(boardEditingFamily(currentTab.value), editingMode);
+    store.set(tabsAtom, (tabs) =>
+      tabs.map((tab) =>
+        tab.value === currentTab.value
+          ? {
+              ...tab,
+              name: t("Home.Card.AnalysisBoard.Title"),
+              gameOrigin: { kind: "none" },
+              type: "analysis",
+            }
+          : tab,
+      ),
+    );
     setOpenModal(false);
   }
 

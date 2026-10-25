@@ -16,7 +16,9 @@ pub async fn recognize_chess_image(app: tauri::AppHandle, path: String) -> Resul
             tauri::path::BaseDirectory::Resource,
         )
         .map_err(|e| e.to_string())?;
-    recognize(&path, &model)
+    tokio::task::spawn_blocking(move || recognize(&path, &model))
+        .await
+        .map_err(|e| format!("Image recognition task failed: {e}"))?
 }
 
 const SIZE: usize = 644;

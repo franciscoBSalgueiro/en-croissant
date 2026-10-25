@@ -392,7 +392,7 @@ export const scoreTypeFamily = atomFamily((_engine: string) => atom<"cp" | "wdl"
 
 // Per tab settings
 
-const boardEditingFamily = atomFamily((_tab: string) => atom(false));
+export const boardEditingFamily = atomFamily((_tab: string) => atom(false));
 export const currentBoardEditingAtom = tabValue(boardEditingFamily);
 
 const threatFamily = atomFamily((_tab: string) => atom(false));
