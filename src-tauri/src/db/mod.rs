@@ -1151,7 +1151,7 @@ pub async fn get_players_game_info(
     let mut processed = 0usize;
 
     while let Some(row) = rows.next()? {
-        let site: String = row.get("site")?;
+        let site = row.get::<_, Option<String>>("site")?.unwrap_or_default();
         let player_name: String = row.get("player")?;
         let date: String = row.get("date")?;
         let is_player_white: bool = row.get("is_player_white")?;
