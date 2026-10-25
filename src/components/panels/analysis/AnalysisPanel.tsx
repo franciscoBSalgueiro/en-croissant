@@ -42,6 +42,7 @@ import { getInitials } from "@/utils/format";
 import BestMoves, { arrowColors } from "./BestMoves";
 import EngineSelection from "./EngineSelection";
 import LogsPanel from "./LogsPanel";
+import MonteCarloPanel from "./MonteCarloPanel";
 import ReportPanel from "./ReportPanel";
 import ScoreBubble from "./ScoreBubble";
 import TablebaseInfo from "./TablebaseInfo";
@@ -101,6 +102,7 @@ function AnalysisPanel() {
         <Tabs.List>
           <Tabs.Tab value="engines">{t("Board.Analysis.Engines")}</Tabs.Tab>
           <Tabs.Tab value="report">{t("Board.Analysis.Report")}</Tabs.Tab>
+          <Tabs.Tab value="montecarlo">{t("Board.Analysis.MonteCarlo")}</Tabs.Tab>
           <Tabs.Tab value="logs" disabled={loadedEngines.length === 0}>
             {t("Board.Analysis.Logs")}
           </Tabs.Tab>
@@ -255,6 +257,17 @@ function AnalysisPanel() {
           }}
         >
           <ReportPanel />
+        </Tabs.Panel>
+        <Tabs.Panel
+          value="montecarlo"
+          pt="xs"
+          style={{
+            overflow: "hidden",
+            display: tab === "montecarlo" ? "flex" : "none",
+            flexDirection: "column",
+          }}
+        >
+          <MonteCarloPanel />
         </Tabs.Panel>
         <Tabs.Panel
           value="logs"
