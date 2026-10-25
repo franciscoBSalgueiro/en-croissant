@@ -37,13 +37,14 @@ function OpeningsTable({
   const whiteTotal = openings?.reduce((acc, curr) => acc + curr.white, 0);
   const blackTotal = openings?.reduce((acc, curr) => acc + curr.black, 0);
   const drawTotal = openings?.reduce((acc, curr) => acc + curr.draw, 0);
-  const grandTotal = whiteTotal + blackTotal + drawTotal;
+  const grandTotal = openings.reduce((acc, curr) => acc + curr.total, 0);
 
   if (openings.length > 0) {
     openings = [
       ...openings,
       {
         move: "Total",
+        total: grandTotal,
         white: whiteTotal,
         black: blackTotal,
         draw: drawTotal,
@@ -87,9 +88,8 @@ function OpeningsTable({
         {
           accessor: "total",
           width: 180,
-          render: ({ move, white, draw, black }) => {
-            const total = white + draw + black;
-            const percentage = (total / grandTotal) * 100;
+          render: ({ move, total }) => {
+            const percentage = grandTotal > 0 ? (total / grandTotal) * 100 : 0;
             return (
               <Group>
                 {move !== "Total" && <Text fz="sm">{percentage.toFixed(0)}%</Text>}
@@ -104,6 +104,7 @@ function OpeningsTable({
           accessor: "results",
           render: ({ black, white, draw }) => {
             const total = white + draw + black;
+            if (total === 0) return <Text c="dimmed">—</Text>;
             const whitePercent = (white / total) * 100;
             const drawPercent = (draw / total) * 100;
             const blackPercent = (black / total) * 100;

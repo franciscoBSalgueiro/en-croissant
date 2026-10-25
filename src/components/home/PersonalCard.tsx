@@ -29,7 +29,7 @@ import COUNTRIES from "../databases/countries.json";
 import classes from "./PersonalCard.module.css";
 import { DatabaseViewStateContext } from "../databases/DatabaseViewStateContext";
 import FideInfo from "../databases/FideInfo";
-import OpeningsPanel from "./PersonalCardPanels/OpeningsPanel";
+import OpeningsPanel, { type OpeningSource } from "./PersonalCardPanels/OpeningsPanel";
 import OverviewPanel from "./PersonalCardPanels/OverviewPanel";
 import RatingsPanel from "./PersonalCardPanels/RatingsPanel";
 
@@ -38,11 +38,13 @@ function PersonalPlayerCard({
   setName,
   info,
   isDatabase,
+  openingSources,
 }: {
   name: string;
   setName?: (name: string) => void;
   info: PlayerGameInfo;
   isDatabase?: boolean;
+  openingSources?: OpeningSource[];
 }) {
   const { t, i18n } = useTranslation();
   const store = useContext(DatabaseViewStateContext)!;
@@ -176,7 +178,7 @@ function PersonalPlayerCard({
           </ScrollArea>
         </Tabs.Panel>
         <Tabs.Panel value="openings" className={classes.panel} style={{ overflow: "hidden" }}>
-          <OpeningsPanel playerName={name} info={info} isDatabase={isDatabase} />
+          <OpeningsPanel playerName={name} openingSources={openingSources} />
         </Tabs.Panel>
         <Tabs.Panel value="ratings" className={classes.panel}>
           <ScrollArea

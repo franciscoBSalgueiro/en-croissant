@@ -38,7 +38,9 @@ function AddPuzzle({
               databaseId={i}
               key={i}
               setPuzzleDbs={setPuzzleDbs}
-              initInstalled={puzzleDbs.some((e) => e.title.replace(".db3", "") === db.title)}
+              initInstalled={puzzleDbs.some(
+                (e) => e.title.replace(/\.(duckdb|db3)$/i, "") === db.title,
+              )}
             />
           ))}
           {error && (
@@ -69,7 +71,7 @@ function PuzzleDbCard({
   async function downloadDatabase(id: number, url: string, name: string) {
     setInProgress(true);
     const puzzlesDir = await getPuzzlesDir();
-    const path = await resolve(puzzlesDir, `${name}.db3`);
+    const path = await resolve(puzzlesDir, `${name}.duckdb`);
     await commands.downloadFile(`puzzle_db_${id}`, url, path, null, null, null);
     setPuzzleDbs(await getPuzzleDatabases());
   }
