@@ -1,9 +1,9 @@
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import { ActionIcon, Box, ScrollArea, Tabs } from "@mantine/core";
-import { useElementSize, useHotkeys, useToggle } from "@mantine/hooks";
+import { useElementSize, useHotkeys } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { type ReactNode, startTransition, useCallback, useEffect } from "react";
+import { type ReactNode, startTransition, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Mosaic, type MosaicNode } from "react-mosaic-component";
 import { match } from "ts-pattern";
@@ -32,7 +32,16 @@ export default function BoardsPage() {
 
   const [tabs, setTabs] = useAtom(tabsAtom);
   const [activeTab, setActiveTab] = useAtom(activeTabAtom);
-  const [saveModalOpened, toggleSaveModal] = useToggle();
+  const [saveTarget, setSaveTarget] = useState<string | null>(null);
+  const saveTargetRef = useRef<string | null>(null);
+  const dismissSaveModal = useCallback(() => {
+    saveTargetRef.current = null;
+    setSaveTarget(null);
+  }, []);
+
+  useEffect(() => {
+    if (saveTarget !== null && saveTarget !== activeTab) dismissSaveModal();
+  }, [saveTarget, activeTab, dismissSaveModal]);
 
   useEffect(() => {
     if (tabs.length === 0) {
@@ -46,13 +55,18 @@ export default function BoardsPage() {
 
   const closeTab = useCallback(
     async (value: string | null, forced?: boolean) => {
+      if (saveTargetRef.current !== null && (!forced || value !== saveTargetRef.current)) return;
       if (value !== null) {
         const closedTab = tabs.find((tab) => tab.value === value);
         const tabState = JSON.parse(sessionStorage.getItem(value) || "{}");
-        if (tabState && isPersistentGameOrigin(closedTab) && tabState.state.dirty && !forced) {
-          toggleSaveModal();
+        if (isPersistentGameOrigin(closedTab) && tabState.state?.dirty && !forced) {
+          // Mount the requested tab's existing tree provider, not the active tab's.
+          saveTargetRef.current = value;
+          setActiveTab(value);
+          setSaveTarget(value);
           return;
         }
+        dismissSaveModal();
         if (value === activeTab) {
           const index = tabs.findIndex((tab) => tab.value === value);
           if (tabs.length > 1) {
@@ -70,14 +84,16 @@ export default function BoardsPage() {
         await commands.abortGame(`${value}-game`);
       }
     },
-    [tabs, activeTab, setTabs, toggleSaveModal, setActiveTab],
+    [tabs, activeTab, setTabs, dismissSaveModal, setActiveTab],
   );
 
   function selectTab(index: number) {
+    if (saveTargetRef.current !== null) return;
     setActiveTab(tabs[Math.min(index, tabs.length - 1)].value);
   }
 
   function cycleTabs(reverse = false) {
+    if (saveTargetRef.current !== null) return;
     const index = tabs.findIndex((tab) => tab.value === activeTab);
     if (reverse) {
       if (index === 0) {
@@ -110,6 +126,7 @@ export default function BoardsPage() {
 
   const duplicateTab = useCallback(
     (value: string) => {
+      if (saveTargetRef.current !== null) return;
       const id = genID();
       const tab = tabs.find((tab) => tab.value === value);
       if (sessionStorage.getItem(value)) {
@@ -153,6 +170,7 @@ export default function BoardsPage() {
 
   const handleSetActiveTab = useCallback(
     (v: string) => {
+      if (saveTargetRef.current !== null) return;
       startTransition(() => setActiveTab(v));
     },
     [setActiveTab],
@@ -184,7 +202,9 @@ export default function BoardsPage() {
   return (
     <Tabs
       value={activeTab}
-      onChange={(v) => setActiveTab(v)}
+      onChange={(v) => {
+        if (saveTargetRef.current === null) setActiveTab(v);
+      }}
       keepMounted={false}
       className={classes.tabsContainer}
     >
@@ -231,6 +251,7 @@ export default function BoardsPage() {
                   ))}
                   {provided.placeholder}
                   <ActionIcon
+                    disabled={saveTarget !== null}
                     variant="default"
                     radius={0}
                     onClick={() =>
@@ -260,10 +281,9 @@ export default function BoardsPage() {
         <Tabs.Panel key={tab.value} value={tab.value} h="100%" w="100%" pb="sm" px="xs">
           <TabSwitch
             tab={tab}
-            saveModalOpened={saveModalOpened}
-            toggleSaveModal={toggleSaveModal}
+            saveModalOpened={saveTarget === tab.value}
+            toggleSaveModal={dismissSaveModal}
             closeTab={closeTab}
-            activeTab={activeTab}
           />
         </Tabs.Panel>
       ))}
@@ -313,13 +333,11 @@ function TabSwitch({
   saveModalOpened,
   toggleSaveModal,
   closeTab,
-  activeTab,
 }: {
   tab: Tab;
   saveModalOpened: boolean;
   toggleSaveModal: () => void;
-  closeTab: (value: string | null, forced?: boolean) => void;
-  activeTab: string | null;
+  closeTab: (value: string | null, forced?: boolean) => Promise<void>;
 }) {
   const { ref: containerRef, width } = useElementSize();
   const setIsCompactLayout = useSetAtom(isCompactLayoutAtom);
@@ -374,7 +392,7 @@ function TabSwitch({
             <ConfirmChangesModal
               opened={saveModalOpened}
               toggle={toggleSaveModal}
-              closeTab={() => closeTab(activeTab, true)}
+              closeTab={() => closeTab(tab.value, true)}
             />
           </TreeStateProvider>
         ))
