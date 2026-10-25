@@ -741,19 +741,20 @@ mod tests {
     #[test]
     fn eval_hanging_pawn() {
         let position = pos("r1bqkbnr/ppp1pppp/2n5/1B1p4/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3");
-        assert_eq!(naive_eval(&position), 100);
+        // One pawn up, and piece_value(Pawn) is 90 since e77eba32 ("adjust piece values").
+        assert_eq!(naive_eval(&position), 90);
     }
 
     #[test]
     fn eval_complex_center() {
         let position = pos("r1bqkbnr/ppp2ppp/2n5/1B1pp3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4");
-        assert_eq!(naive_eval(&position), 100);
+        assert_eq!(naive_eval(&position), 90);
     }
 
     #[test]
     fn eval_in_check() {
         let position = pos("r1bqkbnr/ppp2ppp/2B5/3pp3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 4");
-        assert_eq!(naive_eval(&position), -100);
+        assert_eq!(naive_eval(&position), -90);
     }
 
     #[test]
