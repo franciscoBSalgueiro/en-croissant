@@ -1,0 +1,29 @@
+.grid {
+  width: 100%;
+  max-width: 480px;
+  padding: 8px;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-default);
+}
+
+.cell {
+  min-width: 0;
+  aspect-ratio: 1;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px var(--mantine-color-default-border);
+  background: var(--mantine-color-default);
+}
+
+.cell:hover {
+  background: var(--mantine-color-default-hover);
+}
+
+.cell[data-selected] {
+  box-shadow: inset 0 0 0 2px var(--mantine-primary-color-filled);
+  background: var(--mantine-primary-color-light);
+}
+
+[data-mantine-color-scheme="dark"] .cell :global(.black) {
+  filter: drop-shadow(0 0 0.75px rgba(255, 255, 255, 0.7));
+}

@@ -1,0 +1,21 @@
+.editor {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 8px 0 4px;
+}
+
+.board {
+  width: 296px;
+  max-width: 100%;
+  flex-shrink: 0;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 286px;
+  max-width: 100%;
+}

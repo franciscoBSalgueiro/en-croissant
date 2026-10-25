@@ -2,7 +2,7 @@ import { Text } from "@mantine/core";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
 import { DataTable } from "mantine-datatable";
-import { memo, useEffect, useState } from "react";
+import { memo, useState } from "react";
 import type { NormalizedGame } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
 import { createTab } from "@/utils/tabs";
@@ -11,19 +11,23 @@ function GamesTable({
   games,
   loading,
   databasePath,
+  pagination,
 }: {
   games: NormalizedGame[];
   loading: boolean;
   databasePath?: string | null;
+  pagination?: {
+    page: number;
+    totalRecords: number;
+    onPageChange: (page: number) => void;
+  };
 }) {
   const [, setTabs] = useAtom(tabsAtom);
   const setActiveTab = useSetAtom(activeTabAtom);
-  const [page, setPage] = useState(1);
-  const filteredGames = games.slice((page - 1) * 20, page * 20);
-
-  useEffect(() => {
-    setPage(1);
-  }, [games]);
+  const [localPagination, setLocalPagination] = useState({ games, page: 1 });
+  const page = localPagination.games === games ? localPagination.page : 1;
+  const setPage = (page: number) => setLocalPagination({ games, page });
+  const filteredGames = pagination ? games : games.slice((page - 1) * 20, page * 20);
 
   const navigate = useNavigate();
   return (
@@ -32,10 +36,10 @@ function GamesTable({
       highlightOnHover
       records={filteredGames}
       fetching={loading}
-      totalRecords={games.length}
+      totalRecords={pagination?.totalRecords ?? games.length}
       recordsPerPage={20}
-      page={page}
-      onPageChange={setPage}
+      page={pagination?.page ?? page}
+      onPageChange={pagination?.onPageChange ?? setPage}
       onRowClick={(e) => {
         const game = e.record;
         createTab({

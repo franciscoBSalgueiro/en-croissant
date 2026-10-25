@@ -1,7 +1,9 @@
-import { parseUci } from "chessops";
+import { Chess, parseUci } from "chessops";
+import { makeFen } from "chessops/fen";
+import { parseSan } from "chessops/san";
 import { beforeEach, expect, test } from "vitest";
 import { createTreeStore } from "@/state/store/tree";
-import { defaultTree, type TreeState } from "@/utils/treeReducer";
+import { createNode, defaultTree, type TreeState } from "@/utils/treeReducer";
 
 const store = createTreeStore();
 
@@ -292,6 +294,84 @@ test("should handle deleteMove", () => {
     store.getState().deleteMove([0]);
 
     expect(getNewState()).toStrictEqual({ ...defaultTree(), dirty: true });
+});
+
+function variationFixture() {
+    const tree = defaultTree();
+    tree.root.children = ["e4", "d4", "c4"].map((san, index) => {
+        const pos = Chess.default();
+        const move = parseSan(pos, san)!;
+        pos.play(move);
+        const node = createNode({ fen: makeFen(pos.toSetup()), move, san, halfMoves: 1 });
+        if (index > 0) {
+            const reply = parseSan(pos, "e5")!;
+            pos.play(reply);
+            node.children.push(
+                createNode({ fen: makeFen(pos.toSetup()), move: reply, san: "e5", halfMoves: 2 }),
+            );
+        }
+        return node;
+    });
+    return tree;
+}
+
+test.each([
+    [1, 2, 1],
+    [2, 0, 1],
+    [2, 1, 1],
+] as const)("selected branch %i survives deleting sibling %i", (selected, deleted, expected) => {
+    const tree = variationFixture();
+    tree.position = [selected, 0];
+    tree.headers.start = [selected, 0];
+    const selectedFen = tree.root.children[selected].children[0].fen;
+    store.setState(tree);
+    store.getState().deleteMove([deleted]);
+    expect(store.getState().position).toEqual([expected, 0]);
+    expect(store.getState().currentNode()?.fen).toBe(selectedFen);
+    expect(store.getState().headers.start).toEqual([expected, 0]);
+});
+
+test("deleting the selected variation returns to its parent and clears its start path", () => {
+    const tree = variationFixture();
+    tree.position = [1, 0];
+    tree.headers.start = [1, 0];
+    store.setState(tree);
+    store.getState().deleteMove([1]);
+    expect(store.getState().position).toEqual([]);
+    expect(store.getState().currentNode().fen).toBe(tree.root.fen);
+    expect(store.getState().headers.start).toBeUndefined();
+});
+
+test("deleting a later branch leaves an earlier selection and start unchanged", () => {
+    const tree = variationFixture();
+    tree.position = [0];
+    tree.headers.start = [0];
+    store.setState(tree);
+    store.getState().deleteMove([2]);
+    expect(store.getState().position).toEqual([0]);
+    expect(store.getState().headers.start).toEqual([0]);
+    expect(store.getState().currentNode().san).toBe("e4");
+});
+
+test("deleting within another branch leaves current and saved paths unchanged", () => {
+    const tree = variationFixture();
+    tree.position = [1, 0];
+    tree.headers.start = [1, 0];
+    store.setState(tree);
+    store.getState().deleteMove([2, 0]);
+    expect(store.getState().position).toEqual([1, 0]);
+    expect(store.getState().headers.start).toEqual([1, 0]);
+    expect(store.getState().currentNode().fen).toBe(tree.root.children[1].children[0].fen);
+});
+
+test("saved start is rebased even when the current selection is the parent", () => {
+    const tree = variationFixture();
+    tree.headers.start = [2, 0];
+    store.setState(tree);
+    store.getState().deleteMove([0]);
+    expect(store.getState().position).toEqual([]);
+    expect(store.getState().headers.start).toEqual([1, 0]);
+    expect(store.getState().currentNode().fen).toBe(tree.root.fen);
 });
 
 test("should handle setAnnotation", () => {

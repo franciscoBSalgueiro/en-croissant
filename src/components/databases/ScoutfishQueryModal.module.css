@@ -1,0 +1,95 @@
+.jsonPreview {
+  max-height: 200px;
+  overflow: auto;
+  font-size: 0.8rem;
+  white-space: pre;
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.queryScrollArea {
+  flex: 1;
+  min-height: 0;
+}
+
+.footer {
+  flex-shrink: 0;
+}
+
+.addCondition {
+  align-self: flex-start;
+  flex-shrink: 0;
+}
+
+.conditionHeading {
+  flex: 1;
+  min-width: 0;
+}
+
+.conditionSummary {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ruleRow {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr) 22px;
+  align-items: start;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+
+.ruleType {
+  min-width: 0;
+  min-height: 30px;
+}
+
+.ruleRow[data-count-rule] .ruleType,
+.ruleRow[data-count-rule] .ruleRemove {
+  margin-top: 22px;
+}
+
+.ruleValue {
+  min-width: 0;
+}
+
+.boardDetails {
+  grid-column: 1 / -1;
+}
+
+.ruleRemove {
+  display: flex;
+  align-items: center;
+  min-height: 30px;
+}
+
+@media (max-width: 48em) {
+  .ruleRow[data-count-rule] .ruleType,
+  .ruleRow[data-count-rule] .ruleRemove {
+    margin-top: 0;
+  }
+
+  .ruleRow {
+    grid-template-columns: minmax(0, 1fr) 22px;
+    gap: 4px 8px;
+  }
+
+  .ruleValue {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .ruleRemove {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .footer {
+    gap: var(--mantine-spacing-xs);
+  }
+}

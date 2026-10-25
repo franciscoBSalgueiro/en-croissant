@@ -28,7 +28,7 @@ import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { coverageMinGamesAtom, currentTabAtom, referenceDbAtom } from "@/state/atoms";
-import { searchPosition } from "@/utils/db";
+import { searchPosition, type Opening } from "@/utils/db";
 import { roundKeepSum } from "@/utils/format";
 import { isPrefix } from "@/utils/misc";
 import {
@@ -69,9 +69,7 @@ function RepertoireInfo() {
 
   const rootStructureHash = useMemo(() => getTreeStructureHash(root), [root]);
 
-  const [rawOpenings, setRawOpenings] = useState<
-    { move: string; white: number; draw: number; black: number }[]
-  >([]);
+  const [rawOpenings, setRawOpenings] = useState<Opening[]>([]);
   const [loading, setLoading] = useState(false);
 
   const currentFenRef = useRef(currentNode.fen);
@@ -89,11 +87,7 @@ function RepertoireInfo() {
     searchPosition(
       {
         path: referenceDb,
-        type: "exact",
-        fen: queryFen,
-        color: "white",
-        player: null,
-        result: "any",
+        position: { fen: queryFen, type_: "exact" },
       },
       "build-tab",
     )
@@ -113,7 +107,6 @@ function RepertoireInfo() {
   const [gamesMap, setGamesMap] = useState<Map<string, number>>(new Map());
   const [missingGamesMap, setMissingGamesMap] = useState<Map<string, number>>(new Map());
   const [coverageLoading, setCoverageLoading] = useState(false);
-  const coverageVersionRef = useRef(0);
 
   const startPath = headers.start || [];
   const startPathKey = startPath.join(",");
@@ -130,24 +123,31 @@ function RepertoireInfo() {
       setCoverageLoading(false);
       return;
     }
-    const version = ++coverageVersionRef.current;
+    const controller = new AbortController();
     setCoverageLoading(true);
-    computeTreeCoverage(root, orientation, referenceDb, minGames, startPath).then((result) => {
-      if (version === coverageVersionRef.current) {
+    computeTreeCoverage(root, orientation, referenceDb, minGames, startPath, controller.signal)
+      .then((result) => {
+        if (controller.signal.aborted) return;
         setCoverageMap(result.coverageMap);
         setGamesMap(result.gamesMap);
         setMissingGamesMap(result.missingGamesMap);
-        setCoverageLoading(false);
-      }
-    });
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) console.error("Coverage calculation failed", error);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setCoverageLoading(false);
+      });
+    return () => controller.abort();
   }, [rootStructureHash, orientation, referenceDb, startPathKey, minGames]);
 
   const positionMoves = useMemo(() => {
-    const total = rawOpenings.reduce((acc, op) => acc + op.white + op.black + op.draw, 0);
+    const total = rawOpenings.reduce((acc, op) => acc + op.total, 0);
 
     const fromDb: PositionMove[] = rawOpenings
       .map((op) => {
-        const games = op.white + op.black + op.draw;
+        const games = op.total;
+        const completedGames = op.white + op.black + op.draw;
         const childIndex = currentNode.children.findIndex((c) => c.san === op.move);
         const inRepertoire = childIndex !== -1;
         const coveragePath = [...position, childIndex].join(",");
@@ -158,9 +158,9 @@ function RepertoireInfo() {
           games,
           totalGames: total,
           frequency: total > 0 ? games / total : 0,
-          white: games > 0 ? op.white / games : 0,
-          draw: games > 0 ? op.draw / games : 0,
-          black: games > 0 ? op.black / games : 0,
+          white: completedGames > 0 ? op.white / completedGames : 0,
+          draw: completedGames > 0 ? op.draw / completedGames : 0,
+          black: completedGames > 0 ? op.black / completedGames : 0,
           inRepertoire,
           coverage,
           childIndex,

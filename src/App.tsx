@@ -29,7 +29,6 @@ import {
   is3dAtom,
   pieceSetAtom,
   primaryColorAtom,
-  referenceDbAtom,
   spellCheckAtom,
   storedDatabasesDirAtom,
   storedDocumentDirAtom,
@@ -137,16 +136,6 @@ const checkForUpdates = async () => {
   }
 };
 
-const preloadReferenceDb = async (store: ReturnType<typeof getDefaultStore>) => {
-  const referenceDb = store.get(referenceDbAtom);
-  if (referenceDb) {
-    info(`Preloading reference database: ${referenceDb}`);
-    commands.preloadReferenceDb(referenceDb).catch((e: unknown) => {
-      info(`Failed to preload reference database: ${e}`);
-    });
-  }
-};
-
 const navigateToBoard = () => router.navigate({ to: "/" });
 
 function useAppStartup() {
@@ -197,8 +186,6 @@ function useAppStartup() {
       } catch (e) {
         warn(`Failed to parse CLI args: ${e}`);
       }
-
-      await preloadReferenceDb(store);
 
       let unlistenDeepLink: (() => void) | undefined;
       try {

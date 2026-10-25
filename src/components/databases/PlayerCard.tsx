@@ -11,8 +11,9 @@ function PlayerCard({ player, file }: { player: Player; file: string }) {
     data: info,
     isLoading,
     error,
-  } = useSWRImmutable(["player-game-info", file, player.id], async ([_key, file, id]) => {
-    const games = await commands.getPlayersGameInfo(file, id);
+  } = useSWRImmutable(["player-game-info", file, player.name], async ([_key, file, player]) => {
+    if (!player) return null;
+    const games = await commands.getPlayersGameInfo(file, player);
     return unwrap(games);
   });
 
@@ -28,7 +29,15 @@ function PlayerCard({ player, file }: { player: Player; file: string }) {
           </Center>
         </Paper>
       )}
-      {info && <PersonalPlayerCard key={player.id} name={player.name!} info={info} isDatabase />}
+      {info && (
+        <PersonalPlayerCard
+          key={player.name}
+          name={player.name!}
+          info={info}
+          isDatabase
+          openingSources={[{ file, player: player.name! }]}
+        />
+      )}
       {error && !info && (
         <Paper withBorder h="100%">
           <Center h="100%">

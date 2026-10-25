@@ -85,8 +85,9 @@ function Puzzles({ id }: { id: string }) {
   useEffect(() => {
     getPuzzleDatabases().then((databases) => {
       setPuzzleDbs(databases);
+      setSelectedDb((current) => (databases.some((db) => db.path === current) ? current : null));
     });
-  }, []);
+  }, [setSelectedDb]);
 
   const [ratingRange, setRatingRange] = useAtom(puzzleRatingRangeAtom);
 
@@ -341,7 +342,7 @@ function Puzzles({ id }: { id: string }) {
               style={{ flex: 1 }}
               data={puzzleDbs
                 .map((p) => ({
-                  label: p.title.split(".db3")[0],
+                  label: p.title.replace(/\.(duckdb|db3)$/i, ""),
                   value: p.path,
                 }))
                 .concat({ label: `+ ${t("Common.AddNew")}`, value: "add" })}

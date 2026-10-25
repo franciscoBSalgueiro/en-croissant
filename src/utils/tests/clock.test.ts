@@ -4,6 +4,48 @@ import { positionFromFen } from "../chessops";
 import { getClockInfo } from "../clock";
 import { createNode, defaultTree } from "../treeReducer";
 
+test.each([0, 1500, undefined])("node creation preserves clock %s", (clock) => {
+    const node = createNode({
+        fen: "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+        move: parseUci("e2e4")!,
+        san: "e4",
+        halfMoves: 1,
+        clock,
+    });
+    expect(node.clock).toBe(clock === undefined ? undefined : clock / 1000);
+});
+
+test("live zero clocks override historical annotations for both players", () => {
+    const clocks = getClockInfo({ ...clockFixture(), whiteTime: 0, blackTime: 0 });
+    expect(clocks.white).toEqual({ value: 0, progress: 0 });
+    expect(clocks.black).toEqual({ value: 0, progress: 0 });
+});
+
+test("a zero first-move annotation is not replaced by the initial time", () => {
+    const input = clockFixture();
+    input.headers.time_control = "600+2";
+    const clocks = getClockInfo({
+        ...input,
+        position: [0],
+        pos: positionFromFen(input.root.children[0].fen)[0],
+        currentClock: 0,
+    });
+    expect(clocks.white).toEqual({ value: 0, progress: 0 });
+    expect(clocks.black).toEqual({ value: 600, progress: 1 });
+});
+
+test.each(["shared", "per-player"])("zero-base %s control has finite progress", (kind) => {
+    const input = clockFixture();
+    input.headers.time_control = kind === "shared" ? "0+2" : "600+2";
+    if (kind === "per-player") {
+        input.headers.white_time_control = "0+2";
+        input.headers.black_time_control = "0+2";
+    }
+    const clocks = getClockInfo({ ...input, whiteTime: 2000, blackTime: 1000 });
+    expect(clocks.white).toEqual({ value: 2, progress: 0 });
+    expect(clocks.black).toEqual({ value: 1, progress: 0 });
+});
+
 function clockFixture() {
     const tree = defaultTree();
     const e4 = createNode({

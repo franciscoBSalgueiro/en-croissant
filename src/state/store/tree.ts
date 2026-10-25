@@ -647,12 +647,18 @@ function deleteMove(state: TreeState, path: number[]) {
     if (isPrefix(path, state.position)) {
         state.position = path.slice(0, -1);
     } else if (isPrefix(path.slice(0, -1), state.position)) {
-        if (state.position.length >= path.length) {
-            state.position[path.length - 1] = 0;
+        if (state.position[path.length - 1] > index) {
+            state.position[path.length - 1] -= 1;
         }
     }
     if (state.headers.start && isPrefix(path, state.headers.start)) {
         state.headers.start = undefined;
+    } else if (
+        state.headers.start &&
+        isPrefix(path.slice(0, -1), state.headers.start) &&
+        state.headers.start[path.length - 1] > index
+    ) {
+        state.headers.start[path.length - 1] -= 1;
     }
 }
 
