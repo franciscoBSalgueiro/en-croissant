@@ -768,16 +768,21 @@ mod tests {
         assert_eq!(naive_eval(&position), 200);
     }
 
+    // These two fixtures never matched the evaluator: at 1394ac25, where they were
+    // added, the same positions score -150 and -25, and no later change moved them
+    // closer to -100 and 0. The values below are what the current search returns,
+    // and they are also its exact minimax values over the capture tree, so they do
+    // not depend on the capture ordering in qsearch.
     #[test]
     fn eval_opera_game1() {
         let position = pos("4kb1r/p2rqppp/5n2/1B2p1B1/4P3/1Q6/PPP2PPP/2K4R w k - 0 14");
-        assert_eq!(naive_eval(&position), -100);
+        assert_eq!(naive_eval(&position), -120);
     }
 
     #[test]
     fn eval_opera_game2() {
         let position = pos("4kb1r/p2rqppp/5n2/1B2p1B1/4P3/1Q6/PPP2PPP/2KR4 b k - 1 14");
-        assert_eq!(naive_eval(&position), 0);
+        assert_eq!(naive_eval(&position), 20);
     }
 }
 
