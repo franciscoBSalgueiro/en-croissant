@@ -45,6 +45,7 @@ import LogsPanel from "./LogsPanel";
 import ReportPanel from "./ReportPanel";
 import ScoreBubble from "./ScoreBubble";
 import TablebaseInfo from "./TablebaseInfo";
+import TreePanel from "./TreePanel";
 
 function AnalysisPanel() {
   const { t } = useTranslation();
@@ -101,6 +102,7 @@ function AnalysisPanel() {
         <Tabs.List>
           <Tabs.Tab value="engines">{t("Board.Analysis.Engines")}</Tabs.Tab>
           <Tabs.Tab value="report">{t("Board.Analysis.Report")}</Tabs.Tab>
+          <Tabs.Tab value="tree">{t("Board.Analysis.Tree")}</Tabs.Tab>
           <Tabs.Tab value="logs" disabled={loadedEngines.length === 0}>
             {t("Board.Analysis.Logs")}
           </Tabs.Tab>
@@ -251,6 +253,17 @@ function AnalysisPanel() {
           }}
         >
           <ReportPanel />
+        </Tabs.Panel>
+        <Tabs.Panel
+          value="tree"
+          pt="xs"
+          style={{
+            overflow: "hidden",
+            display: tab === "tree" ? "flex" : "none",
+            flexDirection: "column",
+          }}
+        >
+          <TreePanel />
         </Tabs.Panel>
         <Tabs.Panel
           value="logs"
