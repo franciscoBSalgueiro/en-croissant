@@ -1482,12 +1482,12 @@ pub async fn merge_players(
 
     db.execute(
         "UPDATE games SET white = ? WHERE white = ?;",
-        params![player1_name, player2_name],
+        params![player2_name, player1_name],
     )?;
 
     db.execute(
         "UPDATE games SET black = ? WHERE black = ?;",
-        params![player1_name, player2_name],
+        params![player2_name, player1_name],
     )?;
 
     Ok(())
