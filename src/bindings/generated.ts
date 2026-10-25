@@ -459,6 +459,19 @@ async getSoundServerPort() : Promise<Result<number, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+/**
+ * One-shot engine evaluation of a position at fixed depth.
+ * Returns WHITE-POV centipawns (mate ±100000). Used to score replay-training
+ * guesses and to power insights.
+ */
+async evaluatePosition(fen: string, moves: string[], enginePath: string, depth: number) : Promise<Result<number, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("evaluate_position", { fen, moves, enginePath, depth }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
