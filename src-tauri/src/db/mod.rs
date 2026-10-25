@@ -271,28 +271,7 @@ pub async fn convert_pgn(
     let db = db_pool.get()?;
     let _invalidate_caches = DatabaseCacheInvalidation::new(&state, &db_path);
 
-    if !db_exists {
-        db.execute_batch(include_str!("init-database.sql"))?;
-    }
-
-    db.execute_batch(
-        "
-        CREATE TABLE IF NOT EXISTS db_info (
-            name VARCHAR PRIMARY KEY,
-            value VARCHAR
-        );
-        ",
-    )?;
-
-    let description_value = description.unwrap_or_default();
-    db.execute(
-        "DELETE FROM db_info WHERE name IN ('title', 'description');",
-        [],
-    )?;
-    db.execute(
-        "INSERT INTO db_info (name, value) VALUES ('title', ?), ('description', ?);",
-        params![title, description_value],
-    )?;
+    prepare_pgn_import(&db, db_exists, &title, description.as_deref())?;
 
     let start = Instant::now();
     let appender = game_appender(&db)?;
@@ -350,6 +329,25 @@ pub async fn convert_pgn(
         (total_games, elapsed, Option::<String>::None),
     );
 
+    Ok(())
+}
+
+fn prepare_pgn_import(
+    db: &Connection,
+    db_exists: bool,
+    title: &str,
+    description: Option<&str>,
+) -> Result<(), Error> {
+    if db_exists {
+        return Ok(());
+    }
+
+    db.execute_batch(include_str!("init-database.sql"))?;
+    db.execute_batch("CREATE TABLE db_info (name VARCHAR PRIMARY KEY, value VARCHAR);")?;
+    db.execute(
+        "INSERT INTO db_info (name, value) VALUES ('title', ?), ('description', ?);",
+        params![title, description.unwrap_or_default()],
+    )?;
     Ok(())
 }
 
