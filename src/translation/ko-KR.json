@@ -334,6 +334,7 @@
     "Fen.Start": "시작",
     "Fen.White": "백",
     "Fen.WhiteToMove": "백 차례",
+    "Files.Create.ImportType": "",
     "Files.Create.PGNPlaceholder": "비워두면 처음부터 시작합니다",
     "Files.Create.Title": "파일 생성",
     "Files.CreateDirectory.AlreadyExists": "이름이 같은 폴더가 이미 존재합니다",

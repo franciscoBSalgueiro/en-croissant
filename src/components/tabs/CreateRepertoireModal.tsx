@@ -9,6 +9,49 @@ import { headersToPGN } from "@/utils/chess";
 import { createFile } from "@/utils/files";
 import { createTab } from "@/utils/tabs";
 
+// A new repertoire's file: no moves yet, named after the repertoire and shown from its side.
+// Also used by Files › New file
+export function newRepertoirePgn(name: string, color: "white" | "black") {
+  return headersToPGN({
+    id: 0,
+    fen: INITIAL_FEN,
+    black: "",
+    white: "",
+    result: "*",
+    event: name,
+    site: "",
+    orientation: color,
+  });
+}
+
+// Which side a new repertoire is for. Also used by Files › New file
+export function RepertoireColorInput({
+  color,
+  setColor,
+}: {
+  color: "white" | "black";
+  setColor: (color: "white" | "black") => void;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <div>
+      <Text size="sm" fw={500} mb={4}>
+        {t("Home.Card.NewRepertoire.Color")}
+      </Text>
+      <SegmentedControl
+        fullWidth
+        value={color}
+        onChange={(v) => setColor(v as "white" | "black")}
+        data={[
+          { label: t("Common.WHITE"), value: "white" },
+          { label: t("Common.BLACK"), value: "black" },
+        ]}
+      />
+    </div>
+  );
+}
+
 export default function CreateRepertoireModal({
   opened,
   setOpened,
@@ -34,16 +77,7 @@ export default function CreateRepertoireModal({
       return;
     }
 
-    const pgn = headersToPGN({
-      id: 0,
-      fen: INITIAL_FEN,
-      black: "",
-      white: "",
-      result: "*",
-      event: trimmedName,
-      site: "",
-      orientation: color,
-    });
+    const pgn = newRepertoirePgn(trimmedName, color);
 
     const result = await createFile({
       filename: trimmedName,
@@ -112,20 +146,7 @@ export default function CreateRepertoireModal({
             data-autofocus
           />
 
-          <div>
-            <Text size="sm" fw={500} mb={4}>
-              {t("Home.Card.NewRepertoire.Color")}
-            </Text>
-            <SegmentedControl
-              fullWidth
-              value={color}
-              onChange={(v) => setColor(v as "white" | "black")}
-              data={[
-                { label: t("Common.WHITE"), value: "white" },
-                { label: t("Common.BLACK"), value: "black" },
-              ]}
-            />
-          </div>
+          <RepertoireColorInput color={color} setColor={setColor} />
 
           <Button type="submit">{t("Common.Create")}</Button>
         </Stack>
