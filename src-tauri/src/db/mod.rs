@@ -611,6 +611,8 @@ pub async fn convert_pgn(
             .execute(db)?;
     }
 
+    invalidate_search_cache(&state, &db_path);
+
     Ok(())
 }
 
@@ -694,6 +696,25 @@ pub fn generate_search_index(
 
     info!("Search index generated in {:?}", start.elapsed());
     Ok(())
+}
+
+/// Drop everything cached about a database's searchable games: the mmapped index,
+/// the cached query results and the index file on disk.
+///
+/// Any command that changes the games stored in a database must call this,
+/// otherwise the database panel keeps answering from the index built before the
+/// change (merged players, imported or deleted games).
+pub fn invalidate_search_cache(state: &State<AppState>, file: &Path) {
+    clear_search_cache(state);
+    if let Err(e) = std::fs::remove_file(get_index_path(file)) {
+        // Not fatal: the next open also rejects an index older than the database.
+        info!("Could not remove search index for {:?}: {}", file, e);
+    }
+}
+
+fn clear_search_cache(state: &State<AppState>) {
+    *state.db_cache.lock().unwrap() = None;
+    state.line_cache.clear();
 }
 
 #[derive(Serialize, Type)]
@@ -1597,6 +1618,7 @@ pub async fn delete_duplicated_games(
     let game_count: i64 = games::table.count().get_result(db)?;
     update_info_count(db, "GameCount", game_count)?;
     delete_orphaned_data(db)?;
+    invalidate_search_cache(&state, &file);
 
     Ok(())
 }
@@ -1614,6 +1636,7 @@ pub async fn delete_empty_games(
     let game_count: i64 = games::table.count().get_result(db)?;
     update_info_count(db, "GameCount", game_count)?;
     delete_orphaned_data(db)?;
+    invalidate_search_cache(&state, &file);
 
     Ok(())
 }
@@ -1781,6 +1804,7 @@ pub async fn delete_db_game(
     let game_count: i64 = games::table.count().get_result(db)?;
     update_info_count(db, "GameCount", game_count)?;
     delete_orphaned_data(db)?;
+    invalidate_search_cache(&state, &file);
 
     Ok(())
 }
@@ -1856,6 +1880,8 @@ pub async fn write_db_game(
         return Err(Error::GameNotFound(game_id.to_string()));
     }
 
+    invalidate_search_cache(&state, &file);
+
     Ok(())
 }
 
@@ -1892,6 +1918,7 @@ pub async fn merge_players(
 
     let player_count: i64 = players::table.count().get_result(db)?;
     update_info_count(db, "PlayerCount", player_count)?;
+    invalidate_search_cache(&state, &file);
 
     Ok(())
 }
@@ -1899,8 +1926,7 @@ pub async fn merge_players(
 #[tauri::command]
 #[specta::specta]
 pub fn clear_games(state: tauri::State<'_, AppState>) {
-    let mut state = state.db_cache.lock().unwrap();
-    *state = None;
+    clear_search_cache(&state);
 }
 
 #[tauri::command]
@@ -1911,18 +1937,19 @@ pub async fn preload_reference_db(
 ) -> Result<(), Error> {
     let index_path = get_index_path(&file);
 
-    if !MmapSearchIndex::is_valid(&index_path) {
-        info!("Search index not found for reference database, generating...");
+    if !MmapSearchIndex::is_up_to_date(&file) {
+        info!("Search index missing or stale for reference database, generating...");
         generate_search_index(&file, &state)?;
     }
 
     let mut cache = state.db_cache.lock().unwrap();
-    if cache.is_none() {
+    let already_loaded = matches!(cache.as_ref(), Some((cached_file, _)) if cached_file == &file);
+    if !already_loaded {
         info!("Preloading reference database from {:?}", index_path);
         match MmapSearchIndex::open(&index_path) {
             Ok(index) => {
                 info!("Preloaded reference database with {} games", index.len());
-                *cache = Some(index);
+                *cache = Some((file, index));
             }
             Err(e) => {
                 return Err(Error::from(e));

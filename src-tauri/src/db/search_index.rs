@@ -286,7 +286,10 @@ impl MmapSearchIndex {
         verify_header(&header).is_ok()
     }
 
-    #[allow(dead_code)]
+    /// Whether an index exists for this database and was written after the
+    /// database itself was last modified. Rebuilding the index is cheap compared
+    /// to searching stale games, so any mutation that bumps the database mtime
+    /// (imports, merges, deletions) invalidates the index without extra plumbing.
     pub fn is_up_to_date<P: AsRef<Path>>(db_path: P) -> bool {
         let db_path = db_path.as_ref();
         let index_path = get_index_path(db_path);
@@ -320,7 +323,48 @@ pub fn get_index_path(db_path: &Path) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::{Duration, SystemTime};
     use tempfile::tempdir;
+
+    fn set_modified(path: &Path, time: SystemTime) {
+        std::fs::File::options()
+            .write(true)
+            .open(path)
+            .unwrap()
+            .set_modified(time)
+            .unwrap();
+    }
+
+    #[test]
+    fn test_is_up_to_date_follows_database_mtime() {
+        let dir = tempdir().unwrap();
+        let db_path = dir.path().join("games.db");
+        let index_path = get_index_path(&db_path);
+
+        std::fs::write(&db_path, b"").unwrap();
+        assert!(
+            !MmapSearchIndex::is_up_to_date(&db_path),
+            "a database without an index must not be considered up to date"
+        );
+
+        SearchIndex { entries: vec![] }
+            .write_to(&index_path)
+            .unwrap();
+
+        let now = SystemTime::now();
+        set_modified(&index_path, now);
+        set_modified(&db_path, now - Duration::from_secs(60));
+        assert!(
+            MmapSearchIndex::is_up_to_date(&db_path),
+            "an index written after the last database change is up to date"
+        );
+
+        set_modified(&db_path, now + Duration::from_secs(60));
+        assert!(
+            !MmapSearchIndex::is_up_to_date(&db_path),
+            "a database modified after the index was written must be rebuilt"
+        );
+    }
 
     #[test]
     fn test_roundtrip() {

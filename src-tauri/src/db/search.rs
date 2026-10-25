@@ -264,11 +264,14 @@ pub async fn search_position(
 
     let mmap_index = {
         let mut cache = state.db_cache.lock().unwrap();
-        if cache.is_none() {
+        // The cache holds a single database's index, so the file has to match:
+        // different tabs and panels search different databases.
+        if !matches!(cache.as_ref(), Some((cached_file, _)) if cached_file == &file) {
+            *cache = None;
             let index_path = get_index_path(&file);
 
-            if !MmapSearchIndex::is_valid(&index_path) {
-                info!("Search index not found, generating automatically...");
+            if !MmapSearchIndex::is_up_to_date(&file) {
+                info!("Search index missing or stale, generating automatically...");
                 drop(cache);
                 if let Err(e) = super::generate_search_index(&file, &state) {
                     return Err(Error::from(std::io::Error::other(format!(
@@ -277,6 +280,7 @@ pub async fn search_position(
                     ))));
                 }
                 cache = state.db_cache.lock().unwrap();
+                *cache = None;
             }
 
             info!("Loading games from mmap binary search index");
@@ -287,14 +291,14 @@ pub async fn search_position(
                         index.len(),
                         start.elapsed()
                     );
-                    *cache = Some(index);
+                    *cache = Some((file.clone(), index));
                 }
                 Err(e) => {
                     return Err(Error::from(e));
                 }
             }
         }
-        cache.as_ref().unwrap().clone()
+        cache.as_ref().unwrap().1.clone()
     };
 
     let game_count = mmap_index.len();
@@ -493,11 +497,14 @@ pub async fn is_position_in_db(
 
     let mmap_index = {
         let mut cache = state.db_cache.lock().unwrap();
-        if cache.is_none() {
+        // The cache holds a single database's index, so the file has to match:
+        // different tabs and panels search different databases.
+        if !matches!(cache.as_ref(), Some((cached_file, _)) if cached_file == &file) {
+            *cache = None;
             let index_path = get_index_path(&file);
 
-            if !MmapSearchIndex::is_valid(&index_path) {
-                info!("Search index not found, generating automatically...");
+            if !MmapSearchIndex::is_up_to_date(&file) {
+                info!("Search index missing or stale, generating automatically...");
                 drop(cache);
                 if let Err(e) = super::generate_search_index(&file, &state) {
                     return Err(Error::from(std::io::Error::other(format!(
@@ -506,6 +513,7 @@ pub async fn is_position_in_db(
                     ))));
                 }
                 cache = state.db_cache.lock().unwrap();
+                *cache = None;
             }
 
             info!("Loading games from mmap binary search index");
@@ -516,14 +524,14 @@ pub async fn is_position_in_db(
                         index.len(),
                         start.elapsed()
                     );
-                    *cache = Some(index);
+                    *cache = Some((file.clone(), index));
                 }
                 Err(e) => {
                     return Err(Error::from(e));
                 }
             }
         }
-        cache.as_ref().unwrap().clone()
+        cache.as_ref().unwrap().1.clone()
     };
 
     let check_entry = |entry: SearchGameEntryRef<'_>| -> bool {
