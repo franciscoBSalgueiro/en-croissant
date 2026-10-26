@@ -532,7 +532,7 @@ fn build_utc_timestamp(date: Option<&str>, time: Option<&str>) -> Option<i64> {
 }
 
 fn parse_pgn_datetime(date: &str, time: Option<&str>) -> Option<chrono::NaiveDateTime> {
-    let (year, month, day) = split_three(date, '.')?;
+    let (year, month, day) = split_three(date, '.').or_else(|| split_three(date, '-'))?;
     let year = parse_component(year, None)? as i32;
     let month = parse_component(month, Some(1))?;
     let day = parse_component(day, Some(1))?;

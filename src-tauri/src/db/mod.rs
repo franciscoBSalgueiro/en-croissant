@@ -1091,6 +1091,20 @@ pub async fn get_players_game_info(
     let db_pool = get_duckdb_pool(&state, &file)?;
     let db = db_pool.get()?;
 
+    read_player_game_info(&db, &player, |progress| {
+        let _ = DatabaseProgress {
+            id: player.clone(),
+            progress,
+        }
+        .emit(&app);
+    })
+}
+
+fn read_player_game_info(
+    db: &Connection,
+    player: &str,
+    mut emit_progress: impl FnMut(f64),
+) -> Result<PlayerGameInfo, Error> {
     let count_sql = "
         WITH filtered_games AS (
             SELECT
@@ -1102,9 +1116,7 @@ pub async fn get_players_game_info(
               AND (white = ? OR black = ?)
         )
         SELECT COUNT(*)
-        FROM filtered_games
-        WHERE utc_timestamp IS NOT NULL
-          AND (CASE WHEN is_player_white THEN white_rating ELSE black_rating END) IS NOT NULL;
+        FROM filtered_games;
     ";
 
     let total = db.query_row(count_sql, params![player, player, player], |row| {
@@ -1112,11 +1124,7 @@ pub async fn get_players_game_info(
     })? as usize;
 
     if total == 0 {
-        let _ = DatabaseProgress {
-            id: player.clone(),
-            progress: 100.0,
-        }
-        .emit(&app);
+        emit_progress(100.0);
         return Ok(PlayerGameInfo::default());
     }
 
@@ -1133,14 +1141,12 @@ pub async fn get_players_game_info(
         SELECT
             site,
             COALESCE(CASE WHEN is_player_white THEN white ELSE black END, '') AS player,
-            strftime(utc_timestamp, '%Y-%m-%d') AS date,
+            COALESCE(strftime(utc_timestamp, '%Y-%m-%d'), '') AS date,
             is_player_white,
-            CAST(CASE WHEN is_player_white THEN white_rating ELSE black_rating END AS INTEGER) AS player_elo,
+            COALESCE(CAST(CASE WHEN is_player_white THEN white_rating ELSE black_rating END AS INTEGER), 0) AS player_elo,
             result AS game_result,
             COALESCE(time_control, '') AS time_control
         FROM filtered_games
-        WHERE utc_timestamp IS NOT NULL
-          AND (CASE WHEN is_player_white THEN white_rating ELSE black_rating END) IS NOT NULL
         ORDER BY utc_timestamp;
     ";
 
@@ -1178,11 +1184,7 @@ pub async fn get_players_game_info(
 
         processed += 1;
         if processed.is_multiple_of(1000) || processed == total {
-            let _ = DatabaseProgress {
-                id: player.clone(),
-                progress: (processed as f64 / total as f64) * 100.0,
-            }
-            .emit(&app);
+            emit_progress((processed as f64 / total as f64) * 100.0);
         }
     }
 
