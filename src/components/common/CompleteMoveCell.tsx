@@ -10,7 +10,7 @@ import {
 } from "@tabler/icons-react";
 import equal from "fast-deep-equal";
 import { useAtomValue } from "jotai";
-import { memo, useContext, useState } from "react";
+import { memo, type ReactNode, type RefObject, useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { useStoreWithEqualityFn } from "zustand/traditional";
@@ -57,6 +57,78 @@ function getTranspositions(fen: string, position: number[], root: TreeNode) {
   return matchingPositions.filter((targetPosition) => !hasMorePriority(position, targetPosition));
 }
 
+// Right-click menu of a move cell, with the hooks only the menu needs
+function MoveMenu({
+  movePath,
+  opened,
+  onClose,
+  children,
+}: {
+  movePath: number[];
+  opened: boolean;
+  onClose: () => void;
+  children: (ref: RefObject<HTMLButtonElement | null>) => ReactNode;
+}) {
+  const store = useContext(TreeStateContext)!;
+  const deleteMove = useDeleteMove();
+  const promoteVariation = useStore(store, (s) => s.promoteVariation);
+  const promoteToMainline = useStore(store, (s) => s.promoteToMainline);
+  const copyVariationPgn = useStore(store, (s) => s.copyVariationPgn);
+  const setStart = useStore(store, (s) => s.setStart);
+  const ref = useClickOutside<HTMLButtonElement>(onClose);
+  const currentTab = useAtomValue(currentTabAtom);
+  const tabFile = getTabFile(currentTab);
+
+  const { t } = useTranslation();
+
+  return (
+    <Menu opened={opened} width={200}>
+      <Menu.Target>{children(ref)}</Menu.Target>
+
+      <Portal>
+        <Menu.Dropdown>
+          {tabFile?.metadata.type === "repertoire" && (
+            <Menu.Item
+              leftSection={<IconFlag size="0.875rem" />}
+              onClick={() => setStart(movePath)}
+            >
+              {t("Menu.MarkAsStart")}
+            </Menu.Item>
+          )}
+          <Menu.Item
+            leftSection={<IconChevronsUp size="0.875rem" />}
+            onClick={() => promoteToMainline(movePath)}
+          >
+            {t("Menu.PromoteToMainLine")}
+          </Menu.Item>
+
+          <Menu.Item
+            leftSection={<IconChevronUp size="0.875rem" />}
+            onClick={() => promoteVariation(movePath)}
+          >
+            {t("Menu.PromoteVariation")}
+          </Menu.Item>
+
+          <Menu.Item
+            leftSection={<IconCopy size="0.875rem" />}
+            onClick={() => copyVariationPgn(movePath)}
+          >
+            {t("Menu.CopyVariationPGN")}
+          </Menu.Item>
+
+          <Menu.Item
+            color="red"
+            leftSection={<IconX size="0.875rem" />}
+            onClick={() => deleteMove(movePath)}
+          >
+            {t("Menu.DeleteMove")}
+          </Menu.Item>
+        </Menu.Dropdown>
+      </Portal>
+    </Menu>
+  );
+}
+
 function CompleteMoveCell({
   movePath,
   halfMoves,
@@ -92,23 +164,37 @@ function CompleteMoveCell({
     (a, b) => equal(a, b),
   );
   const goToMove = useStore(store, (s) => s.goToMove);
-  const deleteMove = useDeleteMove();
-  const promoteVariation = useStore(store, (s) => s.promoteVariation);
-  const promoteToMainline = useStore(store, (s) => s.promoteToMainline);
-  const copyVariationPgn = useStore(store, (s) => s.copyVariationPgn);
-  const setStart = useStore(store, (s) => s.setStart);
 
   const moveNumber = Math.ceil(halfMoves / 2);
   const isWhite = halfMoves % 2 === 1;
   const hasNumber = !tableLayout && halfMoves > 0 && (first || isWhite);
-  const ref = useClickOutside(() => {
-    setOpen(false);
-  });
   const [open, setOpen] = useState(false);
-  const currentTab = useAtomValue(currentTabAtom);
-  const tabFile = getTabFile(currentTab);
+  // The menu is only mounted once it was opened, a big tree has thousands of cells
+  const [menuMounted, setMenuMounted] = useState(false);
 
-  const { t } = useTranslation();
+  const renderCell = (ref?: RefObject<HTMLButtonElement | null>) => (
+    <MoveCell
+      ref={ref as RefObject<HTMLButtonElement>}
+      move={move!}
+      annotations={annotations}
+      isStart={isStart}
+      isCurrentVariation={isCurrentVariation}
+      onClick={() => goToMove(movePath)}
+      onContextMenu={(e: React.MouseEvent) => {
+        setMenuMounted(true);
+        setOpen((v) => !v);
+        e.preventDefault();
+      }}
+      fullWidth={tableLayout}
+      rightAccessory={
+        tableLayout && scoreText ? (
+          <Text component="span" size="xs" c="dimmed">
+            {scoreText}
+          </Text>
+        ) : undefined
+      }
+    />
+  );
 
   return (
     <>
@@ -123,73 +209,14 @@ function CompleteMoveCell({
         }}
       >
         {hasNumber && `${moveNumber.toString()}${isWhite ? "." : "..."}`}
-        {move && (
-          <Menu opened={open} width={200}>
-            <Menu.Target>
-              <MoveCell
-                ref={ref}
-                move={move}
-                annotations={annotations}
-                isStart={isStart}
-                isCurrentVariation={isCurrentVariation}
-                onClick={() => goToMove(movePath)}
-                onContextMenu={(e: React.MouseEvent) => {
-                  setOpen((v) => !v);
-                  e.preventDefault();
-                }}
-                fullWidth={tableLayout}
-                rightAccessory={
-                  tableLayout && scoreText ? (
-                    <Text component="span" size="xs" c="dimmed">
-                      {scoreText}
-                    </Text>
-                  ) : undefined
-                }
-              />
-            </Menu.Target>
-
-            <Portal>
-              <Menu.Dropdown>
-                {tabFile?.metadata.type === "repertoire" && (
-                  <Menu.Item
-                    leftSection={<IconFlag size="0.875rem" />}
-                    onClick={() => setStart(movePath)}
-                  >
-                    {t("Menu.MarkAsStart")}
-                  </Menu.Item>
-                )}
-                <Menu.Item
-                  leftSection={<IconChevronsUp size="0.875rem" />}
-                  onClick={() => promoteToMainline(movePath)}
-                >
-                  {t("Menu.PromoteToMainLine")}
-                </Menu.Item>
-
-                <Menu.Item
-                  leftSection={<IconChevronUp size="0.875rem" />}
-                  onClick={() => promoteVariation(movePath)}
-                >
-                  {t("Menu.PromoteVariation")}
-                </Menu.Item>
-
-                <Menu.Item
-                  leftSection={<IconCopy size="0.875rem" />}
-                  onClick={() => copyVariationPgn(movePath)}
-                >
-                  {t("Menu.CopyVariationPGN")}
-                </Menu.Item>
-
-                <Menu.Item
-                  color="red"
-                  leftSection={<IconX size="0.875rem" />}
-                  onClick={() => deleteMove(movePath)}
-                >
-                  {t("Menu.DeleteMove")}
-                </Menu.Item>
-              </Menu.Dropdown>
-            </Portal>
-          </Menu>
-        )}
+        {move &&
+          (menuMounted ? (
+            <MoveMenu movePath={movePath} opened={open} onClose={() => setOpen(false)}>
+              {renderCell}
+            </MoveMenu>
+          ) : (
+            renderCell()
+          ))}
         {transpositions.length > 0 && (
           <Tooltip label="Transposition">
             <ActionIcon size="xs" onClick={() => goToMove(transpositions[0])}>
