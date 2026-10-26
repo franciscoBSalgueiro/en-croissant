@@ -134,7 +134,14 @@ function AddEngine({
             submitLabel={t("Common.Add")}
             form={form}
             onSubmit={(values: LocalEngine) => {
-              setEngines(async (prev) => [...(await prev), values]);
+              setEngines(async (prev) => [
+                ...(await prev),
+                {
+                  ...values,
+                  id: crypto.randomUUID(),
+                },
+              ]);
+              form.setFieldValue("id", crypto.randomUUID());
               setOpened(false);
             }}
           />
@@ -209,7 +216,7 @@ function EngineCard({
       setInProgress(true);
       const enginesDir = await getEnginesDir();
       let path = await resolve(enginesDir, `${url.slice(url.lastIndexOf("/") + 1)}`);
-      if (url.endsWith(".zip") || url.endsWith(".tar")) {
+      if (/\.(?:zip|tar|tar\.gz)(?:[?#]|$)/.test(url)) {
         path = enginesDir;
       }
       await commands.downloadFile(`engine_${id}`, url, path, null, null, null);

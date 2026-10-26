@@ -1,14 +1,25 @@
-import { ActionIcon, Divider, Group, Paper, ScrollArea, Stack, Tooltip } from "@mantine/core";
+import {
+  ActionIcon,
+  Button,
+  Divider,
+  Group,
+  Paper,
+  ScrollArea,
+  Stack,
+  Tooltip,
+} from "@mantine/core";
 import { IconTrash, IconZoomCheck } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtom, useSetAtom } from "jotai";
 import { useTranslation } from "react-i18next";
 import { useSWRConfig } from "swr";
+import { ask } from "@tauri-apps/plugin-dialog";
+import { unwrap } from "@/utils/unwrap";
 import { commands, type NormalizedGame } from "@/bindings";
 import { activeTabAtom, tabsAtom } from "@/state/atoms";
 import { createTab } from "@/utils/tabs";
-import GameInfo from "../common/GameInfo";
 import GamePreview from "./GamePreview";
+import GameInfo from "../common/GameInfo";
 
 function GameCard({
   game,
@@ -30,49 +41,68 @@ function GameCard({
     <Paper shadow="sm" p="sm" withBorder h="100%">
       <ScrollArea h="100%">
         <Stack h="100%" gap="xs">
-          <GameInfo headers={game} />
-          <Divider />
-          <Group justify="left">
-            <Tooltip label={t("Board.Action.AnalyzeGame")}>
-              <ActionIcon
-                variant="subtle"
-                onClick={() => {
-                  createTab({
-                    tab: {
-                      name: `${game.white} - ${game.black}`,
-                      type: "analysis",
-                    },
-                    setTabs,
-                    setActiveTab,
-                    pgn: game.moves,
-                    headers: game,
-                    gameOrigin: {
-                      kind: "database",
-                      database: file,
-                      gameId: game.id,
-                    },
-                  });
-                  navigate({ to: "/" });
-                }}
-              >
-                <IconZoomCheck size="1.2rem" stroke={1.5} />
-              </ActionIcon>
-            </Tooltip>
+          <GameInfo key={game.id} headers={game} />
+          <Group justify="space-between" gap="xs" px="xs" pb="xs">
+            <Button
+              variant="light"
+              size="xs"
+              leftSection={<IconZoomCheck size="1rem" stroke={1.5} />}
+              onClick={() => {
+                createTab({
+                  tab: {
+                    name: `${game.white} - ${game.black}`,
+                    type: "analysis",
+                  },
+                  setTabs,
+                  setActiveTab,
+                  pgn: game.moves,
+                  headers: game,
+                  gameOrigin: {
+                    kind: "database",
+                    database: file,
+                    gameId: game.id,
+                  },
+                });
+                navigate({ to: "/" });
+              }}
+            >
+              {t("Board.Action.AnalyzeGame")}
+            </Button>
 
             <Tooltip label={t("Databases.Game.Delete")}>
               <ActionIcon
                 variant="subtle"
                 color="red"
-                onClick={() => {
-                  commands.deleteDbGame(file, game.id).then(() => {
+                onClick={async () => {
+                  try {
+                    const info = unwrap(await commands.getDbInfo(file));
+                    if (
+                      !(await ask(
+                        `Delete exactly 1 game from “${info.title || info.filename}”?\n${file}\nThis cannot be undone.`,
+                        { title: "Delete game", kind: "warning" },
+                      ))
+                    )
+                      return;
+                    unwrap(await commands.deleteDbGame(file, game.id));
                     mutate();
-                    globalMutate(
+                    await globalMutate(
                       (key) =>
-                        Array.isArray(key) && (key[0] === "players" || key[0] === "tournaments"),
+                        key === "databases" ||
+                        (Array.isArray(key) &&
+                          [
+                            "games",
+                            "position-games",
+                            "tournament-games",
+                            "players",
+                            "tournaments",
+                            "player-game-info",
+                          ].includes(key[0])),
                       undefined,
                       { revalidate: true },
                     );
-                  });
+                  } catch {
+                    // unwrap reports command failures to the user.
+                  }
                 }}
               >
                 <IconTrash size="1.2rem" stroke={1.5} />
@@ -80,7 +110,13 @@ function GameCard({
             </Tooltip>
           </Group>
           <Divider />
-          <GamePreview pgn={game.moves} headers={game} showOpening />
+          <GamePreview
+            key={`preview-${game.id}`}
+            pgn={game.moves}
+            headers={game}
+            showOpening
+            startAtEnd
+          />
         </Stack>
       </ScrollArea>
     </Paper>

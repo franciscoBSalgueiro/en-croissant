@@ -1,4 +1,5 @@
 import { ActionIcon, Stack, Tooltip } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import {
   IconArrowBack,
   IconCamera,
@@ -13,19 +14,23 @@ import {
 import { useLoaderData } from "@tanstack/react-router";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeFile } from "@tauri-apps/plugin-fs";
-import domtoimage from "dom-to-image";
+import { error } from "@tauri-apps/plugin-log";
+import domtoimage from "dom-to-image-more";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { memo, useContext } from "react";
+import { memo, useContext, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import {
+  activeTabAtom,
   autoSaveAtom,
-  currentGameStateAtom,
   currentTabAtom,
   eraseDrawablesOnClickAtom,
+  tabsAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
+import { getPGN } from "@/utils/chess";
+import { createTab } from "@/utils/tabs";
 
 interface BoardControlsProps {
   editingMode: boolean;
@@ -54,14 +59,21 @@ function BoardControls({
   const store = useContext(TreeStateContext)!;
   const headers = useStore(store, (s) => s.headers);
   const root = useStore(store, (s) => s.root);
+  const selectedPosition = useStore(store, (s) => s.position);
   const setHeaders = useStore(store, (s) => s.setHeaders);
   const clearShapes = useStore(store, (s) => s.clearShapes);
 
   const keyMap = useAtomValue(keyMapAtom);
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
-  const setGameState = useSetAtom(currentGameStateAtom);
+  const setTabs = useSetAtom(tabsAtom);
+  const setActiveTab = useSetAtom(activeTabAtom);
   const autoSave = useAtomValue(autoSaveAtom);
   const eraseDrawablesOnClick = useAtomValue(eraseDrawablesOnClickAtom);
+  const creatingPlayTab = useRef(false);
+  const [isCreatingPlayTab, setIsCreatingPlayTab] = useState(false);
+  const modeActionLabel = t(
+    currentTab?.type === "analysis" ? "Board.Action.PlayFromHere" : "Board.Action.AnalyzeGame",
+  );
 
   const orientation = headers.orientation || "white";
   const toggleOrientation = () =>
@@ -71,39 +83,74 @@ function BoardControls({
       orientation: orientation === "black" ? "white" : "black",
     });
 
-  function changeTabType() {
-    setCurrentTab((t) => {
-      if (t.type === "analysis") {
-        setGameState("settingUp");
-      }
-      return {
-        ...t,
-        type: t.type === "analysis" ? "play" : "analysis",
-      };
-    });
+  async function changeTabType() {
+    if (creatingPlayTab.current) return;
+    if (currentTab?.type !== "analysis") {
+      setCurrentTab((tab) => ({ ...tab, type: "analysis" }));
+      return;
+    }
+
+    // Block same-tick clicks before the loading state renders the button disabled.
+    creatingPlayTab.current = true;
+    setIsCreatingPlayTab(true);
+    try {
+      const playHeaders = { ...headers, fen: root.fen, result: "*" as const, start: [] };
+      // An empty path skips even the FEN headers, so serialize a childless root instead.
+      const pgn = getPGN(selectedPosition.length ? root : { ...root, children: [] }, {
+        headers: playHeaders,
+        path: selectedPosition.length ? selectedPosition : null,
+        variations: false,
+        comments: false,
+        glyphs: false,
+        extraMarkups: false,
+      });
+      await createTab({
+        tab: { name: currentTab.name, type: "play" },
+        setTabs,
+        setActiveTab,
+        pgn,
+        headers: playHeaders,
+        position: selectedPosition.map(() => 0),
+      });
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : String(cause);
+      void error(message).catch(console.error);
+      notifications.show({ title: t("Common.Error"), message, color: "red" });
+    } finally {
+      creatingPlayTab.current = false;
+      setIsCreatingPlayTab(false);
+    }
   }
 
   const takeSnapshot = async () => {
     const snapshotTarget = document.querySelector(".cg-wrap") as HTMLElement | null;
-    if (!snapshotTarget) return;
+    const board = snapshotTarget?.querySelector("cg-board");
+    if (!snapshotTarget || !board) return;
 
-    domtoimage.toBlob(snapshotTarget).then(async (blob) => {
-      if (blob == null) return;
+    const { width, height } = board.getBoundingClientRect();
+    domtoimage
+      .toBlob(snapshotTarget, {
+        width,
+        height,
+        style: { padding: "0", margin: "0", overflow: "hidden" },
+      })
+      .then(async (blob) => {
+        if (blob == null) return;
 
-      const filePath = await save({
-        title: "Save board snapshot",
-        defaultPath: documentDir,
-        filters: [
-          {
-            name: "PNG Image",
-            extensions: ["png"],
-          },
-        ],
+        const filePath = await save({
+          title: "Save board snapshot",
+          defaultPath: documentDir,
+          filters: [
+            {
+              name: "PNG Image",
+              extensions: ["png"],
+            },
+          ],
+        });
+        const arrayBuffer = await blob.arrayBuffer();
+        if (filePath == null) return;
+        await writeFile(filePath, new Uint8Array(arrayBuffer));
       });
-      const arrayBuffer = await blob.arrayBuffer();
-      if (filePath == null) return;
-      await writeFile(filePath, new Uint8Array(arrayBuffer));
-    });
   };
 
   return (
@@ -120,15 +167,13 @@ function BoardControls({
           </ActionIcon>
         </Tooltip>
       )}
-      <Tooltip
-        position="right"
-        label={t(
-          currentTab?.type === "analysis"
-            ? "Board.Action.PlayFromHere"
-            : "Board.Action.AnalyzeGame",
-        )}
-      >
-        <ActionIcon onClick={changeTabType}>
+      <Tooltip position="right" label={modeActionLabel}>
+        <ActionIcon
+          onClick={changeTabType}
+          aria-label={modeActionLabel}
+          aria-busy={isCreatingPlayTab}
+          loading={isCreatingPlayTab}
+        >
           {currentTab?.type === "analysis" ? (
             <IconTarget size="1.2rem" />
           ) : (

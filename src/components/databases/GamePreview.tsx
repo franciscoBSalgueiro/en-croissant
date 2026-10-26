@@ -1,11 +1,11 @@
 import { Box, Group, Stack } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
-import { useContext } from "react";
+import { useContext, useMemo } from "react";
 import useSWRImmutable from "swr/immutable";
 import { useStore } from "zustand";
 import { Chessground } from "@/chessground/Chessground";
 import { parsePGN } from "@/utils/chess";
-import { type GameHeaders, getNodeAtPath, type TreeState } from "@/utils/treeReducer";
+import { countMainPly, type GameHeaders, getNodeAtPath, type TreeState } from "@/utils/treeReducer";
 import GameNotation from "../common/GameNotation";
 import MoveControls from "../common/MoveControls";
 import OpeningName from "../common/OpeningName";
@@ -16,27 +16,27 @@ function GamePreviewWrapper({
   headers,
   hideControls,
   showOpening,
+  startAtEnd,
 }: {
   pgn: string;
   headers?: GameHeaders;
   hideControls?: boolean;
   showOpening?: boolean;
+  startAtEnd?: boolean;
 }) {
-  const { data: parsedGame, isLoading } = useSWRImmutable(
-    [pgn, headers?.fen],
-    async ([pgn, fen]) => {
-      return await parsePGN(pgn, fen);
-    },
-  );
+  const { data: parsedGame } = useSWRImmutable([pgn, headers?.fen], async ([pgn, fen]) => {
+    return await parsePGN(pgn, fen);
+  });
 
   return (
     <>
       {parsedGame && (
         <GamePreview
-          key={pgn}
+          key={`${headers?.fen ?? ""}:${pgn}`}
           game={parsedGame}
           hideControls={hideControls}
           showOpening={showOpening}
+          startAtEnd={startAtEnd}
         />
       )}
     </>
@@ -47,15 +47,21 @@ function GamePreview({
   game,
   hideControls,
   showOpening,
+  startAtEnd,
 }: {
   game: TreeState;
   hideControls?: boolean;
   showOpening?: boolean;
+  startAtEnd?: boolean;
 }) {
   const { ref: boardRef, height } = useElementSize();
+  const initialGame = useMemo(
+    () => (startAtEnd ? { ...game, position: Array(countMainPly(game.root)).fill(0) } : game),
+    [game, startAtEnd],
+  );
 
   return (
-    <TreeStateProvider initial={game}>
+    <TreeStateProvider initial={initialGame}>
       {showOpening && <OpeningName />}
       <Group align="end" grow style={{ overflow: "hidden", height: "100%" }}>
         <Box ref={boardRef}>

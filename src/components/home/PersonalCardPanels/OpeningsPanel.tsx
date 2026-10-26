@@ -1,224 +1,125 @@
-import { Box, Divider, Group, ScrollArea, Stack, Text } from "@mantine/core";
+import { Button, Group, SegmentedControl, Stack, Text, ThemeIcon } from "@mantine/core";
+import { IconArrowRight, IconBook, IconChess } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
-import { useVirtualizer } from "@tanstack/react-virtual";
-import type { Color } from "chessops";
-import { useAtom, useAtomValue } from "jotai";
-import { useRef, useState } from "react";
-import type { PlayerGameInfo } from "@/bindings";
-import { commands, type GameOutcome } from "@/bindings";
-import { activeTabAtom, fontSizeAtom, tabsAtom } from "@/state/atoms";
-import { parsePGN } from "@/utils/chess";
+import { INITIAL_FEN } from "chessops/fen";
+import { useAtom, useStore } from "jotai";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  activeTabAtom,
+  tabsAtom,
+  referenceDbAtom,
+  tabFamily,
+  currentDbTypeAtom,
+  currentDbTabAtom,
+  currentLocalOptionsAtom,
+} from "@/state/atoms";
 import { createTab } from "@/utils/tabs";
-import { getTimeControl } from "@/utils/timeControl";
-import { countMainPly, defaultTree } from "@/utils/treeReducer";
-import { unwrap } from "@/utils/unwrap";
 import classes from "./OpeningsPanel.module.css";
-import ResultsChart from "./ResultsChart";
-import TimeControlSelector from "./TimeControlSelector";
-import WebsiteAccountSelector from "./WebsiteAccountSelector";
 
-type OpeningStats = {
-  name: string;
-  games: number;
-  won: number;
-  draw: number;
-  lost: number;
-};
-
-function aggregateOpenings(
-  data: { opening: string; result: GameOutcome; is_player_white: boolean }[],
-  color: Color,
-): OpeningStats[] {
-  return Array.from(
-    data
-      .filter((d) => d.is_player_white === (color === "white"))
-      .reduce((acc, d) => {
-        const prev = acc.get(d.opening) ?? {
-          won: 0,
-          draw: 0,
-          lost: 0,
-          total: 0,
-        };
-        acc.set(d.opening, {
-          won: prev.won + (d.result === "Won" ? 1 : 0),
-          draw: prev.draw + (d.result === "Drawn" ? 1 : 0),
-          lost: prev.lost + (d.result === "Lost" ? 1 : 0),
-          total: prev.total + 1,
-        });
-        return acc;
-      }, new Map()),
-  )
-    .map(([name, { won, draw, lost, total }]) => ({
-      name,
-      games: total,
-      won,
-      draw,
-      lost,
-    }))
-    .sort((a, b) => b.games - a.games);
+export interface OpeningSource {
+  file: string;
+  player: string;
 }
 
 function OpeningsPanel({
   playerName,
-  info,
-  isDatabase,
+  openingSources,
 }: {
   playerName: string;
-  info: PlayerGameInfo;
-  isDatabase?: boolean;
+  openingSources?: OpeningSource[];
 }) {
-  const [website, setWebsite] = useState<string | null>("All websites");
-  const [account, setAccount] = useState<string | null>("All accounts");
-  const [timeControl, setTimeControl] = useState<string | null>(null);
-
-  const openingData =
-    info?.site_stats_data
-      .filter((d) => website === "All websites" || d.site === website)
-      .filter((d) => account === "All accounts" || d.player === account)
-      .flatMap((d) => d.data)
-      .filter(
-        (g) =>
-          !timeControl ||
-          timeControl === "any" ||
-          getTimeControl(website!, g.time_control) === timeControl,
-      )
-      .map((g) => ({
-        opening: g.opening,
-        result: g.result,
-        is_player_white: g.is_player_white,
-      })) ?? [];
-
-  const whiteGames = openingData.filter((g) => g.is_player_white).length;
-  const blackGames = openingData.filter((g) => !g.is_player_white).length;
-
-  const whiteOpenings = aggregateOpenings(openingData, "white");
-  const blackOpenings = aggregateOpenings(openingData, "black");
-
-  const fontSize = useAtomValue(fontSizeAtom);
-
-  const parentRef = useRef<HTMLDivElement>(null);
-  const rowVirtualizer = useVirtualizer({
-    count: Math.max(whiteOpenings.length, blackOpenings.length),
-    estimateSize: () => 120 * (fontSize / 100),
-    getScrollElement: () => parentRef.current,
-  });
-
-  return (
-    <Stack gap={0} h="100%">
-      <Group grow>
-        {!isDatabase && (
-          <WebsiteAccountSelector
-            playerName={playerName}
-            onWebsiteChange={(website) => {
-              setWebsite(website);
-            }}
-            onAccountChange={setAccount}
-            allowAll={true}
-          />
-        )}
-        <TimeControlSelector
-          website={website}
-          onTimeControlChange={setTimeControl}
-          allowAll={true}
-        />
-      </Group>
-
-      <Group grow pt="xl">
-        <Text ta="center" fw="bold">
-          White
-        </Text>
-        <Text ta="center" fw="bold">
-          Black
-        </Text>
-      </Group>
-      <Divider mt="md" />
-      <ScrollArea viewportRef={parentRef} flex={1}>
-        <Box
-          style={{
-            height: rowVirtualizer.getTotalSize(),
-            width: "100%",
-            position: "relative",
-          }}
-        >
-          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-            const white = whiteOpenings[virtualRow.index];
-            const black = blackOpenings[virtualRow.index];
-            return (
-              <Box
-                key={virtualRow.index}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  height: virtualRow.size,
-                  transform: `translateY(${virtualRow.start}px)`,
-                }}
-              >
-                <Group grow>
-                  {white ? (
-                    <OpeningDetail opening={white} totalGames={whiteGames} color="white" />
-                  ) : (
-                    <div />
-                  )}
-                  {black ? (
-                    <OpeningDetail opening={black} totalGames={blackGames} color="black" />
-                  ) : (
-                    <div />
-                  )}
-                </Group>
-                <Divider />
-              </Box>
-            );
-          })}
-        </Box>
-      </ScrollArea>
-    </Stack>
-  );
-}
-
-function OpeningDetail({
-  opening,
-  totalGames,
-  color,
-}: {
-  opening: OpeningStats;
-  totalGames: number;
-  color: Color;
-}) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const store = useStore();
   const [, setTabs] = useAtom(tabsAtom);
   const [, setActiveTab] = useAtom(activeTabAtom);
-  const navigate = useNavigate();
+  const [referenceDatabase, setReferenceDatabase] = useAtom(referenceDbAtom);
+  const [color, setColor] = useState<"white" | "black">("white");
+  const sources = openingSources ?? [];
 
-  const openingRate = opening.games / totalGames;
+  const openDatabaseInTabs = async () => {
+    const source = sources.find((source) => source.player === playerName) ?? sources[0];
+    const preferredDb = source?.file || referenceDatabase;
+    const player = source?.player || playerName;
+
+    if (preferredDb) {
+      setReferenceDatabase(preferredDb);
+    }
+
+    const tabId = await createTab({
+      tab: {
+        name: `${playerName} ${color === "white" ? "White" : "Black"} Database`,
+        type: "analysis",
+      },
+      setTabs,
+      setActiveTab,
+    });
+
+    // Configure the new tab before navigating so the database panel is ready immediately.
+    store.set(activeTabAtom, tabId);
+    store.set(tabFamily(tabId), "database");
+    store.set(currentDbTypeAtom, "local");
+    store.set(currentDbTabAtom, "stats");
+    store.set(currentLocalOptionsAtom, (prev) => ({
+      ...prev,
+      path: preferredDb ?? prev.path,
+      position: { fen: INITIAL_FEN, type_: "exact" },
+      player1: color === "white" ? player : undefined,
+      player2: color === "black" ? player : undefined,
+      outcome: undefined,
+    }));
+
+    void navigate({ to: "/" });
+  };
+
   return (
-    <Stack py="sm" justify="space-between">
-      <Group justify="space-between" wrap="nowrap">
-        <Text
-          lineClamp={2}
-          className={classes.link}
-          onClick={async () => {
-            const pgn = unwrap(await commands.getOpeningFromName(opening.name));
-            const headers = defaultTree().headers;
-            const tree = await parsePGN(pgn);
-            headers.orientation = color;
-            createTab({
-              tab: { name: opening.name, type: "analysis" },
-              pgn,
-              headers,
-              setTabs,
-              setActiveTab,
-              position: Array(countMainPly(tree.root)).fill(0),
-            });
-            navigate({ to: "/" });
-          }}
-        >
-          {opening.name}
-        </Text>
-        <Text>{(openingRate * 100).toFixed(2)}%</Text>
-      </Group>
-      <ResultsChart won={opening.won} draw={opening.draw} lost={opening.lost} size="1.5rem" />
-    </Stack>
+    <div className={classes.panel}>
+      <Stack gap="lg" align="center" className={classes.content}>
+        <Stack gap="xs" align="center">
+          <Text size="lg" fw={600} ta="center">
+            {t("Home.Personal.ExploreOpenings")}
+          </Text>
+          <Text size="sm" c="dimmed" ta="center">
+            {t("Home.Personal.ExploreOpeningsDescription")}
+          </Text>
+        </Stack>
+        <Stack gap="md" w="100%">
+          <SegmentedControl
+            fullWidth
+            value={color}
+            onChange={(value) => setColor(value as "white" | "black")}
+            data={[
+              {
+                value: "white",
+                label: (
+                  <Group gap="xs" justify="center" wrap="nowrap">
+                    <span className={classes.whitePiece} aria-hidden="true" />
+                    {t("Home.Personal.AsWhite")}
+                  </Group>
+                ),
+              },
+              {
+                value: "black",
+                label: (
+                  <Group gap="xs" justify="center" wrap="nowrap">
+                    <span className={classes.blackPiece} aria-hidden="true" />
+                    {t("Home.Personal.AsBlack")}
+                  </Group>
+                ),
+              },
+            ]}
+          />
+          <Button
+            fullWidth
+            rightSection={<IconArrowRight size={16} aria-hidden="true" />}
+            onClick={openDatabaseInTabs}
+          >
+            {t("Home.Personal.OpenInAnalysis")}
+          </Button>
+        </Stack>
+      </Stack>
+    </div>
   );
 }
 

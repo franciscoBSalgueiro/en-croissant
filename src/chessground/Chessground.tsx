@@ -4,12 +4,14 @@ import type { Config } from "@lichess-org/chessground/config";
 import { Box } from "@mantine/core";
 import { useAtomValue } from "jotai";
 import { type Ref, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { boardImageAtom, moveMethodAtom } from "@/state/atoms";
+import { boardImageAtom, is3dAtom, moveMethodAtom, pieceAnimationAtom } from "@/state/atoms";
+import { syncBoardBounds } from "./syncBoardBounds";
 
 const BOARD_COORDINATE_COLORS: Record<string, { white: string; black: string }> = {
   blue: { white: "#dee3e6", black: "#788a94" },
   blue2: { white: "#97b2c7", black: "#546f82" },
   blue3: { white: "#d9e0e6", black: "#315991" },
+  blue4: { white: "#e9e9d1", black: "#4e7293" },
   "blue-marble": { white: "#eae6dd", black: "#7c7f87" },
   canvas2: { white: "#d7daeb", black: "#547388" },
   wood: { white: "#d8a45b", black: "#9b4d0f" },
@@ -48,6 +50,16 @@ function getBoardCoordinateColors(boardImage: string): {
   );
 }
 
+const PIECE_ANIMATION_MS = { none: 0, fast: 120, normal: 200, slow: 400 };
+
+export function pieceAnimation(
+  speed: keyof typeof PIECE_ANIMATION_MS,
+  animation: Config["animation"],
+): Config["animation"] {
+  const duration = PIECE_ANIMATION_MS[speed];
+  return { ...animation, enabled: (animation?.enabled ?? true) && duration > 0, duration };
+}
+
 export interface ChessgroundRef {
   playPremove: () => boolean;
   cancelPremove: () => void;
@@ -64,6 +76,8 @@ export function Chessground({ ref, ...props }: ChessgroundProps) {
   const boardRef = useRef<HTMLDivElement>(null);
 
   const moveMethod = useAtomValue(moveMethodAtom);
+  const is3d = useAtomValue(is3dAtom);
+  const animationSpeed = useAtomValue(pieceAnimationAtom);
 
   useImperativeHandle(
     ref,
@@ -73,6 +87,11 @@ export function Chessground({ ref, ...props }: ChessgroundProps) {
     }),
     [api],
   );
+
+  useEffect(() => {
+    if (!api || !boardRef.current) return;
+    return syncBoardBounds(boardRef.current, api);
+  }, [api]);
 
   useEffect(() => {
     if (boardRef?.current == null) return;
@@ -108,6 +127,8 @@ export function Chessground({ ref, ...props }: ChessgroundProps) {
           ...props.selectable,
           enabled: moveMethod !== "drag",
         },
+        addPieceZIndex: is3d,
+        animation: pieceAnimation(animationSpeed, props.animation),
       });
       setApi(chessgroundApi);
     }
@@ -132,18 +153,27 @@ export function Chessground({ ref, ...props }: ChessgroundProps) {
         ...props.selectable,
         enabled: moveMethod !== "drag",
       },
+      addPieceZIndex: is3d,
+      animation: pieceAnimation(animationSpeed, props.animation),
     });
-  }, [api, props, moveMethod]);
+  }, [api, props, moveMethod, is3d, animationSpeed]);
 
   const boardImage = useAtomValue(boardImageAtom);
   const boardCoordColors = getBoardCoordinateColors(boardImage);
+  const boardImagePath = is3d ? `/board-3d/${boardImage}` : `/board/${boardImage}`;
+
+  // 3D mode uses padding-bottom to create 476:512 ratio
+  // 2D mode uses aspect-ratio: 1 to maintain square
+  const boardStyle = is3d
+    ? { width: "100%", paddingBottom: "91%", position: "relative" as const }
+    : { width: "100%", aspectRatio: 1 };
 
   return (
     <Box
+      className={is3d ? "is3d" : undefined}
       style={{
-        aspectRatio: 1,
-        width: "100%",
-        "--board-image": `url('/board/${boardImage}')`,
+        ...boardStyle,
+        "--board-image": `url('${boardImagePath}')`,
         "--board-coord-color-white": boardCoordColors.white,
         "--board-coord-color-black": boardCoordColors.black,
       }}

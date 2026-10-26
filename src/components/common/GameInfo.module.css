@@ -1,85 +1,170 @@
-.colorHover:hover {
-  text-decoration: underline;
-  cursor: pointer;
+.header {
+  padding-block: var(--mantine-spacing-xs);
 }
 
-.input {
-  all: unset;
-  text-align: center;
+.gameHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
+  grid-template-rows: repeat(3, auto);
+  gap: 4px var(--mantine-spacing-sm);
+  align-items: center;
 }
 
-.textInput {
-  all: unset;
-  outline: none;
+.matchup,
+.details {
+  display: contents;
 }
 
-.textInput:disabled {
-  cursor: default;
-  background-color: transparent;
-  user-select: none;
+.player {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-column: 1;
+  grid-row: 1 / 4;
+  justify-items: start;
+  align-items: center;
 }
 
-.nameInput {
-  padding: 0;
-  font-weight: 500;
-  line-height: 0;
-  height: auto;
-}
-
-.nameInput:disabled {
-  cursor: default;
-  background-color: transparent;
-}
-
-[data-mantine-color-scheme="light"] .nameInput:disabled {
-  color: var(--mantine-color-gray-0);
-}
-
-[data-mantine-color-scheme="dark"] .nameInput:disabled {
-  color: var(--mantine-color-black);
-}
-
-.eloInput {
-  all: unset;
-  height: auto;
-  opacity: 75%;
-  padding: 0;
-  line-height: 0;
-}
-
-.eloInput:disabled {
-  cursor: default;
-  background-color: transparent;
-}
-
-[data-mantine-color-scheme="light"] .eloInput:disabled {
-  color: var(--mantine-color-gray-0);
-}
-
-[data-mantine-color-scheme="dark"] .eloInput:disabled {
-  color: var(--mantine-color-black);
-}
-
-.right {
+.player[data-color="black"] {
+  grid-column: 3;
+  justify-items: end;
   text-align: right;
 }
 
-.dateInput {
+.playerLabel:hover,
+.name:is(button):hover {
+  text-decoration: underline;
+}
+
+.playerLabel {
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.name {
+  max-width: 100%;
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 400;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.result {
+  grid-column: 2;
+  grid-row: 3;
+  justify-self: center;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.eventRow {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 2px var(--mantine-spacing-sm);
+  min-width: 0;
+}
+
+.event {
+  overflow-wrap: anywhere;
+}
+
+.metadata {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px var(--mantine-spacing-sm);
+  align-items: center;
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
+  overflow-wrap: anywhere;
   text-align: center;
 }
 
-.dateInput:disabled {
-  cursor: default;
-  background-color: transparent;
+.metadata a {
+  color: inherit;
+}
+
+.input {
+  min-width: 0;
+  max-width: 100%;
+  padding: 2px 0;
+  border: 0;
+  border-radius: var(--mantine-radius-xs);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
+}
+
+.input::placeholder {
+  color: var(--mantine-color-placeholder);
+}
+
+.player .input {
+  width: 100%;
+}
+
+.input.name {
+  font-size: var(--mantine-font-size-sm);
+}
+
+.input.rating {
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dimmed);
+}
+
+.input.event {
+  width: 100%;
+  font-size: var(--mantine-font-size-sm);
+}
+
+.eventRow .input.event {
+  field-sizing: content;
+  width: auto;
+  text-align: center;
+}
+
+.input.site {
+  field-sizing: content;
+  width: auto;
+}
+
+.round {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dimmed);
 }
 
 .roundInput {
-  all: unset;
-  font-size: var(--mantine-font-size-md);
-  width: 3rem;
+  field-sizing: content;
+  width: auto;
+  min-width: 2ch;
 }
 
-.roundInput:disabled {
-  cursor: default;
-  background-color: transparent;
+.input.resultInput {
+  height: auto;
+  min-height: 0;
+  text-align: center;
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.resultOption {
+  white-space: nowrap;
 }

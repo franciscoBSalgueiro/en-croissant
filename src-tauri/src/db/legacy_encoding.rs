@@ -1,3 +1,4 @@
+//! Decoder for the SQLite database format's legal-move indexes and annotations.
 use crate::error::Error;
 use shakmaty::{
     fen::Fen, san::SanPlus, CastlingMode, Chess, FromSetup, Move, Position, PositionError,
@@ -9,6 +10,7 @@ pub const VARIATION_END_MARKER: u8 = 254;
 pub const COMMENT_MARKER: u8 = 253;
 pub const NAG_MARKER: u8 = 252;
 
+#[cfg(test)]
 pub fn encode_move(m: &Move, chess: &Chess) -> Result<u8, Error> {
     let moves = chess.legal_moves();
     Ok(moves.iter().position(|x| x == m).unwrap() as u8)
@@ -19,6 +21,7 @@ pub fn decode_move(byte: u8, chess: &Chess) -> Option<Move> {
     legal_moves.get(byte as usize).cloned()
 }
 
+#[cfg(test)]
 pub fn encode_comment(comment: &str, output: &mut Vec<u8>) {
     for chunk in comment.as_bytes().chunks(u16::MAX as usize) {
         output.push(COMMENT_MARKER);
@@ -27,6 +30,7 @@ pub fn encode_comment(comment: &str, output: &mut Vec<u8>) {
     }
 }
 
+#[cfg(test)]
 pub fn encode_nag(nag: &str, output: &mut Vec<u8>) {
     for chunk in nag.as_bytes().chunks(u16::MAX as usize) {
         output.push(NAG_MARKER);
@@ -35,12 +39,14 @@ pub fn encode_nag(nag: &str, output: &mut Vec<u8>) {
     }
 }
 
+#[cfg(test)]
 pub struct MainlineMoveBytesIter<'a> {
     bytes: &'a [u8],
     cursor: usize,
     variation_depth: usize,
 }
 
+#[cfg(test)]
 impl<'a> MainlineMoveBytesIter<'a> {
     fn new(bytes: &'a [u8]) -> Self {
         Self {
@@ -51,6 +57,7 @@ impl<'a> MainlineMoveBytesIter<'a> {
     }
 }
 
+#[cfg(test)]
 impl Iterator for MainlineMoveBytesIter<'_> {
     type Item = u8;
 
@@ -95,6 +102,7 @@ impl Iterator for MainlineMoveBytesIter<'_> {
     }
 }
 
+#[cfg(test)]
 pub fn iter_mainline_move_bytes(bytes: &[u8]) -> MainlineMoveBytesIter<'_> {
     MainlineMoveBytesIter::new(bytes)
 }
@@ -127,7 +135,7 @@ pub fn decode_game(moves_bytes: &[u8], initial_fen: Fen) -> Result<DecodedGame, 
     let castling_mode = CastlingMode::detect(&setup);
     let root_position = Chess::from_setup(setup, castling_mode)
         .or_else(PositionError::ignore_too_much_material)
-        .unwrap();
+        .map_err(|error| invalid_data(&format!("Invalid legacy starting position: {error}")))?;
 
     let mut stack = vec![DecodeFrame {
         nodes: Vec::new(),
@@ -212,7 +220,7 @@ pub fn decode_game(moves_bytes: &[u8], initial_fen: Fen) -> Result<DecodedGame, 
                 let pre_move_position = frame.chess.clone();
                 let m = decode_move(move_idx, &frame.chess)
                     .ok_or_else(|| invalid_data("Invalid move index for current position"))?;
-                let san = SanPlus::from_move_and_play_unchecked(&mut frame.chess, &m).to_string();
+                let san = SanPlus::from_move_and_play_unchecked(&mut frame.chess, m).to_string();
                 frame.pre_move_positions.push(pre_move_position);
                 frame.nodes.push(DecodedGameNode::Move(san));
             }
@@ -366,7 +374,7 @@ mod tests {
         let m2 = decode_move(byte, &chess).unwrap();
         assert_eq!(m, m2);
 
-        chess.play_unchecked(&m);
+        chess.play_unchecked(m);
 
         let m = Move::Normal {
             role: Role::Pawn,
@@ -421,7 +429,7 @@ mod tests {
         let mut chess = Chess::default();
         let m = decode_move(12, &chess).unwrap();
         bytes.push(encode_move(&m, &chess).unwrap());
-        chess.play_unchecked(&m);
+        chess.play_unchecked(m);
 
         encode_nag("!", &mut bytes);
         bytes.push(VARIATION_START_MARKER);
@@ -429,7 +437,7 @@ mod tests {
         let mut variation = Chess::default();
         let v = decode_move(12, &variation).unwrap();
         bytes.push(encode_move(&v, &variation).unwrap());
-        variation.play_unchecked(&v);
+        variation.play_unchecked(v);
         encode_nag("$2", &mut bytes);
         bytes.push(VARIATION_END_MARKER);
 
@@ -454,7 +462,7 @@ mod tests {
             promotion: None,
         };
         bytes.push(encode_move(&first, &chess).unwrap());
-        chess.play_unchecked(&first);
+        chess.play_unchecked(first);
 
         let second = Move::Normal {
             role: Role::Pawn,
@@ -464,7 +472,7 @@ mod tests {
             promotion: None,
         };
         bytes.push(encode_move(&second, &chess).unwrap());
-        chess.play_unchecked(&second);
+        chess.play_unchecked(second);
 
         let third = Move::Normal {
             role: Role::Knight,
@@ -474,7 +482,7 @@ mod tests {
             promotion: None,
         };
         bytes.push(encode_move(&third, &chess).unwrap());
-        chess.play_unchecked(&third);
+        chess.play_unchecked(third);
 
         let fourth = Move::Normal {
             role: Role::Knight,
@@ -502,7 +510,7 @@ mod tests {
             promotion: None,
         };
         bytes.push(encode_move(&white_move, &chess).unwrap());
-        chess.play_unchecked(&white_move);
+        chess.play_unchecked(white_move);
 
         encode_comment("mainline", &mut bytes);
 
@@ -549,7 +557,7 @@ mod tests {
         let branch_root = root.clone();
         let m_e4 = decode_move(12, &root).unwrap();
         bytes.push(encode_move(&m_e4, &root).unwrap());
-        root.play_unchecked(&m_e4);
+        root.play_unchecked(m_e4);
 
         encode_comment("hello", &mut bytes);
 
@@ -558,7 +566,7 @@ mod tests {
         let var_branch_root = var.clone();
         let m_var_first = decode_move(12, &var).unwrap();
         bytes.push(encode_move(&m_var_first, &var).unwrap());
-        var.play_unchecked(&m_var_first);
+        var.play_unchecked(m_var_first);
 
         bytes.push(VARIATION_START_MARKER);
         let m_var_nested = decode_move(0, &var_branch_root).unwrap();
@@ -573,10 +581,10 @@ mod tests {
 
         let decoded = decode_game(&bytes, Fen::default()).unwrap();
 
-        let expected_first = SanPlus::from_move(Chess::default(), &m_e4).to_string();
-        let expected_var_first = SanPlus::from_move(root.clone(), &m_var_first).to_string();
-        let expected_nested = SanPlus::from_move(var_branch_root, &m_var_nested).to_string();
-        let expected_mainline_second = SanPlus::from_move(root, &m_mainline_second).to_string();
+        let expected_first = SanPlus::from_move(Chess::default(), m_e4).to_string();
+        let expected_var_first = SanPlus::from_move(root.clone(), m_var_first).to_string();
+        let expected_nested = SanPlus::from_move(var_branch_root, m_var_nested).to_string();
+        let expected_mainline_second = SanPlus::from_move(root, m_mainline_second).to_string();
 
         assert_eq!(
             decoded.nodes,

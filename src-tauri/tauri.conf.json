@@ -34,14 +34,16 @@
       "signingIdentity": "-"
     },
     "resources": {
-      "../sound/": "sound/"
+      "../sound/": "sound/",
+      "../aixchess.duckdb_extension": "aixchess.duckdb_extension",
+      "resources/vision/": "vision/"
     },
     "targets": "all",
     "createUpdaterArtifacts": "v1Compatible"
   },
   "build": {
-    "beforeDevCommand": "pnpm start-vite",
-    "beforeBuildCommand": "pnpm build-vite",
+    "beforeDevCommand": "pnpm prepare:aix-extension && pnpm start-vite",
+    "beforeBuildCommand": "pnpm prepare:aix-extension && pnpm build-vite",
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420"
   },
@@ -49,6 +51,13 @@
   "mainBinaryName": "en-croissant",
   "identifier": "org.encroissant.app",
   "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "encroissant"
+        ]
+      }
+    },
     "cli": {
       "args": [
         {

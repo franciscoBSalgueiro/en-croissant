@@ -36,6 +36,7 @@ import { useTranslation } from "react-i18next";
 import {
   autoPromoteAtom,
   autoSaveAtom,
+  defaultPanelTabAtom,
   enableBoardScrollAtom,
   eraseDrawablesOnClickAtom,
   forcedEnPassantAtom,
@@ -45,6 +46,7 @@ import {
   moveMethodAtom,
   moveNotationTypeAtom,
   nativeBarAtom,
+  pieceAnimationAtom,
   practiceAutoDifficultyAtom,
   previewBoardOnHoverAtom,
   flipBoardAfterMoveAtom,
@@ -65,6 +67,7 @@ import { keyMapAtom } from "@/state/keybinds";
 import FileInput from "../common/FileInput";
 import BoardSelect from "./BoardSelect";
 import ColorControl from "./ColorControl";
+import DimensionToggle from "./DimensionToggle";
 import FontSizeSlider from "./FontSizeSlider";
 import KeybindInput from "./KeybindInput";
 import PiecesSelect from "./PiecesSelect";
@@ -176,9 +179,11 @@ export default function Page() {
   puzzlesDirectory = puzzlesDirectory || defaultPuzzlesDir;
 
   const [moveMethod, setMoveMethod] = useAtom(moveMethodAtom);
+  const [pieceAnimation, setPieceAnimation] = useAtom(pieceAnimationAtom);
   const [moveNotationType, setMoveNotationType] = useAtom(moveNotationTypeAtom);
   const [showCoordinates, setShowCoordinates] = useAtom(showCoordinatesAtom);
   const [materialDisplay, setMaterialDisplay] = useAtom(materialDisplayAtom);
+  const [defaultPanelTab, setDefaultPanelTab] = useAtom(defaultPanelTabAtom);
   const [practiceAutoDifficulty, setPracticeAutoDifficulty] = useAtom(practiceAutoDifficultyAtom);
 
   const settings: SettingItem[] = useMemo(
@@ -227,10 +232,11 @@ export default function Page() {
             data={[
               { label: t("Settings.MoveNotation.Letters"), value: "letters" },
               { label: t("Settings.MoveNotation.Symbols"), value: "symbols" },
+              { label: "LAN (Large Algebraic Notation)", value: "lan" },
             ]}
             allowDeselect={false}
             value={moveNotationType}
-            onChange={(val) => setMoveNotationType(val as "letters" | "symbols")}
+            onChange={(val) => setMoveNotationType(val as "letters" | "symbols" | "lan")}
           />
         ),
       },
@@ -250,6 +256,26 @@ export default function Page() {
             allowDeselect={false}
             value={moveMethod}
             onChange={(val) => setMoveMethod(val as "drag" | "select" | "both")}
+          />
+        ),
+      },
+      {
+        id: "piece-animation",
+        category: "board",
+        title: t("Settings.PieceAnimation"),
+        description: t("Settings.PieceAnimation.Desc"),
+        keywords: ["animation", "speed", "pieces", "move", "fast", "slow"],
+        render: () => (
+          <Select
+            data={[
+              { label: t("Settings.PieceAnimation.None"), value: "none" },
+              { label: t("Settings.PieceAnimation.Fast"), value: "fast" },
+              { label: t("Settings.PieceAnimation.Normal"), value: "normal" },
+              { label: t("Settings.PieceAnimation.Slow"), value: "slow" },
+            ]}
+            allowDeselect={false}
+            value={pieceAnimation}
+            onChange={(val) => setPieceAnimation(val as "none" | "fast" | "normal" | "slow")}
           />
         ),
       },
@@ -280,8 +306,8 @@ export default function Page() {
       {
         id: "auto-promote",
         category: "board",
-        title: t("Settings.AutoPromition"),
-        description: t("Settings.AutoPromition.Desc"),
+        title: t("Settings.AutoPromotion"),
+        description: t("Settings.AutoPromotion.Desc"),
         keywords: ["promote", "queen", "pawn"],
         render: () => <SettingsSwitch atom={autoPromoteAtom} />,
       },
@@ -347,10 +373,33 @@ export default function Page() {
             data={[
               { label: t("Settings.MaterialDisplay.Diff"), value: "diff" },
               { label: t("Settings.MaterialDisplay.All"), value: "all" },
+              { label: t("Settings.MaterialDisplay.None"), value: "none" },
             ]}
             allowDeselect={false}
             value={materialDisplay}
-            onChange={(val) => setMaterialDisplay(val as "diff" | "all")}
+            onChange={(val) => setMaterialDisplay(val as "diff" | "all" | "none")}
+          />
+        ),
+      },
+      {
+        id: "default-panel-tab",
+        category: "board",
+        title: t("Settings.DefaultPanelTab"),
+        description: t("Settings.DefaultPanelTab.Desc"),
+        keywords: ["default", "panel", "tab", "open", "analysis", "database", "annotate", "info"],
+        render: () => (
+          <Select
+            data={[
+              { label: t("Board.Tabs.Analysis"), value: "analysis" },
+              { label: t("Board.Tabs.Database"), value: "database" },
+              { label: t("Board.Tabs.Annotate"), value: "annotate" },
+              { label: t("Board.Tabs.Info"), value: "info" },
+            ]}
+            allowDeselect={false}
+            value={defaultPanelTab}
+            onChange={(val) =>
+              setDefaultPanelTab(val as "analysis" | "database" | "annotate" | "info")
+            }
           />
         ),
       },
@@ -474,6 +523,14 @@ export default function Page() {
         description: t("Settings.Appearance.BoardImage.Desc"),
         keywords: ["board", "image", "texture"],
         render: () => <BoardSelect />,
+      },
+      {
+        id: "3d-mode",
+        category: "appearance",
+        title: t("Settings.Appearance.3DMode"),
+        description: t("Settings.Appearance.3DMode.Desc"),
+        keywords: ["3d", "3d mode", "dimension"],
+        render: () => <DimensionToggle />,
       },
       {
         id: "accent-color",
@@ -630,6 +687,8 @@ export default function Page() {
       i18n,
       moveNotationType,
       moveMethod,
+      pieceAnimation,
+      setPieceAnimation,
       isNative,
       showCoordinates,
       materialDisplay,
@@ -646,6 +705,8 @@ export default function Page() {
       setPuzzlesDirectory,
       setShowCoordinates,
       setMaterialDisplay,
+      defaultPanelTab,
+      setDefaultPanelTab,
       practiceAutoDifficulty,
       setPracticeAutoDifficulty,
     ],
@@ -921,8 +982,12 @@ export default function Page() {
                     <Table.Tbody>
                       {Object.entries(keyMap).map(([action, keybind]) => {
                         return (
-                          <Table.Tr key={keybind.name}>
-                            <Table.Td>{keybind.name}</Table.Td>
+                          <Table.Tr key={action}>
+                            <Table.Td>
+                              {t(`Settings.Keybinds.Actions.${action}`, {
+                                defaultValue: keybind.name,
+                              })}
+                            </Table.Td>
                             <Table.Td>
                               <KeybindInput action={action} keybind={keybind} />
                             </Table.Td>

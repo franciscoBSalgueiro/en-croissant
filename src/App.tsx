@@ -7,6 +7,7 @@ import {
   MantineProvider,
   Textarea,
   TextInput,
+  v8CssVariablesResolver,
 } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
@@ -17,15 +18,17 @@ import { getDefaultStore, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { ContextMenuProvider } from "mantine-contextmenu";
 import posthog from "posthog-js";
 import { useEffect, useRef } from "react";
+import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link";
+
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import {
   activeTabAtom,
   databaseConversionStateAtom,
   fontSizeAtom,
+  is3dAtom,
   pieceSetAtom,
   primaryColorAtom,
-  referenceDbAtom,
   spellCheckAtom,
   storedDatabasesDirAtom,
   storedDocumentDirAtom,
@@ -50,7 +53,7 @@ import "mantine-datatable/styles.css";
 import "@/styles/global.css";
 
 import { commands } from "./bindings";
-import { openFile } from "./utils/files";
+import { handleDeepLink, openCommandLineFile } from "./utils/launch";
 
 const colorSchemeManager = localStorageColorSchemeManager({
   key: "mantine-color-scheme",
@@ -133,15 +136,7 @@ const checkForUpdates = async () => {
   }
 };
 
-const preloadReferenceDb = async (store: ReturnType<typeof getDefaultStore>) => {
-  const referenceDb = store.get(referenceDbAtom);
-  if (referenceDb) {
-    info(`Preloading reference database: ${referenceDb}`);
-    commands.preloadReferenceDb(referenceDb).catch((e: unknown) => {
-      info(`Failed to preload reference database: ${e}`);
-    });
-  }
-};
+const navigateToBoard = () => router.navigate({ to: "/" });
 
 function useAppStartup() {
   const initialized = useRef(false);
@@ -175,22 +170,46 @@ function useAppStartup() {
       if (telemetryEnabled) {
         posthog.capture("app_started", { version: await getVersion() });
       }
+      const unlistenFile = await listen<string>("open-cli-file", ({ payload }) => {
+        void openCommandLineFile(payload, setTabs, setActiveTab, navigateToBoard);
+      });
+
       try {
         const matches = await getMatches();
         if (matches.args.file.occurrences > 0) {
           info(`Opening file from command line: ${matches.args.file.value}`);
           if (typeof matches.args.file.value === "string") {
             const file = matches.args.file.value;
-            openFile(file, setTabs, setActiveTab);
+            await openCommandLineFile(file, setTabs, setActiveTab, navigateToBoard);
           }
         }
       } catch (e) {
         warn(`Failed to parse CLI args: ${e}`);
       }
 
-      await preloadReferenceDb(store);
+      let unlistenDeepLink: (() => void) | undefined;
+      try {
+        const initialUrls = await getCurrent();
+        if (initialUrls && initialUrls.length > 0) {
+          for (const url of initialUrls) {
+            void handleDeepLink(url, setTabs, setActiveTab, navigateToBoard);
+          }
+        }
 
-      return detach;
+        unlistenDeepLink = await onOpenUrl((urls) => {
+          for (const url of urls) {
+            void handleDeepLink(url, setTabs, setActiveTab, navigateToBoard);
+          }
+        });
+      } catch (e) {
+        warn(`Failed to setup deep links: ${e}`);
+      }
+
+      return () => {
+        unlistenFile();
+        if (detach) detach();
+        if (unlistenDeepLink) unlistenDeepLink();
+      };
     };
 
     let detachFn: (() => void) | undefined;
@@ -209,6 +228,7 @@ export default function App() {
   const pieceSet = useAtomValue(pieceSetAtom);
   const fontSize = useAtomValue(fontSizeAtom);
   const spellCheck = useAtomValue(spellCheckAtom);
+  const is3d = useAtomValue(is3dAtom);
   const setDatabaseConversionState = useSetAtom(databaseConversionStateAtom);
 
   useAppStartup();
@@ -239,6 +259,7 @@ export default function App() {
   }, [setDatabaseConversionState]);
 
   const theme = createTheme({
+    defaultRadius: "sm",
     primaryColor,
     colors: {
       dark: [
@@ -273,17 +294,42 @@ export default function App() {
     },
   });
 
+  const valid3dPieceSets = [
+    "Basic",
+    "CubesAndPi",
+    "Experimental",
+    "Glass",
+    "Metal",
+    "ModernJade",
+    "ModernWood",
+    "RedVBlue",
+    "Staunton",
+    "Trimmed",
+    "Wood",
+  ];
+
+  const getPieceSet = (pieceSet: string, is3d: boolean) => {
+    if (is3d && !valid3dPieceSets.includes(pieceSet)) {
+      return "Staunton";
+    }
+    return pieceSet;
+  };
+
   return (
     <DndProvider backend={HTML5Backend}>
-      <link rel="stylesheet" href={`/pieces/${pieceSet}.css`} />
+      <link
+        rel="stylesheet"
+        href={`/pieces${is3d ? "-3d" : ""}/${getPieceSet(pieceSet, is3d)}.css`}
+      />
 
       <MantineProvider
+        cssVariablesResolver={v8CssVariablesResolver}
         colorSchemeManager={colorSchemeManager}
         defaultColorScheme="dark"
         theme={theme}
       >
         <ContextMenuProvider>
-          <Notifications />
+          <Notifications pauseResetOnHover="notification" />
           <RouterProvider router={router} />
         </ContextMenuProvider>
       </MantineProvider>

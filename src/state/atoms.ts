@@ -5,7 +5,13 @@ import { parseUci } from "chessops";
 import { INITIAL_FEN, makeFen } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { atom, type PrimitiveAtom } from "jotai";
-import { atomFamily, atomWithStorage, createJSONStorage, unwrap } from "jotai/utils";
+import {
+    atomFamily,
+    atomWithDefault,
+    atomWithStorage,
+    createJSONStorage,
+    unwrap,
+} from "jotai/utils";
 import type { AtomFamily } from "jotai/vanilla/utils/atomFamily";
 import type {
     AsyncStorage,
@@ -150,12 +156,25 @@ const enginesFileStorage: AsyncStringStorage = {
     },
 };
 
+const enginesSchema = zodArray(engineSchema).transform((engines) => {
+    const ids = new Set<string>();
+
+    return engines.map((engine) => {
+        if (ids.has(engine.id)) {
+            return { ...engine, id: crypto.randomUUID() };
+        }
+        ids.add(engine.id);
+        return engine;
+    });
+});
+
 export const enginesAtom = unwrap(
     atomWithStorage<Engine[]>(
         "engines/engines.json",
         [],
-        createAsyncZodStorage(zodArray(engineSchema), enginesFileStorage) as AsyncStorage<Engine[]>,
+        createAsyncZodStorage(enginesSchema, enginesFileStorage) as AsyncStorage<Engine[]>,
     ),
+    (prev) => prev,
 );
 
 // Settings
@@ -167,8 +186,15 @@ export const fontSizeAtom = atomWithStorage(
     Number.parseInt(document.documentElement.style.fontSize) || 100,
 );
 
-export const moveNotationTypeAtom = atomWithStorage<"letters" | "symbols">("letters", "symbols");
+export const moveNotationTypeAtom = atomWithStorage<"letters" | "symbols" | "lan">(
+    "letters",
+    "symbols",
+);
 export const moveMethodAtom = atomWithStorage<"drag" | "select" | "both">("move-method", "both");
+export const pieceAnimationAtom = atomWithStorage<"none" | "fast" | "normal" | "slow">(
+    "piece-animation",
+    "normal",
+);
 export const spellCheckAtom = atomWithStorage<boolean>("spell-check", false);
 export const moveInputAtom = atomWithStorage<boolean>("move-input", false);
 export const showDestsAtom = atomWithStorage<boolean>("show-dests", true);
@@ -186,7 +212,16 @@ export const autoSaveAtom = atomWithStorage<boolean>("auto-save", true);
 export const previewBoardOnHoverAtom = atomWithStorage<boolean>("preview-board-on-hover", true);
 export const flipBoardAfterMoveAtom = atomWithStorage<boolean>("flip-board-after-move", true);
 export const enableBoardScrollAtom = atomWithStorage<boolean>("board-scroll", true);
-export const materialDisplayAtom = atomWithStorage<"diff" | "all">("material-display", "diff");
+export const materialDisplayAtom = atomWithStorage<"diff" | "all" | "none">(
+    "material-display",
+    "diff",
+);
+export const defaultPanelTabAtom = atomWithStorage<"analysis" | "database" | "annotate" | "info">(
+    "default-panel-tab",
+    "info",
+    undefined,
+    { getOnInit: true },
+);
 export const forcedEnPassantAtom = atomWithStorage<boolean>("forced-ep", false);
 export const showCoordinatesAtom = atomWithStorage<"no" | "edge" | "all">(
     "show-coordinates-v2",
@@ -209,9 +244,13 @@ export const soundVolumeAtom = atomWithStorage<number>("sound-volume", 0.8, unde
 
 export const pieceSetAtom = atomWithStorage<string>("piece-set", "staunty");
 export const boardImageAtom = atomWithStorage<string>("board-image", "gray.svg");
+export const is3dAtom = atomWithStorage<boolean>("is-3d", false);
 export const primaryColorAtom = atomWithStorage<MantineColor>("mantine-primary-color", "blue");
 export const sessionsAtom = atomWithStorage<Session[]>("sessions", []);
 export const nativeBarAtom = atomWithStorage<boolean>("native-bar", false);
+export const isCompactLayoutAtom = atom<boolean>(false);
+export const showSidebarAtom = atomWithStorage<boolean>("show-sidebar", true);
+export const showTabBarAtom = atomWithStorage<boolean>("show-tabbar", true);
 export const telemetryEnabledAtom = atomWithStorage<boolean>("telemetry-enabled", true, undefined, {
     getOnInit: true,
 });
@@ -353,6 +392,9 @@ export const scoreTypeFamily = atomFamily((_engine: string) => atom<"cp" | "wdl"
 
 // Per tab settings
 
+export const boardEditingFamily = atomFamily((_tab: string) => atom(false));
+export const currentBoardEditingAtom = tabValue(boardEditingFamily);
+
 const threatFamily = atomFamily((_tab: string) => atom(false));
 export const currentThreatAtom = tabValue(threatFamily);
 
@@ -371,7 +413,11 @@ export const currentShowCommentsAtom = tabValue(showCommentsFamily);
 const showVariationsFamily = atomFamily((_tab: string) => atom(true));
 export const currentShowVariationsAtom = tabValue(showVariationsFamily);
 
-export const tabFamily = atomFamily((_tab: string) => atom("info"));
+// A board shows the tab chosen in Settings until another one is picked (repertoires open
+// on "practice")
+export const tabFamily = atomFamily((_tab: string) =>
+    atomWithDefault<string>((get) => get(defaultPanelTabAtom)),
+);
 export const currentTabSelectedAtom = tabValue(tabFamily);
 
 const reportModalOpenFamily = atomFamily((_tab: string) => atom(false));
@@ -380,11 +426,6 @@ export const currentReportModalOpenAtom = tabValue(reportModalOpenFamily);
 const localOptionsFamily = atomFamily((_tab: string) =>
     atom<LocalOptions>({
         path: null,
-        type: "exact",
-        fen: "",
-        player: null,
-        color: "white",
-        result: "any",
     }),
 );
 export const currentLocalOptionsAtom = tabValue(localOptionsFamily);

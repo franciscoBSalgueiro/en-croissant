@@ -50,13 +50,13 @@ function Clock({
       styles={{
         root: {
           opacity: turn !== color ? 0.5 : 1,
-          visibility: clock ? "visible" : "hidden",
+          visibility: clock !== undefined ? "visible" : "hidden",
           transition: "opacity 0.15s",
         },
       }}
     >
       <Text fz="lg" fw="bold" px="xs">
-        {clock ? formatClock(clock) : "0:00"}
+        {clock !== undefined ? formatClock(clock) : "0:00"}
       </Text>
       <Progress
         size="xs"

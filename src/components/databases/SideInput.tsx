@@ -1,31 +1,31 @@
 import { Box, Menu, UnstyledButton } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Sides } from "@/utils/db";
 import classes from "./SideInput.module.css";
 
-const data = [
-  { label: "White", color: "white" },
-  { label: "Black", color: "black" },
-  { label: "Any", color: "gray" },
-];
-
 export function SideInput({
   label,
+  player,
   sides,
   setSides,
 }: {
   label: string;
+  player: 1 | 2;
   sides: Sides;
   setSides: (val: Sides) => void;
 }) {
-  const [selected, setSelected] = useState(
-    (sides === "WhiteBlack" && label === "Player") ||
-      (sides === "BlackWhite" && label === "Opponent")
+  const { t } = useTranslation();
+  const data = [
+    { label: t("Fen.White"), color: "white", sides: player === 1 ? "WhiteBlack" : "BlackWhite" },
+    { label: t("Fen.Black"), color: "black", sides: player === 1 ? "BlackWhite" : "WhiteBlack" },
+    { label: t("Board.Database.Local.Result.Any"), color: "gray", sides: "Any" },
+  ] as const;
+  const selected =
+    (sides === "WhiteBlack" && player === 1) || (sides === "BlackWhite" && player === 2)
       ? data[0]
       : sides === "Any"
         ? data[2]
-        : data[1],
-  );
+        : data[1];
   const items = data.map((item) => (
     <Menu.Item
       leftSection={
@@ -39,41 +39,21 @@ export function SideInput({
           }}
         />
       }
-      onClick={() => setSelected(item)}
+      onClick={() => setSides(item.sides)}
       key={item.label}
     >
       {item.label}
     </Menu.Item>
   ));
 
-  useEffect(() => {
-    if (
-      (selected.label === "White" && label === "Player") ||
-      (selected.label === "Black" && label === "Opponent")
-    ) {
-      setSides("WhiteBlack");
-    } else if (selected.label === "Any") {
-      setSides("Any");
-    } else {
-      setSides("BlackWhite");
-    }
-  }, [selected]);
-
-  useEffect(() => {
-    const newSelected =
-      (sides === "WhiteBlack" && label === "Player") ||
-      (sides === "BlackWhite" && label === "Opponent")
-        ? data[0]
-        : sides === "Any"
-          ? data[2]
-          : data[1];
-    setSelected(newSelected);
-  }, [sides]);
-
   return (
-    <Menu>
+    <Menu withinPortal={false}>
       <Menu.Target>
-        <UnstyledButton className={classes.control}>
+        <UnstyledButton
+          className={classes.control}
+          aria-label={`${label}: ${selected.label}`}
+          title={`${label}: ${selected.label}`}
+        >
           <Box
             style={{
               width: 18,

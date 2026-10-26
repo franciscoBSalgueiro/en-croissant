@@ -17,8 +17,12 @@ export default function ShowMaterial({
 }: {
   fen: string;
   color: Color;
-  mode?: "diff" | "all";
+  mode?: "diff" | "all" | "none";
 }) {
+  if (mode === "none") {
+    return null;
+  }
+
   const materialDiff = getMaterialDiff(fen);
 
   if (!materialDiff) {
