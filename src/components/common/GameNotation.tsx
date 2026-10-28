@@ -504,6 +504,7 @@ const TableNotation = memo(function TableNotation({
               moveNumber={seg.moveNumber}
               whitePathStr={seg.whitePath.join(",")}
               blackPathStr={seg.blackPath.join(",")}
+              splitRow={seg.splitRow}
             />
           );
         })}
@@ -528,9 +529,10 @@ function RowSegment({
   const store = useContext(TreeStateContext)!;
   const showComments = useAtomValue(currentShowCommentsAtom);
   const whitePath = whitePathStr ? whitePathStr.split(",").map(Number) : [];
-  const white = useStore(store, (s) => s.getNode(whitePath));
+  // An empty path is a missing move, getNode would return the root for it
+  const white = useStore(store, (s) => (whitePathStr ? s.getNode(whitePath) : null));
   const blackPath = blackPathStr ? blackPathStr.split(",").map(Number) : [];
-  const black = useStore(store, (s) => s.getNode(blackPath));
+  const black = useStore(store, (s) => (blackPathStr ? s.getNode(blackPath) : null));
   const moveNotationType = useAtomValue(moveNotationTypeAtom);
   return (
     <Table.Tr>
