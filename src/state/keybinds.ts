@@ -57,6 +57,7 @@ const keys: KeyMap = {
     NEXT_GAME: { name: "Next game", keys: "pagedown" },
     TOGGLE_SIDEBAR: { name: "Toggle Sidebar", keys: `${meta}+shift+b` },
     TOGGLE_TAB_BAR: { name: "Toggle Tab Bar", keys: `${meta}+shift+t` },
+    TOGGLE_BOARD_LAYOUT: { name: "Toggle Board Layout", keys: `${meta}+shift+l` },
 };
 
 export const keyMapAtom = atomWithStorage("keybinds", keys, defaultStorage(keys, localStorage));
