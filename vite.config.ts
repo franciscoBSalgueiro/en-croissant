@@ -43,6 +43,7 @@ export default defineConfig({
     },
     test: {
         environment: "jsdom",
+        setupFiles: ["./src/test/setup.ts"],
     },
     define: {
         "import.meta.env.VITE_PLATFORM": JSON.stringify(os.platform()),
