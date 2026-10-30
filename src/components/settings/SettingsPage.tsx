@@ -65,6 +65,7 @@ import {
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import FileInput from "../common/FileInput";
+import BoardLayoutSelect from "./BoardLayoutSelect";
 import BoardSelect from "./BoardSelect";
 import ColorControl from "./ColorControl";
 import DimensionToggle from "./DimensionToggle";
@@ -531,6 +532,14 @@ export default function Page() {
         description: t("Settings.Appearance.3DMode.Desc"),
         keywords: ["3d", "3d mode", "dimension"],
         render: () => <DimensionToggle />,
+      },
+      {
+        id: "board-layout",
+        category: "appearance",
+        title: t("Settings.Appearance.BoardLayout"),
+        description: t("Settings.Appearance.BoardLayout.Desc"),
+        keywords: ["layout", "stacked", "vertical", "side", "split", "panels", "board"],
+        render: () => <BoardLayoutSelect />,
       },
       {
         id: "accent-color",

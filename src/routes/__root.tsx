@@ -11,7 +11,7 @@ import { platform } from "@tauri-apps/plugin-os";
 import { exit, relaunch } from "@tauri-apps/plugin-process";
 import { openPath, openUrl } from "@tauri-apps/plugin-opener";
 import { check } from "@tauri-apps/plugin-updater";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
@@ -23,6 +23,7 @@ import { SideBar } from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
 import {
   activeTabAtom,
+  boardLayoutAtom,
   nativeBarAtom,
   showSidebarAtom,
   showTabBarAtom,
@@ -167,12 +168,18 @@ function RootLayout() {
     setShowTabBar((prev) => !prev);
   }, [setShowTabBar]);
 
+  const setBoardLayout = useSetAtom(boardLayoutAtom);
+  const toggleBoardLayout = useCallback(() => {
+    setBoardLayout((prev) => (prev === "stacked" ? "sideBySide" : "stacked"));
+  }, [setBoardLayout]);
+
   const [keyMap] = useAtom(keyMapAtom);
 
   useHotkeys(keyMap.NEW_TAB.keys, createNewTab);
   useHotkeys(keyMap.OPEN_FILE.keys, openNewFile);
   useHotkeys(keyMap.TOGGLE_SIDEBAR.keys, toggleSidebar);
   useHotkeys(keyMap.TOGGLE_TAB_BAR.keys, toggleTabBar);
+  useHotkeys(keyMap.TOGGLE_BOARD_LAYOUT.keys, toggleBoardLayout);
   const [opened, setOpened] = useState(false);
 
   const isMacOS = platform() === "macos";
@@ -303,6 +310,14 @@ function RootLayout() {
             action: toggleTabBar,
           },
           {
+            label: t("Menu.View.ToggleBoardLayout", {
+              defaultValue: "Toggle Board Layout",
+            }),
+            id: "toggle_board_layout",
+            shortcut: keyMap.TOGGLE_BOARD_LAYOUT.keys,
+            action: toggleBoardLayout,
+          },
+          {
             label: t("Menu.View.Reload"),
             id: "reload",
             shortcut: "Ctrl+R",
@@ -367,6 +382,7 @@ function RootLayout() {
       toggleFullscreen,
       toggleSidebar,
       toggleTabBar,
+      toggleBoardLayout,
     ],
   );
 
