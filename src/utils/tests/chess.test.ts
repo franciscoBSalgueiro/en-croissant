@@ -51,3 +51,32 @@ test("castling destination ignores a check or mate suffix", () => {
     expect(black("O-O+")).toBe(parseSquare("g8"));
     expect(getMoveDestination({ san: "Nf3+", halfMoves: 1, move: { from: 6, to: 21 } })).toBe(21);
 });
+
+test("PGN headers record the repertoire side", () => {
+    const pgn = headersToPGN({
+        id: 0,
+        fen: "",
+        event: "Black repertoire",
+        site: "",
+        white: "",
+        black: "",
+        result: "*",
+        orientation: "black",
+    });
+
+    expect(pgn).toContain('[Orientation "black"]');
+});
+
+test("PGN headers omit the repertoire side when none is set", () => {
+    const pgn = headersToPGN({
+        id: 0,
+        fen: "",
+        event: "Game",
+        site: "",
+        white: "",
+        black: "",
+        result: "*",
+    });
+
+    expect(pgn).not.toContain("[Orientation");
+});
