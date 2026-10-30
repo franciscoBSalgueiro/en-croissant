@@ -315,7 +315,6 @@ function Board({
     }
   }
 
-  // Annotation shapes often point at the answer: hide them until the move is played
   const awaitingMove = practicing && practiceState.phase === "waiting";
   if (!awaitingMove && currentNode.shapes.length > 0) {
     shapes = shapes.concat(currentNode.shapes);
