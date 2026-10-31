@@ -186,6 +186,7 @@ export default function BoardsPage() {
       value={activeTab}
       onChange={(v) => setActiveTab(v)}
       keepMounted={false}
+      activateTabWithKeyboard={false}
       className={classes.tabsContainer}
     >
       {showTabBar && (
