@@ -36,6 +36,9 @@ use crate::{
     AppState,
 };
 
+#[cfg(all(test, unix))]
+mod report_lifecycle_tests;
+
 pub struct EngineProcess {
     base: BaseEngine,
     last_depth: u32,
@@ -55,21 +58,22 @@ impl EngineProcess {
         base.init_uci().await?;
         let reader = base.take_reader().ok_or(Error::EngineDisconnected)?;
 
-        Ok((
-            Self {
-                base,
-                last_depth: 0,
-                best_moves: Vec::new(),
-                last_best_moves: Vec::new(),
-                last_progress: 0.0,
-                options: EngineOptions::default(),
-                real_multipv: 0,
-                go_mode: GoMode::Infinite,
-                running: false,
-                start: Instant::now(),
-            },
-            reader,
-        ))
+        Ok((Self::from_base(base), reader))
+    }
+
+    fn from_base(base: BaseEngine) -> Self {
+        Self {
+            base,
+            last_depth: 0,
+            best_moves: Vec::new(),
+            last_best_moves: Vec::new(),
+            last_progress: 0.0,
+            options: EngineOptions::default(),
+            real_multipv: 0,
+            go_mode: GoMode::Infinite,
+            running: false,
+            start: Instant::now(),
+        }
     }
 
     async fn set_option<T>(&mut self, name: &str, value: T) -> Result<(), Error>
@@ -480,6 +484,25 @@ pub async fn cancel_analysis(id: String, state: tauri::State<'_, AppState>) -> R
     Ok(())
 }
 
+struct ReportRegistration<'a> {
+    flags: &'a dashmap::DashMap<String, Arc<AtomicBool>>,
+    id: String,
+    flag: Arc<AtomicBool>,
+}
+
+impl Drop for ReportRegistration<'_> {
+    fn drop(&mut self) {
+        self.flags
+            .remove_if(&self.id, |_, flag| Arc::ptr_eq(flag, &self.flag));
+    }
+}
+
+async fn report_cancelled(flag: &AtomicBool) {
+    while !flag.load(Ordering::SeqCst) {
+        tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+    }
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn analyze_game(
@@ -491,155 +514,209 @@ pub async fn analyze_game(
     state: tauri::State<'_, AppState>,
     app: tauri::AppHandle,
 ) -> Result<Vec<MoveAnalysis>, Error> {
+    analyze_game_inner(id, engine, go_mode, options, uci_options, state, app).await
+}
+
+async fn analyze_game_inner<R: tauri::Runtime>(
+    id: String,
+    engine: String,
+    go_mode: GoMode,
+    options: AnalysisOptions,
+    uci_options: Vec<EngineOption>,
+    state: tauri::State<'_, AppState>,
+    app: tauri::AppHandle<R>,
+) -> Result<Vec<MoveAnalysis>, Error> {
     let cancel_flag = Arc::new(AtomicBool::new(false));
-    state
+    let replaced = state
         .analysis_cancel_flags
         .insert(id.clone(), cancel_flag.clone());
-
-    let path = PathBuf::from(&engine);
-    let mut analysis: Vec<MoveAnalysis> = Vec::new();
-
-    let (mut proc, mut reader) = EngineProcess::new(path).await?;
-
-    let fen = Fen::from_ascii(options.fen.as_bytes())?;
-    let setup = fen.as_setup().clone();
-    let castling_mode = CastlingMode::detect(&setup);
-
-    let mut chess: Chess = setup.position(castling_mode)?;
-    let mut fens: Vec<(Fen, Vec<String>, bool)> = vec![(fen, vec![], false)];
-
-    options
-        .moves
-        .iter()
-        .enumerate()
-        .try_for_each(|(i, m)| -> Result<(), Error> {
-            let uci = UciMove::from_ascii(m.as_bytes())?;
-            let m = uci.to_move(&chess)?;
-            let previous_pos = chess.clone();
-            chess.play_unchecked(m);
-            let current_pos = chess.clone();
-            if !chess.is_game_over() {
-                let prev_eval = naive_eval(&previous_pos);
-                let cur_eval = -naive_eval(&current_pos);
-                fens.push((
-                    Fen::from_position(&current_pos, EnPassantMode::Legal),
-                    options.moves.clone().into_iter().take(i + 1).collect(),
-                    prev_eval > cur_eval + 100,
-                ));
-            }
-            Ok(())
-        })?;
-
-    if options.reversed {
-        fens.reverse();
+    let _registration = ReportRegistration {
+        flags: &state.analysis_cancel_flags,
+        id: id.clone(),
+        flag: cancel_flag.clone(),
+    };
+    if let Some(previous) = replaced {
+        previous.store(true, Ordering::SeqCst);
     }
 
-    let mut novelty_found = false;
+    // Keep ownership outside the selected future, even while UCI initialization
+    // or a pipe write is stalled, so cancellation can always terminate and reap.
+    let mut proc = EngineProcess::from_base(BaseEngine::spawn(PathBuf::from(engine)).await?);
+    let engine_work = async {
+        proc.base.init_uci().await?;
+        let mut reader = proc.base.take_reader().ok_or(Error::EngineDisconnected)?;
+        let mut analysis: Vec<MoveAnalysis> = Vec::new();
 
-    for (i, (_, moves, _)) in fens.iter().enumerate() {
-        if cancel_flag.load(Ordering::SeqCst) {
-            proc.kill().await?;
-            state.analysis_cancel_flags.remove(&id);
-            return Err(Error::AnalysisCancelled);
-        }
+        let fen = Fen::from_ascii(options.fen.as_bytes())?;
+        let setup = fen.as_setup().clone();
+        let castling_mode = CastlingMode::detect(&setup);
 
-        update_progress(
-            &state.progress_state,
-            &app,
-            id.clone(),
-            (i as f32 / fens.len() as f32) * 100.0,
-            false,
-        )?;
+        let mut chess: Chess = setup.position(castling_mode)?;
+        let mut fens: Vec<(Fen, Vec<String>, bool)> = vec![(fen, vec![], false)];
 
-        let mut extra_options = uci_options.clone();
-        if !extra_options.iter().any(|x| x.name == "MultiPV") {
-            extra_options.push(EngineOption {
-                name: "MultiPV".to_string(),
-                value: "2".to_string(),
-            });
-        } else {
-            extra_options.iter_mut().for_each(|x| {
-                if x.name == "MultiPV" {
-                    x.value = "2".to_string();
+        options
+            .moves
+            .iter()
+            .enumerate()
+            .try_for_each(|(i, m)| -> Result<(), Error> {
+                let uci = UciMove::from_ascii(m.as_bytes())?;
+                let m = uci.to_move(&chess)?;
+                let previous_pos = chess.clone();
+                chess.play_unchecked(m);
+                let current_pos = chess.clone();
+                if !chess.is_game_over() {
+                    let prev_eval = naive_eval(&previous_pos);
+                    let cur_eval = -naive_eval(&current_pos);
+                    fens.push((
+                        Fen::from_position(&current_pos, EnPassantMode::Legal),
+                        options.moves.clone().into_iter().take(i + 1).collect(),
+                        prev_eval > cur_eval + 100,
+                    ));
                 }
-            });
+                Ok(())
+            })?;
+
+        if options.reversed {
+            fens.reverse();
         }
 
-        proc.set_options(EngineOptions {
-            fen: options.fen.clone(),
-            moves: moves.clone(),
-            extra_options,
-        })
-        .await?;
+        for (i, (_, moves, _)) in fens.iter().enumerate() {
+            if cancel_flag.load(Ordering::SeqCst) {
+                return Err(Error::AnalysisCancelled);
+            }
 
-        proc.go(&go_mode).await?;
+            update_progress(
+                &state.progress_state,
+                &app,
+                id.clone(),
+                (i as f32 / fens.len() as f32) * 100.0,
+                false,
+            )?;
 
-        let mut current_analysis = MoveAnalysis::default();
-        while let Ok(Some(line)) = reader.next_line().await {
-            match parse_one(&line) {
-                UciMessage::Info(attrs) => {
-                    if let Ok(best_moves) =
-                        parse_uci_attrs(attrs, &proc.options.fen.parse()?, moves)
-                    {
-                        let multipv = best_moves.multipv;
-                        let cur_depth = best_moves.depth;
-                        if multipv as usize == proc.best_moves.len() + 1 {
-                            proc.best_moves.push(best_moves);
-                            if multipv == proc.real_multipv {
-                                if proc.best_moves.iter().all(|x| x.depth == cur_depth)
-                                    && cur_depth >= proc.last_depth
-                                {
-                                    current_analysis.best = proc.best_moves.clone();
-                                    proc.last_depth = cur_depth;
+            let mut extra_options = uci_options.clone();
+            if !extra_options.iter().any(|x| x.name == "MultiPV") {
+                extra_options.push(EngineOption {
+                    name: "MultiPV".to_string(),
+                    value: "2".to_string(),
+                });
+            } else {
+                extra_options.iter_mut().for_each(|x| {
+                    if x.name == "MultiPV" {
+                        x.value = "2".to_string();
+                    }
+                });
+            }
+
+            proc.set_options(EngineOptions {
+                fen: options.fen.clone(),
+                moves: moves.clone(),
+                extra_options,
+            })
+            .await?;
+
+            proc.go(&go_mode).await?;
+
+            let mut current_analysis = MoveAnalysis::default();
+            loop {
+                let line = reader.next_line().await?.ok_or(Error::EngineDisconnected)?;
+                match parse_one(&line) {
+                    UciMessage::Info(attrs) => {
+                        if let Ok(best_moves) =
+                            parse_uci_attrs(attrs, &proc.options.fen.parse()?, moves)
+                        {
+                            let multipv = best_moves.multipv;
+                            let cur_depth = best_moves.depth;
+                            if multipv as usize == proc.best_moves.len() + 1 {
+                                proc.best_moves.push(best_moves);
+                                if multipv == proc.real_multipv {
+                                    if proc.best_moves.iter().all(|x| x.depth == cur_depth)
+                                        && cur_depth >= proc.last_depth
+                                    {
+                                        current_analysis.best = proc.best_moves.clone();
+                                        proc.last_depth = cur_depth;
+                                    }
+                                    assert_eq!(proc.best_moves.len(), proc.real_multipv as usize);
+                                    proc.best_moves.clear();
                                 }
-                                assert_eq!(proc.best_moves.len(), proc.real_multipv as usize);
-                                proc.best_moves.clear();
                             }
                         }
                     }
+                    UciMessage::BestMove { .. } => {
+                        break;
+                    }
+                    _ => {}
                 }
-                UciMessage::BestMove { .. } => {
-                    break;
-                }
-                _ => {}
             }
+            analysis.push(current_analysis);
         }
-        analysis.push(current_analysis);
-    }
+        Ok((analysis, fens))
+    };
+    let engine_result = tokio::select! {
+        biased;
+        () = report_cancelled(&cancel_flag) => Err(Error::AnalysisCancelled),
+        result = engine_work => result,
+    };
 
-    if options.reversed {
-        analysis.reverse();
-        fens.reverse();
-    }
-
-    for (i, analysis) in analysis.iter_mut().enumerate() {
-        let fen = &fens[i].0;
-        // let query = PositionQuery::exact_from_fen(&fen.to_string())?;
-        let query = PositionQueryJs {
-            fen: fen.to_string(),
-            type_: "exact".to_string(),
+    // Cleanup is deliberately outside cancellation selection. A kill request
+    // alone is not a reap, and neither normal completion nor an error skips it.
+    let cleanup_result = proc.base.terminate_report().await;
+    if let Err(cleanup) = cleanup_result {
+        let context = match engine_result {
+            Err(primary) => {
+                format!("Report failed: {primary}. Engine termination/reap failed: {cleanup}")
+            }
+            Ok(_) => format!("Engine termination/reap failed: {cleanup}"),
         };
+        return Err(std::io::Error::other(context).into());
+    }
+    let (mut analysis, mut fens) = engine_result?;
 
-        analysis.is_sacrifice = fens[i].2;
-        if options.annotate_novelties && !novelty_found {
-            if let Some(reference) = options.reference_db.clone() {
-                analysis.novelty = !is_position_in_db(
-                    reference,
-                    GameQuery::new().position(query.clone()).clone(),
-                    state.clone(),
-                )
-                .await?;
-                if analysis.novelty {
-                    novelty_found = true;
+    let annotations = async {
+        if options.reversed {
+            analysis.reverse();
+            fens.reverse();
+        }
+
+        let mut novelty_found = false;
+        for (i, analysis) in analysis.iter_mut().enumerate() {
+            let fen = &fens[i].0;
+            // let query = PositionQuery::exact_from_fen(&fen.to_string())?;
+            let query = PositionQueryJs {
+                fen: fen.to_string(),
+                type_: "exact".to_string(),
+            };
+
+            analysis.is_sacrifice = fens[i].2;
+            if options.annotate_novelties && !novelty_found {
+                if let Some(reference) = options.reference_db.clone() {
+                    analysis.novelty = !is_position_in_db(
+                        reference,
+                        GameQuery::new().position(query.clone()).clone(),
+                        state.clone(),
+                    )
+                    .await?;
+                    if analysis.novelty {
+                        novelty_found = true;
+                    }
+                } else {
+                    return Err(Error::MissingReferenceDatabase);
                 }
-            } else {
-                return Err(Error::MissingReferenceDatabase);
             }
         }
+        if cancel_flag.load(Ordering::SeqCst) {
+            return Err(Error::AnalysisCancelled);
+        }
+        update_progress(&state.progress_state, &app, id.clone(), 100.0, true)?;
+        if cancel_flag.load(Ordering::SeqCst) {
+            return Err(Error::AnalysisCancelled);
+        }
+        Ok(analysis)
+    };
+    tokio::select! {
+        biased;
+        () = report_cancelled(&cancel_flag) => Err(Error::AnalysisCancelled),
+        result = annotations => result,
     }
-    update_progress(&state.progress_state, &app, id.clone(), 100.0, true)?;
-    state.analysis_cancel_flags.remove(&id);
-    Ok(analysis)
 }
 
 fn count_material(position: &Chess) -> i32 {
