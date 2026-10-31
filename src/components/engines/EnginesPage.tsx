@@ -74,7 +74,11 @@ export default function EnginesPage() {
   const selectedEngine = selected !== undefined ? enginesList[selected] : null;
   const filteredEngines = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
-    const indexedEngines = enginesList.map((item, index) => ({ item, index }));
+    // By name here; their saved order (which the analysis panel shows, and lets them be dragged
+    // into) stays as it is
+    const indexedEngines = enginesList
+      .map((item, index) => ({ item, index }))
+      .sort((a, b) => a.item.name.localeCompare(b.item.name));
 
     if (!normalizedSearch) {
       return indexedEngines;

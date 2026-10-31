@@ -27,6 +27,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 import { capitalize } from "@/utils/format";
+import { sortFileTypes } from "@/utils/sort";
 import ConfirmModal from "../common/ConfirmModal";
 import OpenFolderButton from "../common/OpenFolderButton";
 import DirectoryTree from "./DirectoryTree";
@@ -292,7 +293,11 @@ function FilesPage() {
             </Group>
             <Divider />
             <Group px="xs" py={6} gap={4} wrap="wrap">
-              {FILE_TYPES.map((type) => (
+              {sortFileTypes(
+                FILE_TYPES,
+                (type) => type,
+                (type) => t(`Files.FileType.${capitalize(type)}`),
+              ).map((type) => (
                 <Chip
                   variant="outline"
                   key={type}

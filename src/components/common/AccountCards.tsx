@@ -16,6 +16,7 @@ import { sessionsAtom } from "@/state/atoms";
 import { getChessComAccount, getStats } from "@/utils/chess.com/api";
 import { getLichessAccount } from "@/utils/lichess/api";
 import type { Session } from "@/utils/session";
+import { compareAccounts } from "@/utils/sort";
 import { AccountCard } from "../home/AccountCard";
 import { EmptyAccounts } from "../home/EmptyAccounts";
 
@@ -31,7 +32,7 @@ function AccountCards({
   const sessions = useAtomValue(sessionsAtom);
   const playerNames = Array.from(
     new Set(sessions.map((s) => s.player ?? s.lichess?.username ?? s.chessCom?.username)),
-  );
+  ).sort((a, b) => (a ?? "").localeCompare(b ?? ""));
 
   const playerSessions = playerNames.map((name) => ({
     name,
@@ -159,7 +160,7 @@ function PlayerSession({
       </Group>
       <Divider />
       <Group>
-        {sessions.map((session, i) => (
+        {[...sessions].sort(compareAccounts).map((session, i) => (
           <LichessOrChessCom
             key={i}
             session={session}
