@@ -58,3 +58,7 @@ For contributing to this project please refer to the [Contributing guide](./CONT
 ## License
 
 This software is licensed under GPL-3.0 License.
+
+### Third-party artwork
+
+The "Kiwen Suwi" piece set (`public/pieces/kiwen-suwi.css`) is by [neverRare](https://github.com/neverRare), Copyright (c) 2022 neverRare, and is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Original source: [neverRare/kiwen-suwi](https://github.com/neverRare/kiwen-suwi). The SVGs were obtained from [Lichess](https://github.com/lichess-org/lila/tree/master/public/piece/kiwen-suwi), which minifies/optimizes the author's originals, and are embedded unmodified as base64 data URIs. They are provided "as is", without warranties; see the [license text](https://creativecommons.org/licenses/by/4.0/legalcode).
