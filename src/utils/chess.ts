@@ -200,6 +200,17 @@ export function getVariationLine(
     return moves;
 }
 
+/** Highest rating representable by the database `SMALLINT` rating columns. */
+const MAX_RATING = 32767;
+
+/**
+ * Formats a rating for PGN export, using the PGN convention for unrated games
+ * (`-`). Non-integer or out-of-range values can never reach the output.
+ */
+function formatRatingTag(rating: number): string {
+    return Number.isInteger(rating) && rating > 0 && rating <= MAX_RATING ? `${rating}` : "-";
+}
+
 export function headersToPGN(game: GameHeaders): string {
     const tags: Record<string, string> = {
         ...Object.fromEntries(
@@ -216,8 +227,8 @@ export function headersToPGN(game: GameHeaders): string {
         Result: game.result,
     };
     if (game.time) tags.UTCTime = game.time;
-    if (game.white_elo != null) tags.WhiteElo = game.white_elo === 0 ? "-" : `${game.white_elo}`;
-    if (game.black_elo != null) tags.BlackElo = game.black_elo === 0 ? "-" : `${game.black_elo}`;
+    if (game.white_elo != null) tags.WhiteElo = formatRatingTag(game.white_elo);
+    if (game.black_elo != null) tags.BlackElo = formatRatingTag(game.black_elo);
     if (game.start?.length) tags.Start = JSON.stringify(game.start);
     if (game.orientation) tags.Orientation = game.orientation;
     if (game.time_control) tags.TimeControl = game.time_control;
@@ -508,6 +519,22 @@ export async function parsePGN(pgn: string, initialFen?: string): Promise<TreeSt
     return tree;
 }
 
+/**
+ * Normalizes a PGN rating tag to the app's "unrated" sentinel `0`.
+ *
+ * PGN allows `-` or `?` for an unknown rating and some exporters write `0`,
+ * so every present value that is not a positive rating becomes `0`. An absent
+ * tag stays `undefined` (unknown).
+ */
+function parseRatingTag(value: string | undefined): number | undefined {
+    if (value === undefined) return undefined;
+    const trimmed = value.trim();
+    const match = /^\+?(\d+)$/.exec(trimmed);
+    if (!match) return 0;
+    const rating = Number.parseInt(match[1], 10);
+    return rating > 0 && rating <= MAX_RATING ? rating : 0;
+}
+
 function getPgnHeaders(tokens: Token[]): GameHeaders {
     const headersN = new Map<string, string>();
 
@@ -554,8 +581,8 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
         black: Black ?? "?",
         white: White ?? "?",
         round: Round ?? "?",
-        black_elo: BlackElo === "-" ? 0 : BlackElo ? Number.parseInt(BlackElo) : undefined,
-        white_elo: WhiteElo === "-" ? 0 : WhiteElo ? Number.parseInt(WhiteElo) : undefined,
+        black_elo: parseRatingTag(BlackElo),
+        white_elo: parseRatingTag(WhiteElo),
         date: Date ?? "",
         time: UTCTime,
         site: Site ?? "",
