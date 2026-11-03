@@ -36,6 +36,7 @@ const pieceSets2d: Item[] = [
   { label: "Governor", value: "governor" },
   { label: "Horsey", value: "horsey" },
   { label: "ICpieces", value: "icpieces" },
+  { label: "Kiwen Suwi", value: "kiwen-suwi" },
   { label: "Kosal", value: "kosal" },
   { label: "Leipzig", value: "leipzig" },
   { label: "Letter", value: "letter" },
