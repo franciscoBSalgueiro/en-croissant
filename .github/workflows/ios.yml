@@ -14,7 +14,8 @@ concurrency:
 
 jobs:
   ios:
-    runs-on: macos-15
+    # Intel macOS runners: the arm64 pool is often at capacity
+    runs-on: macos-15-intel
     permissions:
       contents: write
     timeout-minutes: 120
