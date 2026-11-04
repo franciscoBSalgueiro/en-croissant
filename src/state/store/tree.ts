@@ -85,6 +85,13 @@ export interface TreeStoreState extends TreeState {
     practicePath: number[] | null;
     setPracticePath: (path: number[] | null) => void;
 
+    variationMenuOpened: boolean;
+    highlightedVariationIndex: number;
+    openVariationMenu: () => void;
+    closeVariationMenu: () => void;
+    moveVariationHighlight: (delta: number) => void;
+    confirmVariationChoice: () => void;
+
     setState: (state: TreeState) => void;
     reset: () => void;
     save: () => void;
@@ -101,6 +108,42 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
 
         practicePath: null,
         setPracticePath: (path) => set({ practicePath: path }),
+
+        variationMenuOpened: false,
+        highlightedVariationIndex: 0,
+
+        openVariationMenu: () =>
+            set((state) => {
+                const node = getNodeAtPath(state.root, state.position);
+                if (node.children.length <= 1) return state;
+                return { ...state, variationMenuOpened: true, highlightedVariationIndex: 0 };
+            }),
+
+        closeVariationMenu: () => set({ variationMenuOpened: false }),
+
+        moveVariationHighlight: (delta) =>
+            set((state) => {
+                if (!state.variationMenuOpened) return state;
+                const node = getNodeAtPath(state.root, state.position);
+                const len = node.children.length;
+                if (len === 0) return state;
+                const nextIndex = ((state.highlightedVariationIndex + delta) % len + len) % len;
+                return { ...state, highlightedVariationIndex: nextIndex };
+            }),
+
+        confirmVariationChoice: () =>
+            set((state) => {
+                if (!state.variationMenuOpened) return state;
+                const node = getNodeAtPath(state.root, state.position);
+                const child = node.children[state.highlightedVariationIndex];
+                if (!child?.move) return { ...state, variationMenuOpened: false };
+                if (child.san) playSound(child.san.includes("x"), child.san.includes("+"));
+                return {
+                    ...state,
+                    position: [...state.position, state.highlightedVariationIndex],
+                    variationMenuOpened: false,
+                };
+            }),
 
         setState: (state) => {
             set(() => state);
@@ -258,6 +301,7 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
             set((state) => ({
                 ...state,
                 position: move,
+                variationMenuOpened: false,
             })),
         goToBranchStart: () => {
             set(
