@@ -8,7 +8,14 @@ import { useTranslation } from "react-i18next";
 import { Mosaic, type MosaicNode } from "react-mosaic-component";
 import { match } from "ts-pattern";
 import { commands } from "@/bindings";
-import { activeTabAtom, isCompactLayoutAtom, showTabBarAtom, tabsAtom } from "@/state/atoms";
+import {
+  activeTabAtom,
+  type BoardLayout,
+  boardLayoutAtom,
+  isCompactLayoutAtom,
+  showTabBarAtom,
+  tabsAtom,
+} from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { createTab, genID, isPersistentGameOrigin, type Tab } from "@/utils/tabs";
 import { unwrap } from "@/utils/unwrap";
@@ -300,6 +307,17 @@ const defaultCompactNode: MosaicNode<ViewId> = {
   splitPercentage: 50,
 };
 
+const defaultStackedNode: MosaicNode<ViewId> = {
+  direction: "column",
+  first: "left",
+  second: {
+    direction: "row",
+    first: "topRight",
+    second: "bottomRight",
+  },
+  splitPercentage: 60,
+};
+
 const windowsStateAtom = atomWithStorage<WindowsState>("windowsState", {
   currentNode: defaultWideNode,
 });
@@ -307,6 +325,27 @@ const windowsStateAtom = atomWithStorage<WindowsState>("windowsState", {
 const compactWindowsStateAtom = atomWithStorage<WindowsState>("compactWindowsState", {
   currentNode: defaultCompactNode,
 });
+
+const stackedWindowsStateAtom = atomWithStorage<WindowsState>("stackedWindowsState", {
+  currentNode: defaultStackedNode,
+});
+
+type LayoutMode = "wide" | "compact" | "stacked";
+
+const layouts: Record<
+  LayoutMode,
+  { atom: typeof windowsStateAtom; defaultNode: MosaicNode<ViewId> }
+> = {
+  wide: { atom: windowsStateAtom, defaultNode: defaultWideNode },
+  compact: { atom: compactWindowsStateAtom, defaultNode: defaultCompactNode },
+  stacked: { atom: stackedWindowsStateAtom, defaultNode: defaultStackedNode },
+};
+
+function resolveLayoutMode(boardLayout: BoardLayout, isNarrow: boolean): LayoutMode {
+  if (boardLayout === "sideBySide") return "wide";
+  if (isNarrow) return "compact";
+  return boardLayout === "stacked" ? "stacked" : "wide";
+}
 
 function TabSwitch({
   tab,
@@ -323,28 +362,21 @@ function TabSwitch({
 }) {
   const { ref: containerRef, width } = useElementSize();
   const setIsCompactLayout = useSetAtom(isCompactLayoutAtom);
-  const isCompact = width > 0 && width < 850;
+  const boardLayout = useAtomValue(boardLayoutAtom);
+  const layoutMode = resolveLayoutMode(boardLayout, width > 0 && width < 850);
+  const isCompact = layoutMode === "compact";
 
   useEffect(() => {
     setIsCompactLayout(isCompact);
   }, [isCompact, setIsCompactLayout]);
 
-  const [windowsState, setWindowsState] = useAtom(windowsStateAtom);
-  const [compactWindowsState, setCompactWindowsState] = useAtom(compactWindowsStateAtom);
-
-  const currentLayoutNode = isCompact
-    ? (compactWindowsState.currentNode ?? defaultCompactNode)
-    : (windowsState.currentNode ?? defaultWideNode);
+  const { atom: layoutAtom, defaultNode } = layouts[layoutMode];
+  const [windowsState, setWindowsState] = useAtom(layoutAtom);
+  const currentLayoutNode = windowsState.currentNode ?? defaultNode;
 
   const handleLayoutChange = useCallback(
-    (currentNode: MosaicNode<ViewId> | null) => {
-      if (isCompact) {
-        setCompactWindowsState({ currentNode });
-      } else {
-        setWindowsState({ currentNode });
-      }
-    },
-    [isCompact, setCompactWindowsState, setWindowsState],
+    (currentNode: MosaicNode<ViewId> | null) => setWindowsState({ currentNode }),
+    [setWindowsState],
   );
 
   return (
