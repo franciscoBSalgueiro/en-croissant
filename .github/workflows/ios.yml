@@ -1,0 +1,62 @@
+name: iOS (unsigned IPA)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - ios
+
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Rust setup
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Install app dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Xcode project
+        run: pnpm tauri ios init --ci
+
+      - name: Generate iOS app icons
+        run: pnpm tauri icon src-tauri/icons/icon.png --ios-color "#1a1b1e"
+
+      - name: Build unsigned IPA
+        env:
+          CI: true
+        run: pnpm tauri ios build --no-sign --ci
+
+      - name: Collect IPA
+        run: |
+          mkdir -p out
+          find src-tauri/gen/apple/build -name "*.ipa" -exec cp {} out/ \;
+          ls -la out
+          test -n "$(ls out/*.ipa)"
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: en-croissant-ios-unsigned
+          path: out/*.ipa
+          if-no-files-found: error

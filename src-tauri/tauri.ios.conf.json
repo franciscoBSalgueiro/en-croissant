@@ -1,0 +1,23 @@
+{
+  "identifier": "org.encroissant.ios",
+  "build": {
+    "beforeBuildCommand": "pnpm build-vite"
+  },
+  "bundle": {
+    "resources": {
+      "../aixchess.duckdb_extension": null
+    },
+    "createUpdaterArtifacts": false,
+    "iOS": {
+      "minimumSystemVersion": "15.0"
+    }
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "En Croissant",
+        "visible": true
+      }
+    ]
+  }
+}

@@ -373,7 +373,7 @@ function RootLayout() {
   const { data: menu } = useSWRImmutable(["menu", menuActions], () => createMenu(menuActions));
 
   useEffect(() => {
-    if (!menu) return;
+    if (!menu || import.meta.env.VITE_MOBILE) return;
     if (
       isNative ||
       (import.meta.env.VITE_PLATFORM !== "win32" && import.meta.env.VITE_PLATFORM !== "linux")

@@ -1,0 +1,24 @@
+{
+    "$schema": "../gen/schemas/desktop-schema.json",
+    "identifier": "desktop-capability",
+    "description": "Desktop-only permissions for the main window",
+    "platforms": [
+        "linux",
+        "macOS",
+        "windows"
+    ],
+    "windows": [
+        "main"
+    ],
+    "permissions": [
+        "core:window:allow-start-dragging",
+        "core:window:allow-set-decorations",
+        "core:window:allow-toggle-maximize",
+        "core:window:allow-set-fullscreen",
+        "core:window:allow-minimize",
+        "core:window:allow-close",
+        "cli:default",
+        "updater:default",
+        "window-state:default"
+    ]
+}

@@ -7,12 +7,6 @@
     ],
     "permissions": [
         "core:window:default",
-        "core:window:allow-start-dragging",
-        "core:window:allow-set-decorations",
-        "core:window:allow-toggle-maximize",
-        "core:window:allow-set-fullscreen",
-        "core:window:allow-minimize",
-        "core:window:allow-close",
         "opener:default",
         {
             "identifier": "opener:allow-open-path",
@@ -25,13 +19,10 @@
         "dialog:default",
         "deep-link:default",
         "os:default",
-        "cli:default",
-        "updater:default",
         "process:default",
         "log:default",
         "fs:default",
         "fs:write-all",
-        "window-state:default",
         {
             "identifier": "fs:scope-appdata-recursive",
             "allow": [

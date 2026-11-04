@@ -46,5 +46,9 @@ export default defineConfig({
     },
     define: {
         "import.meta.env.VITE_PLATFORM": JSON.stringify(os.platform()),
+        "import.meta.env.VITE_MOBILE": JSON.stringify(
+            process.env.TAURI_ENV_PLATFORM === "ios" ||
+                process.env.TAURI_ENV_PLATFORM === "android",
+        ),
     },
 });
