@@ -5,10 +5,18 @@ on:
   push:
     branches:
       - ios
+    tags:
+      - "ios-v*"
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   ios:
     runs-on: macos-15
+    permissions:
+      contents: write
     timeout-minutes: 120
     steps:
       - name: Checkout repository
@@ -48,11 +56,22 @@ jobs:
         run: pnpm tauri ios build --no-sign --ci
 
       - name: Collect IPA
+        id: ipa
         run: |
+          VERSION=$(node -p "require('./package.json').version")
           mkdir -p out
-          find src-tauri/gen/apple/build -name "*.ipa" -exec cp {} out/ \;
+          IPA=$(find src-tauri/gen/apple/build -name "*.ipa" | head -n 1)
+          test -n "$IPA"
+          cp "$IPA" "out/en-croissant-${VERSION}-ios-unsigned.ipa"
           ls -la out
-          test -n "$(ls out/*.ipa)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=ios-v${VERSION}-build.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
@@ -60,3 +79,23 @@ jobs:
           name: en-croissant-ios-unsigned
           path: out/*.ipa
           if-no-files-found: error
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ipa.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: En Croissant ${{ steps.ipa.outputs.version }} für iOS (${{ steps.ipa.outputs.tag }})
+          prerelease: ${{ steps.ipa.outputs.prerelease }}
+          files: out/*.ipa
+          fail_on_unmatched_files: true
+          body: |
+            Unsignierte iOS-Version von En Croissant ${{ steps.ipa.outputs.version }} (arm64, ab iOS 15).
+
+            **Installation:** Die `.ipa` mit Sideloadly oder AltStore und deiner Apple-ID signieren und installieren.
+            Mit kostenloser Apple-ID läuft die App 7 Tage und muss dann neu signiert werden.
+
+            **Einschränkungen auf iOS:** keine externen Engines (Stockfish usw.), keine DuckDB-Partiedatenbanken.
+            Analysebrett, PGN-Dateien, Eröffnungen, Lichess/Chess.com und Puzzles sollten funktionieren.
+
+            Commit: ${{ github.sha }}
