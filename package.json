@@ -90,7 +90,7 @@
   },
   "devDependencies": {
     "@tanstack/router-plugin": "^1.168.48",
-    "@tauri-apps/cli": "2.10.0",
+    "@tauri-apps/cli": "2.11.4",
     "@types/lodash": "^4.17.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
