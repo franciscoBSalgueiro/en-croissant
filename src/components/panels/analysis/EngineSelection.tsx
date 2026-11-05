@@ -1,4 +1,4 @@
-import { Center, Checkbox, Group, Paper, ScrollArea, Stack, Text } from "@mantine/core";
+import { Center, Checkbox, Chip, Group, Paper, ScrollArea, Stack, Text } from "@mantine/core";
 import { IconCloud, IconCpu } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { useAtom, useAtomValue } from "jotai";
@@ -80,5 +80,37 @@ function EngineSelection() {
     </>
   );
 }
+
+/** Touch layouts: all engines as one tappable row (tap = switch on/off). */
+export const EngineChips = memo(function EngineChips() {
+  const [engines, setEngines] = useAtom(enginesAtom);
+  const activeTab = useAtomValue(activeTabAtom);
+  if (!engines || engines.length === 0) return null;
+  return (
+    <ScrollArea type="never" scrollbars="x">
+      <Group gap={6} wrap="nowrap" pb={2}>
+        {engines.map((engine) => (
+          <Chip
+            key={engine.id}
+            size="sm"
+            variant="light"
+            checked={!!engine.loaded}
+            onChange={() => {
+              if (engine.loaded && engine.type === "local") {
+                stopEngine(engine, activeTab!);
+              }
+              setEngines(async (prev) =>
+                (await prev).map((e) => (e.id === engine.id ? { ...e, loaded: !e.loaded } : e)),
+              );
+            }}
+            styles={{ label: { whiteSpace: "nowrap" } }}
+          >
+            {engine.name}
+          </Chip>
+        ))}
+      </Group>
+    </ScrollArea>
+  );
+});
 
 export default memo(EngineSelection);

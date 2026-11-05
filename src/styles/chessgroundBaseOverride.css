@@ -256,3 +256,41 @@ piece.fading {
 .is3d.cg-wrap coords.files {
   bottom: 2%;
 }
+
+/* iOS/Android: coordinates inside the edge squares, like chess.com –
+   rank numbers top-left on the left file, file letters bottom-right on the bottom rank. */
+html[data-mobile-app] .cg-wrap coords {
+  z-index: 3; /* above the pieces (their bases cover the square corners) */
+  font-size: clamp(9px, 0.65rem, 12px);
+  font-weight: 700;
+  line-height: 1;
+}
+
+html[data-mobile-app] .cg-wrap coords.ranks:not(.left) {
+  left: 0;
+  top: 0;
+  width: 12.5%;
+  height: 100%;
+}
+
+html[data-mobile-app] .cg-wrap coords.ranks:not(.left) coord {
+  flex: 1 1 0;
+  transform: none;
+  padding: 2px 0 0 3px;
+  text-align: left;
+}
+
+html[data-mobile-app] .cg-wrap coords.files {
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 12.5%;
+  align-items: flex-end;
+}
+
+html[data-mobile-app] .cg-wrap coords.files coord {
+  flex: 1 1 0;
+  padding: 0 2px 1px 0;
+  text-align: right;
+}
+

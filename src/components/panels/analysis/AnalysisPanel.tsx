@@ -40,7 +40,7 @@ import { getPiecesCount, hasCaptures, isOp1, positionFromFen } from "@/utils/che
 import type { Engine } from "@/utils/engines";
 import { getInitials } from "@/utils/format";
 import BestMoves, { arrowColors } from "./BestMoves";
-import EngineSelection from "./EngineSelection";
+import EngineSelection, { EngineChips } from "./EngineSelection";
 import LogsPanel from "./LogsPanel";
 import ReportPanel from "./ReportPanel";
 import ScoreBubble from "./ScoreBubble";
@@ -123,6 +123,14 @@ function AnalysisPanel() {
               document.dispatchEvent(new Event("analysis-panel-scroll"))
             }
           >
+            {mobileLayout && (
+              <Paper withBorder p={6} mb="xs">
+                <Text size="xs" c="dimmed" mb={4}>
+                  Engines – antippen zum Ein-/Ausschalten
+                </Text>
+                <EngineChips />
+              </Paper>
+            )}
             {pos &&
               (getPiecesCount(pos) <= 7 ||
                 (getPiecesCount(pos) === 8 && (hasCaptures(pos) || isOp1(pos)))) && (
