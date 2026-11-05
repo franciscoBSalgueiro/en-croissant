@@ -2,7 +2,7 @@
 // Runs inside a Web Worker, so it works everywhere the webview runs – including iOS,
 // where spawning external engine processes is not allowed.
 
-import { parseUci } from "chessops";
+import { makeUci, parseUci } from "chessops";
 import { makeSan } from "chessops/san";
 import { type BestMoves, type EngineOptions, events, type GoMode, type Score } from "@/bindings";
 import type { BestMovesPayload } from "@/bindings/generated";
@@ -404,9 +404,32 @@ export function builtinStockfish(): RemoteEngine {
 // ---------------------------------------------------------------------------
 // Playing against the built-in Stockfish (its own worker, separate from analysis).
 
-/** Stockfish's calibrated `UCI_Elo` range. */
-export const STOCKFISH_MIN_ELO = 1320;
+/** Stockfish's own calibrated `UCI_Elo` range. */
+export const STOCKFISH_NATIVE_MIN_ELO = 1320;
 export const STOCKFISH_MAX_ELO = 3190;
+/** Below the native range the engine is weakened by us (approximate strength). */
+export const STOCKFISH_MIN_ELO = 100;
+
+const WEAK_MULTIPV = 10;
+
+/**
+ * How the engine is weakened below Elo 1320:
+ * shallow search, a soft choice among the top candidate moves (bigger "temperature"
+ * = more willing to pick worse moves) and an occasional completely random move.
+ */
+function weakParams(elo: number) {
+    const t = Math.min(1, Math.max(0, (elo - STOCKFISH_MIN_ELO) / (STOCKFISH_NATIVE_MIN_ELO - STOCKFISH_MIN_ELO)));
+    return {
+        depth: 1 + Math.round(5 * t),
+        randomChance: 0.55 * (1 - t) ** 1.6,
+        temperature: 35 + 400 * (1 - t) ** 1.3, // centipawns
+    };
+}
+
+function scoreToCp(kind: string, value: number) {
+    if (kind === "mate") return value > 0 ? 100000 - value : -100000 - value;
+    return value;
+}
 
 export type PlayMoveRequest = {
     fen: string;
@@ -424,6 +447,8 @@ class StockfishPlayer {
     private ready: Promise<void> | null = null;
     private pendingReady: (() => void)[] = [];
     private onBest: ((uci: string | null) => void) | null = null;
+    /** Candidate moves of the current search (weak mode): multipv -> [move, cp] */
+    private candidates = new Map<number, [string, number]>();
     private queue: Promise<unknown> = Promise.resolve();
     private options = new Map<string, string>();
 
@@ -466,6 +491,25 @@ class StockfishPlayer {
             const cb = this.onBest;
             this.onBest = null;
             cb?.(uci && uci !== "(none)" ? uci : null);
+        } else if (line.startsWith("info") && line.includes(" pv ")) {
+            const t = line.split(" ");
+            let multipv = 1;
+            let kind = "";
+            let value = 0;
+            let move = "";
+            let bound = false;
+            for (let i = 1; i < t.length; i++) {
+                if (t[i] === "multipv") multipv = Number(t[++i]);
+                else if (t[i] === "score") {
+                    kind = t[++i];
+                    value = Number(t[++i]);
+                    if (t[i + 1] === "lowerbound" || t[i + 1] === "upperbound") bound = true;
+                } else if (t[i] === "pv") {
+                    move = t[i + 1] ?? "";
+                    break;
+                }
+            }
+            if (move && kind && !bound) this.candidates.set(multipv, [move, scoreToCp(kind, value)]);
         }
     }
 
@@ -497,15 +541,18 @@ class StockfishPlayer {
         this.stop();
         return this.enqueue(async () => {
             await this.start();
-            if (req.elo === null) {
+            const elo =
+                req.elo === null
+                    ? null
+                    : Math.round(Math.min(STOCKFISH_MAX_ELO, Math.max(STOCKFISH_MIN_ELO, req.elo)));
+            const weak = elo !== null && elo < STOCKFISH_NATIVE_MIN_ELO ? weakParams(elo) : null;
+            if (elo === null || weak) {
                 this.setOption("UCI_LimitStrength", "false");
             } else {
-                const elo = Math.round(
-                    Math.min(STOCKFISH_MAX_ELO, Math.max(STOCKFISH_MIN_ELO, req.elo)),
-                );
                 this.setOption("UCI_LimitStrength", "true");
                 this.setOption("UCI_Elo", String(elo));
             }
+            this.setOption("MultiPV", weak ? String(WEAK_MULTIPV) : "1");
             this.setOption("Hash", "32");
             await withTimeout(
                 new Promise<void>((resolve) => {
@@ -516,9 +563,22 @@ class StockfishPlayer {
             ).catch(() => this.reset());
             if (!this.worker) await this.start();
 
+            this.candidates.clear();
             const best = new Promise<string | null>((resolve) => {
                 this.onBest = resolve;
             });
+            if (weak) {
+                const started = Date.now();
+                const movesPart = req.moves.length > 0 ? ` moves ${req.moves.join(" ")}` : "";
+                this.send(`position fen ${req.fen}${movesPart}`);
+                this.send(`go depth ${weak.depth}`);
+                const engineMove = await best;
+                const chosen = pickWeakMove(req, weak, this.candidates) ?? engineMove;
+                // Don't answer instantly: a short "thinking" pause feels more natural.
+                const wait = 500 + Math.random() * 700 - (Date.now() - started);
+                if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+                return chosen;
+            }
             const movesPart = req.moves.length > 0 ? ` moves ${req.moves.join(" ")}` : "";
             this.send(`position fen ${req.fen}${movesPart}`);
             if (req.clock) {
@@ -534,6 +594,42 @@ class StockfishPlayer {
             return best;
         });
     }
+}
+
+function pickWeakMove(
+    req: PlayMoveRequest,
+    weak: ReturnType<typeof weakParams>,
+    candidates: Map<number, [string, number]>,
+): string | null {
+    const [pos] = positionFromFen(req.fen);
+    if (!pos) return null;
+    for (const uci of req.moves) {
+        const m = parseUci(uci);
+        if (!m) return null;
+        pos.play(m);
+    }
+    // Occasionally a completely random legal move (beginners overlook a lot).
+    if (Math.random() < weak.randomChance) {
+        const legal: string[] = [];
+        for (const [from, dests] of pos.allDests()) {
+            for (const to of dests) {
+                const promo = pos.board.get(from)?.role === "pawn" && (to >> 3 === 7 || to >> 3 === 0);
+                legal.push(makeUci({ from, to, promotion: promo ? "queen" : undefined }));
+            }
+        }
+        if (legal.length > 0) return legal[Math.floor(Math.random() * legal.length)];
+    }
+    // Otherwise a softmax choice among the engine's candidate moves.
+    const list = [...candidates.values()];
+    if (list.length === 0) return null;
+    const bestCp = Math.max(...list.map(([, cp]) => cp));
+    const weights = list.map(([, cp]) => Math.exp((cp - bestCp) / weak.temperature));
+    let r = Math.random() * weights.reduce((a, b) => a + b, 0);
+    for (let i = 0; i < list.length; i++) {
+        r -= weights[i];
+        if (r <= 0) return list[i][0];
+    }
+    return list[0][0];
 }
 
 const player = new StockfishPlayer();

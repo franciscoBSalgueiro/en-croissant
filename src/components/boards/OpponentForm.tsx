@@ -20,14 +20,21 @@ import EngineSettingsForm from "@/components/panels/analysis/EngineSettingsForm"
 import type { TimeControlField } from "@/utils/clock";
 import type { EngineSettings, LocalEngine } from "@/utils/engines";
 import { IS_MOBILE_APP } from "@/utils/mobile";
-import { STOCKFISH_MAX_ELO, STOCKFISH_MIN_ELO } from "@/utils/stockfish";
+import {
+  STOCKFISH_MAX_ELO,
+  STOCKFISH_MIN_ELO,
+  STOCKFISH_NATIVE_MIN_ELO,
+} from "@/utils/stockfish";
 import { EnginesSelect } from "./EnginesSelect";
 
 const DEFAULT_ELO = 1500;
 
 /** Rough guide so the number means something. */
 function eloLabel(elo: number) {
-  if (elo < 1500) return "Anfänger / Gelegenheitsspieler";
+  if (elo < 500) return "lernt gerade die Regeln";
+  if (elo < 900) return "Anfänger";
+  if (elo < 1200) return "Gelegenheitsspieler";
+  if (elo < 1500) return "Hobbyspieler";
   if (elo < 1800) return "Vereinsspieler";
   if (elo < 2100) return "starker Vereinsspieler";
   if (elo < 2400) return "Experte / Meisterkandidat";
@@ -64,7 +71,7 @@ function EloInput({
               size="xs"
               min={STOCKFISH_MIN_ELO}
               max={STOCKFISH_MAX_ELO}
-              step={50}
+              step={10}
               clampBehavior="blur"
               value={value}
               onChange={(v) => typeof v === "number" && setElo(v)}
@@ -82,6 +89,7 @@ function EloInput({
           />
           <Text size="xs" c="dimmed">
             ≈ {eloLabel(value)}
+            {value < STOCKFISH_NATIVE_MIN_ELO ? " · unter 1320 nur geschätzt" : ""}
           </Text>
         </>
       ) : (
