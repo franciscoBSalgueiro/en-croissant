@@ -1,3 +1,4 @@
+import MasterDetail from "@/components/mobile/MasterDetail";
 import {
   ActionIcon,
   Button,
@@ -103,7 +104,10 @@ export default function EnginesPage() {
         <Title>{t("Engines.Title")}</Title>
         <OpenFolderButton base="Engines" folder="engines" />
       </Group>
-      <Group grow flex={1} style={{ overflow: "hidden" }} align="start" px="md" pb="md">
+      <MasterDetail
+        showDetail={selected !== undefined && !!selectedEngine}
+        onBack={() => setSelected(null)}
+      >
         <Paper withBorder style={{ borderWidth: 2 }} h="100%">
           <Stack gap={0} h="100%" style={{ overflow: "hidden" }}>
             <Group p="xs" gap="xs">
@@ -133,7 +137,12 @@ export default function EnginesPage() {
                             value: item.elo ? item.elo.toString() : "??",
                           },
                         ]
-                      : [{ label: "Type", value: "Cloud" }];
+                      : [
+                          {
+                            label: "Type",
+                            value: item.type === "stockfish" ? "Built-in" : "Cloud",
+                          },
+                        ];
                   if (item.type === "local" && item.version) {
                     stats.push({
                       label: t("Common.Version"),
@@ -256,7 +265,7 @@ export default function EnginesPage() {
             )}
           </Paper>
         )}
-      </Group>
+      </MasterDetail>
     </Stack>
   );
 }
@@ -689,7 +698,7 @@ function EngineName({ engine }: { engine: Engine }) {
     <Group wrap="nowrap">
       {engine.image ? (
         <LocalImage src={engine.image} alt={engine.name} h="2.5rem" fit="contain" flex={0} />
-      ) : engine.type !== "local" ? (
+      ) : engine.type === "chessdb" || engine.type === "lichess" ? (
         <IconCloud size="2.5rem" />
       ) : (
         <IconCpu size="2.5rem" />

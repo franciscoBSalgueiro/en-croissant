@@ -21,21 +21,24 @@ const items: { icon: Icon; label: string; url: string }[] = [
   { icon: IconSettings, label: "Settings", url: "/settings" },
 ];
 
-export const MOBILE_NAV_HEIGHT = 56;
+export const MOBILE_NAV_HEIGHT = 58;
+export const MOBILE_RAIL_WIDTH = 68;
 
-/** Bottom tab bar used instead of the left sidebar on phones/tablets. */
-export function MobileNav() {
+/** Bottom tab bar (portrait) or side rail (landscape) used instead of the desktop sidebar. */
+export function MobileNav({ variant }: { variant: "bar" | "rail" }) {
   const { t } = useTranslation();
   const match = useMatchRoute();
   return (
-    <nav className={classes.nav}>
+    <nav className={variant === "bar" ? classes.nav : classes.rail}>
       {items.map(({ icon: Icon, label, url }) => {
         const active =
           url === "/" ? match({ to: "/" }) !== false : match({ to: url, fuzzy: true }) !== false;
         return (
           <Link key={url} to={url} className={cx(classes.item, { [classes.active]: active })}>
-            <Icon size={24} stroke={active ? 2 : 1.6} />
-            <span>{t(`SideBar.${label}`)}</span>
+            <span className={classes.icon}>
+              <Icon size={22} stroke={active ? 2 : 1.6} />
+            </span>
+            <span className={classes.label}>{t(`SideBar.${label}`)}</span>
           </Link>
         );
       })}

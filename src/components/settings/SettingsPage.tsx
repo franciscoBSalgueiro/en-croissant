@@ -1,3 +1,4 @@
+import { useLayoutMode } from "@/utils/mobile";
 import {
   ActionIcon,
   Card,
@@ -113,7 +114,7 @@ function SettingRow({
     <Group
       justify="space-between"
       wrap="nowrap"
-      gap="xl"
+      gap="md"
       className={classes.item}
       style={highlight ? { backgroundColor: "var(--mantine-color-yellow-light)" } : undefined}
     >
@@ -154,6 +155,7 @@ function TelemetrySwitch() {
 }
 
 export default function Page() {
+  const portrait = useLayoutMode() === "portrait";
   const { t, i18n } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -838,7 +840,7 @@ export default function Page() {
 
   return (
     <Stack h="100%" gap={0}>
-      <Group px="md" pt="md" pb="sm">
+      <Group px={portrait ? "sm" : "md"} pt={portrait ? "xs" : "md"} pb="sm">
         <TextInput
           ref={searchInputRef}
           placeholder={t("Common.Search")}
@@ -867,16 +869,30 @@ export default function Page() {
       ) : (
         <Tabs
           defaultValue="board"
-          orientation="vertical"
+          orientation={portrait ? "horizontal" : "vertical"}
           flex={1}
-          style={{ overflow: "hidden" }}
+          style={{
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: portrait ? "column" : "row",
+          }}
           styles={{
             tabLabel: {
               textAlign: "left",
             },
+            list: portrait
+              ? {
+                  flexWrap: "nowrap",
+                  overflowX: "auto",
+                  overflowY: "hidden",
+                  scrollbarWidth: "none",
+                  flexShrink: 0,
+                }
+              : undefined,
+            tab: portrait ? { flexShrink: 0 } : undefined,
           }}
         >
-          <Tabs.List h="100%">
+          <Tabs.List h={portrait ? undefined : "100%"}>
             <Tabs.Tab value="board" leftSection={<IconChess size="1rem" />}>
               {t("Settings.Board")}
             </Tabs.Tab>
@@ -905,9 +921,14 @@ export default function Page() {
               {t("Settings.Privacy")}
             </Tabs.Tab>
           </Tabs.List>
-          <Stack flex={1} px="md">
+          <Stack
+            flex={1}
+            px={portrait ? "xs" : "md"}
+            pt={portrait ? "xs" : undefined}
+            style={{ minHeight: 0 }}
+          >
             <ScrollArea>
-              <Card withBorder p="lg" className={classes.card} w="100%">
+              <Card withBorder p={portrait ? "md" : "lg"} className={classes.card} w="100%">
                 <Tabs.Panel value="board">
                   <Text size="lg" fw={500} className={classes.title}>
                     {t("Settings.Board")}

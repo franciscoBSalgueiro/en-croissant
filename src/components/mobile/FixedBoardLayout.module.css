@@ -1,0 +1,33 @@
+.slot:empty {
+  display: none;
+}
+
+.portrait {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  overflow: hidden;
+}
+
+.landscape {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  height: 100%;
+  overflow: hidden;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+
+.fill {
+  flex: 1 1 0;
+  min-height: 0;
+}

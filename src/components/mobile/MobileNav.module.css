@@ -1,11 +1,28 @@
+/* Bottom tab bar (portrait) */
 .nav {
   display: flex;
   height: 100%;
   align-items: stretch;
   justify-content: space-around;
-  padding-bottom: env(safe-area-inset-bottom);
-  background: var(--mantine-color-body);
+  padding: 0 max(env(safe-area-inset-left), 4px) env(safe-area-inset-bottom)
+    max(env(safe-area-inset-right), 4px);
+  background: color-mix(in srgb, var(--mantine-color-body) 88%, transparent);
+  backdrop-filter: saturate(180%) blur(16px);
+  -webkit-backdrop-filter: saturate(180%) blur(16px);
   border-top: 1px solid var(--mantine-color-default-border);
+}
+
+/* Side rail (landscape) */
+.rail {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  align-items: stretch;
+  justify-content: center;
+  gap: 4px;
+  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background: var(--mantine-color-body);
+  border-right: 1px solid var(--mantine-color-default-border);
 }
 
 .item {
@@ -14,7 +31,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 3px;
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.01em;
@@ -22,9 +39,26 @@
   color: var(--mantine-color-dimmed);
   -webkit-tap-highlight-color: transparent;
   min-width: 0;
+  transition: color 120ms ease;
 }
 
-.item span {
+.rail .item {
+  flex: 0 0 auto;
+  height: 52px;
+  max-height: 16%;
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 28px;
+  border-radius: 14px;
+  transition: background-color 120ms ease;
+}
+
+.item span.label {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -32,5 +66,10 @@
 }
 
 .active {
+  color: var(--mantine-color-text);
+}
+
+.active .icon {
+  background: color-mix(in srgb, var(--mantine-primary-color-filled) 22%, transparent);
   color: var(--mantine-primary-color-filled);
 }

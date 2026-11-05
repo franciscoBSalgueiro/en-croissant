@@ -183,7 +183,7 @@ function BoardAnalysis() {
   const isCompact = useAtomValue(isCompactLayoutAtom);
   const mobileLayout = useMobileLayout();
   // Phone layout (see TabSwitch): board on top, move strip + controls, then panels.
-  const stacked = isCompact && mobileLayout;
+  const stacked = mobileLayout;
 
   useEffect(() => {
     if (stacked && (currentTabSelected === "info" || currentTabSelected === "moves")) {

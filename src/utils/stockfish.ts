@@ -1,4 +1,4 @@
-// Built-in Stockfish 18 (lite, single-threaded WebAssembly build by nmrugg/stockfish.js, GPLv3).
+// Built-in Stockfish 19 (lite, single-threaded WebAssembly build by nmrugg/stockfish.js, GPLv3).
 // Runs inside a Web Worker, so it works everywhere the webview runs – including iOS,
 // where spawning external engine processes is not allowed.
 
@@ -11,8 +11,8 @@ import type { RemoteEngine } from "./engines";
 import { positionFromFen } from "./chessops";
 
 export const BUILTIN_STOCKFISH_ID = "builtin-stockfish";
-export const BUILTIN_STOCKFISH_URL = "builtin://stockfish-18-lite";
-const WORKER_URL = "/stockfish/stockfish-18-lite-single.js";
+export const BUILTIN_STOCKFISH_URL = "builtin://stockfish-19-lite";
+const WORKER_URL = "/stockfish/stockfish-19-lite-single.js";
 
 type Search = {
     engineId: string;
@@ -388,7 +388,7 @@ export function stockfishStop() {
 export function builtinStockfish(): RemoteEngine {
     return {
         id: BUILTIN_STOCKFISH_ID,
-        name: "Stockfish 18",
+        name: "Stockfish 19",
         type: "stockfish",
         url: BUILTIN_STOCKFISH_URL,
         loaded: true,

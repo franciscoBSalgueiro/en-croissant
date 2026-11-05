@@ -10,6 +10,16 @@ export function useBuiltinStockfish() {
     const [engines, setEngines] = useAtom(enginesAtom);
     useEffect(() => {
         if (engines === undefined) return;
+        // Upgrade the name of an existing built-in entry (Stockfish 18 -> 19).
+        const current = builtinStockfish();
+        if (engines.some((e) => e.id === current.id && e.name !== current.name)) {
+            setEngines(async (prev) =>
+                (await prev).map((e) =>
+                    e.id === current.id ? { ...e, name: current.name, url: current.url } : e,
+                ),
+            );
+            return;
+        }
         let added = false;
         try {
             added = localStorage.getItem(FLAG) === "1";
