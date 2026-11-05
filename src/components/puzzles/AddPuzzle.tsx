@@ -85,10 +85,19 @@ function PuzzleDbCard({
       return;
     }
     // Make sure the downloaded file really opens; otherwise say why.
+    // (An old-format file is converted here, which takes a minute for big databases.)
+    const note = notifications.show({
+      title: "Puzzle-Datenbank wird eingerichtet …",
+      message: "Das kann bei großen Datenbanken etwa eine Minute dauern.",
+      loading: true,
+      autoClose: false,
+    });
     try {
       const info = await getPuzzleDatabase(`${name}.duckdb`);
       if (!info) throw new Error("Datei nach dem Download nicht gefunden");
+      notifications.hide(note);
     } catch (e) {
+      notifications.hide(note);
       notifications.show({
         title: t("Common.Error"),
         message: `Die Puzzle-Datenbank lässt sich nicht öffnen: ${e}\n(${url})`,

@@ -149,19 +149,9 @@ pub async fn get_puzzle_db_info(file: PathBuf) -> Result<Option<PuzzleDatabaseIn
 
 fn database_info(path: PathBuf) -> Result<Option<PuzzleDatabaseInfo>, Error> {
     match is_legacy_database(&path) {
-        Ok(true) => {
-            // iOS: say so instead of silently deleting the download.
-            #[cfg(mobile)]
-            return Err(std::io::Error::other(
-                "Die Datei ist im alten SQLite-Format, nicht DuckDB.",
-            )
-            .into());
-            #[cfg(not(mobile))]
-            {
-                delete_puzzle_database(path.to_string_lossy().into_owned())?;
-                return Ok(None);
-            }
-        }
+        // The published puzzle database (encroissant.org) is still in the old
+        // SQLite format: convert it once instead of deleting the download.
+        Ok(true) => convert_legacy_puzzles(&path)?,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
         Err(error) => return Err(error.into()),
         Ok(false) => {}
@@ -185,6 +175,106 @@ fn database_info(path: PathBuf) -> Result<Option<PuzzleDatabaseInfo>, Error> {
         storage_size,
         path: path.to_string_lossy().to_string(),
     }))
+}
+
+static CONVERSION_LOCK: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+
+/// Rewrites an old SQLite puzzle database as DuckDB, in place (same file name).
+fn convert_legacy_puzzles(path: &Path) -> Result<(), Error> {
+    let _guard = CONVERSION_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    // Another caller may have converted it while we waited.
+    if !is_legacy_database(path)? {
+        return Ok(());
+    }
+    log::info!("Converting legacy puzzle database {}", path.display());
+
+    let temp = PathBuf::from(format!("{}.converting", path.display()));
+    let _ = std::fs::remove_file(&temp);
+    let _ = std::fs::remove_file(format!("{}.wal", temp.display()));
+
+    let result = (|| -> Result<(), Error> {
+        let source = rusqlite::Connection::open_with_flags(
+            path,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        )
+        .map_err(|e| std::io::Error::other(format!("SQLite: {e}")))?;
+        let sqlite = |e: rusqlite::Error| std::io::Error::other(format!("SQLite: {e}"));
+
+        let dest = Connection::open(&temp)?;
+        dest.execute_batch(
+            "CREATE TABLE puzzles (id INTEGER, fen VARCHAR, moves VARCHAR, rating INTEGER,
+                rating_deviation INTEGER, popularity INTEGER, nb_plays INTEGER);
+             CREATE TABLE themes (id INTEGER, name VARCHAR);
+             CREATE TABLE puzzle_themes (puzzle_id INTEGER, theme_id INTEGER);",
+        )?;
+
+        {
+            let mut appender = dest.appender("puzzles")?;
+            let mut stmt = source
+                .prepare(
+                    "SELECT id, fen, moves, rating, rating_deviation, popularity, nb_plays
+                     FROM puzzles",
+                )
+                .map_err(sqlite)?;
+            let mut rows = stmt.query([]).map_err(sqlite)?;
+            while let Some(row) = rows.next().map_err(sqlite)? {
+                let id: i32 = row.get(0).map_err(sqlite)?;
+                let fen: String = row.get(1).map_err(sqlite)?;
+                let moves: String = row.get(2).map_err(sqlite)?;
+                let rating: i32 = row.get(3).map_err(sqlite)?;
+                let deviation: i32 = row.get(4).map_err(sqlite)?;
+                let popularity: i32 = row.get(5).map_err(sqlite)?;
+                let plays: i32 = row.get(6).map_err(sqlite)?;
+                appender.append_row(params![id, fen, moves, rating, deviation, popularity, plays])?;
+            }
+            appender.flush()?;
+        }
+
+        // Older files have no themes.
+        let has_themes: bool = source
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'puzzle_themes'",
+                [],
+                |r| r.get::<_, i64>(0),
+            )
+            .map_err(sqlite)?
+            > 0;
+        if has_themes {
+            let mut appender = dest.appender("themes")?;
+            let mut stmt = source.prepare("SELECT id, name FROM themes").map_err(sqlite)?;
+            let mut rows = stmt.query([]).map_err(sqlite)?;
+            while let Some(row) = rows.next().map_err(sqlite)? {
+                let id: i32 = row.get(0).map_err(sqlite)?;
+                let name: String = row.get(1).map_err(sqlite)?;
+                appender.append_row(params![id, name])?;
+            }
+            appender.flush()?;
+            drop(appender);
+
+            let mut appender = dest.appender("puzzle_themes")?;
+            let mut stmt = source
+                .prepare("SELECT puzzle_id, theme_id FROM puzzle_themes")
+                .map_err(sqlite)?;
+            let mut rows = stmt.query([]).map_err(sqlite)?;
+            while let Some(row) = rows.next().map_err(sqlite)? {
+                let puzzle: i32 = row.get(0).map_err(sqlite)?;
+                let theme: i32 = row.get(1).map_err(sqlite)?;
+                appender.append_row(params![puzzle, theme])?;
+            }
+            appender.flush()?;
+        }
+        dest.execute_batch("CHECKPOINT")?;
+        Ok(())
+    })();
+
+    if let Err(error) = result {
+        let _ = std::fs::remove_file(&temp);
+        let _ = std::fs::remove_file(format!("{}.wal", temp.display()));
+        return Err(error);
+    }
+    std::fs::rename(&temp, path)?;
+    log::info!("Converted puzzle database {}", path.display());
+    Ok(())
 }
 
 #[tauri::command]
