@@ -1,5 +1,5 @@
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
-import { ActionIcon, Box, ScrollArea, Tabs } from "@mantine/core";
+import { ActionIcon, Box, ScrollArea, Stack, Tabs } from "@mantine/core";
 import { useElementSize, useHotkeys, useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
@@ -11,6 +11,7 @@ import { commands } from "@/bindings";
 import { activeTabAtom, isCompactLayoutAtom, showTabBarAtom, tabsAtom } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { createTab, genID, isPersistentGameOrigin, type Tab } from "@/utils/tabs";
+import { useMobileLayout } from "@/utils/mobile";
 import { unwrap } from "@/utils/unwrap";
 import BoardAnalysis from "../boards/BoardAnalysis";
 import BoardGame from "../boards/BoardGame";
@@ -29,6 +30,7 @@ import classes from "./BoardsPage.module.css";
 
 export default function BoardsPage() {
   const { t } = useTranslation();
+  const mobileLayout = useMobileLayout();
 
   const [tabs, setTabs] = useAtom(tabsAtom);
   const [activeTab, setActiveTab] = useAtom(activeTabAtom);
@@ -257,7 +259,14 @@ export default function BoardsPage() {
         </ScrollArea>
       )}
       {tabs.map((tab) => (
-        <Tabs.Panel key={tab.value} value={tab.value} h="100%" w="100%" pb="sm" px="xs">
+        <Tabs.Panel
+          key={tab.value}
+          value={tab.value}
+          h="100%"
+          w="100%"
+          pb={mobileLayout ? 4 : "sm"}
+          px={mobileLayout ? 4 : "xs"}
+        >
           <TabSwitch
             tab={tab}
             saveModalOpened={saveModalOpened}
@@ -321,9 +330,13 @@ function TabSwitch({
   closeTab: (value: string | null, forced?: boolean) => void;
   activeTab: string | null;
 }) {
-  const { ref: containerRef, width } = useElementSize();
+  const { ref: containerRef, width, height } = useElementSize();
   const setIsCompactLayout = useSetAtom(isCompactLayoutAtom);
   const isCompact = width > 0 && width < 850;
+  const mobileLayout = useMobileLayout();
+  // Phone layout: fixed stack (board, move strip, panels) instead of resizable windows.
+  const stacked = mobileLayout && isCompact;
+  const boardHeight = Math.round(Math.min(width + 40, height > 0 ? height * 0.64 : width + 40));
 
   useEffect(() => {
     setIsCompactLayout(isCompact);
@@ -347,29 +360,34 @@ function TabSwitch({
     [isCompact, setCompactWindowsState, setWindowsState],
   );
 
+  const layout = stacked ? (
+    <Stack gap={6} h="100%" style={{ overflow: "hidden" }}>
+      <div id="left" style={{ height: boardHeight, flexShrink: 0 }} />
+      <div id="mobileStrip" style={{ flexShrink: 0 }} />
+      <div id="topRight" style={{ flex: 1, minHeight: 0 }} />
+    </Stack>
+  ) : (
+    <Mosaic<ViewId>
+      renderTile={(id) => fullLayout[id]}
+      value={currentLayoutNode}
+      onChange={handleLayoutChange}
+      resize={{ minimumPaneSizePercentage: 0 }}
+    />
+  );
+
   return (
     <Box ref={containerRef} w="100%" h="100%">
       {match(tab.type)
         .with("new", () => <NewTabHome id={tab.value} />)
         .with("play", () => (
           <TreeStateProvider id={tab.value}>
-            <Mosaic<ViewId>
-              renderTile={(id) => fullLayout[id]}
-              value={currentLayoutNode}
-              onChange={handleLayoutChange}
-              resize={{ minimumPaneSizePercentage: 0 }}
-            />
+            {layout}
             <BoardGame />
           </TreeStateProvider>
         ))
         .with("analysis", () => (
           <TreeStateProvider id={tab.value}>
-            <Mosaic<ViewId>
-              renderTile={(id) => fullLayout[id]}
-              value={currentLayoutNode}
-              onChange={handleLayoutChange}
-              resize={{ minimumPaneSizePercentage: 0 }}
-            />
+            {layout}
             <BoardAnalysis />
             <ConfirmChangesModal
               opened={saveModalOpened}
@@ -380,12 +398,7 @@ function TabSwitch({
         ))
         .with("puzzles", () => (
           <TreeStateProvider id={tab.value}>
-            <Mosaic<ViewId>
-              renderTile={(id) => fullLayout[id]}
-              value={currentLayoutNode}
-              onChange={handleLayoutChange}
-              resize={{ minimumPaneSizePercentage: 0 }}
-            />
+            {layout}
             <Puzzles id={tab.value} />
           </TreeStateProvider>
         ))

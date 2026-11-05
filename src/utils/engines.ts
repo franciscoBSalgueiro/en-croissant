@@ -53,7 +53,7 @@ const localEngineSchema = z.object({
 export type LocalEngine = z.output<typeof localEngineSchema>;
 
 const remoteEngineSchema = z.object({
-    type: z.enum(["chessdb", "lichess"]),
+    type: z.enum(["chessdb", "lichess", "stockfish"]),
     id: z.string().default(() => crypto.randomUUID()),
     name: z.string(),
     url: z.string(),

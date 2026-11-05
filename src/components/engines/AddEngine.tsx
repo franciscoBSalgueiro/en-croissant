@@ -30,6 +30,7 @@ import {
 } from "@/utils/engines";
 import { usePlatform } from "@/utils/files";
 import { formatBytes } from "@/utils/format";
+import { builtinStockfish } from "@/utils/stockfish";
 import { unwrap } from "@/utils/unwrap";
 import ProgressButton from "../common/ProgressButton";
 import EngineForm from "./EngineForm";
@@ -111,6 +112,7 @@ function AddEngine({
         </Tabs.Panel>
         <Tabs.Panel value="cloud" pt="xs">
           <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="sm">
+            <CloudCard engine={builtinStockfish()} />
             <CloudCard
               engine={{
                 id: crypto.randomUUID(),
@@ -176,16 +178,16 @@ function CloudCard({ engine }: { engine: RemoteEngine }) {
               setEngines(async (prev) => [
                 ...(await prev),
                 {
-                  ...engine,
-                  id: crypto.randomUUID(),
-                  type: engine.type,
-                  loaded: true,
                   settings: [
                     {
                       name: "MultiPV",
                       value: "1",
                     },
                   ],
+                  ...engine,
+                  id: crypto.randomUUID(),
+                  type: engine.type,
+                  loaded: true,
                 },
               ]);
             }}

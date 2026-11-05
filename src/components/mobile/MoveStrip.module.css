@@ -1,0 +1,49 @@
+.strip {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  padding: 4px 6px;
+  height: 36px;
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-default);
+  border: 1px solid var(--mantine-color-default-border);
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.strip::-webkit-scrollbar {
+  display: none;
+}
+
+.num {
+  font-size: 12px;
+  color: var(--mantine-color-dimmed);
+  padding-left: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.move {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 3px 7px;
+  border-radius: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--mantine-color-text);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.current {
+  background: var(--mantine-primary-color-filled);
+  color: var(--mantine-color-white);
+}
+
+.empty {
+  font-size: 13px;
+  color: var(--mantine-color-dimmed);
+  padding-left: 6px;
+}

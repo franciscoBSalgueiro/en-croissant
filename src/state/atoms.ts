@@ -1,4 +1,6 @@
 import type { MantineColor } from "@mantine/core";
+import { IS_MOBILE_APP } from "@/utils/mobile";
+import { BUILTIN_STOCKFISH_ID } from "@/utils/stockfish";
 import { resolve } from "@tauri-apps/api/path";
 import { exists, mkdir, readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { parseUci } from "chessops";
@@ -692,7 +694,8 @@ export const tabEngineSettingsFamily = atomFamily(
             go: GoMode;
             synced: boolean;
         }>({
-            enabled: false,
+            // In the mobile app the built-in Stockfish starts analysing right away.
+            enabled: IS_MOBILE_APP && _engineId === BUILTIN_STOCKFISH_ID,
             settings: defaultSettings || [],
             go: defaultGo || { t: "Infinite" },
             synced: true,

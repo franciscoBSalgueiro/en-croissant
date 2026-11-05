@@ -1,4 +1,7 @@
 import { AppShell } from "@mantine/core";
+import { useBuiltinStockfish } from "@/hooks/useBuiltinStockfish";
+import { MOBILE_NAV_HEIGHT, MobileNav } from "@/components/mobile/MobileNav";
+import { useMobileLayout } from "@/utils/mobile";
 import { notifications } from "@mantine/notifications";
 import { createRootRouteWithContext, Outlet, useNavigate } from "@tanstack/react-router";
 import { TauriEvent } from "@tauri-apps/api/event";
@@ -93,6 +96,8 @@ export const Route = createRootRouteWithContext<{
 });
 
 function RootLayout() {
+  useBuiltinStockfish();
+  const mobileLayout = useMobileLayout();
   const isNative = useAtomValue(nativeBarAtom);
   const navigate = useNavigate();
 
@@ -408,15 +413,20 @@ function RootLayout() {
 
   return (
     <AppShell
-      navbar={{
-        width: "3rem",
-        breakpoint: 0,
-        collapsed: {
-          desktop: !showSidebar,
-          mobile: !showSidebar,
-        },
-      }}
+      navbar={
+        mobileLayout
+          ? undefined
+          : {
+              width: "3rem",
+              breakpoint: 0,
+              collapsed: {
+                desktop: !showSidebar,
+                mobile: !showSidebar,
+              },
+            }
+      }
       header={
+        mobileLayout ||
         isNative ||
         (import.meta.env.VITE_PLATFORM !== "win32" && import.meta.env.VITE_PLATFORM !== "linux")
           ? undefined
@@ -424,25 +434,43 @@ function RootLayout() {
               height: "2.25rem",
             }
       }
+      footer={
+        mobileLayout
+          ? { height: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom))` }
+          : undefined
+      }
       styles={{
-        main: {
-          height: "100vh",
-          userSelect: "none",
-        },
+        main: mobileLayout
+          ? {
+              height: "100dvh",
+              userSelect: "none",
+              WebkitUserSelect: "none",
+              paddingTop: "env(safe-area-inset-top)",
+            }
+          : {
+              height: "100vh",
+              userSelect: "none",
+            },
       }}
     >
       <AboutModal opened={opened} setOpened={setOpened} />
-      {!isNative &&
+      {!mobileLayout &&
+        !isNative &&
         (import.meta.env.VITE_PLATFORM === "win32" ||
           import.meta.env.VITE_PLATFORM === "linux") && (
           <AppShell.Header>
             <TopBar menuActions={menuActions} />
           </AppShell.Header>
         )}
-      {showSidebar && (
+      {showSidebar && !mobileLayout && (
         <AppShell.Navbar>
           <SideBar />
         </AppShell.Navbar>
+      )}
+      {mobileLayout && (
+        <AppShell.Footer withBorder={false}>
+          <MobileNav />
+        </AppShell.Footer>
       )}
       <AppShell.Main>
         <Outlet />

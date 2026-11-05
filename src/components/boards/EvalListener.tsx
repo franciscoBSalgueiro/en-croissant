@@ -26,6 +26,7 @@ import {
   stopEngine,
 } from "@/utils/engines";
 import { getBestMoves as lichessGetBestMoves } from "@/utils/lichess/api";
+import { stockfishGetBestMoves, stockfishStop } from "@/utils/stockfish";
 import { useThrottledEffect } from "@/utils/misc";
 import { TreeStateContext } from "../common/TreeStateContext";
 
@@ -198,6 +199,7 @@ function EngineListener({
         )
         .with("chessdb", () => chessdbGetBestMoves)
         .with("lichess", () => lichessGetBestMoves)
+        .with("stockfish", () => stockfishGetBestMoves(engine.id))
         .exhaustive(),
     [engine.type, engine],
   );
@@ -208,6 +210,8 @@ function EngineListener({
         if (isGameOver) {
           if (engine.type === "local") {
             stopEngine(engine, activeTab!);
+          } else if (engine.type === "stockfish") {
+            stockfishStop();
           }
         } else {
           const options =
@@ -234,6 +238,8 @@ function EngineListener({
       } else {
         if (engine.type === "local") {
           stopEngine(engine, activeTab!);
+        } else if (engine.type === "stockfish") {
+          stockfishStop();
         }
       }
     },

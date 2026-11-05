@@ -1,0 +1,36 @@
+.nav {
+  display: flex;
+  height: 100%;
+  align-items: stretch;
+  justify-content: space-around;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--mantine-color-body);
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+
+.item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  color: var(--mantine-color-dimmed);
+  -webkit-tap-highlight-color: transparent;
+  min-width: 0;
+}
+
+.item span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.active {
+  color: var(--mantine-primary-color-filled);
+}

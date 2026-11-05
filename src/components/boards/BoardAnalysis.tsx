@@ -44,6 +44,8 @@ import Board from "./Board";
 import BoardControls from "./BoardControls";
 import EditingCard from "./EditingCard";
 import EvalListener from "./EvalListener";
+import MoveStrip from "../mobile/MoveStrip";
+import { useMobileLayout } from "@/utils/mobile";
 
 function BoardAnalysis() {
   const { t } = useTranslation();
@@ -179,6 +181,17 @@ function BoardAnalysis() {
   ]);
 
   const isCompact = useAtomValue(isCompactLayoutAtom);
+  const mobileLayout = useMobileLayout();
+  // Phone layout (see TabSwitch): board on top, move strip + controls, then panels.
+  const stacked = isCompact && mobileLayout;
+
+  useEffect(() => {
+    if (stacked && (currentTabSelected === "info" || currentTabSelected === "moves")) {
+      setCurrentTabSelected("analysis");
+    }
+    // only on entering the phone layout
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stacked]);
 
   const notationPanel = editingMode ? (
     <EditingCard
@@ -201,7 +214,7 @@ function BoardAnalysis() {
           />
         }
       />
-      <MoveControls />
+      {!stacked && <MoveControls />}
     </Stack>
   );
 
@@ -216,6 +229,14 @@ function BoardAnalysis() {
           selectedPiece={selectedPiece}
         />
       </Portal>
+      {stacked && (
+        <Portal target="#mobileStrip">
+          <Stack gap={6}>
+            <MoveStrip />
+            <MoveControls />
+          </Stack>
+        </Portal>
+      )}
       <Portal target="#topRight" style={{ height: "100%" }}>
         <Paper
           withBorder
@@ -248,26 +269,44 @@ function BoardAnalysis() {
           >
             <Tabs.List grow>
               {isCompact && (
-                <Tabs.Tab value="moves" leftSection={<IconFileText size="1rem" />}>
-                  {t("Board.Tabs.Moves")}
+                <Tabs.Tab
+                  value="moves"
+                  leftSection={<IconFileText size={stacked ? "1.3rem" : "1rem"} />}
+                >
+                  {!stacked && t("Board.Tabs.Moves")}
                 </Tabs.Tab>
               )}
               {isRepertoire && (
-                <Tabs.Tab value="practice" leftSection={<IconTargetArrow size="1rem" />}>
-                  {t("Board.Tabs.Practice")}
+                <Tabs.Tab
+                  value="practice"
+                  leftSection={<IconTargetArrow size={stacked ? "1.3rem" : "1rem"} />}
+                >
+                  {!stacked && t("Board.Tabs.Practice")}
                 </Tabs.Tab>
               )}
-              <Tabs.Tab value="analysis" leftSection={<IconZoomCheck size="1rem" />}>
-                {t("Board.Tabs.Analysis")}
+              <Tabs.Tab
+                value="analysis"
+                leftSection={<IconZoomCheck size={stacked ? "1.3rem" : "1rem"} />}
+              >
+                {!stacked && t("Board.Tabs.Analysis")}
               </Tabs.Tab>
-              <Tabs.Tab value="database" leftSection={<IconDatabase size="1rem" />}>
-                {t("Board.Tabs.Database")}
+              <Tabs.Tab
+                value="database"
+                leftSection={<IconDatabase size={stacked ? "1.3rem" : "1rem"} />}
+              >
+                {!stacked && t("Board.Tabs.Database")}
               </Tabs.Tab>
-              <Tabs.Tab value="annotate" leftSection={<IconNotes size="1rem" />}>
-                {t("Board.Tabs.Annotate")}
+              <Tabs.Tab
+                value="annotate"
+                leftSection={<IconNotes size={stacked ? "1.3rem" : "1rem"} />}
+              >
+                {!stacked && t("Board.Tabs.Annotate")}
               </Tabs.Tab>
-              <Tabs.Tab value="info" leftSection={<IconInfoCircle size="1rem" />}>
-                {t("Board.Tabs.Info")}
+              <Tabs.Tab
+                value="info"
+                leftSection={<IconInfoCircle size={stacked ? "1.3rem" : "1rem"} />}
+              >
+                {!stacked && t("Board.Tabs.Info")}
               </Tabs.Tab>
             </Tabs.List>
             {isCompact && (
