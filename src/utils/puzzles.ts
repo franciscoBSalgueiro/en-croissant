@@ -19,7 +19,7 @@ export interface Puzzle {
     themes?: string[];
 }
 
-async function getPuzzleDatabase(name: string): Promise<PuzzleDatabaseInfo | null> {
+export async function getPuzzleDatabase(name: string): Promise<PuzzleDatabaseInfo | null> {
     const puzzlesDir = await getPuzzlesDir();
     const path = await resolve(puzzlesDir, name);
     return unwrap(await commands.getPuzzleDbInfo(path));

@@ -1,3 +1,4 @@
+pub mod aix;
 mod annotations;
 pub mod collection;
 mod legacy;
@@ -65,8 +66,18 @@ struct DuckdbConnectionCustomizer {
 
 impl CustomizeConnection<Connection, duckdb::Error> for DuckdbConnectionCustomizer {
     fn on_acquire(&self, connection: &mut Connection) -> Result<(), duckdb::Error> {
-        load_aixchess_extension(connection, &self.extension_path)
-            .map_err(|err| duckdb::Error::InvalidParameterName(err.to_string()))
+        // iOS/Android can't load the extension (a dynamic library): register the
+        // functions we need directly instead.
+        #[cfg(mobile)]
+        {
+            let _ = &self.extension_path;
+            aix::register_functions(connection)
+        }
+        #[cfg(not(mobile))]
+        {
+            load_aixchess_extension(connection, &self.extension_path)
+                .map_err(|err| duckdb::Error::InvalidParameterName(err.to_string()))
+        }
     }
 }
 

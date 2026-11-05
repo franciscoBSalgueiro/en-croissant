@@ -1,3 +1,4 @@
+import { notifications } from "@mantine/notifications";
 import {
   Alert,
   Box,
@@ -231,7 +232,17 @@ function DatabaseCard({
   async function downloadDatabase(id: number, url: string, name: string) {
     setInProgress(true);
     const path = await resolve(databaseDir, `${name}.duckdb`);
-    await commands.downloadFile(`db_${id}`, url, path, null, null, null);
+    const result = await commands.downloadFile(`db_${id}`, url, path, null, null, null);
+    if (result.status === "error") {
+      setInProgress(false);
+      notifications.show({
+        title: t("Common.Error"),
+        message: `Download fehlgeschlagen: ${result.error}`,
+        color: "red",
+        autoClose: false,
+      });
+      return;
+    }
     await setDatabases(await getDatabases());
   }
 

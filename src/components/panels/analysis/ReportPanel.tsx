@@ -13,6 +13,7 @@ import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { activeTabAtom, currentReportModalOpenAtom } from "@/state/atoms";
 import { ANNOTATION_INFO, isBasicAnnotation } from "@/utils/annotation";
 import { getGameStats, getMainLine } from "@/utils/chess";
+import { cancelBuiltinReport } from "@/utils/stockfishReport";
 import classes from "./AnalysisPanel.module.css";
 import ReportModal from "./ReportModal";
 
@@ -32,6 +33,7 @@ function ReportPanel() {
 
   const handleCancel = useCallback(() => {
     commands.cancelAnalysis(`report_${activeTab}`);
+    cancelBuiltinReport(`report_${activeTab}`);
   }, [activeTab]);
 
   const openReportingMode = useCallback(() => {

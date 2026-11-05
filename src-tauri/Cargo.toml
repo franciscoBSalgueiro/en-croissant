@@ -74,7 +74,9 @@ duckdb = { git = "https://github.com/duckdb/duckdb-rs", rev = "4acbea84794582c4c
   "r2d2",
   "chrono",
   "appender-arrow",
+  "vscalar",
 ] }
+bincode = "2.0"
 r2d2 = "0.8.10"
 lazy-regex = "3.5"
 

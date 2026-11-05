@@ -449,6 +449,8 @@ class StockfishPlayer {
     private onBest: ((uci: string | null) => void) | null = null;
     /** Candidate moves of the current search (weak mode): multipv -> [move, cp] */
     private candidates = new Map<number, [string, number]>();
+    /** Receives raw `info` lines while analysing a position (game report). */
+    private infoHandler: ((line: string) => void) | null = null;
     private queue: Promise<unknown> = Promise.resolve();
     private options = new Map<string, string>();
 
@@ -492,6 +494,7 @@ class StockfishPlayer {
             this.onBest = null;
             cb?.(uci && uci !== "(none)" ? uci : null);
         } else if (line.startsWith("info") && line.includes(" pv ")) {
+            this.infoHandler?.(line);
             const t = line.split(" ");
             let multipv = 1;
             let kind = "";
@@ -528,6 +531,55 @@ class StockfishPlayer {
     /** Abort a running search; its result is discarded. */
     stop() {
         if (this.onBest) this.send("stop");
+    }
+
+    /** Full-strength analysis of one position (used for the game report). */
+    analyse(fen: string, moves: string[], go: GoMode, multipv: number): Promise<BestMoves[]> {
+        return this.enqueue(async () => {
+            await this.start();
+            this.setOption("UCI_LimitStrength", "false");
+            this.setOption("MultiPV", String(multipv));
+            this.setOption("Hash", "32");
+            await withTimeout(
+                new Promise<void>((resolve) => {
+                    this.pendingReady.push(resolve);
+                    this.send("isready");
+                }),
+                5000,
+            ).catch(() => this.reset());
+            if (!this.worker) await this.start();
+
+            let best: BestMoves[] = [];
+            let lines: BestMoves[] = [];
+            let lastDepth = 0;
+            this.infoHandler = (line) => {
+                const p = parseInfo(line, fen, moves);
+                if (!p) return;
+                if (p.multipv === lines.length + 1) {
+                    lines.push(p);
+                    if (p.multipv === multipv) {
+                        if (lines.every((l) => l.depth === p.depth) && p.depth >= lastDepth) {
+                            best = lines.slice();
+                            lastDepth = p.depth;
+                        }
+                        lines = [];
+                    }
+                } else if (p.multipv === 1) {
+                    lines = [p];
+                }
+            };
+            const done = new Promise<void>((resolve) => {
+                this.onBest = () => resolve();
+            });
+            const movesPart = moves.length > 0 ? ` moves ${moves.join(" ")}` : "";
+            this.send(`position fen ${fen}${movesPart}`);
+            this.send(
+                go.t === "Infinite" || go.t === "PlayersTime" ? "go movetime 1000" : goCommand(go),
+            );
+            await done;
+            this.infoHandler = null;
+            return best;
+        });
     }
 
     newGame() {
@@ -636,6 +688,15 @@ const player = new StockfishPlayer();
 
 export function stockfishPlayMove(req: PlayMoveRequest) {
     return player.bestMove(req);
+}
+
+export function stockfishAnalysePosition(
+    fen: string,
+    moves: string[],
+    go: GoMode,
+    multipv: number,
+) {
+    return player.analyse(fen, moves, go, multipv);
 }
 
 export function stockfishPlayStop() {

@@ -9,6 +9,8 @@ import { commands, type GoMode } from "@/bindings";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { enginesAtom, referenceDbAtom } from "@/state/atoms";
 import type { LocalEngine } from "@/utils/engines";
+import { BUILTIN_STOCKFISH_ID } from "@/utils/stockfish";
+import { builtinAnalyzeGame } from "@/utils/stockfishReport";
 
 const reportSettingsAtom = atomWithStorage("report-settings", {
   novelty: true,
@@ -41,6 +43,14 @@ function ReportModal({
     () => (engines ?? []).filter((e): e is LocalEngine => e.type === "local"),
     [engines],
   );
+  // Engine programs plus the built-in Stockfish 19 (WebAssembly, works everywhere).
+  const engineOptions = useMemo(
+    () => [
+      ...localEngines.map((e) => ({ value: e.id, label: e.name })),
+      { value: BUILTIN_STOCKFISH_ID, label: "Stockfish 19" },
+    ],
+    [localEngines],
+  );
   const store = useContext(TreeStateContext)!;
   const addAnalysis = useStore(store, (s) => s.addAnalysis);
 
@@ -60,19 +70,27 @@ function ReportModal({
 
   useEffect(() => {
     const engine =
-      localEngines.length === 0
-        ? ""
-        : !reportSettings.engine || !localEngines.some((l) => l.id === reportSettings.engine)
-          ? localEngines[0].id
-          : reportSettings.engine;
+      reportSettings.engine && engineOptions.some((o) => o.value === reportSettings.engine)
+        ? reportSettings.engine
+        : engineOptions[0].value;
 
-    form.setValues({ ...reportSettings, engine });
-  }, [localEngines, reportSettings]);
+    // Novelties need a reference database; without one, don't block the report.
+    form.setValues({ ...reportSettings, engine, novelty: reportSettings.novelty && !!referenceDb });
+  }, [engineOptions, reportSettings, referenceDb]);
 
   function analyze() {
     setReportSettings(form.values);
     setInProgress(true);
     closeReportingMode();
+    if (form.values.engine === BUILTIN_STOCKFISH_ID) {
+      builtinAnalyzeGame(`report_${tab}`, initialFen, moves, form.values.goMode, form.values.reversed)
+        .then((analysis) => {
+          addAnalysis(analysis, { showVariations: form.values.variations });
+        })
+        .catch((err) => console.error("Report failed:", err))
+        .finally(() => setInProgress(false));
+      return;
+    }
     const engine = localEngines.find((e) => e.id === form.values.engine);
     const engineSettings = (engine?.settings ?? []).map((s) => ({
       ...s,
@@ -116,14 +134,7 @@ function ReportModal({
             withAsterisk
             label={t("Common.Engine")}
             placeholder="Pick one"
-            data={
-              localEngines.map((engine) => {
-                return {
-                  value: engine.id,
-                  label: engine.name,
-                };
-              }) ?? []
-            }
+            data={engineOptions}
             {...form.getInputProps("engine")}
           />
           <Group wrap="nowrap">
@@ -174,6 +185,7 @@ function ReportModal({
 
           <Checkbox
             label={t("Board.Analysis.AnnotateNovelties")}
+            disabled={!referenceDb}
             description={t("Board.Analysis.AnnotateNovelties.Desc")}
             {...form.getInputProps("novelty", { type: "checkbox" })}
           />
