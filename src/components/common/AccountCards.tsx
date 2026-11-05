@@ -1,5 +1,6 @@
 import {
   ActionIcon,
+  Box,
   Divider,
   Group,
   ScrollArea,
@@ -10,14 +11,45 @@ import {
 } from "@mantine/core";
 import { IconCheck, IconEdit, IconX } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { DatabaseInfo } from "@/bindings";
 import { sessionsAtom } from "@/state/atoms";
+import { cardGrid } from "@/utils/cardGrid";
 import { getChessComAccount, getStats } from "@/utils/chess.com/api";
 import { getLichessAccount } from "@/utils/lichess/api";
 import type { Session } from "@/utils/session";
 import { AccountCard } from "../home/AccountCard";
 import { EmptyAccounts } from "../home/EmptyAccounts";
+
+// The cards' width, in rem so it follows the app's font size. The narrowest a card can be: its
+// header (logo, name, buttons) still fits
+const MIN_CARD_SIZE = 18;
+// The widest, so a wide window fits more cards rather than wider ones
+const MAX_CARD_SIZE = 21;
+// The Group's gap between the cards: Mantine's md spacing
+const GAP = 1;
+// A player's Lichess and Chess.com cards side by side
+const CARDS_PER_ROW = 2;
+
+function remToPx(rem: number) {
+  return rem * Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+}
+
+// An element's width, measured as the element appears, before it's painted (Mantine's
+// useElementSize reports it a frame later, and never for an element that appears after its
+// component first rendered), then again whenever it changes
+function useMeasuredWidth<T extends HTMLElement>() {
+  const [width, setWidth] = useState(0);
+  const ref = useCallback((element: T | null) => {
+    if (!element) return;
+    const measure = () => setWidth(element.getBoundingClientRect().width);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  return { ref, width };
+}
 
 function AccountCards({
   databases,
@@ -45,17 +77,50 @@ function AccountCards({
   }
 
   return (
+    <PlayerSessions
+      playerSessions={playerSessions}
+      databases={databases}
+      setDatabases={setDatabases}
+    />
+  );
+}
+
+// Every player's cards, measured as they're first shown, so the first account added gets its
+// card at once and no card is ever drawn without its width
+function PlayerSessions({
+  playerSessions,
+  databases,
+  setDatabases,
+}: {
+  playerSessions: { name: string | undefined; sessions: Session[] }[];
+  databases: DatabaseInfo[];
+  setDatabases: React.Dispatch<React.SetStateAction<DatabaseInfo[]>>;
+}) {
+  // Every card is as wide, sized for the width they have (and as tall: see AccountCard)
+  const { ref, width } = useMeasuredWidth<HTMLDivElement>();
+  const { cardSize } = cardGrid(
+    width,
+    remToPx(GAP),
+    remToPx(MIN_CARD_SIZE),
+    remToPx(MAX_CARD_SIZE),
+    CARDS_PER_ROW,
+  );
+
+  return (
     <ScrollArea offsetScrollbars>
-      <Stack>
-        {playerSessions.map(({ name, sessions }) => (
-          <PlayerSession
-            key={name}
-            name={name!}
-            sessions={sessions}
-            databases={databases}
-            setDatabases={setDatabases}
-          />
-        ))}
+      <Stack ref={ref}>
+        {/* Once its width is known, which is before it's painted */}
+        {width > 0 &&
+          playerSessions.map(({ name, sessions }) => (
+            <PlayerSession
+              key={name}
+              name={name!}
+              sessions={sessions}
+              databases={databases}
+              setDatabases={setDatabases}
+              cardSize={cardSize}
+            />
+          ))}
       </Stack>
     </ScrollArea>
   );
@@ -66,11 +131,13 @@ function PlayerSession({
   sessions,
   databases,
   setDatabases,
+  cardSize,
 }: {
   name: string;
   sessions: Session[];
   databases: DatabaseInfo[];
   setDatabases: React.Dispatch<React.SetStateAction<DatabaseInfo[]>>;
+  cardSize: number;
 }) {
   const [, setSessions] = useAtom(sessionsAtom);
   const [edit, setEdit] = useState(false);
@@ -160,13 +227,14 @@ function PlayerSession({
       <Divider />
       <Group>
         {sessions.map((session, i) => (
-          <LichessOrChessCom
-            key={i}
-            session={session}
-            databases={databases}
-            setDatabases={setDatabases}
-            setSessions={setSessions}
-          />
+          <Box key={i} style={{ width: cardSize }}>
+            <LichessOrChessCom
+              session={session}
+              databases={databases}
+              setDatabases={setDatabases}
+              setSessions={setSessions}
+            />
+          </Box>
         ))}
       </Group>
     </Stack>
