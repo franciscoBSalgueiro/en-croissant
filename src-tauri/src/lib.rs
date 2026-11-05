@@ -88,11 +88,15 @@ pub struct AppState {
 #[tauri::command]
 #[specta::specta]
 async fn close_splashscreen(window: Window) -> Result<(), String> {
+    // On iOS/Android the window is always visible; `show` only exists on desktop.
+    #[cfg(desktop)]
     window
         .get_webview_window("main")
         .expect("no window labeled 'main' found")
         .show()
         .map_err(|e| e.to_string())?;
+    #[cfg(mobile)]
+    let _ = window;
     Ok(())
 }
 
