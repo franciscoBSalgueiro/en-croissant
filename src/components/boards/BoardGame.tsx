@@ -69,6 +69,16 @@ import BoardControls from "./BoardControls";
 import EditingCard from "./EditingCard";
 import { OpponentForm, type OpponentSettings } from "./OpponentForm";
 import { useMobileLayout } from "@/utils/mobile";
+import {
+  builtinPlayerName,
+  stockfishPlayMove,
+  stockfishPlayNewGame,
+  stockfishPlayStop,
+} from "@/utils/stockfish";
+
+function isBuiltin(p: OpponentSettings | undefined) {
+  return p?.type === "engine" && !!p.builtin;
+}
 
 function gameResultToOutcome(result: GameResult): Outcome {
   if (result.type === "whiteWins") return "1-0";
@@ -149,6 +159,11 @@ function BoardGame() {
   const [openingBookMaxPly, setOpeningBookMaxPly] = useAtom(gameOpeningBookMaxPlyAtom);
 
   const hasEngine = players.white.type === "engine" || players.black.type === "engine";
+  // Engine programs run in the backend and have logs; the built-in Stockfish runs here.
+  const hasBackendEngine =
+    (players.white.type === "engine" && !players.white.builtin) ||
+    (players.black.type === "engine" && !players.black.builtin);
+  const hasBuiltinEngine = isBuiltin(players.white) || isBuiltin(players.black);
 
   const isPlayerVsEngine =
     (players.white.type === "human" && players.black.type === "engine") ||
@@ -258,6 +273,10 @@ function BoardGame() {
         name: settings.name ?? "Player",
       };
     }
+    if (settings.builtin) {
+      // The backend treats it as a player whose moves we submit (see the effect below).
+      return { type: "human", name: builtinPlayerName(settings.elo ?? null) };
+    }
     return {
       type: "engine",
       name: settings.engine?.name ?? "Engine",
@@ -297,6 +316,9 @@ function BoardGame() {
     setGameId(newGameId);
 
     const initialMoves = getTreeMoves();
+    if (isBuiltin(playerSettings.white) || isBuiltin(playerSettings.black)) {
+      void stockfishPlayNewGame();
+    }
 
     const config: GameConfig = {
       white: toPlayerConfig(playerSettings.white),
@@ -388,11 +410,15 @@ function BoardGame() {
       }
 
       if (playerSettings.white.type === "engine") {
-        newHeaders.white_elo = playerSettings.white.engine?.elo ?? undefined;
+        newHeaders.white_elo = playerSettings.white.builtin
+          ? (playerSettings.white.elo ?? undefined)
+          : (playerSettings.white.engine?.elo ?? undefined);
       }
 
       if (playerSettings.black.type === "engine") {
-        newHeaders.black_elo = playerSettings.black.engine?.elo ?? undefined;
+        newHeaders.black_elo = playerSettings.black.builtin
+          ? (playerSettings.black.elo ?? undefined)
+          : (playerSettings.black.engine?.elo ?? undefined);
       }
 
       setHeaders({
@@ -461,8 +487,19 @@ function BoardGame() {
 
   const onTakeBack = useCallback(async () => {
     if (!gameId || gameState !== "playing") return;
-    const result = await commands.takeBackGameMove(gameId, null);
-  }, [gameId, gameState]);
+    if (hasBuiltinEngine) {
+      // The backend sees two "humans": take back to the human's last turn ourselves.
+      stockfishPlayStop();
+      const moves = getTreeMoves();
+      const humanColor = isBuiltin(players.white) ? "black" : "white";
+      const sideToMove = pos?.turn ?? "white";
+      const plies = sideToMove === humanColor ? 2 : 1;
+      const ply = Math.max(0, moves.length - plies);
+      if (moves.length > 0) await commands.takeBackGameMove(gameId, ply);
+      return;
+    }
+    await commands.takeBackGameMove(gameId, null);
+  }, [gameId, gameState, hasBuiltinEngine, players, pos]);
 
   useEffect(() => {
     if (gameState !== "playing" || !gameId) return;
@@ -534,6 +571,49 @@ function BoardGame() {
       });
     }
   }, [gameId, gameState, setGameState, setResult]);
+
+  // Built-in Stockfish: when it is its turn, compute a move here and submit it.
+  const whiteTimeRef = useRef(whiteTime);
+  whiteTimeRef.current = whiteTime;
+  const blackTimeRef = useRef(blackTime);
+  blackTimeRef.current = blackTime;
+  const engineRequestRef = useRef(0);
+  useEffect(() => {
+    if (gameState !== "playing" || !gameId || !pos || pos.isEnd()) return;
+    const side = players[pos.turn];
+    if (side?.type !== "engine" || !side.builtin) return;
+
+    const request = ++engineRequestRef.current;
+    const wtc = players.white.timeControl;
+    const btc = players.black.timeControl;
+    const wtime = whiteTimeRef.current;
+    const btime = blackTimeRef.current;
+    const clock =
+      wtc && btc && wtime !== null && btime !== null
+        ? { wtime, btime, winc: wtc.increment ?? 0, binc: btc.increment ?? 0 }
+        : null;
+
+    const currentGameId = gameId;
+    stockfishPlayMove({
+      fen: root.fen,
+      moves: getTreeMoves(),
+      elo: side.elo ?? null,
+      go: side.go,
+      clock,
+    })
+      .then((uci) => {
+        if (!uci || request !== engineRequestRef.current) return;
+        return commands.makeGameMove(currentGameId, uci);
+      })
+      .catch((err) => console.error("Built-in Stockfish move failed:", err));
+
+    return () => {
+      engineRequestRef.current++;
+      stockfishPlayStop();
+    };
+    // getTreeMoves/root are derived from the same tree as `pos`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState, gameId, pos, players]);
 
   const movable = useMemo(() => {
     if (players.white.type === "human" && players.black.type === "human") {
@@ -790,7 +870,7 @@ function BoardGame() {
                       Analyze
                     </Button>
 
-                    {hasEngine && (
+                    {hasBackendEngine && (
                       <Button
                         size={compact ? "xs" : "sm"}
                         variant="default"

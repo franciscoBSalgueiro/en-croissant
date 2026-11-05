@@ -2,17 +2,50 @@
   display: none;
 }
 
+/* Size comes only from the parent; content is absolutely positioned inside. */
+.root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  gap: 6px;
+  overflow: hidden;
+}
+
 .portrait {
+  flex-direction: column;
+}
+
+.landscape {
+  flex-direction: row;
+  gap: 10px;
+}
+
+.board {
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* Panel column: below the board (portrait) or next to it (landscape). */
+.side {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  height: 100%;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  /* room so the last panel is not glued to the tab bar */
-  padding-bottom: 6px;
+  padding-bottom: 4px;
 }
 
 /* Grow into free space, but never shrink below a usable height (the column scrolls). */
@@ -27,34 +60,3 @@
 .panelBottom {
   min-height: 240px;
 }
-
-/* Phones held sideways are short: smaller minimums so at least one panel fits. */
-.side .panelTop {
-  min-height: min(300px, 100%);
-}
-
-.side .panelBottom {
-  min-height: min(240px, 100%);
-}
-
-.landscape {
-  display: flex;
-  flex-direction: row;
-  gap: 10px;
-  height: 100%;
-  overflow: hidden;
-}
-
-.side {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex: 1;
-  min-width: 0;
-  height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-}
-

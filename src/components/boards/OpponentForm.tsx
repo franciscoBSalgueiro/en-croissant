@@ -3,8 +3,12 @@ import {
   Divider,
   Group,
   InputWrapper,
+  NumberInput,
   SegmentedControl,
+  Slider,
   Stack,
+  Switch,
+  Text,
   TextInput,
 } from "@mantine/core";
 import { IconCpu, IconUser } from "@tabler/icons-react";
@@ -15,7 +19,79 @@ import TimeInput, { type TimeType } from "@/components/common/TimeInput";
 import EngineSettingsForm from "@/components/panels/analysis/EngineSettingsForm";
 import type { TimeControlField } from "@/utils/clock";
 import type { EngineSettings, LocalEngine } from "@/utils/engines";
+import { IS_MOBILE_APP } from "@/utils/mobile";
+import { STOCKFISH_MAX_ELO, STOCKFISH_MIN_ELO } from "@/utils/stockfish";
 import { EnginesSelect } from "./EnginesSelect";
+
+const DEFAULT_ELO = 1500;
+
+/** Rough guide so the number means something. */
+function eloLabel(elo: number) {
+  if (elo < 1500) return "Anfänger / Gelegenheitsspieler";
+  if (elo < 1800) return "Vereinsspieler";
+  if (elo < 2100) return "starker Vereinsspieler";
+  if (elo < 2400) return "Experte / Meisterkandidat";
+  if (elo < 2700) return "Großmeister";
+  return "Weltspitze";
+}
+
+function EloInput({
+  elo,
+  setElo,
+  compact,
+}: {
+  elo: number | null;
+  setElo: (elo: number | null) => void;
+  compact: boolean;
+}) {
+  const limited = elo !== null;
+  const value = elo ?? STOCKFISH_MAX_ELO;
+  return (
+    <Stack gap={6}>
+      <Switch
+        size={compact ? "xs" : "sm"}
+        label="Elo begrenzen"
+        checked={limited}
+        onChange={(e) => setElo(e.currentTarget.checked ? DEFAULT_ELO : null)}
+      />
+      {limited ? (
+        <>
+          <Group gap={6} wrap="nowrap" align="center">
+            <Text size={compact ? "xs" : "sm"} fw={600} style={{ flexShrink: 0 }}>
+              Elo
+            </Text>
+            <NumberInput
+              size="xs"
+              min={STOCKFISH_MIN_ELO}
+              max={STOCKFISH_MAX_ELO}
+              step={50}
+              clampBehavior="blur"
+              value={value}
+              onChange={(v) => typeof v === "number" && setElo(v)}
+              style={{ flex: 1, minWidth: 0 }}
+            />
+          </Group>
+          <Slider
+            size="sm"
+            min={STOCKFISH_MIN_ELO}
+            max={STOCKFISH_MAX_ELO}
+            step={10}
+            value={value}
+            onChange={setElo}
+            label={(v) => `${v} Elo`}
+          />
+          <Text size="xs" c="dimmed">
+            ≈ {eloLabel(value)}
+          </Text>
+        </>
+      ) : (
+        <Text size="xs" c="dimmed">
+          Volle Stärke (ca. 3500+ Elo)
+        </Text>
+      )}
+    </Stack>
+  );
+}
 
 export type OpponentSettings =
   | {
@@ -29,6 +105,10 @@ export type OpponentSettings =
       type: "engine";
       timeControl?: TimeControlField;
       engine: LocalEngine | null;
+      /** Built-in Stockfish 19 (WebAssembly) instead of an engine program. */
+      builtin?: boolean;
+      /** Strength of the built-in engine; null = full strength. */
+      elo?: number | null;
       go: GoMode;
       engineSettings?: EngineSettings;
       timeUnit?: TimeType;
@@ -68,7 +148,10 @@ export function OpponentForm({
         ...prev,
         type: "engine",
         engine: null,
-        go: ("go" in prev && prev.go) || { t: "Depth", c: 24 },
+        // iOS can't run engine programs: use the built-in Stockfish there.
+        builtin: IS_MOBILE_APP || ("builtin" in prev && !!prev.builtin),
+        elo: "elo" in prev && prev.elo !== undefined ? prev.elo : DEFAULT_ELO,
+        go: ("go" in prev && prev.go) || (IS_MOBILE_APP ? { t: "Time", c: 1500 } : { t: "Depth", c: 24 }),
       }));
     }
   }
@@ -116,12 +199,32 @@ export function OpponentForm({
       {opponent.type === "engine" && (
         <EnginesSelect
           engine={opponent.engine}
+          builtin={!!opponent.builtin}
+          setBuiltin={() =>
+            setOpponent((prev) => ({
+              ...prev,
+              builtin: true,
+              engine: null,
+              elo: "elo" in prev && prev.elo !== undefined ? prev.elo : DEFAULT_ELO,
+            }))
+          }
           setEngine={(engine) =>
             setOpponent((prev) => ({
               ...prev,
+              builtin: false,
               engine,
               engineSettings: engine?.settings || undefined,
             }))
+          }
+        />
+      )}
+
+      {opponent.type === "engine" && opponent.builtin && (
+        <EloInput
+          compact={compact}
+          elo={opponent.elo ?? null}
+          setElo={(elo) =>
+            setOpponent((prev) => (prev.type === "engine" ? { ...prev, elo } : prev))
           }
         />
       )}
@@ -238,8 +341,10 @@ export function OpponentForm({
               }
             />
           )}
-          <Divider variant="dashed" label={t("Board.Opponent.EngineSettings", "Engine Settings")} />
-          {opponent.engine && (
+          {!opponent.builtin && (
+            <Divider variant="dashed" label={t("Board.Opponent.EngineSettings", "Engine Settings")} />
+          )}
+          {opponent.engine && !opponent.builtin && (
             <EngineSettingsForm
               engine={opponent.engine}
               remote={false}

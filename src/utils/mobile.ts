@@ -3,6 +3,10 @@ import { useMediaQuery, useViewportSize } from "@mantine/hooks";
 /** True when built for iOS/Android (set by vite.config.ts from TAURI_ENV_PLATFORM). */
 export const IS_MOBILE_APP: boolean = !!import.meta.env.VITE_MOBILE;
 
+if (IS_MOBILE_APP && typeof document !== "undefined") {
+    document.documentElement.setAttribute("data-mobile-app", "");
+}
+
 export type LayoutMode = "desktop" | "portrait" | "landscape";
 
 /**

@@ -263,7 +263,10 @@ export default function BoardsPage() {
         <Tabs.Panel
           key={tab.value}
           value={tab.value}
-          h="100%"
+          // Touch layouts: fill the space left below the tab bar exactly (100% would
+          // overflow by the tab bar's height and make the page bounce/resize).
+          h={mobileLayout ? undefined : "100%"}
+          style={mobileLayout ? { flex: "1 1 0", minHeight: 0 } : undefined}
           w="100%"
           pb={mobileLayout ? 4 : "sm"}
           px={mobileLayout ? 4 : "xs"}
@@ -362,7 +365,7 @@ function TabSwitch({
 
   const layout =
     layoutMode !== "desktop" ? (
-      <FixedBoardLayout mode={layoutMode} width={width} height={height} />
+      <FixedBoardLayout mode={layoutMode} />
     ) : (
       <Mosaic<ViewId>
         renderTile={(id) => fullLayout[id]}

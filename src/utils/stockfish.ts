@@ -400,3 +400,157 @@ export function builtinStockfish(): RemoteEngine {
         ],
     };
 }
+
+// ---------------------------------------------------------------------------
+// Playing against the built-in Stockfish (its own worker, separate from analysis).
+
+/** Stockfish's calibrated `UCI_Elo` range. */
+export const STOCKFISH_MIN_ELO = 1320;
+export const STOCKFISH_MAX_ELO = 3190;
+
+export type PlayMoveRequest = {
+    fen: string;
+    moves: string[];
+    /** null = full strength */
+    elo: number | null;
+    /** Used when the game has no clock. */
+    go: GoMode;
+    /** Remaining clock times in ms (null when the game has no clock). */
+    clock: { wtime: number; btime: number; winc: number; binc: number } | null;
+};
+
+class StockfishPlayer {
+    private worker: Worker | null = null;
+    private ready: Promise<void> | null = null;
+    private pendingReady: (() => void)[] = [];
+    private onBest: ((uci: string | null) => void) | null = null;
+    private queue: Promise<unknown> = Promise.resolve();
+    private options = new Map<string, string>();
+
+    private start(): Promise<void> {
+        if (this.ready) return this.ready;
+        const worker = new Worker(WORKER_URL);
+        this.worker = worker;
+        worker.onmessage = (e: MessageEvent) => this.onLine(String(e.data));
+        worker.onerror = (e) => {
+            console.error("Stockfish (play) worker crashed, restarting", e);
+            this.reset();
+        };
+        this.ready = new Promise((resolve) => {
+            this.pendingReady.push(resolve);
+            this.send("uci");
+            this.send("isready");
+        });
+        return this.ready;
+    }
+
+    private reset() {
+        this.worker?.terminate();
+        this.worker = null;
+        this.ready = null;
+        this.options.clear();
+        for (const r of this.pendingReady.splice(0)) r();
+        this.onBest?.(null);
+        this.onBest = null;
+    }
+
+    private send(cmd: string) {
+        this.worker?.postMessage(cmd);
+    }
+
+    private onLine(line: string) {
+        if (line === "readyok") {
+            this.pendingReady.shift()?.();
+        } else if (line.startsWith("bestmove")) {
+            const uci = line.split(" ")[1];
+            const cb = this.onBest;
+            this.onBest = null;
+            cb?.(uci && uci !== "(none)" ? uci : null);
+        }
+    }
+
+    private setOption(name: string, value: string) {
+        if (this.options.get(name) === value) return;
+        this.options.set(name, value);
+        this.send(`setoption name ${name} value ${value}`);
+    }
+
+    private enqueue<T>(job: () => Promise<T>): Promise<T> {
+        const run = this.queue.then(job, job);
+        this.queue = run.catch(() => undefined);
+        return run;
+    }
+
+    /** Abort a running search; its result is discarded. */
+    stop() {
+        if (this.onBest) this.send("stop");
+    }
+
+    newGame() {
+        return this.enqueue(async () => {
+            await this.start();
+            this.send("ucinewgame");
+        });
+    }
+
+    bestMove(req: PlayMoveRequest): Promise<string | null> {
+        this.stop();
+        return this.enqueue(async () => {
+            await this.start();
+            if (req.elo === null) {
+                this.setOption("UCI_LimitStrength", "false");
+            } else {
+                const elo = Math.round(
+                    Math.min(STOCKFISH_MAX_ELO, Math.max(STOCKFISH_MIN_ELO, req.elo)),
+                );
+                this.setOption("UCI_LimitStrength", "true");
+                this.setOption("UCI_Elo", String(elo));
+            }
+            this.setOption("Hash", "32");
+            await withTimeout(
+                new Promise<void>((resolve) => {
+                    this.pendingReady.push(resolve);
+                    this.send("isready");
+                }),
+                5000,
+            ).catch(() => this.reset());
+            if (!this.worker) await this.start();
+
+            const best = new Promise<string | null>((resolve) => {
+                this.onBest = resolve;
+            });
+            const movesPart = req.moves.length > 0 ? ` moves ${req.moves.join(" ")}` : "";
+            this.send(`position fen ${req.fen}${movesPart}`);
+            if (req.clock) {
+                const c = req.clock;
+                this.send(
+                    `go wtime ${Math.max(0, Math.round(c.wtime))} btime ${Math.max(0, Math.round(c.btime))} winc ${c.winc} binc ${c.binc}`,
+                );
+            } else if (req.go.t === "Infinite" || req.go.t === "PlayersTime") {
+                this.send("go movetime 1500");
+            } else {
+                this.send(goCommand(req.go));
+            }
+            return best;
+        });
+    }
+}
+
+const player = new StockfishPlayer();
+
+export function stockfishPlayMove(req: PlayMoveRequest) {
+    return player.bestMove(req);
+}
+
+export function stockfishPlayStop() {
+    player.stop();
+}
+
+export function stockfishPlayNewGame() {
+    return player.newGame();
+}
+
+/** Player name in the game/PGN; the strength goes into the Elo header. */
+export function builtinPlayerName(_elo: number | null) {
+    return "Stockfish 19";
+}

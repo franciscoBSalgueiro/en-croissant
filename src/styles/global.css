@@ -56,3 +56,14 @@ body {
 .mantine-ScrollArea-viewport {
   overscroll-behavior: none;
 }
+
+/* iOS/Android app: the page itself never scrolls (only inner panels do), so the
+   viewport can't bounce or resize while the device is rotated. */
+html[data-mobile-app],
+html[data-mobile-app] body {
+  overflow: hidden;
+  height: 100%;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+}
