@@ -24,10 +24,11 @@ fn open_database(path: &Path) -> Result<Connection, Error> {
             "This puzzle database uses the old SQLite format. Download the latest DuckDB puzzle database.",
         ).into());
     }
-    Ok(Connection::open_with_flags(
-        path,
-        Config::default().access_mode(AccessMode::ReadOnly)?,
-    )?)
+    match Connection::open_with_flags(path, Config::default().access_mode(AccessMode::ReadOnly)?) {
+        Ok(db) => Ok(db),
+        // Some platforms (iOS sandbox) refuse the read-only lock; a normal open works there.
+        Err(read_only_error) => Connection::open(path).map_err(|_| read_only_error.into()),
+    }
 }
 
 static PUZZLE_CACHE: Lazy<Mutex<PuzzleCache>> = Lazy::new(|| Mutex::new(PuzzleCache::new()));
