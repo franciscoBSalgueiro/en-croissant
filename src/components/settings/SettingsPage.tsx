@@ -33,6 +33,7 @@ import { RESET } from "jotai/utils";
 import posthog from "posthog-js";
 import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { ReviewOrder } from "@/components/files/opening";
 import {
   autoPromoteAtom,
   autoSaveAtom,
@@ -48,12 +49,14 @@ import {
   nativeBarAtom,
   pieceAnimationAtom,
   practiceAutoDifficultyAtom,
+  practiceReviewOrderAtom,
   previewBoardOnHoverAtom,
   flipBoardAfterMoveAtom,
   showArrowsAtom,
   showConsecutiveArrowsAtom,
   showCoordinatesAtom,
   showDestsAtom,
+  showPracticeReminderBadgesAtom,
   showVariationArrowsAtom,
   snapArrowsAtom,
   spellCheckAtom,
@@ -185,6 +188,7 @@ export default function Page() {
   const [materialDisplay, setMaterialDisplay] = useAtom(materialDisplayAtom);
   const [defaultPanelTab, setDefaultPanelTab] = useAtom(defaultPanelTabAtom);
   const [practiceAutoDifficulty, setPracticeAutoDifficulty] = useAtom(practiceAutoDifficultyAtom);
+  const [practiceReviewOrder, setPracticeReviewOrder] = useAtom(practiceReviewOrderAtom);
 
   const settings: SettingItem[] = useMemo(
     () => [
@@ -574,6 +578,33 @@ export default function Page() {
           />
         ),
       },
+      {
+        id: "repertoire-review-order",
+        category: "repertoire",
+        title: t("Settings.Repertoire.ReviewOrder"),
+        description: t("Settings.Repertoire.ReviewOrder.Desc"),
+        keywords: ["repertoire", "review", "order", "random", "shuffle", "overdue"],
+        render: () => (
+          <Select
+            allowDeselect={false}
+            data={[
+              { label: t("Settings.Repertoire.ReviewOrder.MostOverdue"), value: "most-overdue" },
+              { label: t("Settings.Repertoire.ReviewOrder.Random"), value: "random" },
+              { label: t("Settings.Repertoire.ReviewOrder.TreeOrder"), value: "tree-order" },
+            ]}
+            value={practiceReviewOrder}
+            onChange={(val) => setPracticeReviewOrder(val as ReviewOrder)}
+          />
+        ),
+      },
+      {
+        id: "repertoire-practice-reminder-badges",
+        category: "repertoire",
+        title: t("Settings.Repertoire.PracticeReminderBadges"),
+        description: t("Settings.Repertoire.PracticeReminderBadges.Desc"),
+        keywords: ["repertoire", "practice", "reminder", "badges", "due", "home", "files"],
+        render: () => <SettingsSwitch atom={showPracticeReminderBadgesAtom} />,
+      },
       // Sound settings
       {
         id: "volume",
@@ -709,6 +740,8 @@ export default function Page() {
       setDefaultPanelTab,
       practiceAutoDifficulty,
       setPracticeAutoDifficulty,
+      practiceReviewOrder,
+      setPracticeReviewOrder,
     ],
   );
 

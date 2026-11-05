@@ -1,10 +1,9 @@
-import { Badge, Box } from "@mantine/core";
+import { Box } from "@mantine/core";
 import {
   IconChevronRight,
   IconEye,
   IconFolder,
   IconFolderOpen,
-  IconTarget,
   IconTrash,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
@@ -24,12 +23,12 @@ import {
   createContext,
   useContext,
 } from "react";
-import { activeTabAtom, deckAtomFamily, tabsAtom, expandedDirectoriesAtom } from "@/state/atoms";
+import { activeTabAtom, tabsAtom, expandedDirectoriesAtom } from "@/state/atoms";
 import { openFile } from "@/utils/files";
 import classes from "./DirectoryTree.module.css";
 import type { Directory, FileMetadata } from "./file";
-import { getStats } from "./opening";
 import { FileIcon } from "./FileIcon";
+import { PracticeReminderBadge } from "./PracticeReminderBadge";
 
 type DragContextType = {
   draggingPath: string | null;
@@ -503,31 +502,12 @@ function DirectoryNode({
           <span className={classes.label}>{node.name}</span>
           {node.type === "file" && node.metadata.type === "repertoire" && (
             <div className={classes.badge}>
-              <DuePositions file={node.path} />
+              <PracticeReminderBadge file={node.path} size="xs" />
             </div>
           )}
         </div>
       </Draggable>
       {children}
     </>
-  );
-}
-
-function DuePositions({ file }: { file: string }) {
-  const [deck] = useAtom(
-    deckAtomFamily({
-      file,
-      game: 0,
-    }),
-  );
-
-  const stats = getStats(deck.positions);
-
-  if (stats.due + stats.unseen === 0) return null;
-
-  return (
-    <Badge size="xs" variant="light" leftSection={<IconTarget size={10} />}>
-      {stats.due + stats.unseen}
-    </Badge>
   );
 }
