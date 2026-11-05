@@ -27,10 +27,10 @@ export default function FixedBoardLayout({
     return (
       <div className={classes.landscape}>
         <div id="left" style={{ width: boardWidth, height: "100%", flexShrink: 0 }} />
-        <div className={classes.side}>
+        <div className={classes.side} data-mobile-scroll>
           <div id="mobileStrip" className={classes.slot} style={{ flexShrink: 0 }} />
-          <div id="topRight" className={classes.fill} />
-          <div id="bottomRight" className={`${classes.slot} ${classes.fill}`} />
+          <div id="topRight" className={`${classes.panel} ${classes.panelTop}`} />
+          <div id="bottomRight" className={`${classes.slot} ${classes.panel} ${classes.panelBottom}`} />
         </div>
       </div>
     );
@@ -40,11 +40,13 @@ export default function FixedBoardLayout({
   const maxBoard = height > 0 ? height * 0.62 : width + BOARD_CHROME;
   const boardHeight = Math.round(Math.min(width + BOARD_CHROME, maxBoard));
   return (
-    <div className={classes.portrait}>
+    // The panels below the board keep a usable minimum height; when the screen is too
+    // short for all of them, this column scrolls (swipe up) instead of squashing them.
+    <div className={classes.portrait} data-mobile-scroll>
       <div id="left" style={{ height: boardHeight, flexShrink: 0 }} />
       <div id="mobileStrip" className={classes.slot} style={{ flexShrink: 0 }} />
-      <div id="topRight" className={classes.fill} />
-      <div id="bottomRight" className={`${classes.slot} ${classes.fill}`} />
+      <div id="topRight" className={`${classes.panel} ${classes.panelTop}`} />
+      <div id="bottomRight" className={`${classes.slot} ${classes.panel} ${classes.panelBottom}`} />
     </div>
   );
 }

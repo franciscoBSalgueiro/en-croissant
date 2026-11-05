@@ -68,6 +68,7 @@ import Board from "./Board";
 import BoardControls from "./BoardControls";
 import EditingCard from "./EditingCard";
 import { OpponentForm, type OpponentSettings } from "./OpponentForm";
+import { useMobileLayout } from "@/utils/mobile";
 
 function gameResultToOutcome(result: GameResult): Outcome {
   if (result.type === "whiteWins") return "1-0";
@@ -86,6 +87,7 @@ function mapBackendMoves(moves: { uci: string; clock: bigint | null }[]): Backen
 
 function BoardGame() {
   const { t } = useTranslation();
+  const compact = useMobileLayout();
   const activeTab = useAtomValue(activeTabAtom);
 
   const [editingMode, toggleEditingMode] = useToggle();
@@ -613,7 +615,7 @@ function BoardGame() {
         />
       </Portal>
       <Portal target="#topRight" style={{ height: "100%", overflow: "hidden" }}>
-        <Paper withBorder shadow="sm" p="md" h="100%">
+        <Paper withBorder shadow="sm" p={compact ? "xs" : "md"} h="100%">
           {logsOpened ? (
             <EngineLogsView
               logs={engineLogs}
@@ -643,19 +645,19 @@ function BoardGame() {
               {gameState === "settingUp" && (
                 <Stack h="100%" gap={0}>
                   <ScrollArea style={{ flex: 1 }} offsetScrollbars>
-                    <Stack>
-                      <Group>
-                        <Text flex={1} ta="center" fz="lg" fw="bold">
+                    <Stack gap={compact ? "xs" : "md"}>
+                      <Group gap={compact ? "xs" : "md"}>
+                        <Text flex={1} ta="center" fz={compact ? "sm" : "lg"} fw="bold">
                           {match(inputColor)
                             .with("white", () => "White")
                             .with("random", () => "Random")
                             .with("black", () => "Black")
                             .exhaustive()}
                         </Text>
-                        <ActionIcon onClick={cycleColor}>
-                          <IconArrowsExchange />
+                        <ActionIcon onClick={cycleColor} size={compact ? "sm" : "md"}>
+                          <IconArrowsExchange size={compact ? "1rem" : undefined} />
                         </ActionIcon>
-                        <Text flex={1} ta="center" fz="lg" fw="bold">
+                        <Text flex={1} ta="center" fz={compact ? "sm" : "lg"} fw="bold">
                           {match(inputColor)
                             .with("white", () => "Black")
                             .with("random", () => "Random")
@@ -664,8 +666,9 @@ function BoardGame() {
                         </Text>
                       </Group>
                       <Box flex={1}>
-                        <Group style={{ alignItems: "start" }}>
+                        <Group style={{ alignItems: "start" }} gap={compact ? "xs" : "md"} wrap="nowrap">
                           <OpponentForm
+                            compact={compact}
                             sameTimeControl={sameTimeControl}
                             opponent={player1Settings}
                             setOpponent={setPlayer1Settings}
@@ -673,6 +676,7 @@ function BoardGame() {
                           />
                           <Divider orientation="vertical" />
                           <OpponentForm
+                            compact={compact}
                             sameTimeControl={sameTimeControl}
                             opponent={player2Settings}
                             setOpponent={setPlayer2Settings}
@@ -681,9 +685,10 @@ function BoardGame() {
                         </Group>
                       </Box>
 
-                      <Paper withBorder p="sm">
-                        <Stack>
+                      <Paper withBorder p={compact ? "xs" : "sm"}>
+                        <Stack gap={compact ? "xs" : "md"}>
                           <Checkbox
+                            size={compact ? "xs" : "sm"}
                             label={t("Board.Opponent.SameTimeControl")}
                             checked={sameTimeControl}
                             onChange={(e) => {
@@ -703,6 +708,7 @@ function BoardGame() {
                           <Divider variant="dashed" />
 
                           <Checkbox
+                            size={compact ? "xs" : "sm"}
                             label={t("Board.Opponent.EnableOpeningBook")}
                             checked={openingBookEnabled}
                             onChange={(e) => setOpeningBookEnabled(e.currentTarget.checked)}
@@ -736,20 +742,27 @@ function BoardGame() {
                     </Stack>
                   </ScrollArea>
 
-                  <Divider pb="sm" />
-                  <Button onClick={startGame} fullWidth variant="light" disabled={error !== null}>
+                  <Divider pb={compact ? "xs" : "sm"} />
+                  <Button
+                    onClick={startGame}
+                    fullWidth
+                    variant="light"
+                    size={compact ? "sm" : "md"}
+                    disabled={error !== null}
+                  >
                     {t("Board.Opponent.StartGame")}
                   </Button>
                 </Stack>
               )}
               {(gameState === "playing" || gameState === "gameOver") && (
-                <Stack h="100%">
+                <Stack h="100%" gap={compact ? "xs" : "md"}>
                   <Box flex={1}>
                     <GameInfo headers={headers} />
                   </Box>
-                  <Group grow>
+                  <Group grow gap={compact ? "xs" : "md"}>
                     {gameState === "playing" && (
                       <Button
+                        size={compact ? "xs" : "sm"}
                         variant="default"
                         color="red"
                         onClick={isEngineVsEngine ? handleAbort : handleResign}
@@ -759,11 +772,17 @@ function BoardGame() {
                       </Button>
                     )}
                     {gameState === "gameOver" && (
-                      <Button variant="default" onClick={handleNewGame} leftSection={<IconPlus />}>
+                      <Button
+                        size={compact ? "xs" : "sm"}
+                        variant="default"
+                        onClick={handleNewGame}
+                        leftSection={<IconPlus />}
+                      >
                         New Game
                       </Button>
                     )}
                     <Button
+                      size={compact ? "xs" : "sm"}
                       variant="default"
                       onClick={() => changeToAnalysisMode()}
                       leftSection={<IconZoomCheck />}
@@ -773,6 +792,7 @@ function BoardGame() {
 
                     {hasEngine && (
                       <Button
+                        size={compact ? "xs" : "sm"}
                         variant="default"
                         onClick={() => toggleLogsOpened()}
                         leftSection={<IconFileText size="1rem" />}

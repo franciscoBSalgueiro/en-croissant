@@ -96,7 +96,8 @@ jobs:
             **Installation:** Die `.ipa` mit Sideloadly oder AltStore und deiner Apple-ID signieren und installieren.
             Mit kostenloser Apple-ID läuft die App 7 Tage und muss dann neu signiert werden.
 
-            **Einschränkungen auf iOS:** keine externen Engines (Stockfish usw.), keine DuckDB-Partiedatenbanken.
+            **Enthalten:** Stockfish 19 (eingebaut, WebAssembly) für die Analyse.
+            **Einschränkungen auf iOS:** keine externen Engine-Programme, keine DuckDB-Partiedatenbanken.
             Analysebrett, PGN-Dateien, Eröffnungen, Lichess/Chess.com und Puzzles sollten funktionieren.
 
             Commit: ${{ github.sha }}

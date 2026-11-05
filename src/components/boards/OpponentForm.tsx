@@ -41,11 +41,14 @@ export const DEFAULT_TIME_CONTROL: TimeControlField = {
 };
 
 export function OpponentForm({
+  compact = false,
   sameTimeControl,
   opponent,
   setOpponent,
   setOtherOpponent,
 }: {
+  /** Smaller controls for phones/tablets. */
+  compact?: boolean;
   sameTimeControl: boolean;
   opponent: OpponentSettings;
   setOpponent: React.Dispatch<React.SetStateAction<OpponentSettings>>;
@@ -70,15 +73,20 @@ export function OpponentForm({
     }
   }
 
+  const size = compact ? "xs" : "sm";
+  const iconSize = compact ? 14 : 16;
+
   return (
-    <Stack flex={1}>
+    <Stack flex={1} gap={compact ? "xs" : "md"} miw={0}>
       <SegmentedControl
+        size={size}
+        fullWidth
         data={[
           {
             value: "human",
             label: (
-              <Center style={{ gap: 10 }}>
-                <IconUser size={16} />
+              <Center style={{ gap: compact ? 4 : 10 }}>
+                <IconUser size={iconSize} />
                 <span>{t("Board.Opponent.Human")}</span>
               </Center>
             ),
@@ -86,8 +94,8 @@ export function OpponentForm({
           {
             value: "engine",
             label: (
-              <Center style={{ gap: 10 }}>
-                <IconCpu size={16} />
+              <Center style={{ gap: compact ? 4 : 10 }}>
+                <IconCpu size={iconSize} />
                 <span>{t("Common.Engine")}</span>
               </Center>
             ),
@@ -99,6 +107,7 @@ export function OpponentForm({
 
       {opponent.type === "human" && (
         <TextInput
+          size={size}
           value={opponent.name ?? ""}
           onChange={(e) => setOpponent((prev) => ({ ...prev, name: e.target.value }))}
         />
@@ -119,6 +128,8 @@ export function OpponentForm({
 
       <Divider variant="dashed" label={t("Board.Opponent.TimeSettings")} />
       <SegmentedControl
+        size={size}
+        fullWidth
         data={[
           { value: "time", label: t("GoMode.Time") },
           { value: "unlimited", label: t("Board.Opponent.Unlimited") },
@@ -137,11 +148,12 @@ export function OpponentForm({
           }
         }}
       />
-      <Group grow wrap="nowrap">
+      <Group grow wrap="nowrap" gap={compact ? 6 : "md"}>
         {opponent.timeControl && (
           <>
-            <InputWrapper label={t("GoMode.Time")}>
+            <InputWrapper label={t("GoMode.Time")} size={size}>
               <TimeInput
+                compact={compact}
                 defaultType="m"
                 type={opponent.timeUnit}
                 onTypeChange={(t) => {
@@ -171,8 +183,9 @@ export function OpponentForm({
                 }}
               />
             </InputWrapper>
-            <InputWrapper label={t("Board.Opponent.Increment")}>
+            <InputWrapper label={t("Board.Opponent.Increment")} size={size}>
               <TimeInput
+                compact={compact}
                 defaultType="s"
                 type={opponent.incrementUnit}
                 onTypeChange={(t) => {
@@ -207,7 +220,7 @@ export function OpponentForm({
       </Group>
 
       {opponent.type === "engine" && (
-        <Stack>
+        <Stack gap={compact ? "xs" : "md"}>
           {!opponent.timeControl && (
             <GoModeInput
               gameMode
