@@ -40,7 +40,7 @@ pub(crate) mod ffi {
         InvalidDataDuringDecoding = 4,
     }
 
-    #[derive(Clone, Copy, bincode::Encode, bincode::Decode)]
+    #[derive(Clone, Copy)]
     pub struct Subfen {
         pub white: u64,
         pub black: u64,

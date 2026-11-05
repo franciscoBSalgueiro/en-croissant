@@ -2,7 +2,7 @@
 // Used on iOS/Android, where the aixchess DuckDB extension can't be loaded.
 #![allow(dead_code)]
 
-use std::{io::Write, str::FromStr};
+use std::str::FromStr;
 
 use super::ffi::{ScoutfishQueryParseError, Subfen};
 use aix_chess_compression::{Decode, Decoder, EncodedGame};
@@ -93,7 +93,6 @@ impl RawQuery {
 }
 
 #[cfg_attr(test, derive(Debug, PartialEq))]
-#[derive(bincode::Encode, bincode::Decode)]
 pub struct ColoredPieceCounts {
     w_k: u8,
     w_p: u8,
@@ -218,7 +217,6 @@ impl ColoredPieceCounts {
 }
 
 #[cfg_attr(test, derive(Debug, PartialEq))]
-#[derive(bincode::Encode, bincode::Decode)]
 pub struct PieceFlags {
     k: bool,
     p: bool,
@@ -256,7 +254,7 @@ impl PieceFlags {
 }
 
 #[cfg_attr(test, derive(Debug, PartialEq))]
-#[derive(Copy, Clone, bincode::Encode, bincode::Decode)]
+#[derive(Copy, Clone)]
 enum SanSubset {
     Normal {
         role: shakmaty::Role,
@@ -320,7 +318,6 @@ impl SanSubset {
 }
 
 #[cfg_attr(test, derive(Debug, PartialEq))]
-#[derive(bincode::Encode, bincode::Decode)]
 pub struct Rule {
     sub_fen: Option<Vec<Subfen>>,
     material: Option<Vec<ColoredPieceCounts>>,
@@ -334,18 +331,15 @@ pub struct Rule {
 }
 
 #[cfg_attr(test, derive(Debug, PartialEq))]
-#[derive(bincode::Encode, bincode::Decode)]
 pub struct Streak(Vec<Rule>);
 
 #[cfg_attr(test, derive(Debug, PartialEq))]
-#[derive(bincode::Encode, bincode::Decode)]
 pub enum SequenceElement {
     Rule(Rule),
     Streak(Streak),
 }
 
 #[cfg_attr(test, derive(Debug, PartialEq))]
-#[derive(bincode::Encode, bincode::Decode)]
 pub struct Sequence(Vec<SequenceElement>);
 
 struct SequenceState {
@@ -368,7 +362,6 @@ enum StreakFlow {
 }
 
 #[cfg_attr(test, derive(Debug, PartialEq))]
-#[derive(bincode::Encode, bincode::Decode)]
 pub enum Query {
     Rule(Rule),
     Sequence(Sequence),
@@ -744,33 +737,6 @@ impl Query {
         let raw =
             RawQuery::parse(s).map_err(|_| ScoutfishQueryParseError::InvalidSyntaxOrStructure)?;
         Query::from_raw(&raw)
-    }
-
-    pub fn parse_into_bytes(s: &[u8], out: &mut [u8]) -> Result<usize, ScoutfishQueryParseError> {
-        Query::parse(s).and_then(|query| {
-            bincode::encode_to_vec(&query, bincode::config::standard())
-                .map_err(|_| ScoutfishQueryParseError::BincodeError)
-                .and_then(|bytes| {
-                    if bytes.len() > out.len() {
-                        return Err(ScoutfishQueryParseError::BufferTooSmall);
-                    }
-
-                    let mut cursor = std::io::Cursor::new(out);
-                    cursor
-                        .write(&bytes)
-                        .map_err(|_| ScoutfishQueryParseError::CursorWriteError)
-                        .map(|w| {
-                            assert_eq!(w, bytes.len());
-                            w
-                        })
-                })
-        })
-    }
-
-    pub fn decode_bytes(data: &[u8]) -> Result<Query, ()> {
-        bincode::decode_from_slice::<Query, _>(data, bincode::config::standard())
-            .map_err(|_| ())
-            .map(|(query, _)| query)
     }
 
     pub fn apply(
