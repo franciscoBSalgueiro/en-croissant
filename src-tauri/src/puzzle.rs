@@ -150,12 +150,27 @@ pub async fn get_puzzle_db_info(file: PathBuf) -> Result<Option<PuzzleDatabaseIn
 fn database_info(path: PathBuf) -> Result<Option<PuzzleDatabaseInfo>, Error> {
     match is_legacy_database(&path) {
         Ok(true) => {
-            delete_puzzle_database(path.to_string_lossy().into_owned())?;
-            return Ok(None);
+            // iOS: say so instead of silently deleting the download.
+            #[cfg(mobile)]
+            return Err(std::io::Error::other(
+                "Die Datei ist im alten SQLite-Format, nicht DuckDB.",
+            )
+            .into());
+            #[cfg(not(mobile))]
+            {
+                delete_puzzle_database(path.to_string_lossy().into_owned())?;
+                return Ok(None);
+            }
         }
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
         Err(error) => return Err(error.into()),
         Ok(false) => {}
+    }
+    if path.is_dir() {
+        return Err(std::io::Error::other(
+            "Der Download ist ein Ordner (entpacktes Archiv), keine Datenbank-Datei.",
+        )
+        .into());
     }
     let db = open_database(&path)?;
     let puzzle_count = db.query_row("SELECT COUNT(*) FROM puzzles", [], |row| row.get(0))?;

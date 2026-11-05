@@ -86,11 +86,12 @@ function PuzzleDbCard({
     }
     // Make sure the downloaded file really opens; otherwise say why.
     try {
-      await getPuzzleDatabase(`${name}.duckdb`);
+      const info = await getPuzzleDatabase(`${name}.duckdb`);
+      if (!info) throw new Error("Datei nach dem Download nicht gefunden");
     } catch (e) {
       notifications.show({
         title: t("Common.Error"),
-        message: `Die Puzzle-Datenbank lässt sich nicht öffnen: ${e}`,
+        message: `Die Puzzle-Datenbank lässt sich nicht öffnen: ${e}\n(${url})`,
         color: "red",
         autoClose: false,
       });
