@@ -19,6 +19,9 @@
       "deb": {
         "depends": []
       },
+      "rpm": {
+        "depends": ["libssl.so.3()(64bit)"]
+      },
       "appimage": {
         "bundleMediaFramework": true
       }
