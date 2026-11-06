@@ -16,7 +16,7 @@ import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeFen, parseFen } from "chessops/fen";
 import { makeSan } from "chessops/san";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { memo, useCallback, useContext, useMemo, useState } from "react";
+import { memo, useCallback, useContext, useId, useMemo, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
@@ -61,6 +61,11 @@ import { arrowColors } from "../panels/analysis/BestMoves";
 import AnnotationHint from "./AnnotationHint";
 import { BoardBar } from "./BoardBar";
 import Clock from "./Clock";
+import {
+  agreementArrowShape,
+  getEngineAgreements,
+  shortenAgreementArrow,
+} from "./engineAgreementArrows";
 import EvalBar from "./EvalBar";
 import MoveInput from "./MoveInput";
 import PromotionModal from "./PromotionModal";
@@ -120,6 +125,7 @@ function Board({
       gameMoves: moves,
     }),
   );
+  const agreementBoardId = useId().replace(/[^a-zA-Z0-9_-]/g, "");
 
   const goToNext = useStore(store, (s) => s.goToNext);
   const goToPrevious = useStore(store, (s) => s.goToPrevious);
@@ -294,6 +300,8 @@ function Board({
     }
   }
 
+  const engineShapeCount = shapes.length;
+
   // Variation arrows: show all children moves when there are alternatives
   if (showVariationArrows && !practicing && currentNode.children.length > 1) {
     for (const child of currentNode.children) {
@@ -317,6 +325,28 @@ function Board({
 
   if (currentNode.shapes.length > 0) {
     shapes = shapes.concat(currentNode.shapes);
+  }
+
+  if (showArrows && evalOpen && arrows.size > 0 && pos) {
+    for (const agreement of getEngineAgreements(arrows)) {
+      const index = shapes.findIndex(
+        (shape) => shape.orig === agreement.orig && shape.dest === agreement.dest,
+      );
+      if (index !== -1 && index < engineShapeCount) {
+        shapes[index] = agreementArrowShape(
+          agreement.orig,
+          agreement.dest,
+          agreement.colors,
+          orientation,
+          agreementBoardId,
+          {
+            lineWidth: shapes[index].modifiers?.lineWidth ?? LARGE_BRUSH,
+            shorten: shortenAgreementArrow(agreement.dest, shapes),
+            opacities: agreement.opacities,
+          },
+        );
+      }
+    }
   }
 
   const hasClock =

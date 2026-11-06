@@ -89,6 +89,8 @@ piece.fading {
 
 .cg-wrap cg-auto-pieces,
 .cg-wrap .cg-shapes,
+.cg-wrap .cg-shapes-below,
+.cg-wrap .cg-custom-below,
 .cg-wrap .cg-custom-svgs {
   overflow: visible;
   position: absolute;
@@ -113,12 +115,23 @@ piece.fading {
   z-index: 2;
 }
 
+.cg-wrap .cg-shapes-below,
+.cg-wrap .cg-custom-below {
+  /* Above the board background, but below pieces (z-index: 2). */
+  z-index: 1;
+}
+
+.cg-wrap .cg-shapes-below {
+  overflow: hidden;
+}
+
 .cg-wrap .cg-custom-svgs {
   /* over piece.anim = 8, but under piece.dragging = 11 */
   z-index: 9;
 }
 
-.cg-wrap .cg-custom-svgs svg {
+.cg-wrap .cg-custom-svgs svg,
+.cg-wrap .cg-custom-below svg {
   overflow: visible;
 }
 
@@ -218,10 +231,6 @@ piece.fading {
 
 .cg-wrap coords.ranks coord {
   transform: translateY(39%);
-}
-
-.cg-custom-below {
-  display: none;
 }
 
 /* 3D Mode Overrides - from lila's _board-3d.scss */
