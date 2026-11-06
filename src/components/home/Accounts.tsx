@@ -65,6 +65,9 @@ function Accounts() {
   }
 
   async function addChessCom(player: string, username: string) {
+    // The iOS keyboard likes to add spaces (e.g. after autocomplete).
+    player = player.trim();
+    username = username.trim();
     const p = player !== "" ? player : username;
     const stats = await getChessComAccount(username);
     if (!stats) {
@@ -74,6 +77,9 @@ function Accounts() {
   }
 
   async function addLichessNoLogin(player: string, username: string) {
+    // The iOS keyboard likes to add spaces (e.g. after autocomplete).
+    player = player.trim();
+    username = username.trim();
     const p = player !== "" ? player : username;
     const account = await getLichessAccount({ username });
     if (!account) return;
@@ -91,6 +97,9 @@ function Accounts() {
   }
 
   async function addLichess(player: string, username: string, withLogin: boolean) {
+    // The iOS keyboard likes to add spaces (e.g. after autocomplete).
+    player = player.trim();
+    username = username.trim();
     if (withLogin) {
       sessionStorage.setItem("lichess_player_alias", player);
       return await commands.authenticate(username);

@@ -64,6 +64,7 @@ const ChessComGames = z.object({
 });
 
 export async function getChessComAccount(player: string): Promise<ChessComStats | null> {
+  player = player.trim();
   const url = `${baseURL}/pub/player/${player.toLowerCase()}/stats`;
   const response = await fetch(url, { headers: apiHeaders(), method: "GET" });
   if (!response.ok) {
@@ -100,6 +101,7 @@ async function getGameArchives(player: string) {
 }
 
 export async function downloadChessCom(player: string, timestamp: number | null) {
+  player = player.trim();
   const timestampDate = new Date(timestamp ?? 0);
   const approximateDate = new Date(timestampDate.getFullYear(), timestampDate.getMonth(), 1);
   const archives = await getGameArchives(player);
