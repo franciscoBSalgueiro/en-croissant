@@ -1,3 +1,4 @@
+import MasterDetail from "@/components/mobile/MasterDetail";
 import {
   ActionIcon,
   Alert,
@@ -156,7 +157,7 @@ export default function DatabasesPage() {
         <OpenFolderButton base="Database" folder={databaseDir} />
       </Group>
 
-      <Group grow flex={1} style={{ overflow: "hidden" }} align="start" px="md" pb="md">
+      <MasterDetail showDetail={selected !== null} onBack={() => setSelected(null)}>
         <Paper withBorder style={{ borderWidth: 2 }} h="100%">
           <Stack gap={0} h="100%" style={{ overflow: "hidden" }}>
             <Group p="xs" gap="xs">
@@ -523,7 +524,7 @@ export default function DatabasesPage() {
             </ScrollArea>
           </Paper>
         )}
-      </Group>
+      </MasterDetail>
     </Stack>
   );
 }

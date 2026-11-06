@@ -68,6 +68,17 @@ import Board from "./Board";
 import BoardControls from "./BoardControls";
 import EditingCard from "./EditingCard";
 import { OpponentForm, type OpponentSettings } from "./OpponentForm";
+import { useMobileLayout } from "@/utils/mobile";
+import {
+  builtinPlayerName,
+  stockfishPlayMove,
+  stockfishPlayNewGame,
+  stockfishPlayStop,
+} from "@/utils/stockfish";
+
+function isBuiltin(p: OpponentSettings | undefined) {
+  return p?.type === "engine" && !!p.builtin;
+}
 
 function gameResultToOutcome(result: GameResult): Outcome {
   if (result.type === "whiteWins") return "1-0";
@@ -86,6 +97,7 @@ function mapBackendMoves(moves: { uci: string; clock: bigint | null }[]): Backen
 
 function BoardGame() {
   const { t } = useTranslation();
+  const compact = useMobileLayout();
   const activeTab = useAtomValue(activeTabAtom);
 
   const [editingMode, toggleEditingMode] = useToggle();
@@ -147,6 +159,11 @@ function BoardGame() {
   const [openingBookMaxPly, setOpeningBookMaxPly] = useAtom(gameOpeningBookMaxPlyAtom);
 
   const hasEngine = players.white.type === "engine" || players.black.type === "engine";
+  // Engine programs run in the backend and have logs; the built-in Stockfish runs here.
+  const hasBackendEngine =
+    (players.white.type === "engine" && !players.white.builtin) ||
+    (players.black.type === "engine" && !players.black.builtin);
+  const hasBuiltinEngine = isBuiltin(players.white) || isBuiltin(players.black);
 
   const isPlayerVsEngine =
     (players.white.type === "human" && players.black.type === "engine") ||
@@ -256,6 +273,10 @@ function BoardGame() {
         name: settings.name ?? "Player",
       };
     }
+    if (settings.builtin) {
+      // The backend treats it as a player whose moves we submit (see the effect below).
+      return { type: "human", name: builtinPlayerName(settings.elo ?? null) };
+    }
     return {
       type: "engine",
       name: settings.engine?.name ?? "Engine",
@@ -295,6 +316,9 @@ function BoardGame() {
     setGameId(newGameId);
 
     const initialMoves = getTreeMoves();
+    if (isBuiltin(playerSettings.white) || isBuiltin(playerSettings.black)) {
+      void stockfishPlayNewGame();
+    }
 
     const config: GameConfig = {
       white: toPlayerConfig(playerSettings.white),
@@ -386,11 +410,15 @@ function BoardGame() {
       }
 
       if (playerSettings.white.type === "engine") {
-        newHeaders.white_elo = playerSettings.white.engine?.elo ?? undefined;
+        newHeaders.white_elo = playerSettings.white.builtin
+          ? (playerSettings.white.elo ?? undefined)
+          : (playerSettings.white.engine?.elo ?? undefined);
       }
 
       if (playerSettings.black.type === "engine") {
-        newHeaders.black_elo = playerSettings.black.engine?.elo ?? undefined;
+        newHeaders.black_elo = playerSettings.black.builtin
+          ? (playerSettings.black.elo ?? undefined)
+          : (playerSettings.black.engine?.elo ?? undefined);
       }
 
       setHeaders({
@@ -459,8 +487,19 @@ function BoardGame() {
 
   const onTakeBack = useCallback(async () => {
     if (!gameId || gameState !== "playing") return;
-    const result = await commands.takeBackGameMove(gameId, null);
-  }, [gameId, gameState]);
+    if (hasBuiltinEngine) {
+      // The backend sees two "humans": take back to the human's last turn ourselves.
+      stockfishPlayStop();
+      const moves = getTreeMoves();
+      const humanColor = isBuiltin(players.white) ? "black" : "white";
+      const sideToMove = pos?.turn ?? "white";
+      const plies = sideToMove === humanColor ? 2 : 1;
+      const ply = Math.max(0, moves.length - plies);
+      if (moves.length > 0) await commands.takeBackGameMove(gameId, ply);
+      return;
+    }
+    await commands.takeBackGameMove(gameId, null);
+  }, [gameId, gameState, hasBuiltinEngine, players, pos]);
 
   useEffect(() => {
     if (gameState !== "playing" || !gameId) return;
@@ -532,6 +571,49 @@ function BoardGame() {
       });
     }
   }, [gameId, gameState, setGameState, setResult]);
+
+  // Built-in Stockfish: when it is its turn, compute a move here and submit it.
+  const whiteTimeRef = useRef(whiteTime);
+  whiteTimeRef.current = whiteTime;
+  const blackTimeRef = useRef(blackTime);
+  blackTimeRef.current = blackTime;
+  const engineRequestRef = useRef(0);
+  useEffect(() => {
+    if (gameState !== "playing" || !gameId || !pos || pos.isEnd()) return;
+    const side = players[pos.turn];
+    if (side?.type !== "engine" || !side.builtin) return;
+
+    const request = ++engineRequestRef.current;
+    const wtc = players.white.timeControl;
+    const btc = players.black.timeControl;
+    const wtime = whiteTimeRef.current;
+    const btime = blackTimeRef.current;
+    const clock =
+      wtc && btc && wtime !== null && btime !== null
+        ? { wtime, btime, winc: wtc.increment ?? 0, binc: btc.increment ?? 0 }
+        : null;
+
+    const currentGameId = gameId;
+    stockfishPlayMove({
+      fen: root.fen,
+      moves: getTreeMoves(),
+      elo: side.elo ?? null,
+      go: side.go,
+      clock,
+    })
+      .then((uci) => {
+        if (!uci || request !== engineRequestRef.current) return;
+        return commands.makeGameMove(currentGameId, uci);
+      })
+      .catch((err) => console.error("Built-in Stockfish move failed:", err));
+
+    return () => {
+      engineRequestRef.current++;
+      stockfishPlayStop();
+    };
+    // getTreeMoves/root are derived from the same tree as `pos`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState, gameId, pos, players]);
 
   const movable = useMemo(() => {
     if (players.white.type === "human" && players.black.type === "human") {
@@ -613,7 +695,7 @@ function BoardGame() {
         />
       </Portal>
       <Portal target="#topRight" style={{ height: "100%", overflow: "hidden" }}>
-        <Paper withBorder shadow="sm" p="md" h="100%">
+        <Paper withBorder shadow="sm" p={compact ? "xs" : "md"} h="100%">
           {logsOpened ? (
             <EngineLogsView
               logs={engineLogs}
@@ -643,19 +725,19 @@ function BoardGame() {
               {gameState === "settingUp" && (
                 <Stack h="100%" gap={0}>
                   <ScrollArea style={{ flex: 1 }} offsetScrollbars>
-                    <Stack>
-                      <Group>
-                        <Text flex={1} ta="center" fz="lg" fw="bold">
+                    <Stack gap={compact ? "xs" : "md"}>
+                      <Group gap={compact ? "xs" : "md"}>
+                        <Text flex={1} ta="center" fz={compact ? "sm" : "lg"} fw="bold">
                           {match(inputColor)
                             .with("white", () => "White")
                             .with("random", () => "Random")
                             .with("black", () => "Black")
                             .exhaustive()}
                         </Text>
-                        <ActionIcon onClick={cycleColor}>
-                          <IconArrowsExchange />
+                        <ActionIcon onClick={cycleColor} size={compact ? "sm" : "md"}>
+                          <IconArrowsExchange size={compact ? "1rem" : undefined} />
                         </ActionIcon>
-                        <Text flex={1} ta="center" fz="lg" fw="bold">
+                        <Text flex={1} ta="center" fz={compact ? "sm" : "lg"} fw="bold">
                           {match(inputColor)
                             .with("white", () => "Black")
                             .with("random", () => "Random")
@@ -664,8 +746,9 @@ function BoardGame() {
                         </Text>
                       </Group>
                       <Box flex={1}>
-                        <Group style={{ alignItems: "start" }}>
+                        <Group style={{ alignItems: "start" }} gap={compact ? "xs" : "md"} wrap="nowrap">
                           <OpponentForm
+                            compact={compact}
                             sameTimeControl={sameTimeControl}
                             opponent={player1Settings}
                             setOpponent={setPlayer1Settings}
@@ -673,6 +756,7 @@ function BoardGame() {
                           />
                           <Divider orientation="vertical" />
                           <OpponentForm
+                            compact={compact}
                             sameTimeControl={sameTimeControl}
                             opponent={player2Settings}
                             setOpponent={setPlayer2Settings}
@@ -681,9 +765,10 @@ function BoardGame() {
                         </Group>
                       </Box>
 
-                      <Paper withBorder p="sm">
-                        <Stack>
+                      <Paper withBorder p={compact ? "xs" : "sm"}>
+                        <Stack gap={compact ? "xs" : "md"}>
                           <Checkbox
+                            size={compact ? "xs" : "sm"}
                             label={t("Board.Opponent.SameTimeControl")}
                             checked={sameTimeControl}
                             onChange={(e) => {
@@ -703,6 +788,7 @@ function BoardGame() {
                           <Divider variant="dashed" />
 
                           <Checkbox
+                            size={compact ? "xs" : "sm"}
                             label={t("Board.Opponent.EnableOpeningBook")}
                             checked={openingBookEnabled}
                             onChange={(e) => setOpeningBookEnabled(e.currentTarget.checked)}
@@ -736,20 +822,27 @@ function BoardGame() {
                     </Stack>
                   </ScrollArea>
 
-                  <Divider pb="sm" />
-                  <Button onClick={startGame} fullWidth variant="light" disabled={error !== null}>
+                  <Divider pb={compact ? "xs" : "sm"} />
+                  <Button
+                    onClick={startGame}
+                    fullWidth
+                    variant="light"
+                    size={compact ? "sm" : "md"}
+                    disabled={error !== null}
+                  >
                     {t("Board.Opponent.StartGame")}
                   </Button>
                 </Stack>
               )}
               {(gameState === "playing" || gameState === "gameOver") && (
-                <Stack h="100%">
+                <Stack h="100%" gap={compact ? "xs" : "md"}>
                   <Box flex={1}>
                     <GameInfo headers={headers} />
                   </Box>
-                  <Group grow>
+                  <Group grow gap={compact ? "xs" : "md"}>
                     {gameState === "playing" && (
                       <Button
+                        size={compact ? "xs" : "sm"}
                         variant="default"
                         color="red"
                         onClick={isEngineVsEngine ? handleAbort : handleResign}
@@ -759,11 +852,17 @@ function BoardGame() {
                       </Button>
                     )}
                     {gameState === "gameOver" && (
-                      <Button variant="default" onClick={handleNewGame} leftSection={<IconPlus />}>
+                      <Button
+                        size={compact ? "xs" : "sm"}
+                        variant="default"
+                        onClick={handleNewGame}
+                        leftSection={<IconPlus />}
+                      >
                         New Game
                       </Button>
                     )}
                     <Button
+                      size={compact ? "xs" : "sm"}
                       variant="default"
                       onClick={() => changeToAnalysisMode()}
                       leftSection={<IconZoomCheck />}
@@ -771,8 +870,9 @@ function BoardGame() {
                       Analyze
                     </Button>
 
-                    {hasEngine && (
+                    {hasBackendEngine && (
                       <Button
+                        size={compact ? "xs" : "sm"}
                         variant="default"
                         onClick={() => toggleLogsOpened()}
                         leftSection={<IconFileText size="1rem" />}

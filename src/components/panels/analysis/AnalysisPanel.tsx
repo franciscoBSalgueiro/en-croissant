@@ -40,11 +40,12 @@ import { getPiecesCount, hasCaptures, isOp1, positionFromFen } from "@/utils/che
 import type { Engine } from "@/utils/engines";
 import { getInitials } from "@/utils/format";
 import BestMoves, { arrowColors } from "./BestMoves";
-import EngineSelection from "./EngineSelection";
+import EngineSelection, { EngineChips } from "./EngineSelection";
 import LogsPanel from "./LogsPanel";
 import ReportPanel from "./ReportPanel";
 import ScoreBubble from "./ScoreBubble";
 import TablebaseInfo from "./TablebaseInfo";
+import { useMobileLayout } from "@/utils/mobile";
 
 function AnalysisPanel() {
   const { t } = useTranslation();
@@ -80,25 +81,27 @@ function AnalysisPanel() {
   const allEnabled = useAtomValue(allEnabledAtom);
 
   const [tab, setTab] = useAtom(currentAnalysisTabAtom);
+  const mobileLayout = useMobileLayout();
   const [expanded, setExpanded] = useAtom(currentExpandedEnginesAtom);
 
   const [pos] = positionFromFen(currentNodeFen);
   const navigate = useNavigate();
 
   return (
-    <Stack h="100%" pl="sm">
+    <Stack h="100%" pl={mobileLayout ? 4 : "sm"} pr={mobileLayout ? 4 : undefined}>
       <Tabs
         h="100%"
-        orientation="vertical"
-        placement="right"
+        orientation={mobileLayout ? "horizontal" : "vertical"}
+        placement={mobileLayout ? undefined : "right"}
         value={tab}
         onChange={(v) => setTab(v!)}
         style={{
           display: "flex",
+          flexDirection: mobileLayout ? "column" : undefined,
         }}
         keepMounted={false}
       >
-        <Tabs.List>
+        <Tabs.List grow={mobileLayout}>
           <Tabs.Tab value="engines">{t("Board.Analysis.Engines")}</Tabs.Tab>
           <Tabs.Tab value="report">{t("Board.Analysis.Report")}</Tabs.Tab>
           <Tabs.Tab value="logs" disabled={loadedEngines.length === 0}>
@@ -120,6 +123,14 @@ function AnalysisPanel() {
               document.dispatchEvent(new Event("analysis-panel-scroll"))
             }
           >
+            {mobileLayout && (
+              <Paper withBorder p={6} mb="xs">
+                <Text size="xs" c="dimmed" mb={4}>
+                  Engines – antippen zum Ein-/Ausschalten
+                </Text>
+                <EngineChips />
+              </Paper>
+            )}
             {pos &&
               (getPiecesCount(pos) <= 7 ||
                 (getPiecesCount(pos) === 8 && (hasCaptures(pos) || isOp1(pos)))) && (

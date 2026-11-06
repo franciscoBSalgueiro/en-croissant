@@ -11,6 +11,8 @@ import { commands } from "@/bindings";
 import { activeTabAtom, isCompactLayoutAtom, showTabBarAtom, tabsAtom } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { createTab, genID, isPersistentGameOrigin, type Tab } from "@/utils/tabs";
+import { useLayoutMode, useMobileLayout } from "@/utils/mobile";
+import FixedBoardLayout from "../mobile/FixedBoardLayout";
 import { unwrap } from "@/utils/unwrap";
 import BoardAnalysis from "../boards/BoardAnalysis";
 import BoardGame from "../boards/BoardGame";
@@ -29,6 +31,7 @@ import classes from "./BoardsPage.module.css";
 
 export default function BoardsPage() {
   const { t } = useTranslation();
+  const mobileLayout = useMobileLayout();
 
   const [tabs, setTabs] = useAtom(tabsAtom);
   const [activeTab, setActiveTab] = useAtom(activeTabAtom);
@@ -257,7 +260,17 @@ export default function BoardsPage() {
         </ScrollArea>
       )}
       {tabs.map((tab) => (
-        <Tabs.Panel key={tab.value} value={tab.value} h="100%" w="100%" pb="sm" px="xs">
+        <Tabs.Panel
+          key={tab.value}
+          value={tab.value}
+          // Touch layouts: fill the space left below the tab bar exactly (100% would
+          // overflow by the tab bar's height and make the page bounce/resize).
+          h={mobileLayout ? undefined : "100%"}
+          style={mobileLayout ? { flex: "1 1 0", minHeight: 0 } : undefined}
+          w="100%"
+          pb={mobileLayout ? 4 : "sm"}
+          px={mobileLayout ? 4 : "xs"}
+        >
           <TabSwitch
             tab={tab}
             saveModalOpened={saveModalOpened}
@@ -321,13 +334,16 @@ function TabSwitch({
   closeTab: (value: string | null, forced?: boolean) => void;
   activeTab: string | null;
 }) {
-  const { ref: containerRef, width } = useElementSize();
+  const { ref: containerRef, width, height } = useElementSize();
   const setIsCompactLayout = useSetAtom(isCompactLayoutAtom);
   const isCompact = width > 0 && width < 850;
+  const layoutMode = useLayoutMode();
 
+  // Touch layouts always use the compact panel arrangement (moves as a tab).
+  const compactPanels = isCompact || layoutMode !== "desktop";
   useEffect(() => {
-    setIsCompactLayout(isCompact);
-  }, [isCompact, setIsCompactLayout]);
+    setIsCompactLayout(compactPanels);
+  }, [compactPanels, setIsCompactLayout]);
 
   const [windowsState, setWindowsState] = useAtom(windowsStateAtom);
   const [compactWindowsState, setCompactWindowsState] = useAtom(compactWindowsStateAtom);
@@ -347,29 +363,31 @@ function TabSwitch({
     [isCompact, setCompactWindowsState, setWindowsState],
   );
 
+  const layout =
+    layoutMode !== "desktop" ? (
+      <FixedBoardLayout mode={layoutMode} />
+    ) : (
+      <Mosaic<ViewId>
+        renderTile={(id) => fullLayout[id]}
+        value={currentLayoutNode}
+        onChange={handleLayoutChange}
+        resize={{ minimumPaneSizePercentage: 0 }}
+      />
+    );
+
   return (
     <Box ref={containerRef} w="100%" h="100%">
       {match(tab.type)
         .with("new", () => <NewTabHome id={tab.value} />)
         .with("play", () => (
           <TreeStateProvider id={tab.value}>
-            <Mosaic<ViewId>
-              renderTile={(id) => fullLayout[id]}
-              value={currentLayoutNode}
-              onChange={handleLayoutChange}
-              resize={{ minimumPaneSizePercentage: 0 }}
-            />
+            {layout}
             <BoardGame />
           </TreeStateProvider>
         ))
         .with("analysis", () => (
           <TreeStateProvider id={tab.value}>
-            <Mosaic<ViewId>
-              renderTile={(id) => fullLayout[id]}
-              value={currentLayoutNode}
-              onChange={handleLayoutChange}
-              resize={{ minimumPaneSizePercentage: 0 }}
-            />
+            {layout}
             <BoardAnalysis />
             <ConfirmChangesModal
               opened={saveModalOpened}
@@ -380,12 +398,7 @@ function TabSwitch({
         ))
         .with("puzzles", () => (
           <TreeStateProvider id={tab.value}>
-            <Mosaic<ViewId>
-              renderTile={(id) => fullLayout[id]}
-              value={currentLayoutNode}
-              onChange={handleLayoutChange}
-              resize={{ minimumPaneSizePercentage: 0 }}
-            />
+            {layout}
             <Puzzles id={tab.value} />
           </TreeStateProvider>
         ))

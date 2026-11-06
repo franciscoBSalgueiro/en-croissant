@@ -208,6 +208,7 @@ export async function getLichessAccount({
   token?: string;
   username?: string;
 }): Promise<LichessAccount | null> {
+  username = username?.trim();
   let response: Response;
   if (token) {
     response = await fetch(`${baseURL}/account`, {
@@ -385,6 +386,7 @@ export async function downloadLichess(
   setProgress: (progress: number) => void,
   token?: string,
 ) {
+  player = player.trim();
   let url = `${baseURL}/games/user/${player}?perfType=ultraBullet,bullet,blitz,rapid,classical,correspondence&rated=true&sort=dateAsc`;
   if (timestamp) {
     url += `&since=${timestamp}`;

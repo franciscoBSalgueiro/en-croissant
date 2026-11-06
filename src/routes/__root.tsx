@@ -1,4 +1,7 @@
 import { AppShell } from "@mantine/core";
+import { useBuiltinStockfish } from "@/hooks/useBuiltinStockfish";
+import { MOBILE_NAV_HEIGHT, MOBILE_RAIL_WIDTH, MobileNav } from "@/components/mobile/MobileNav";
+import { useLayoutMode } from "@/utils/mobile";
 import { notifications } from "@mantine/notifications";
 import { createRootRouteWithContext, Outlet, useNavigate } from "@tanstack/react-router";
 import { TauriEvent } from "@tauri-apps/api/event";
@@ -93,6 +96,9 @@ export const Route = createRootRouteWithContext<{
 });
 
 function RootLayout() {
+  useBuiltinStockfish();
+  const layoutMode = useLayoutMode();
+  const mobileLayout = layoutMode !== "desktop";
   const isNative = useAtomValue(nativeBarAtom);
   const navigate = useNavigate();
 
@@ -373,7 +379,7 @@ function RootLayout() {
   const { data: menu } = useSWRImmutable(["menu", menuActions], () => createMenu(menuActions));
 
   useEffect(() => {
-    if (!menu) return;
+    if (!menu || import.meta.env.VITE_MOBILE) return;
     if (
       isNative ||
       (import.meta.env.VITE_PLATFORM !== "win32" && import.meta.env.VITE_PLATFORM !== "linux")
@@ -408,15 +414,25 @@ function RootLayout() {
 
   return (
     <AppShell
-      navbar={{
-        width: "3rem",
-        breakpoint: 0,
-        collapsed: {
-          desktop: !showSidebar,
-          mobile: !showSidebar,
-        },
-      }}
+      navbar={
+        layoutMode === "landscape"
+          ? {
+              width: `calc(${MOBILE_RAIL_WIDTH}px + env(safe-area-inset-left))`,
+              breakpoint: 0,
+            }
+          : mobileLayout
+            ? undefined
+            : {
+                width: "3rem",
+                breakpoint: 0,
+                collapsed: {
+                  desktop: !showSidebar,
+                  mobile: !showSidebar,
+                },
+              }
+      }
       header={
+        mobileLayout ||
         isNative ||
         (import.meta.env.VITE_PLATFORM !== "win32" && import.meta.env.VITE_PLATFORM !== "linux")
           ? undefined
@@ -424,25 +440,53 @@ function RootLayout() {
               height: "2.25rem",
             }
       }
+      footer={
+        layoutMode === "portrait"
+          ? { height: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom))` }
+          : undefined
+      }
       styles={{
-        main: {
-          height: "100vh",
-          userSelect: "none",
-        },
+        main: mobileLayout
+          ? {
+              height: "100dvh",
+              userSelect: "none",
+              WebkitUserSelect: "none",
+              paddingTop: "env(safe-area-inset-top)",
+              paddingRight: "env(safe-area-inset-right)",
+              paddingBottom:
+                layoutMode === "landscape"
+                  ? "env(safe-area-inset-bottom)"
+                  : `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom))`,
+            }
+          : {
+              height: "100vh",
+              userSelect: "none",
+            },
       }}
     >
       <AboutModal opened={opened} setOpened={setOpened} />
-      {!isNative &&
+      {!mobileLayout &&
+        !isNative &&
         (import.meta.env.VITE_PLATFORM === "win32" ||
           import.meta.env.VITE_PLATFORM === "linux") && (
           <AppShell.Header>
             <TopBar menuActions={menuActions} />
           </AppShell.Header>
         )}
-      {showSidebar && (
+      {showSidebar && !mobileLayout && (
         <AppShell.Navbar>
           <SideBar />
         </AppShell.Navbar>
+      )}
+      {layoutMode === "landscape" && (
+        <AppShell.Navbar withBorder={false}>
+          <MobileNav variant="rail" />
+        </AppShell.Navbar>
+      )}
+      {layoutMode === "portrait" && (
+        <AppShell.Footer withBorder={false}>
+          <MobileNav variant="bar" />
+        </AppShell.Footer>
       )}
       <AppShell.Main>
         <Outlet />

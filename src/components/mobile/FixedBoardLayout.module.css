@@ -1,0 +1,62 @@
+.slot:empty {
+  display: none;
+}
+
+/* Size comes only from the parent; content is absolutely positioned inside. */
+.root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.portrait {
+  flex-direction: column;
+}
+
+.landscape {
+  flex-direction: row;
+  gap: 10px;
+}
+
+.board {
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* Panel column: below the board (portrait) or next to it (landscape). */
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+}
+
+/* Grow into free space, but never shrink below a usable height (the column scrolls). */
+.panel {
+  flex: 1 0 auto;
+}
+
+.panelTop {
+  min-height: 300px;
+}
+
+.panelBottom {
+  min-height: 240px;
+}

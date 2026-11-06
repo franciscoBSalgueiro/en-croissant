@@ -1,8 +1,9 @@
 use std::{
     fs::create_dir_all,
-    io::Cursor,
     path::{Path, PathBuf},
 };
+
+use tokio::io::AsyncWriteExt;
 
 use log::info;
 use reqwest::{header::HeaderMap, Client};
@@ -41,42 +42,74 @@ pub async fn download_file(
         header_map.insert("Authorization", format!("Bearer {token}").parse().unwrap());
         req = req.headers(header_map);
     }
-    let res = req.send().await?;
+    let res = req.send().await?.error_for_status()?;
     let total_size = if let Some(total_size) = total_size {
         Some(total_size as u64)
     } else {
         res.content_length()
     };
 
-    let mut file: Vec<u8> = Vec::new();
-    let mut downloaded: u64 = 0;
-    let mut stream = res.bytes_stream();
-
-    while let Some(item) = stream.next().await {
-        let chunk = item?;
-        file.extend_from_slice(&chunk);
-        downloaded += chunk.len() as u64;
-        if let Some(total_size) = total_size {
-            let progress = ((downloaded as f32 / total_size as f32) * 100.0).min(100.0);
-            update_progress(&state.progress_state, &app, id.clone(), progress, false)?;
-        }
+    // Stream straight to disk: databases can be several GB, far more than an
+    // iPhone/iPad has RAM (keeping them in memory made large downloads fail).
+    let path = Path::new(&path).to_path_buf();
+    let temp_path = PathBuf::from(format!("{}.download", path.display()));
+    if let Some(parent) = temp_path.parent() {
+        create_dir_all(parent)?;
     }
-
-    let path = Path::new(&path);
-
-    info!("Downloaded file to {}", path.display());
-
-    match archive_kind(&url) {
-        Some(ArchiveKind::Zip) => unzip_file(path, file).await?,
-        Some(ArchiveKind::Tar) => {
-            let mut archive = tar::Archive::new(Cursor::new(file));
-            archive.unpack(path)?;
+    let result = async {
+        let mut out = tokio::io::BufWriter::with_capacity(
+            1 << 20,
+            tokio::fs::File::create(&temp_path).await?,
+        );
+        let mut downloaded: u64 = 0;
+        let mut stream = res.bytes_stream();
+        let mut last_progress = -1.0f32;
+        while let Some(item) = stream.next().await {
+            let chunk = item?;
+            out.write_all(&chunk).await?;
+            downloaded += chunk.len() as u64;
+            if let Some(total_size) = total_size {
+                let progress = ((downloaded as f32 / total_size as f32) * 100.0).min(100.0);
+                // Don't flood the UI with events for every network chunk.
+                if progress - last_progress >= 0.1 {
+                    last_progress = progress;
+                    update_progress(&state.progress_state, &app, id.clone(), progress, false)?;
+                }
+            }
         }
-        Some(ArchiveKind::TarGz) => {
-            unpack_tar_gz(path, file)?;
-        }
-        None => std::fs::write(path, file)?,
+        out.flush().await?;
+        drop(out);
+
+        info!("Downloaded file to {}", path.display());
+
+        let kind = archive_kind(&url);
+        let (dest, temp) = (path.clone(), temp_path.clone());
+        tokio::task::spawn_blocking(move || -> Result<(), Error> {
+            match kind {
+                Some(ArchiveKind::Zip) => unzip_reader(&dest, std::fs::File::open(&temp)?)?,
+                Some(ArchiveKind::Tar) => {
+                    let mut archive = tar::Archive::new(std::io::BufReader::new(
+                        std::fs::File::open(&temp)?,
+                    ));
+                    archive.unpack(&dest)?;
+                }
+                Some(ArchiveKind::TarGz) => {
+                    let decoder =
+                        GzDecoder::new(std::io::BufReader::new(std::fs::File::open(&temp)?));
+                    let mut archive = tar::Archive::new(decoder);
+                    archive.unpack(&dest)?;
+                }
+                None => std::fs::rename(&temp, &dest)?,
+            }
+            Ok(())
+        })
+        .await
+        .map_err(|e| std::io::Error::other(e.to_string()))??;
+        Ok::<(), Error>(())
     }
+    .await;
+    let _ = std::fs::remove_file(&temp_path);
+    result?;
 
     if finalize {
         update_progress(&state.progress_state, &app, id, 100.0, true)?;
@@ -85,12 +118,6 @@ pub async fn download_file(
     Ok(())
 }
 
-fn unpack_tar_gz(path: &Path, file: Vec<u8>) -> Result<(), Error> {
-    let decoder = GzDecoder::new(Cursor::new(file));
-    let mut archive = tar::Archive::new(decoder);
-    archive.unpack(path)?;
-    Ok(())
-}
 
 #[derive(Debug, PartialEq)]
 enum ArchiveKind {
@@ -113,8 +140,8 @@ fn archive_kind(url: &str) -> Option<ArchiveKind> {
     }
 }
 
-pub async fn unzip_file(path: &Path, file: Vec<u8>) -> Result<(), Error> {
-    let mut archive = zip::ZipArchive::new(Cursor::new(file))?;
+fn unzip_reader<R: std::io::Read + std::io::Seek>(path: &Path, file: R) -> Result<(), Error> {
+    let mut archive = zip::ZipArchive::new(file)?;
     for i in 0..archive.len() {
         let mut file = archive.by_index(i)?;
         let outpath = path.join(file.mangled_name());

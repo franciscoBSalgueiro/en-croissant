@@ -8,7 +8,8 @@ import { commands, type PuzzleDatabaseInfo } from "@/bindings";
 import { getDefaultPuzzleDatabases } from "@/utils/db";
 import { getPuzzlesDir } from "@/utils/directories";
 import { formatBytes, formatNumber } from "@/utils/format";
-import { getPuzzleDatabases } from "@/utils/puzzles";
+import { notifications } from "@mantine/notifications";
+import { getPuzzleDatabase, getPuzzleDatabases } from "@/utils/puzzles";
 import ProgressButton from "../common/ProgressButton";
 
 function AddPuzzle({
@@ -72,7 +73,38 @@ function PuzzleDbCard({
     setInProgress(true);
     const puzzlesDir = await getPuzzlesDir();
     const path = await resolve(puzzlesDir, `${name}.duckdb`);
-    await commands.downloadFile(`puzzle_db_${id}`, url, path, null, null, null);
+    const result = await commands.downloadFile(`puzzle_db_${id}`, url, path, null, null, null);
+    if (result.status === "error") {
+      setInProgress(false);
+      notifications.show({
+        title: t("Common.Error"),
+        message: `Download fehlgeschlagen: ${result.error}`,
+        color: "red",
+        autoClose: false,
+      });
+      return;
+    }
+    // Make sure the downloaded file really opens; otherwise say why.
+    // (An old-format file is converted here, which takes a minute for big databases.)
+    const note = notifications.show({
+      title: "Puzzle-Datenbank wird eingerichtet …",
+      message: "Das kann bei großen Datenbanken etwa eine Minute dauern.",
+      loading: true,
+      autoClose: false,
+    });
+    try {
+      const info = await getPuzzleDatabase(`${name}.duckdb`);
+      if (!info) throw new Error("Datei nach dem Download nicht gefunden");
+      notifications.hide(note);
+    } catch (e) {
+      notifications.hide(note);
+      notifications.show({
+        title: t("Common.Error"),
+        message: `Die Puzzle-Datenbank lässt sich nicht öffnen: ${e}\n(${url})`,
+        color: "red",
+        autoClose: false,
+      });
+    }
     setPuzzleDbs(await getPuzzleDatabases());
   }
 

@@ -10,7 +10,10 @@ function TimeInput({
   defaultType,
   type,
   onTypeChange,
+  compact = false,
 }: {
+  /** Narrow layout (phones): smaller input, unit picker without chevron. */
+  compact?: boolean;
   value: number;
   setValue: (v: GoMode) => void;
   defaultType?: TimeType;
@@ -37,6 +40,7 @@ function TimeInput({
 
   return (
     <NumberInput
+      size={compact ? "xs" : undefined}
       min={0}
       decimalScale={2}
       allowDecimal={false}
@@ -50,15 +54,20 @@ function TimeInput({
           value={timeType}
           withScrollArea={false}
           onChange={(v) => handleTypeChange(v as TimeType)}
+          size={compact ? "xs" : undefined}
+          rightSection={compact ? <span /> : undefined}
+          rightSectionWidth={compact ? 0 : undefined}
+          comboboxProps={compact ? { width: 64, position: "bottom-end" } : undefined}
           styles={{
             option: {
               wordBreak: "keep-all",
               overflow: "hidden",
             },
+            ...(compact ? { input: { paddingInline: 6, textAlign: "center" as const } } : {}),
           }}
         />
       }
-      rightSectionWidth={"30%"}
+      rightSectionWidth={compact ? "45%" : "30%"}
       value={displayedValue}
       onChange={(v) =>
         // setValue({ t: "Time", c: typeof v === "number" ? v : 1 })

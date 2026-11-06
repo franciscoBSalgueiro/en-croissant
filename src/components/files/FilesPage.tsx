@@ -1,3 +1,4 @@
+import MasterDetail from "@/components/mobile/MasterDetail";
 import {
   ActionIcon,
   Center,
@@ -257,7 +258,7 @@ function FilesPage() {
         <OpenFolderButton folder={documentDir} />
       </Group>
 
-      <Group grow flex={1} style={{ overflow: "hidden" }} px="md" pb="md">
+      <MasterDetail showDetail={selected !== null} onBack={() => setSelected(null)}>
         <Paper withBorder style={{ borderWidth: 2 }} h="100%">
           <Stack ref={dropzoneRef} gap={0} h="100%" style={{ overflow: "hidden" }}>
             <Group p="xs" gap="xs">
@@ -385,7 +386,7 @@ function FilesPage() {
             </Center>
           </Paper>
         )}
-      </Group>
+      </MasterDetail>
     </Stack>
   );
 }

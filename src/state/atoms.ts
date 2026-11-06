@@ -1,4 +1,6 @@
 import type { MantineColor } from "@mantine/core";
+import { IS_MOBILE_APP } from "@/utils/mobile";
+import { BUILTIN_STOCKFISH_ID } from "@/utils/stockfish";
 import { resolve } from "@tauri-apps/api/path";
 import { exists, mkdir, readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { parseUci } from "chessops";
@@ -207,7 +209,11 @@ export const eraseDrawablesOnClickAtom = atomWithStorage<boolean>(
     "erase-drawables-on-click",
     false,
 );
-export const autoPromoteAtom = atomWithStorage<boolean>("auto-promote", true);
+// iOS/Android: ask which piece to promote to (own storage keys so the touch defaults apply).
+export const autoPromoteAtom = atomWithStorage<boolean>(
+    IS_MOBILE_APP ? "auto-promote-mobile" : "auto-promote",
+    !IS_MOBILE_APP,
+);
 export const autoSaveAtom = atomWithStorage<boolean>("auto-save", true);
 export const previewBoardOnHoverAtom = atomWithStorage<boolean>("preview-board-on-hover", true);
 export const flipBoardAfterMoveAtom = atomWithStorage<boolean>("flip-board-after-move", true);
@@ -224,8 +230,8 @@ export const defaultPanelTabAtom = atomWithStorage<"analysis" | "database" | "an
 );
 export const forcedEnPassantAtom = atomWithStorage<boolean>("forced-ep", false);
 export const showCoordinatesAtom = atomWithStorage<"no" | "edge" | "all">(
-    "show-coordinates-v2",
-    "no",
+    IS_MOBILE_APP ? "show-coordinates-mobile" : "show-coordinates-v2",
+    IS_MOBILE_APP ? "edge" : "no",
     undefined,
     { getOnInit: true },
 );
@@ -692,7 +698,8 @@ export const tabEngineSettingsFamily = atomFamily(
             go: GoMode;
             synced: boolean;
         }>({
-            enabled: false,
+            // In the mobile app the built-in Stockfish starts analysing right away.
+            enabled: IS_MOBILE_APP && _engineId === BUILTIN_STOCKFISH_ID,
             settings: defaultSettings || [],
             go: defaultGo || { t: "Infinite" },
             synced: true,

@@ -154,7 +154,7 @@ function useAppStartup() {
       const detach = await attachConsole();
       info("React app started successfully");
 
-      checkForUpdates();
+      if (!import.meta.env.VITE_MOBILE) checkForUpdates();
 
       const store = getDefaultStore();
       const telemetryEnabled = store.get(telemetryEnabledAtom);
@@ -174,18 +174,19 @@ function useAppStartup() {
         void openCommandLineFile(payload, setTabs, setActiveTab, navigateToBoard);
       });
 
-      try {
-        const matches = await getMatches();
-        if (matches.args.file.occurrences > 0) {
-          info(`Opening file from command line: ${matches.args.file.value}`);
-          if (typeof matches.args.file.value === "string") {
-            const file = matches.args.file.value;
-            await openCommandLineFile(file, setTabs, setActiveTab, navigateToBoard);
+      if (!import.meta.env.VITE_MOBILE)
+        try {
+          const matches = await getMatches();
+          if (matches.args.file.occurrences > 0) {
+            info(`Opening file from command line: ${matches.args.file.value}`);
+            if (typeof matches.args.file.value === "string") {
+              const file = matches.args.file.value;
+              await openCommandLineFile(file, setTabs, setActiveTab, navigateToBoard);
+            }
           }
+        } catch (e) {
+          warn(`Failed to parse CLI args: ${e}`);
         }
-      } catch (e) {
-        warn(`Failed to parse CLI args: ${e}`);
-      }
 
       let unlistenDeepLink: (() => void) | undefined;
       try {

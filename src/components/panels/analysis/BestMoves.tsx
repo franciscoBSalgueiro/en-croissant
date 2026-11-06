@@ -236,7 +236,7 @@ function BestMovesComponent({
           settings={settings}
           setSettings={setSettings}
           color={id < 4 ? arrowColors[id].strong : theme.primaryColor}
-          remote={engine.type !== "local"}
+          remote={engine.type === "chessdb" || engine.type === "lichess"}
         />
       </Collapse>
 
