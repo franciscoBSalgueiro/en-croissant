@@ -53,11 +53,13 @@ function EvalListener() {
   }
 
   const isGameOver = pos?.isEnd() ?? false;
+  const isCheck = pos?.isCheck() ?? false;
+  const effectiveThreat = (threat as boolean) && !isCheck;
   const finalFen = useMemo(() => (pos ? makeFen(pos.toSetup()) : null), [pos]);
 
   const { searchingFen, searchingMoves } = useMemo(
     () =>
-      match(threat as boolean)
+      match(effectiveThreat)
         .with(true, () => ({
           searchingFen: swapMove(finalFen || INITIAL_FEN),
           searchingMoves: [],
@@ -67,7 +69,7 @@ function EvalListener() {
           searchingMoves: moves,
         }))
         .exhaustive(),
-    [fen, moves, threat, finalFen],
+    [fen, moves, effectiveThreat, finalFen],
   );
 
   const firstEngineWithLines = useAtomValue(
@@ -90,7 +92,8 @@ function EvalListener() {
         searchingMoves={searchingMoves}
         fen={fen}
         moves={moves}
-        threat={threat}
+        threat={effectiveThreat}
+        isCheck={isCheck}
       />
     ));
 }
@@ -99,6 +102,7 @@ function EngineListener({
   engine,
   firstEngineWithLines,
   isGameOver,
+  isCheck,
   finalFen,
   searchingFen,
   searchingMoves,
@@ -109,6 +113,7 @@ function EngineListener({
   engine: Engine;
   firstEngineWithLines: string | null;
   isGameOver: boolean;
+  isCheck: boolean;
   finalFen: string;
   searchingFen: string;
   searchingMoves: string[];
@@ -149,7 +154,7 @@ function EngineListener({
             newMap.set(`${searchingFen}:${searchingMoves.join(",")}`, ev);
             if (threat) {
               newMap.delete(`${fen}:${moves.join(",")}`);
-            } else if (finalFen) {
+            } else if (finalFen && !isCheck) {
               newMap.delete(`${swapMove(finalFen)}:`);
             }
             return newMap;
@@ -171,11 +176,16 @@ function EngineListener({
     setScore,
     settings.enabled,
     isGameOver,
+    isCheck,
     searchingFen,
     JSON.stringify(searchingMoves),
     engine.id,
     setEngineVariation,
     firstEngineWithLines,
+    threat,
+    fen,
+    JSON.stringify(moves),
+    finalFen,
   ]);
 
   const getBestMoves = useMemo(

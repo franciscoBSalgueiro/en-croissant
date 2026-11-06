@@ -141,7 +141,7 @@ function AnalysisPanel() {
                   <Group grow flex={1} gap="xs">
                     {loadedEngines.map((engine, i) => (
                       <EngineSummary
-                        key={engine.name}
+                        key={engine.id}
                         engine={engine}
                         fen={rootFen}
                         moves={moves}
@@ -158,7 +158,7 @@ function AnalysisPanel() {
                 variant="separated"
                 multiple
                 chevronSize={0}
-                value={expanded ?? loadedEngines.map((e) => e.name)}
+                value={expanded ?? loadedEngines.map((e) => e.id)}
                 onChange={(v) => setExpanded(v)}
                 styles={{
                   label: {
@@ -189,14 +189,10 @@ function AnalysisPanel() {
                       <div ref={provided.innerRef} {...provided.droppableProps}>
                         <Stack w="100%" gap="xs">
                           {loadedEngines.map((engine, i) => (
-                            <Draggable
-                              key={engine.name + i.toString()}
-                              draggableId={engine.name}
-                              index={i}
-                            >
+                            <Draggable key={engine.id} draggableId={engine.id} index={i}>
                               {(provided) => (
                                 <div ref={provided.innerRef} {...provided.draggableProps}>
-                                  <Accordion.Item value={engine.name}>
+                                  <Accordion.Item value={engine.id}>
                                     <BestMoves
                                       id={i}
                                       engine={engine}

@@ -12,10 +12,10 @@ function calculateProgress(
         return 0;
     }
     if (tc) {
-        return clock / (tc.seconds / 1000);
+        return tc.seconds > 0 ? clock / (tc.seconds / 1000) : 0;
     }
-    if (timeControl) {
-        return clock / (timeControl[0].seconds / 1000);
+    if (timeControl?.length) {
+        return timeControl[0].seconds > 0 ? clock / (timeControl[0].seconds / 1000) : 0;
     }
     if (root.children.length > 0 && root.children[0].clock) {
         return clock / root.children[0].clock;
@@ -115,18 +115,18 @@ export function getClockInfo({
     if (position.length <= 1 && timeControl) {
         if (timeControl.length > 0) {
             const seconds = timeControl[0].seconds / 1000;
-            if (!whiteSeconds) {
+            if (whiteSeconds === undefined) {
                 whiteSeconds = seconds;
             }
-            if (!blackSeconds) {
+            if (blackSeconds === undefined) {
                 blackSeconds = seconds;
             }
         }
     }
-    if (whiteTime) {
+    if (whiteTime !== undefined) {
         whiteSeconds = whiteTime / 1000;
     }
-    if (blackTime) {
+    if (blackTime !== undefined) {
         blackSeconds = blackTime / 1000;
     }
 

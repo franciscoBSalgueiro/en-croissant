@@ -16,7 +16,7 @@ export default function EngineForm({
   submitLabel,
 }: {
   onSubmit: (values: LocalEngine) => void;
-  form: UseFormReturnType<LocalEngine, (values: LocalEngine) => LocalEngine>;
+  form: UseFormReturnType<LocalEngine>;
   submitLabel: string;
 }) {
   const { t } = useTranslation();

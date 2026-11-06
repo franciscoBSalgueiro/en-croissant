@@ -38,14 +38,27 @@ export default function GameSelector({
   const loadMoreRows = useCallback(
     async (startIndex: number, stopIndex: number) => {
       const data = unwrap(await commands.readGames(path, startIndex, stopIndex));
-      const newGames = new Map(games);
-      data.forEach(async (game, index) => {
-        const { headers } = await parsePGN(game);
-        newGames.set(startIndex + index, getGameName(headers));
+      const entries = (
+        await Promise.all(
+          data.map(async (game, index) => {
+            try {
+              const { headers } = await parsePGN(game);
+              return [startIndex + index, getGameName(headers)] as const;
+            } catch {
+              return null;
+            }
+          }),
+        )
+      ).filter((entry) => entry !== null);
+      setGames((prev) => {
+        const newGames = new Map(prev);
+        for (const [index, name] of entries) {
+          newGames.set(index, name);
+        }
+        return newGames;
       });
-      setGames(newGames);
     },
-    [games, path, setGames],
+    [path, setGames],
   );
 
   const fontSize = useAtomValue(fontSizeAtom);

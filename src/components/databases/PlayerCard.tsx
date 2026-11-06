@@ -7,13 +7,15 @@ import PersonalPlayerCard from "../home/PersonalCard";
 
 function PlayerCard({ player, file }: { player: Player; file: string }) {
   const { t } = useTranslation();
-  const { data: info, isLoading } = useSWRImmutable(
-    ["player-game-info", file, player.id],
-    async ([key, file, id]) => {
-      const games = await commands.getPlayersGameInfo(file, id);
-      return unwrap(games);
-    },
-  );
+  const {
+    data: info,
+    isLoading,
+    error,
+  } = useSWRImmutable(["player-game-info", file, player.name], async ([_key, file, player]) => {
+    if (!player) return null;
+    const games = await commands.getPlayersGameInfo(file, player);
+    return unwrap(games);
+  });
 
   return (
     <>
@@ -27,7 +29,24 @@ function PlayerCard({ player, file }: { player: Player; file: string }) {
           </Center>
         </Paper>
       )}
-      {info && <PersonalPlayerCard name={player.name!} info={info} isDatabase />}
+      {info && (
+        <PersonalPlayerCard
+          key={player.name}
+          name={player.name!}
+          info={info}
+          isDatabase
+          openingSources={[{ file, player: player.name! }]}
+        />
+      )}
+      {error && !info && (
+        <Paper withBorder h="100%">
+          <Center h="100%">
+            <Text c="dimmed">
+              {t("Common.Error")}: {error instanceof Error ? error.message : String(error)}
+            </Text>
+          </Center>
+        </Paper>
+      )}
     </>
   );
 }

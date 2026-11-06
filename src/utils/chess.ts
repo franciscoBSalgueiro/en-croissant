@@ -1,5 +1,15 @@
 import type { DrawShape } from "@lichess-org/chessground/draw";
-import { type Color, type Move, makeSquare, makeUci, parseUci, type Role } from "chessops";
+import {
+    type Color,
+    type Move,
+    makeSquare,
+    makeUci,
+    parseSquare,
+    parseUci,
+    type Role,
+    roleToChar,
+    type Square,
+} from "chessops";
 import { type Chess, normalizeMove } from "chessops/chess";
 import { INITIAL_FEN, makeFen, parseFen } from "chessops/fen";
 import { isPawns, parseComment } from "chessops/pgn";
@@ -56,7 +66,9 @@ export function getMoveText(
 ): string {
     const isBlack = tree.halfMoves % 2 === 0;
     const moveNumber = Math.ceil(tree.halfMoves / 2);
-    let moveText = "";
+    let moveText = opt.comments
+        ? (tree.startingComments ?? []).map((comment) => `{${comment}} `).join("")
+        : "";
 
     if (tree.san) {
         if (isBlack) {
@@ -70,10 +82,12 @@ export function getMoveText(
         if (opt.glyphs) {
             for (const annotation of tree.annotations) {
                 if (annotation === "") continue;
-                moveText += isBasicAnnotation(annotation)
-                    ? tree.annotations
-                    : ` $${ANNOTATION_INFO[annotation].nag}`;
+                // Numeric glyphs remain unambiguous when a move has several.
+                moveText += ` $${ANNOTATION_INFO[annotation].nag}`;
             }
+        }
+        if (opt.glyphs) {
+            for (const nag of tree.unknownNags ?? []) moveText += ` $${nag}`;
         }
         moveText += " ";
     }
@@ -84,10 +98,13 @@ export function getMoveText(
         if (opt.extraMarkups) {
             if (tree.score !== null) {
                 if (tree.score.value.type === "cp") {
-                    content += `[%eval ${formatScore(tree.score.value)}] `;
+                    content += `[%eval ${formatScore(tree.score.value)}${tree.depth !== null ? `,${tree.depth}` : ""}] `;
                 } else {
-                    content += `[%eval #${tree.score.value.value}] `;
+                    content += `[%eval #${tree.score.value.value}${tree.depth !== null ? `,${tree.depth}` : ""}] `;
                 }
+            }
+            if (tree.elapsedTime !== undefined) {
+                content += `[%emt ${makeClk(tree.elapsedTime)}] `;
             }
             if (tree.clock !== undefined) {
                 content += `[%clk ${makeClk(tree.clock)}] `;
@@ -136,6 +153,18 @@ export function getLastMainlinePosition(root: TreeNode): number[] {
     return position;
 }
 
+// The square a move lands on, as shown on the board. chessops records castling
+// as the king moving onto its rook, so castling (with or without a check or
+// mate suffix) is mapped to the king's destination instead.
+export function getMoveDestination(
+    node: Pick<TreeNode, "san" | "halfMoves" | "move">,
+): Square | undefined {
+    const san = node.san?.replace(/[+#]+$/, "");
+    if (san === "O-O") return parseSquare(node.halfMoves % 2 === 1 ? "g1" : "g8");
+    if (san === "O-O-O") return parseSquare(node.halfMoves % 2 === 1 ? "c1" : "c8");
+    return node.move?.to;
+}
+
 export function getMainLine(root: TreeNode): string[] {
     return getVariationLine(root, getLastMainlinePosition(root), true);
 }
@@ -157,7 +186,9 @@ export function getVariationLine(
         return [];
     }
     for (const pos of position) {
-        node = node.children[pos];
+        const child = node.children[pos];
+        if (!child) break;
+        node = child;
         if (node.move) {
             moves.push(uciNormalize(chess, node.move));
             chess.play(node.move);
@@ -170,45 +201,38 @@ export function getVariationLine(
 }
 
 export function headersToPGN(game: GameHeaders): string {
-    let headers = `[Event "${game.event || "?"}"]
-[Site "${game.site || "?"}"]
-[Date "${game.date || "????.??.??"}"]
-[Round "${game.round || "?"}"]
-[White "${game.white || "?"}"]
-[Black "${game.black || "?"}"]
-[Result "${game.result}"]
-`;
-    if (game.white_elo !== undefined && game.white_elo !== null) {
-        headers += `[WhiteElo "${game.white_elo === 0 ? "-" : game.white_elo}"]\n`;
-    }
-    if (game.black_elo !== undefined && game.black_elo !== null) {
-        headers += `[BlackElo "${game.black_elo === 0 ? "-" : game.black_elo}"]\n`;
-    }
-    if (game.start && game.start.length > 0) {
-        headers += `[Start "${JSON.stringify(game.start)}"]\n`;
-    }
-    if (game.orientation) {
-        headers += `[Orientation "${game.orientation}"]\n`;
-    }
-    if (game.time_control) {
-        headers += `[TimeControl "${game.time_control}"]\n`;
-    }
-    if (game.white_time_control) {
-        headers += `[WhiteTimeControl "${game.white_time_control}"]\n`;
-    }
-    if (game.black_time_control) {
-        headers += `[BlackTimeControl "${game.black_time_control}"]\n`;
-    }
-    if (game.eco) {
-        headers += `[ECO "${game.eco}"]\n`;
-    }
-    if (game.variant) {
-        headers += `[Variant "${game.variant}"]\n`;
-    }
-    for (const [key, value] of Object.entries(game.other ?? {})) {
-        headers += `[${key} "${value}"]\n`;
-    }
-    return headers;
+    const tags: Record<string, string> = {
+        ...Object.fromEntries(
+            Object.entries(game.other ?? {}).filter(
+                (entry): entry is [string, string] => entry[1] !== undefined,
+            ),
+        ),
+        Event: game.event || "?",
+        Site: game.site || "?",
+        Date: game.date || "????.??.??",
+        Round: game.round || "?",
+        White: game.white || "?",
+        Black: game.black || "?",
+        Result: game.result,
+    };
+    if (game.time) tags.UTCTime = game.time;
+    if (game.white_elo != null) tags.WhiteElo = game.white_elo === 0 ? "-" : `${game.white_elo}`;
+    if (game.black_elo != null) tags.BlackElo = game.black_elo === 0 ? "-" : `${game.black_elo}`;
+    if (game.start?.length) tags.Start = JSON.stringify(game.start);
+    if (game.orientation) tags.Orientation = game.orientation;
+    if (game.time_control) tags.TimeControl = game.time_control;
+    if (game.white_time_control) tags.WhiteTimeControl = game.white_time_control;
+    if (game.black_time_control) tags.BlackTimeControl = game.black_time_control;
+    if (game.eco) tags.ECO = game.eco;
+    if (game.variant) tags.Variant = game.variant;
+    const roster = ["Event", "Site", "Date", "Round", "White", "Black", "Result"];
+    const order = [...roster, ...Object.keys(tags).filter((key) => !roster.includes(key))];
+    return order
+        .map((key) => {
+            const value = tags[key].replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+            return `[${key} "${value}"]\n`;
+        })
+        .join("");
 }
 
 export function defaultPGN() {
@@ -350,16 +374,16 @@ export async function getOpening(root: TreeNode, position: number[]): Promise<st
     return "";
 }
 
-function innerParsePGN(tokens: Token[], fen: string = INITIAL_FEN, halfMoves = 0): TreeState {
+export function innerParsePGN(
+    tokens: Token[],
+    fen: string = INITIAL_FEN,
+    halfMoves?: number,
+): TreeState {
     const tree = defaultTree(fen);
     let root = tree.root;
     let prevNode = root;
-    root.halfMoves = halfMoves;
     const setup = parseFen(fen).unwrap();
-
-    if (halfMoves === 0 && setup.turn === "black") {
-        root.halfMoves += 1;
-    }
+    root.halfMoves = halfMoves ?? (setup.fullmoves - 1) * 2 + (setup.turn === "black" ? 1 : 0);
 
     for (let i = 0; i < tokens.length; i++) {
         const token = tokens[i];
@@ -368,6 +392,7 @@ function innerParsePGN(tokens: Token[], fen: string = INITIAL_FEN, halfMoves = 0
             const comment = parseComment(token.value);
 
             if (comment.evaluation) {
+                root.depth = comment.evaluation.depth ?? null;
                 if (isPawns(comment.evaluation)) {
                     root.score = {
                         value: {
@@ -390,18 +415,19 @@ function innerParsePGN(tokens: Token[], fen: string = INITIAL_FEN, halfMoves = 0
             if (comment.shapes.length > 0) {
                 const shapes: DrawShape[] = comment.shapes.map((shape) => ({
                     orig: makeSquare(shape.from),
-                    dest: makeSquare(shape.to),
+                    dest: shape.from === shape.to ? undefined : makeSquare(shape.to),
                     brush: shape.color,
                 }));
                 root.shapes.push(...shapes);
             }
 
-            if (comment.clock) {
+            if (comment.clock !== undefined) {
                 root.clock = comment.clock;
             }
 
-            // Strip [%timestamp N] annotations (chess.com export format) from comment text
-            root.comment = comment.text.replace(/\s?\[%timestamp\s+\d+\]\s?/g, " ").trim();
+            if (comment.emt !== undefined) root.elapsedTime = comment.emt;
+            // Preserve unrecognised directives and every comment on this node.
+            root.comment = [root.comment, comment.text].filter(Boolean).join("\n");
         } else if (token.type === "ParenOpen") {
             const variation = [];
             let subvariations = 0;
@@ -417,11 +443,24 @@ function innerParsePGN(tokens: Token[], fen: string = INITIAL_FEN, halfMoves = 0
             }
             const newTree = innerParsePGN(variation, prevNode.fen, root.halfMoves - 1);
             if (newTree.root.children.length > 0) {
-                prevNode.children.push(newTree.root.children[0]);
+                const first = newTree.root.children[0];
+                first.startingComments = variation
+                    .slice(
+                        0,
+                        variation.findIndex((token) => token.type === "San"),
+                    )
+                    .filter(
+                        (token): token is Extract<Token, { type: "Comment" }> =>
+                            token.type === "Comment",
+                    )
+                    .map((token) => token.value);
+                prevNode.children.push(first);
             }
         } else if (token.type === "ParenClose") {
         } else if (token.type === "Nag") {
-            root.annotations.push(NAG_INFO.get(token.value) || "");
+            const annotation = NAG_INFO.get(token.value);
+            if (annotation) root.annotations.push(annotation);
+            else (root.unknownNags ??= []).push(Number(token.value.slice(1)));
             root.annotations.sort((a, b) => {
                 return ANNOTATION_INFO[a].nag - ANNOTATION_INFO[b].nag;
             });
@@ -463,13 +502,7 @@ export async function parsePGN(pgn: string, initialFen?: string): Promise<TreeSt
     const headers = getPgnHeaders(tokens);
     const fen = initialFen?.trim() || headers.fen.trim();
 
-    const [pos] = positionFromFen(fen);
-
-    const tree = innerParsePGN(
-        tokens,
-        initialFen?.trim() || headers.fen.trim(),
-        pos?.turn === "black" ? 1 : 0,
-    );
+    const tree = innerParsePGN(tokens, fen);
     tree.headers = headers;
     tree.position = headers.start ?? [];
     return tree;
@@ -493,6 +526,7 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
         BlackElo,
         WhiteElo,
         Date,
+        UTCTime,
         Site,
         Event,
         Result,
@@ -523,6 +557,7 @@ function getPgnHeaders(tokens: Token[]): GameHeaders {
         black_elo: BlackElo === "-" ? 0 : BlackElo ? Number.parseInt(BlackElo) : undefined,
         white_elo: WhiteElo === "-" ? 0 : WhiteElo ? Number.parseInt(WhiteElo) : undefined,
         date: Date ?? "",
+        time: UTCTime,
         site: Site ?? "",
         event: Event ?? "",
         start: JSON.parse(Start ?? "[]"),
@@ -669,4 +704,21 @@ export function hasMorePriority(position1: number[], position2: number[]): boole
     }
 
     return position1[i] < position2[i];
+}
+
+export function makeLan(node: Pick<TreeNode, "move" | "san">): string {
+    const { move, san } = node;
+    if (!move || !san) return san ?? "";
+    if (san.startsWith("O-O")) return san; // castling notation is the same in LAN
+
+    if (!("from" in move)) return san; // drops (variants) — fall back
+
+    const from = makeSquare(move.from);
+    const to = makeSquare(move.to);
+    const isCapture = san.includes("x");
+    const pieceLetter = san.match(/^[NBRQK]/)?.[0] ?? "";
+    const promotion = move.promotion ? `=${roleToChar(move.promotion).toUpperCase()}` : "";
+    const suffix = san.endsWith("#") ? "#" : san.endsWith("+") ? "+" : "";
+
+    return `${pieceLetter}${from}${isCapture ? "x" : "-"}${to}${promotion}${suffix}`;
 }

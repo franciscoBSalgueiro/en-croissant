@@ -87,17 +87,19 @@ const DetachedEvalInner = memo(function DetachedEvalInner({
     }
   }
   const isGameOver = pos?.isEnd() ?? false;
+  const isCheck = pos?.isCheck() ?? false;
+  const effectiveThreat = threat && !isCheck;
   const finalFen = useMemo(() => (pos ? makeFen(pos.toSetup()) : null), [pos]);
 
   const { searchingFen, searchingMoves } = useMemo(() => {
-    if (threat) {
+    if (effectiveThreat) {
       return {
         searchingFen: swapMove(finalFen || INITIAL_FEN),
         searchingMoves: [] as string[],
       };
     }
     return { searchingFen: rootFen, searchingMoves: moves };
-  }, [rootFen, moves, threat, finalFen]);
+  }, [rootFen, moves, effectiveThreat, finalFen]);
 
   const engineVariations = useDeferredValue(
     useMemo(

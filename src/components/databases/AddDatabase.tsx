@@ -25,7 +25,12 @@ import { useTranslation } from "react-i18next";
 import type { KeyedMutator } from "swr";
 import { commands, type DatabaseInfo } from "@/bindings";
 import { databaseConversionStateAtom, storedDatabasesDirAtom } from "@/state/atoms";
-import { getDatabases, type SuccessDatabaseInfo, useDefaultDatabases } from "@/utils/db";
+import {
+  getDatabases,
+  isDefaultDatabaseInstalled,
+  type SuccessDatabaseInfo,
+  useDefaultDatabases,
+} from "@/utils/db";
 import { capitalize, formatBytes, formatNumber } from "@/utils/format";
 import { unwrap } from "@/utils/unwrap";
 import FileInput from "../common/FileInput";
@@ -62,7 +67,7 @@ function AddDatabase({
   async function convertDB(paths: string[], title: string, description?: string) {
     if (paths.length === 0) return;
     setLoading(true);
-    const dbPath = await resolve(databaseDir, `${title}.db3`);
+    const dbPath = await resolve(databaseDir, `${title}.duckdb`);
     const sourceFileName = await basename(paths[0]);
     setConversionState((prev) => ({
       ...prev,
@@ -134,9 +139,7 @@ function AddDatabase({
                   databaseId={i}
                   key={i}
                   setDatabases={setDatabases}
-                  initInstalled={databases.some(
-                    (e) => e.type === "success" && e.title === db.title,
-                  )}
+                  initInstalled={isDefaultDatabaseInstalled(databases, db.title)}
                 />
               ))}
               {error && (
@@ -227,7 +230,7 @@ function DatabaseCard({
 
   async function downloadDatabase(id: number, url: string, name: string) {
     setInProgress(true);
-    const path = await resolve(databaseDir, `${name}.db3`);
+    const path = await resolve(databaseDir, `${name}.duckdb`);
     await commands.downloadFile(`db_${id}`, url, path, null, null, null);
     await setDatabases(await getDatabases());
   }

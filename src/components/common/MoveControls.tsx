@@ -9,6 +9,7 @@ import { useAtomValue } from "jotai";
 import { memo, useContext } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useStore } from "zustand";
+import { useDeleteMove } from "@/hooks/useDeleteMove";
 import { keyMapAtom } from "@/state/keybinds";
 import { TreeStateContext } from "./TreeStateContext";
 
@@ -18,7 +19,7 @@ function MoveControls({ readOnly }: { readOnly?: boolean }) {
   const previous = useStore(store, (s) => s.goToPrevious);
   const start = useStore(store, (s) => s.goToStart);
   const end = useStore(store, (s) => s.goToEnd);
-  const deleteMove = useStore(store, (s) => s.deleteMove);
+  const deleteMove = useDeleteMove();
   const startBranch = useStore(store, (s) => s.goToBranchStart);
   const endBranch = useStore(store, (s) => s.goToBranchEnd);
   const nextBranch = useStore(store, (s) => s.nextBranch);

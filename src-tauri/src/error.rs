@@ -40,10 +40,10 @@ pub enum Error {
     IllegalSan(Box<shakmaty::san::SanError>),
 
     #[error(transparent)]
-    Diesel(Box<diesel::result::Error>),
+    Duckdb(Box<duckdb::Error>),
 
     #[error(transparent)]
-    R2d2(Box<diesel::r2d2::PoolError>),
+    R2d2(Box<r2d2::Error>),
 
     #[error(transparent)]
     SystemTime(Box<std::time::SystemTimeError>),
@@ -166,14 +166,14 @@ impl From<shakmaty::san::SanError> for Error {
     }
 }
 
-impl From<diesel::result::Error> for Error {
-    fn from(value: diesel::result::Error) -> Self {
-        Self::Diesel(Box::new(value))
+impl From<duckdb::Error> for Error {
+    fn from(value: duckdb::Error) -> Self {
+        Self::Duckdb(Box::new(value))
     }
 }
 
-impl From<diesel::r2d2::PoolError> for Error {
-    fn from(value: diesel::r2d2::PoolError) -> Self {
+impl From<r2d2::Error> for Error {
+    fn from(value: r2d2::Error) -> Self {
         Self::R2d2(Box::new(value))
     }
 }

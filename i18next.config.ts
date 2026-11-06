@@ -25,7 +25,6 @@ export default defineConfig({
         ignore: ["src/translation/**"],
         // Keys use dots as part of the key name (e.g. "Common.On"), not as nesting separators
         keySeparator: false,
-        nsSeparator: false,
         defaultNS: "translation",
         mergeNamespaces: true,
         primaryLanguage: "en-US",
@@ -34,6 +33,7 @@ export default defineConfig({
         preservePatterns: [
             "Files.FileType.*",
             "SideBar.*",
+            "Settings.Keybinds.Actions.*",
             "TimeControl.*",
             "Annotate.*",
             "GoMode.*",

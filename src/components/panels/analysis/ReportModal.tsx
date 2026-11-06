@@ -140,9 +140,18 @@ function ReportModal({
               ]}
               value={form.values.goMode.t}
               onChange={(v) => {
-                const newGo = form.values.goMode;
-                newGo.t = v as "Depth" | "Time" | "Nodes";
-                form.setFieldValue("goMode", newGo);
+                if (v === form.values.goMode.t) return;
+                switch (v) {
+                  case "Depth":
+                    form.setFieldValue("goMode", { t: "Depth", c: 20 });
+                    break;
+                  case "Time":
+                    form.setFieldValue("goMode", { t: "Time", c: 500 });
+                    break;
+                  case "Nodes":
+                    form.setFieldValue("goMode", { t: "Nodes", c: 1000000 });
+                    break;
+                }
               }}
             />
             <NumberInput

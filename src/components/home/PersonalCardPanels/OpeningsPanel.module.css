@@ -1,7 +1,30 @@
-.link {
-  cursor: pointer;
+.panel {
+  display: flex;
+  height: 100%;
+  overflow: auto;
 }
 
-.link:hover {
-  text-decoration: underline;
+.content {
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 24rem;
+  margin: auto;
+  padding: 1.5rem 1rem;
+}
+
+.whitePiece,
+.blackPiece {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+  border: 1px solid var(--mantine-color-gray-5);
+  flex-shrink: 0;
+}
+
+.whitePiece {
+  background: var(--mantine-color-white);
+}
+
+.blackPiece {
+  background: var(--mantine-color-dark-8);
 }

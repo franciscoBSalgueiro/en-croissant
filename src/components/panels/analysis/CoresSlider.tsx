@@ -7,9 +7,14 @@ export default function CoresSlider(props: {
 }) {
   const theme = useMantineTheme();
   const values = Array.from(
-    { length: Math.log2(navigator.hardwareConcurrency) + 1 },
+    { length: Math.floor(Math.log2(navigator.hardwareConcurrency)) + 1 },
     (_, i) => 2 ** i,
   );
+
+  if (props.value > 0 && !values.includes(props.value)) {
+    values.push(props.value);
+    values.sort((a, b) => a - b);
+  }
 
   return (
     <SegmentedControl

@@ -1,14 +1,14 @@
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
-import { ActionIcon, ScrollArea, Tabs } from "@mantine/core";
-import { useHotkeys, useToggle } from "@mantine/hooks";
+import { ActionIcon, Box, ScrollArea, Tabs } from "@mantine/core";
+import { useElementSize, useHotkeys, useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { type ReactNode, startTransition, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Mosaic, type MosaicNode } from "react-mosaic-component";
 import { match } from "ts-pattern";
 import { commands } from "@/bindings";
-import { activeTabAtom, tabsAtom } from "@/state/atoms";
+import { activeTabAtom, isCompactLayoutAtom, showTabBarAtom, tabsAtom } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { createTab, genID, isPersistentGameOrigin, type Tab } from "@/utils/tabs";
 import { unwrap } from "@/utils/unwrap";
@@ -65,7 +65,7 @@ export default function BoardsPage() {
             startTransition(() => setActiveTab(null));
           }
         }
-        setTabs((prev) => prev.filter((tab) => tab.value !== value));
+        startTransition(() => setTabs((prev) => prev.filter((tab) => tab.value !== value)));
         unwrap(await commands.killEngines(value));
         await commands.abortGame(`${value}-game`);
       }
@@ -149,6 +149,7 @@ export default function BoardsPage() {
   }, [closeTab]);
 
   const keyMap = useAtomValue(keyMapAtom);
+  const showTabBar = useAtomValue(showTabBarAtom);
 
   const handleSetActiveTab = useCallback(
     (v: string) => {
@@ -187,68 +188,74 @@ export default function BoardsPage() {
       keepMounted={false}
       className={classes.tabsContainer}
     >
-      <ScrollArea scrollbarSize={6} className={classes.tabsHeader}>
-        <DragDropContext
-          onDragEnd={({ destination, source }) =>
-            destination?.index !== undefined &&
-            setTabs((prev) => {
-              const result = Array.from(prev);
-              const [removed] = result.splice(source.index, 1);
-              result.splice(destination.index, 0, removed);
-              return result;
-            })
-          }
-        >
-          <Droppable droppableId="droppable" direction="horizontal">
-            {(provided) => (
-              <div ref={provided.innerRef} {...provided.droppableProps} style={{ display: "flex" }}>
-                {tabs.map((tab, i) => (
-                  <Draggable key={tab.value} draggableId={tab.value} index={i}>
-                    {(provided) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                      >
-                        <BoardTab
-                          tab={tab}
-                          tabType={tab.type}
-                          setActiveTab={handleSetActiveTab}
-                          closeTab={closeTab}
-                          renameTab={renameTab}
-                          duplicateTab={duplicateTab}
-                          selected={activeTab === tab.value}
-                        />
-                      </div>
-                    )}
-                  </Draggable>
-                ))}
-                {provided.placeholder}
-                <ActionIcon
-                  variant="default"
-                  radius={0}
-                  onClick={() =>
-                    createTab({
-                      tab: {
-                        name: t("Tab.NewTab"),
-                        type: "new",
-                      },
-                      setTabs,
-                      setActiveTab,
-                    })
-                  }
-                  classNames={{
-                    root: classes.newTab,
-                  }}
+      {showTabBar && (
+        <ScrollArea scrollbarSize={6} className={classes.tabsHeader}>
+          <DragDropContext
+            onDragEnd={({ destination, source }) =>
+              destination?.index !== undefined &&
+              setTabs((prev) => {
+                const result = Array.from(prev);
+                const [removed] = result.splice(source.index, 1);
+                result.splice(destination.index, 0, removed);
+                return result;
+              })
+            }
+          >
+            <Droppable droppableId="droppable" direction="horizontal">
+              {(provided) => (
+                <div
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  style={{ display: "flex" }}
                 >
-                  <IconPlus />
-                </ActionIcon>
-                <div className={classes.tabsFiller} />
-              </div>
-            )}
-          </Droppable>
-        </DragDropContext>
-      </ScrollArea>
+                  {tabs.map((tab, i) => (
+                    <Draggable key={tab.value} draggableId={tab.value} index={i}>
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                        >
+                          <BoardTab
+                            tab={tab}
+                            tabType={tab.type}
+                            setActiveTab={handleSetActiveTab}
+                            closeTab={closeTab}
+                            renameTab={renameTab}
+                            duplicateTab={duplicateTab}
+                            selected={activeTab === tab.value}
+                          />
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                  <ActionIcon
+                    variant="default"
+                    radius={0}
+                    onClick={() =>
+                      createTab({
+                        tab: {
+                          name: t("Tab.NewTab"),
+                          type: "new",
+                        },
+                        setTabs,
+                        setActiveTab,
+                      })
+                    }
+                    classNames={{
+                      root: classes.newTab,
+                    }}
+                  >
+                    <IconPlus />
+                  </ActionIcon>
+                  <div className={classes.tabsFiller} />
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
+        </ScrollArea>
+      )}
       {tabs.map((tab) => (
         <Tabs.Panel key={tab.value} value={tab.value} h="100%" w="100%" pb="sm" px="xs">
           <TabSwitch
@@ -276,16 +283,29 @@ interface WindowsState {
   currentNode: MosaicNode<ViewId> | null;
 }
 
-const windowsStateAtom = atomWithStorage<WindowsState>("windowsState", {
-  currentNode: {
-    direction: "row",
-    first: "left",
-    second: {
-      direction: "column",
-      first: "topRight",
-      second: "bottomRight",
-    },
+const defaultWideNode: MosaicNode<ViewId> = {
+  direction: "row",
+  first: "left",
+  second: {
+    direction: "column",
+    first: "topRight",
+    second: "bottomRight",
   },
+};
+
+const defaultCompactNode: MosaicNode<ViewId> = {
+  direction: "column",
+  first: "left",
+  second: "topRight",
+  splitPercentage: 50,
+};
+
+const windowsStateAtom = atomWithStorage<WindowsState>("windowsState", {
+  currentNode: defaultWideNode,
+});
+
+const compactWindowsStateAtom = atomWithStorage<WindowsState>("compactWindowsState", {
+  currentNode: defaultCompactNode,
 });
 
 function TabSwitch({
@@ -301,47 +321,75 @@ function TabSwitch({
   closeTab: (value: string | null, forced?: boolean) => void;
   activeTab: string | null;
 }) {
-  const [windowsState, setWindowsState] = useAtom(windowsStateAtom);
+  const { ref: containerRef, width } = useElementSize();
+  const setIsCompactLayout = useSetAtom(isCompactLayoutAtom);
+  const isCompact = width > 0 && width < 850;
 
-  return match(tab.type)
-    .with("new", () => <NewTabHome id={tab.value} />)
-    .with("play", () => (
-      <TreeStateProvider id={tab.value}>
-        <Mosaic<ViewId>
-          renderTile={(id) => fullLayout[id]}
-          value={windowsState.currentNode}
-          onChange={(currentNode) => setWindowsState({ currentNode })}
-          resize={{ minimumPaneSizePercentage: 0 }}
-        />
-        <BoardGame />
-      </TreeStateProvider>
-    ))
-    .with("analysis", () => (
-      <TreeStateProvider id={tab.value}>
-        <Mosaic<ViewId>
-          renderTile={(id) => fullLayout[id]}
-          value={windowsState.currentNode}
-          onChange={(currentNode) => setWindowsState({ currentNode })}
-          resize={{ minimumPaneSizePercentage: 0 }}
-        />
-        <BoardAnalysis />
-        <ConfirmChangesModal
-          opened={saveModalOpened}
-          toggle={toggleSaveModal}
-          closeTab={() => closeTab(activeTab, true)}
-        />
-      </TreeStateProvider>
-    ))
-    .with("puzzles", () => (
-      <TreeStateProvider id={tab.value}>
-        <Mosaic<ViewId>
-          renderTile={(id) => fullLayout[id]}
-          value={windowsState.currentNode}
-          onChange={(currentNode) => setWindowsState({ currentNode })}
-          resize={{ minimumPaneSizePercentage: 0 }}
-        />
-        <Puzzles id={tab.value} />
-      </TreeStateProvider>
-    ))
-    .exhaustive();
+  useEffect(() => {
+    setIsCompactLayout(isCompact);
+  }, [isCompact, setIsCompactLayout]);
+
+  const [windowsState, setWindowsState] = useAtom(windowsStateAtom);
+  const [compactWindowsState, setCompactWindowsState] = useAtom(compactWindowsStateAtom);
+
+  const currentLayoutNode = isCompact
+    ? (compactWindowsState.currentNode ?? defaultCompactNode)
+    : (windowsState.currentNode ?? defaultWideNode);
+
+  const handleLayoutChange = useCallback(
+    (currentNode: MosaicNode<ViewId> | null) => {
+      if (isCompact) {
+        setCompactWindowsState({ currentNode });
+      } else {
+        setWindowsState({ currentNode });
+      }
+    },
+    [isCompact, setCompactWindowsState, setWindowsState],
+  );
+
+  return (
+    <Box ref={containerRef} w="100%" h="100%">
+      {match(tab.type)
+        .with("new", () => <NewTabHome id={tab.value} />)
+        .with("play", () => (
+          <TreeStateProvider id={tab.value}>
+            <Mosaic<ViewId>
+              renderTile={(id) => fullLayout[id]}
+              value={currentLayoutNode}
+              onChange={handleLayoutChange}
+              resize={{ minimumPaneSizePercentage: 0 }}
+            />
+            <BoardGame />
+          </TreeStateProvider>
+        ))
+        .with("analysis", () => (
+          <TreeStateProvider id={tab.value}>
+            <Mosaic<ViewId>
+              renderTile={(id) => fullLayout[id]}
+              value={currentLayoutNode}
+              onChange={handleLayoutChange}
+              resize={{ minimumPaneSizePercentage: 0 }}
+            />
+            <BoardAnalysis />
+            <ConfirmChangesModal
+              opened={saveModalOpened}
+              toggle={toggleSaveModal}
+              closeTab={() => closeTab(activeTab, true)}
+            />
+          </TreeStateProvider>
+        ))
+        .with("puzzles", () => (
+          <TreeStateProvider id={tab.value}>
+            <Mosaic<ViewId>
+              renderTile={(id) => fullLayout[id]}
+              value={currentLayoutNode}
+              onChange={handleLayoutChange}
+              resize={{ minimumPaneSizePercentage: 0 }}
+            />
+            <Puzzles id={tab.value} />
+          </TreeStateProvider>
+        ))
+        .exhaustive()}
+    </Box>
+  );
 }

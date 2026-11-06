@@ -209,6 +209,13 @@ export default function PiecesSelect() {
     custom?.name ??
     (isCustomPieceSetId(pieceSet) ? customPieceSetName(pieceSet) : undefined);
 
+  // Reset to default when switching modes if current value doesn't exist
+  useEffect(() => {
+    if (!selected && pieceSet) {
+      setPieceSet(pieceSets[0].value);
+    }
+  }, [is3d, selected, pieceSet, pieceSets, setPieceSet]);
+
   return (
     <Stack gap="xs">
       <Flex justify="space-between" align="center" gap="md">

@@ -109,7 +109,7 @@ export function AccountCard({
       `${filepath
         .split(/(\\|\/)/g)
         .pop()
-        ?.replace(".pgn", ".db3")}`,
+        ?.replace(".pgn", ".duckdb")}`,
     );
     const sourceFileName = await basename(filepath);
     setConversionState((prev) => ({
@@ -226,7 +226,7 @@ export function AccountCard({
                   const p = await resolve(databaseDir, `${title}_${type}.pgn`);
                   try {
                     await convert(p, lastGameDate);
-                    const dbPath = p.replace(".pgn", ".db3");
+                    const dbPath = p.replace(".pgn", ".duckdb");
                     await commands.deleteEmptyGames(dbPath);
                   } catch (e) {
                     console.error(e);

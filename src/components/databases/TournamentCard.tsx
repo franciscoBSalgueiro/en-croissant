@@ -14,6 +14,7 @@ import type { DatabaseViewStore } from "@/state/store/database";
 import { getTournamentGames } from "@/utils/db";
 import { createTab } from "@/utils/tabs";
 import { DatabaseViewStateContext } from "./DatabaseViewStateContext";
+import { useGameCollection } from "./useGameCollection";
 
 const gamePoints = (game: NormalizedGame, player: string) => {
   if (game.white === player) {
@@ -44,9 +45,9 @@ function TournamentCard({ tournament, file }: { tournament: Event; file: string 
   const [pageSize, setPageSize] = useState(25);
 
   const { data: games, isLoading } = useSWRImmutable(
-    ["tournament-games", file, tournament.id],
-    async ([key, file, id]) => {
-      const games = await getTournamentGames(file, id);
+    ["tournament-games", file, tournament.name],
+    async ([_key, file, name]) => {
+      const games = await getTournamentGames(file, name!);
       return games.data;
     },
   );
@@ -99,7 +100,15 @@ function TournamentCard({ tournament, file }: { tournament: Event; file: string 
     (a, b) => b.points - a.points || a.name.localeCompare(b.name, "en", { sensitivity: "base" }),
   );
 
-  const paginatedGames = sortedGames.slice((page - 1) * 25, (page - 1) * 25 + 25);
+  const paginatedGames = sortedGames.slice((page - 1) * pageSize, page * pageSize);
+  const collection = useGameCollection(
+    file,
+    { tournament: tournament.name },
+    paginatedGames,
+    isLoading,
+    () => setPage(1),
+    sortedGames.length,
+  );
 
   return (
     <Paper shadow="sm" p="sm" withBorder h="100%">
@@ -120,8 +129,15 @@ function TournamentCard({ tournament, file }: { tournament: Event; file: string 
             <Tabs.Tab value="games">{t("Common.Games")}</Tabs.Tab>
             <Tabs.Tab value="leaderboard">{t("Databases.Tournament.Leaderboard")}</Tabs.Tab>
           </Tabs.List>
-          <Tabs.Panel value="games" flex={1} style={{ overflow: "hidden" }}>
+          <Tabs.Panel
+            value="games"
+            flex={1}
+            style={{ overflow: "hidden", display: "flex", flexDirection: "column" }}
+          >
+            {collection.toolbar}
             <DataTable<NormalizedGame>
+              style={{ flex: 1, minHeight: 0 }}
+              {...collection.selectionProps}
               fetching={isLoading}
               withTableBorder
               highlightOnHover

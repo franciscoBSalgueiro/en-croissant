@@ -9,22 +9,42 @@ import { addPieceSymbol } from "@/utils/annotation";
 import type { Opening } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
 import classes from "./OpeningsTable.module.css";
+import { parseSan } from "chessops/san";
+import { makeLan } from "@/utils/chess";
+import { positionFromFen } from "@/utils/chessops";
 
-function OpeningsTable({ openings, loading }: { openings: Opening[]; loading: boolean }) {
+function OpeningsTable({
+  openings,
+  loading,
+  fen,
+}: {
+  openings: Opening[];
+  loading: boolean;
+  fen: string;
+}) {
   const store = useContext(TreeStateContext)!;
   const makeMove = useStore(store, (s) => s.makeMove);
   const [moveNotationType] = useAtom(moveNotationTypeAtom);
+  const [pos] = positionFromFen(fen);
+  function displayMove(move: string) {
+    if (move === "*" || move === "Total") return move;
+    if (moveNotationType !== "lan" || !pos) return move;
+    const parsed = parseSan(pos, move);
+    if (!parsed) return move;
+    return makeLan({ move: parsed, san: move });
+  }
 
   const whiteTotal = openings?.reduce((acc, curr) => acc + curr.white, 0);
   const blackTotal = openings?.reduce((acc, curr) => acc + curr.black, 0);
   const drawTotal = openings?.reduce((acc, curr) => acc + curr.draw, 0);
-  const grandTotal = whiteTotal + blackTotal + drawTotal;
+  const grandTotal = openings.reduce((acc, curr) => acc + curr.total, 0);
 
   if (openings.length > 0) {
     openings = [
       ...openings,
       {
         move: "Total",
+        total: grandTotal,
         white: whiteTotal,
         black: blackTotal,
         draw: drawTotal,
@@ -59,17 +79,17 @@ function OpeningsTable({ openings, loading }: { openings: Opening[]; loading: bo
                   Game end
                 </Text>
               );
+            const shown = moveNotationType === "lan" ? displayMove(move) : move;
             return (
-              <Text fz="sm">{moveNotationType === "symbols" ? addPieceSymbol(move) : move}</Text>
+              <Text fz="sm">{moveNotationType === "symbols" ? addPieceSymbol(shown) : shown}</Text>
             );
           },
         },
         {
           accessor: "total",
           width: 180,
-          render: ({ move, white, draw, black }) => {
-            const total = white + draw + black;
-            const percentage = (total / grandTotal) * 100;
+          render: ({ move, total }) => {
+            const percentage = grandTotal > 0 ? (total / grandTotal) * 100 : 0;
             return (
               <Group>
                 {move !== "Total" && <Text fz="sm">{percentage.toFixed(0)}%</Text>}
@@ -84,6 +104,7 @@ function OpeningsTable({ openings, loading }: { openings: Opening[]; loading: bo
           accessor: "results",
           render: ({ black, white, draw }) => {
             const total = white + draw + black;
+            if (total === 0) return <Text c="dimmed">—</Text>;
             const whitePercent = (white / total) * 100;
             const drawPercent = (draw / total) * 100;
             const blackPercent = (black / total) * 100;

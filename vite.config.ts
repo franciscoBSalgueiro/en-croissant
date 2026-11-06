@@ -1,7 +1,6 @@
 /// <reference types="vitest/config" />
 import { resolve } from "node:path";
-import react, { reactCompilerPreset } from "@vitejs/plugin-react";
-import babel from "@rolldown/plugin-babel";
+import react from "@vitejs/plugin-react";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import { defineConfig } from "vite";
 import * as os from "node:os";
@@ -15,10 +14,7 @@ export default defineConfig({
         tanstackRouter({
             target: "react",
         }),
-        react(),
-        babel({
-            presets: [reactCompilerPreset()],
-        }),
+        react({ compiler: true }),
     ],
     server: {
         port: 1420,

@@ -1,0 +1,11 @@
+ChessQueries / ChessQ Lite model weights
+Required Notice: Copyright (c) 2026 Joël Seytre.
+The fine-tuned ChessQueries model weights are distributed under PolyForm Noncommercial 1.0.0.
+
+These models incorporate DINOv2 pretrained encoders developed by Meta AI.
+DINOv2: Copyright (c) Meta Platforms, Inc. and affiliates.
+https://github.com/facebookresearch/dinov2
+DINOv2 is licensed under Apache License 2.0; see LICENSE-DINOv2.
+The encoder weights were fine-tuned for chessboard recognition, combined with a
+ChessQueries decoder, and exported to the documented precision.
+The upstream license does not replace the license of the ChessQueries release.

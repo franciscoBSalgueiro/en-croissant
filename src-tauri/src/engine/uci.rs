@@ -16,7 +16,7 @@ pub fn apply_uci_moves(pos: &mut Chess, moves: &[String]) -> Result<(), Error> {
     for m in moves {
         let uci = UciMove::from_ascii(m.as_bytes())?;
         let mv = uci.to_move(pos)?;
-        pos.play_unchecked(&mv);
+        pos.play_unchecked(mv);
     }
     Ok(())
 }
@@ -41,8 +41,8 @@ pub fn normalize_uci_moves_for_fen(fen: &str, moves: &[String]) -> Result<Vec<St
     for m in moves {
         let uci = UciMove::from_ascii(m.as_bytes())?;
         let mv = uci.to_move(&pos)?;
-        normalized_moves.push(UciMove::from_move(&mv, castling_mode).to_string());
-        pos.play_unchecked(&mv);
+        normalized_moves.push(UciMove::from_move(mv, castling_mode).to_string());
+        pos.play_unchecked(mv);
     }
 
     Ok(normalized_moves)

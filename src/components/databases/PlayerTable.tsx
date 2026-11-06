@@ -8,6 +8,7 @@ import {
   Text,
   TextInput,
 } from "@mantine/core";
+import { useDebouncedValue } from "@mantine/hooks";
 import { IconDotsVertical, IconSearch } from "@tabler/icons-react";
 import { DataTable } from "mantine-datatable";
 import { useContext, useState } from "react";
@@ -33,30 +34,31 @@ function PlayerTable() {
   const selectedPlayer = useStore(store, (s) => s.players.selectedPlayer);
   const setSelectedPlayer = useStore(store, (s) => s.setPlayersSelectedPlayer);
 
-  const { data, error, isLoading } = useSWR(["players", file, query], () =>
-    query_players(file, query),
+  const [debouncedQuery] = useDebouncedValue(query, 200);
+  const { data, error, isLoading } = useSWR(["players", file, debouncedQuery], () =>
+    query_players(file, debouncedQuery),
   );
   const players = data?.data ?? [];
   const count = data?.count;
-  const player = players.find((p) => p.id === selectedPlayer);
+  const player = players.find((p) => p.name === selectedPlayer);
 
   const [open, setOpen] = useState(false);
 
   useHotkeys("ArrowUp", () => {
     if (selectedPlayer != null) {
-      const prevIndex = players.findIndex((p) => p.id === selectedPlayer) - 1;
+      const prevIndex = players.findIndex((p) => p.name === selectedPlayer) - 1;
       if (prevIndex > -1) {
-        setSelectedPlayer(players[prevIndex].id);
+        setSelectedPlayer(players[prevIndex].name ?? undefined);
       }
     }
   });
   useHotkeys("ArrowDown", () => {
-    const curIndex = players.findIndex((p) => p.id === selectedPlayer);
+    const curIndex = players.findIndex((p) => p.name === selectedPlayer);
     if (curIndex > -1) {
       const nextIndex = curIndex + 1;
 
       if (nextIndex < (count ?? 0)) {
-        setSelectedPlayer(players[nextIndex].id);
+        setSelectedPlayer(players[nextIndex].name ?? undefined);
       }
     }
   });
@@ -87,7 +89,7 @@ function PlayerTable() {
             </ActionIcon>
           </Flex>
 
-          <Collapse in={open}>
+          <Collapse expanded={open}>
             <Group mt="md">
               <NumberInput
                 label={t("Databases.Player.MinELO")}
@@ -126,11 +128,10 @@ function PlayerTable() {
           records={players}
           fetching={isLoading}
           columns={[
-            { accessor: "id", sortable: true },
             { accessor: "name", sortable: true },
             { accessor: "elo", sortable: true },
           ]}
-          rowClassName={(r) => (r.id === selectedPlayer ? classes.selected : "")}
+          rowClassName={(r) => (r.name === selectedPlayer ? classes.selected : "")}
           noRecordsText={
             error
               ? `${t("Common.Error")}: ${error instanceof Error ? error.message : String(error)}`
@@ -170,7 +171,7 @@ function PlayerTable() {
           }
           recordsPerPageOptions={[10, 25, 50]}
           onRowClick={({ index }) => {
-            setSelectedPlayer(players[index].id);
+            setSelectedPlayer(players[index].name ?? undefined);
           }}
         />
       }

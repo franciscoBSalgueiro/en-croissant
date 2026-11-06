@@ -9,27 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as FilesRouteImport } from './routes/files'
-import { Route as EnginesRouteImport } from './routes/engines'
-import { Route as AccountsRouteImport } from './routes/accounts'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AccountsRouteImport } from './routes/accounts'
+import { Route as EnginesRouteImport } from './routes/engines'
+import { Route as FilesRouteImport } from './routes/files'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as DatabasesIndexRouteImport } from './routes/databases/index'
 import { Route as DatabasesDatabaseIdRouteImport } from './routes/databases/$databaseId'
 
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FilesRoute = FilesRouteImport.update({
-  id: '/files',
-  path: '/files',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EnginesRoute = EnginesRouteImport.update({
-  id: '/engines',
-  path: '/engines',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AccountsRoute = AccountsRouteImport.update({
@@ -37,9 +27,19 @@ const AccountsRoute = AccountsRouteImport.update({
   path: '/accounts',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const EnginesRoute = EnginesRouteImport.update({
+  id: '/engines',
+  path: '/engines',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FilesRoute = FilesRouteImport.update({
+  id: '/files',
+  path: '/files',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DatabasesIndexRoute = DatabasesIndexRouteImport.update({
@@ -123,25 +123,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/files': {
-      id: '/files'
-      path: '/files'
-      fullPath: '/files'
-      preLoaderRoute: typeof FilesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/engines': {
-      id: '/engines'
-      path: '/engines'
-      fullPath: '/engines'
-      preLoaderRoute: typeof EnginesRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/accounts': {
@@ -151,11 +137,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/engines': {
+      id: '/engines'
+      path: '/engines'
+      fullPath: '/engines'
+      preLoaderRoute: typeof EnginesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/files': {
+      id: '/files'
+      path: '/files'
+      fullPath: '/files'
+      preLoaderRoute: typeof FilesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/databases/': {

@@ -17,13 +17,11 @@ jobs:
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Sync node version and setup cache
         uses: actions/setup-node@v3
         with:
-          node-version: "lts/*"
+          node-version: "24"
           cache: "pnpm"
 
       - name: Install app dependencies

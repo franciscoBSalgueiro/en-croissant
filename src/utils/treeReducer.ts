@@ -25,6 +25,10 @@ export interface TreeNode {
     annotations: Annotation[];
     comment: string;
     clock?: number;
+    elapsedTime?: number;
+    unknownNags?: number[];
+    // Raw PGN comments before the first move of this variation.
+    startingComments?: string[];
 }
 
 export type ListNode = {
@@ -124,7 +128,7 @@ export function createNode({
         fen,
         move,
         san,
-        clock: clock ? clock / 1000 : undefined,
+        clock: clock !== undefined ? clock / 1000 : undefined,
         children: [],
         score: null,
         depth: null,
@@ -153,7 +157,7 @@ export type GameHeaders = {
     black_time_control?: string | null;
     eco?: string | null;
     variant?: string | null;
-    other?: Record<string, string>;
+    other?: Partial<Record<string, string>> | null;
     // Repertoire headers
     start?: number[];
     orientation?: "white" | "black";

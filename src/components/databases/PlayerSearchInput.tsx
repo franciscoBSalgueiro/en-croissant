@@ -1,67 +1,75 @@
 import { Autocomplete } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";
 import { type ReactNode, useEffect, useState } from "react";
-import { commands, type Player } from "@/bindings";
+import type { Player } from "@/bindings";
 import { query_players } from "@/utils/db";
-import { unwrap } from "@/utils/unwrap";
 
 export function PlayerSearchInput({
   label,
   value,
   file,
   rightSection,
+  withinPortal = true,
   setValue,
 }: {
   label: string;
-  value?: number;
+  value?: string;
   file: string;
   rightSection?: ReactNode;
-  setValue: (val: number | undefined) => void;
+  withinPortal?: boolean;
+  setValue: (val: string | undefined) => void;
 }) {
-  const [tempValue, setTempValue] = useState("");
-  const [data, setData] = useState<Player[]>([]);
+  const [suggestions, setSuggestions] = useState<{
+    file: string;
+    players: Player[];
+  }>();
+  const name = value ?? "";
+  const data = suggestions?.file === file && name.trim().length > 0 ? suggestions.players : [];
+
+  function handleChange(val: string) {
+    setValue(val.trim().length === 0 ? undefined : val);
+  }
 
   useEffect(() => {
-    if (value !== undefined) {
-      commands.getPlayer(file, value).then((res) => {
-        const player = unwrap(res);
-        if (player?.name) {
-          setTempValue(player.name);
-        }
-      });
-    }
-  }, [value]);
+    let active = true;
 
-  async function handleChange(val: string) {
-    setTempValue(val);
-    if (val.trim().length === 0) {
-      setValue(undefined);
-      setData([]);
-      return;
-    }
-    const player = data.find((player) => player.name === val);
-    if (player) {
-      setValue(player.id);
-    }
+    const timeout = setTimeout(() => {
+      if (name.trim().length === 0) return;
 
-    const res = await query_players(file, {
-      name: val,
-      options: {
-        page: 1,
-        pageSize: 5,
-        skipCount: true,
-        sort: "elo",
-        direction: "asc",
-      },
-    });
-    setData(res.data);
-  }
+      void query_players(file, {
+        name,
+        options: {
+          page: 1,
+          pageSize: 5,
+          skipCount: true,
+          sort: "elo",
+          direction: "desc",
+        },
+      })
+        .then((res) => {
+          if (active) setSuggestions({ file, players: res.data });
+        })
+        .catch(() => {
+          if (active) setSuggestions({ file, players: [] });
+        });
+    }, 100);
+
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+    };
+  }, [file, name]);
   return (
     <Autocomplete
-      value={tempValue}
+      comboboxProps={{ withinPortal }}
+      aria-label={label}
+      value={name}
       data={data.map((player) => player.name!)}
+      filter={({ options }) => options}
       onChange={handleChange}
       rightSection={rightSection}
+      rightSectionWidth={rightSection ? 36 : undefined}
+      rightSectionProps={{ style: { zIndex: "auto" } }}
       leftSection={<IconSearch size="1rem" />}
       placeholder={label}
     />

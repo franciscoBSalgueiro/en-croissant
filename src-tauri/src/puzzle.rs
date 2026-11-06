@@ -1,19 +1,41 @@
-use std::{collections::VecDeque, fs::remove_file, path::PathBuf, sync::Mutex};
+use std::{
+    collections::VecDeque,
+    fs::remove_file,
+    path::{Path, PathBuf},
+    sync::Mutex,
+};
 
-use diesel::{dsl::sql, sql_types::Bool, Connection, ExpressionMethods, QueryDsl, RunQueryDsl};
+use duckdb::{params, AccessMode, Config, Connection};
 use once_cell::sync::Lazy;
 use serde::Serialize;
 use specta::Type;
 
-use crate::{
-    db::{puzzle_themes, puzzles, themes, Puzzle},
-    error::Error,
-};
+use crate::{db::Puzzle, error::Error};
+
+fn is_legacy_database(path: &Path) -> Result<bool, std::io::Error> {
+    let mut header = [0; 16];
+    std::io::Read::read_exact(&mut std::fs::File::open(path)?, &mut header)?;
+    Ok(&header == b"SQLite format 3\0")
+}
+
+fn open_database(path: &Path) -> Result<Connection, Error> {
+    if is_legacy_database(path)? {
+        return Err(std::io::Error::other(
+            "This puzzle database uses the old SQLite format. Download the latest DuckDB puzzle database.",
+        ).into());
+    }
+    Ok(Connection::open_with_flags(
+        path,
+        Config::default().access_mode(AccessMode::ReadOnly)?,
+    )?)
+}
+
+static PUZZLE_CACHE: Lazy<Mutex<PuzzleCache>> = Lazy::new(|| Mutex::new(PuzzleCache::new()));
 
 #[derive(Debug)]
 struct PuzzleCache {
     cache: VecDeque<Puzzle>,
-    counter: usize,
+    file: String,
     min_rating: u16,
     max_rating: u16,
     theme: Option<String>,
@@ -23,7 +45,7 @@ impl PuzzleCache {
     fn new() -> Self {
         Self {
             cache: VecDeque::new(),
-            counter: 0,
+            file: String::new(),
             min_rating: 0,
             max_rating: 0,
             theme: None,
@@ -41,33 +63,47 @@ impl PuzzleCache {
             || self.min_rating != min_rating
             || self.max_rating != max_rating
             || self.theme != *theme
-            || self.counter >= 20
+            || self.file != file
         {
             self.cache.clear();
-            self.counter = 0;
-
-            let mut db = diesel::SqliteConnection::establish(file).expect("open database");
-
-            let new_puzzles: Vec<Puzzle> = if let Some(theme_name) = theme {
-                puzzles::table
-                    .inner_join(puzzle_themes::table.inner_join(themes::table))
-                    .filter(themes::name.eq(theme_name))
-                    .filter(puzzles::rating.le(max_rating as i32))
-                    .filter(puzzles::rating.ge(min_rating as i32))
-                    .select(puzzles::all_columns)
-                    .order(sql::<Bool>("RANDOM()"))
-                    .limit(20)
-                    .load::<Puzzle>(&mut db)?
-            } else {
-                puzzles::table
-                    .filter(puzzles::rating.le(max_rating as i32))
-                    .filter(puzzles::rating.ge(min_rating as i32))
-                    .order(sql::<Bool>("RANDOM()"))
-                    .limit(20)
-                    .load::<Puzzle>(&mut db)?
+            let db = open_database(Path::new(file))?;
+            let mut query = String::from(
+                "SELECT p.id, p.fen, p.moves, p.rating, p.rating_deviation, p.popularity, p.nb_plays
+                 FROM puzzles p WHERE p.rating BETWEEN ? AND ?",
+            );
+            if theme.is_some() {
+                query.push_str(
+                    " AND EXISTS (SELECT 1 FROM puzzle_themes pt
+                      JOIN themes t ON t.id = pt.theme_id
+                      WHERE pt.puzzle_id = p.id AND t.name = ?)",
+                );
+            }
+            query.push_str(" ORDER BY random() LIMIT 20");
+            let mut statement = db.prepare(&query)?;
+            let read_puzzle = |row: &duckdb::Row<'_>| {
+                Ok(Puzzle {
+                    id: row.get(0)?,
+                    fen: row.get(1)?,
+                    moves: row.get(2)?,
+                    rating: row.get(3)?,
+                    rating_deviation: row.get(4)?,
+                    popularity: row.get(5)?,
+                    nb_plays: row.get(6)?,
+                })
             };
-
-            self.cache = new_puzzles.into_iter().collect();
+            let rows = if let Some(theme_name) = theme {
+                statement.query_map(
+                    params![i32::from(min_rating), i32::from(max_rating), theme_name],
+                    read_puzzle,
+                )?
+            } else {
+                statement.query_map(
+                    params![i32::from(min_rating), i32::from(max_rating)],
+                    read_puzzle,
+                )?
+            };
+            self.cache = rows.collect::<Result<_, _>>()?;
+            self.file = file.to_owned();
             self.min_rating = min_rating;
             self.max_rating = max_rating;
             self.theme = theme.clone();
@@ -77,12 +113,7 @@ impl PuzzleCache {
     }
 
     fn get_next_puzzle(&mut self) -> Option<Puzzle> {
-        if let Some(puzzle) = self.cache.get(self.counter) {
-            self.counter += 1;
-            Some(puzzle.clone())
-        } else {
-            None
-        }
+        self.cache.pop_front()
     }
 }
 
@@ -94,8 +125,6 @@ pub fn get_puzzle(
     max_rating: u16,
     theme: Option<String>,
 ) -> Result<Puzzle, Error> {
-    static PUZZLE_CACHE: Lazy<Mutex<PuzzleCache>> = Lazy::new(|| Mutex::new(PuzzleCache::new()));
-
     let mut cache = PUZZLE_CACHE.lock().unwrap();
     cache.get_puzzles(&file, min_rating, max_rating, &theme)?;
     cache.get_next_puzzle().ok_or(Error::NoPuzzles)
@@ -113,53 +142,71 @@ pub struct PuzzleDatabaseInfo {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn get_puzzle_db_info(file: PathBuf) -> Result<PuzzleDatabaseInfo, Error> {
-    let path = file;
+pub async fn get_puzzle_db_info(file: PathBuf) -> Result<Option<PuzzleDatabaseInfo>, Error> {
+    database_info(file)
+}
 
-    let mut db =
-        diesel::SqliteConnection::establish(&path.to_string_lossy()).expect("open database");
-
-    let puzzle_count = puzzles::table.count().get_result::<i64>(&mut db)? as i32;
+fn database_info(path: PathBuf) -> Result<Option<PuzzleDatabaseInfo>, Error> {
+    match is_legacy_database(&path) {
+        Ok(true) => {
+            delete_puzzle_database(path.to_string_lossy().into_owned())?;
+            return Ok(None);
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(error.into()),
+        Ok(false) => {}
+    }
+    let db = open_database(&path)?;
+    let puzzle_count = db.query_row("SELECT COUNT(*) FROM puzzles", [], |row| row.get(0))?;
 
     let storage_size = path.metadata()?.len();
     let filename = path.file_name().expect("get filename").to_string_lossy();
 
-    Ok(PuzzleDatabaseInfo {
+    Ok(Some(PuzzleDatabaseInfo {
         title: filename.to_string(),
         description: "".to_string(),
         puzzle_count,
         storage_size,
         path: path.to_string_lossy().to_string(),
-    })
+    }))
 }
 
 #[tauri::command]
 #[specta::specta]
 pub fn delete_puzzle_database(file: String) -> Result<(), Error> {
-    remove_file(&file)?;
+    let mut cache = PUZZLE_CACHE.lock().unwrap();
+    match remove_file(&file) {
+        Ok(()) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => return Err(error.into()),
+    }
+    if cache.file == file {
+        cache.cache.clear();
+    }
     Ok(())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub fn get_puzzle_themes(file: String) -> Result<Vec<String>, Error> {
-    let mut db = diesel::SqliteConnection::establish(&file).expect("open database");
-    let result: Vec<String> = themes::table
-        .select(themes::name)
-        .order(themes::name.asc())
-        .load(&mut db)?;
+    let db = open_database(Path::new(&file))?;
+    let mut statement = db.prepare("SELECT name FROM themes ORDER BY name")?;
+    let result = statement
+        .query_map([], |row| row.get(0))?
+        .collect::<Result<_, _>>()?;
     Ok(result)
 }
 
 #[tauri::command]
 #[specta::specta]
 pub fn get_themes_for_puzzle(file: String, puzzle_id: i32) -> Result<Vec<String>, Error> {
-    let mut db = diesel::SqliteConnection::establish(&file).expect("open database");
-    let result: Vec<String> = themes::table
-        .inner_join(puzzle_themes::table)
-        .filter(puzzle_themes::puzzle_id.eq(puzzle_id))
-        .select(themes::name)
-        .order(themes::name.asc())
-        .load(&mut db)?;
+    let db = open_database(Path::new(&file))?;
+    let mut statement = db.prepare(
+        "SELECT t.name FROM themes t JOIN puzzle_themes pt ON t.id = pt.theme_id
+         WHERE pt.puzzle_id = ? ORDER BY t.name",
+    )?;
+    let result = statement
+        .query_map([puzzle_id], |row| row.get(0))?
+        .collect::<Result<_, _>>()?;
     Ok(result)
 }

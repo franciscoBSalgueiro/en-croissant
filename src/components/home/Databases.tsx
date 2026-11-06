@@ -95,21 +95,8 @@ function Databases() {
       const results = await Promise.allSettled(
         databases
           .filter((db) => playerDbs.includes((db.type === "success" && db.title) || ""))
-          .map(async (db, i) => {
-            const players = await query_players(db.file, {
-              name: db.username,
-              options: {
-                pageSize: 1,
-                direction: "asc",
-                sort: "id",
-                skipCount: false,
-              },
-            });
-            if (players.data.length === 0) {
-              throw new Error("Player not found in database");
-            }
-            const player = players.data[0];
-            const info = unwrap(await commands.getPlayersGameInfo(db.file, player.id));
+          .map(async (db) => {
+            const info = unwrap(await commands.getPlayersGameInfo(db.file, db.username!));
             return { db, info };
           }),
       );
@@ -208,6 +195,10 @@ function Databases() {
               info={{
                 site_stats_data: personalInfo.flatMap((i) => i.info.site_stats_data),
               }}
+              openingSources={personalInfo.map((i) => ({
+                file: i.db.file,
+                player: i.db.username || name,
+              }))}
             />
           </DatabaseViewStateContext.Provider>
         ))}

@@ -1,6 +1,7 @@
 import { Group, Select } from "@mantine/core";
 import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { sessionsAtom } from "@/state/atoms";
 
 interface WebsiteAccountSelectorProps {
@@ -17,6 +18,7 @@ const WebsiteAccountSelector = ({
   allowAll,
 }: WebsiteAccountSelectorProps) => {
   const sessions = useAtomValue(sessionsAtom);
+  const { t } = useTranslation();
 
   const websites = [];
   if (sessions.some((s) => s.player === playerName && s.chessCom?.username)) {
@@ -27,7 +29,7 @@ const WebsiteAccountSelector = ({
   }
 
   if (allowAll) {
-    websites.unshift({ value: "All websites", label: "All websites" });
+    websites.unshift({ value: "All websites", label: t("Home.Personal.AllWebsites") });
   }
 
   const [website, setWebsite] = useState<string | null>(websites[0]?.value);
@@ -57,7 +59,7 @@ const WebsiteAccountSelector = ({
     <Group grow>
       <Select
         pt="lg"
-        label="Website"
+        label={t("Home.Personal.Website")}
         value={website}
         onChange={(value) => {
           setWebsite(value);
@@ -69,10 +71,13 @@ const WebsiteAccountSelector = ({
       {website !== "All websites" && accounts.filter((a) => a !== "All accounts").length > 1 && (
         <Select
           pt="lg"
-          label="Account"
+          label={t("Home.Personal.Account")}
           value={account}
           onChange={(value) => setAccount(value)}
-          data={accounts}
+          data={accounts.map((name) => ({
+            value: name,
+            label: name === "All accounts" ? t("Home.Personal.AllAccounts") : name,
+          }))}
           allowDeselect={false}
         />
       )}

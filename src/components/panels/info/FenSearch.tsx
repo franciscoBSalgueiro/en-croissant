@@ -3,6 +3,7 @@ import { type FenError, parseFen } from "chessops/fen";
 import { use, useEffect, useRef, useState } from "react";
 import useSWRImmutable from "swr/immutable";
 import { useStore } from "zustand";
+import ImportImageButton from "@/components/common/ImportImageButton";
 import { commands } from "@/bindings";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import { chessopsError } from "@/utils/chessops";
@@ -95,7 +96,18 @@ export default function FenSearch({ currentFen: currentFenInput }: { currentFen?
       <Combobox.Target>
         <InputBase
           error={error && chessopsError(error)}
-          rightSection={isLoading && <Loader size={18} />}
+          rightSection={
+            <Group gap={4} wrap="nowrap">
+              {isLoading && <Loader size={18} />}
+              <ImportImageButton
+                onImport={(fen) => {
+                  addFen(fen, false);
+                  combobox.closeDropdown();
+                }}
+              />
+            </Group>
+          }
+          rightSectionWidth={isLoading ? 60 : 32}
           value={search}
           onChange={(event) => {
             combobox.openDropdown();
@@ -121,7 +133,7 @@ export default function FenSearch({ currentFen: currentFenInput }: { currentFen?
             prev.current = event.nativeEvent.code;
           }}
           placeholder="Enter FEN"
-          rightSectionPointerEvents="none"
+          rightSectionPointerEvents="auto"
         />
       </Combobox.Target>
 

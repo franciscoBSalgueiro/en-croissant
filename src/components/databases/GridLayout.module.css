@@ -1,3 +1,8 @@
+.compactSearch {
+  flex-shrink: 0;
+  padding: 0;
+}
+
 .search {
   padding: var(--mantine-spacing-md);
   border-radius: var(--mantine-radius-md);

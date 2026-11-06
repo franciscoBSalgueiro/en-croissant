@@ -19,7 +19,7 @@ const ChessComPerf = z.object({
   last: z.object({
     rating: z.number(),
     date: z.number(),
-    rd: z.number(),
+    rd: z.number().optional(),
   }),
   record: z.object({
     win: z.number(),

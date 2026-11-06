@@ -914,7 +914,7 @@ function LogsModal({
                   <Text tt="uppercase" fw="bold" fz="sm">
                     {t("Common.Date")}
                   </Text>
-                  <Text>{formatDate(log.due)}</Text>
+                  <Text>{formatDate(log.review)}</Text>
                 </Stack>
                 <ActionIcon
                   variant="subtle"
