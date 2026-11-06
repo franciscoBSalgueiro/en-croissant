@@ -122,7 +122,24 @@ pub fn file_from_args(args: &[String], cwd: &str) -> Option<String> {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+/// iOS links the app as a static library, so the linker drops DuckDB's
+/// "register at startup" object and built-in functions such as `random()`
+/// (core_functions) would be missing. Register them explicitly.
+#[cfg(mobile)]
+fn register_duckdb_static_extensions() {
+    extern "C" {
+        fn duckdb_register_static_extensions() -> i32;
+    }
+    let status = unsafe { duckdb_register_static_extensions() };
+    if status != 0 {
+        log::warn!("duckdb_register_static_extensions returned {status}");
+    }
+}
+
 pub fn run() {
+    #[cfg(mobile)]
+    register_duckdb_static_extensions();
+
     let specta_builder = tauri_specta::Builder::new()
         .commands(tauri_specta::collect_commands!(
             close_splashscreen,
