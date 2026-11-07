@@ -1450,8 +1450,9 @@ pub async fn write_db_game(
 }
 
 fn update_game(db: &Connection, game_id: i32, pgn: &str) -> Result<(), Error> {
-    let game = pgn::parse_single_game(pgn)
+    let mut game = pgn::parse_single_game(pgn)
         .map_err(|msg| std::io::Error::new(std::io::ErrorKind::InvalidData, msg))?;
+    game.ensure_today_date();
     let mut values = game.database_values();
     values.push(game_id.into());
     // A single statement atomically replaces the move tree, annotations and
@@ -1468,6 +1469,36 @@ fn update_game(db: &Connection, game_id: i32, pgn: &str) -> Result<(), Error> {
         return Err(Error::GameNotFound(game_id.to_string()));
     }
     Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn insert_db_game(
+    file: PathBuf,
+    pgn: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<i32, Error> {
+    let db_pool = get_duckdb_pool(&state, &file)?;
+    let db = db_pool.get()?;
+
+    let _invalidate_caches = DatabaseCacheInvalidation::new(&state, &file);
+    insert_game(&db, &pgn)
+}
+
+fn insert_game(db: &Connection, pgn: &str) -> Result<i32, Error> {
+    let mut game = pgn::parse_single_game(pgn)
+        .map_err(|msg| std::io::Error::new(std::io::ErrorKind::InvalidData, msg))?;
+    game.ensure_today_date();
+    let values = game.database_values();
+    let sql = format!(
+        "INSERT INTO games ({}) VALUES ({}) RETURNING id;",
+        GAME_COLUMNS.join(", "),
+        vec!["?"; GAME_COLUMNS.len()].join(", ")
+    );
+    let id = db.query_row(&sql, duckdb::params_from_iter(values), |row| {
+        row.get::<_, i32>(0)
+    })?;
+    Ok(id)
 }
 
 #[tauri::command]

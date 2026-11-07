@@ -43,7 +43,7 @@ use crate::chess::{
 };
 use crate::db::{
     compact_database, delete_database, delete_db_game, delete_empty_games, export_to_pgn,
-    get_player, get_players_game_info, get_tournaments, search_position,
+    get_player, get_players_game_info, get_tournaments, insert_db_game, search_position,
 };
 use crate::game::{
     abort_game, get_game_engine_logs, get_game_state, make_game_move, resign_game, start_game,
@@ -160,6 +160,7 @@ fn main() {
             edit_db_info,
             delete_db_game,
             write_db_game,
+            insert_db_game,
             delete_database,
             export_to_pgn,
             db::collection::collection_ids,
