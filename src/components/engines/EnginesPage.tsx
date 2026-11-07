@@ -1,5 +1,6 @@
 import {
   ActionIcon,
+  Alert,
   Button,
   Center,
   Checkbox,
@@ -272,9 +273,16 @@ function EngineSettings({
 
   const [engines, setEngines] = useAtom(enginesAtom);
   const engine = engines![selected] as LocalEngine;
-  const { data: options } = useSWRImmutable(["engine-config", engine.path], async ([, path]) => {
-    return unwrap(await commands.getEngineConfig(path));
-  });
+  const {
+    data: options,
+    error,
+    isValidating,
+    mutate,
+  } = useSWRImmutable(
+    ["engine-config", engine.path],
+    async ([, path]) => unwrap(await commands.getEngineConfig(path)),
+    { shouldRetryOnError: false },
+  );
 
   function setEngine(newEngine: LocalEngine) {
     setEngines(async (prev) => {
@@ -541,7 +549,22 @@ function EngineSettings({
             })}
         </SimpleGrid>
 
+        {error && (
+          <Alert color="red" title={t("Common.Error")}>
+            {t("Engines.Settings.RefreshError")}
+          </Alert>
+        )}
+        <Text size="sm" c="dimmed">
+          {t("Engines.Settings.RefreshHint")}
+        </Text>
         <Group justify="end">
+          <Button
+            variant="default"
+            loading={isValidating}
+            onClick={() => mutate().catch(() => undefined)}
+          >
+            {t("Engines.Settings.Refresh")}
+          </Button>
           <Button variant="default" onClick={() => toggleJSONModal(true)}>
             {t("Engines.Settings.EditJSON")}
           </Button>
