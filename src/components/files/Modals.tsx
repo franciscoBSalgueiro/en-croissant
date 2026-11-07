@@ -1,9 +1,20 @@
-import { Button, Modal, SimpleGrid, Stack, Text, Textarea, TextInput } from "@mantine/core";
+import {
+  Button,
+  Modal,
+  SegmentedControl,
+  SimpleGrid,
+  Stack,
+  Text,
+  Textarea,
+  TextInput,
+} from "@mantine/core";
 import { useLoaderData } from "@tanstack/react-router";
 import { resolve, dirname } from "@tauri-apps/api/path";
 import { exists, mkdir, rename, writeTextFile } from "@tauri-apps/plugin-fs";
+import { INITIAL_FEN } from "chessops/fen";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { headersToPGN } from "@/utils/chess";
 import { createFile } from "@/utils/files";
 import GenericCard from "../common/GenericCard";
 import type { Directory, FileMetadata, FileType } from "./file";
@@ -36,6 +47,7 @@ export function CreateModal({
   const [filename, setFilename] = useState("");
   const [filetype, setFiletype] = useState<FileType>("game");
   const [pgn, setPgn] = useState("");
+  const [color, setColor] = useState<"white" | "black">("white");
   const [error, setError] = useState("");
   const { documentDir } = useLoaderData({ from: "/files" });
 
@@ -55,10 +67,26 @@ export function CreateModal({
       }
     }
 
+    // A repertoire created here has no PGN to read the practice side from, so
+    // record it in the Orientation header that the practice panel uses.
+    const effectivePgn =
+      filetype === "repertoire" && !pgn.trim()
+        ? headersToPGN({
+            id: 0,
+            fen: INITIAL_FEN,
+            black: "",
+            white: "",
+            result: "*",
+            event: trimmedFilename,
+            site: "",
+            orientation: color,
+          })
+        : pgn;
+
     const newFile = await createFile({
       filename: trimmedFilename,
       filetype,
-      pgn,
+      pgn: effectivePgn,
       dir: targetDir,
     });
     if (newFile.isErr) {
@@ -70,6 +98,7 @@ export function CreateModal({
       setOpened(false);
       setFilename("");
       setFiletype("game");
+      setColor("white");
     }
   }
 
@@ -108,6 +137,23 @@ export function CreateModal({
               />
             ))}
           </SimpleGrid>
+
+          {filetype === "repertoire" && !pgn.trim() && (
+            <div>
+              <Text size="sm" fw={500} mb={4}>
+                {t("Home.Card.NewRepertoire.Color")}
+              </Text>
+              <SegmentedControl
+                fullWidth
+                value={color}
+                onChange={(v) => setColor(v as "white" | "black")}
+                data={[
+                  { label: t("Common.WHITE"), value: "white" },
+                  { label: t("Common.BLACK"), value: "black" },
+                ]}
+              />
+            </div>
+          )}
 
           <Textarea
             value={pgn}
