@@ -10,7 +10,11 @@ const audioPool = Array.from({ length: POOL_SIZE }, () => new Audio());
 let poolIndex = 0;
 
 let soundServerPort: number | null = null;
-const soundUrlCache = new Map<string, string>();
+
+// Except on Linux, each sound file is decoded once and then played from memory: loading the
+// file again for every move stalls the board when stepping through moves quickly
+let audioContext: AudioContext | null = null;
+const soundBuffers = new Map<string, Promise<AudioBuffer>>();
 
 function isLinux(): boolean {
     try {
@@ -34,6 +38,56 @@ async function getSoundServerPort(): Promise<number> {
     throw new Error("Failed to get sound server port");
 }
 
+function getAudioContext(): AudioContext {
+    if (!audioContext) {
+        audioContext = new AudioContext();
+    }
+    return audioContext;
+}
+
+function loadSound(collection: string, type: string): Promise<AudioBuffer> {
+    const key = `${collection}/${type}`;
+    let sound = soundBuffers.get(key);
+    if (!sound) {
+        sound = resolveResource(`sound/${key}.mp3`)
+            .then((filePath) => fetch(convertFileSrc(filePath)))
+            .then((response) => response.arrayBuffer())
+            .then((data) => getAudioContext().decodeAudioData(data));
+        soundBuffers.set(key, sound);
+        // Try again next time if it failed
+        sound.catch(() => soundBuffers.delete(key));
+    }
+    return sound;
+}
+
+function playBuffer(buffer: AudioBuffer, volume: number) {
+    const context = getAudioContext();
+    // A context created before any click or key press can start suspended
+    if (context.state === "suspended") {
+        context.resume().catch((e) => console.error("Audio playback error:", e));
+    }
+    const gain = context.createGain();
+    gain.gain.value = volume;
+    gain.connect(context.destination);
+    const source = context.createBufferSource();
+    source.buffer = buffer;
+    source.connect(gain);
+    source.start();
+}
+
+// Loads a sound set before its first sound is needed, so the first moves aren't late
+export function preloadSounds(collection: string) {
+    if (isLinux()) {
+        return;
+    }
+    const types = collection === "standard" ? ["Move", "Capture"] : ["Move", "Capture", "Check"];
+    for (const type of types) {
+        loadSound(collection, type).catch(() => {
+            // fails if Tauri APIs are unavailable (e.g., in tests)
+        });
+    }
+}
+
 export function playSound(capture: boolean, check: boolean) {
     // only play at most 1 sound every 75ms
     const now = Date.now();
@@ -54,8 +108,6 @@ export function playSound(capture: boolean, check: boolean) {
         type = "Check";
     }
 
-    const cacheKey = `${collection}/${type}`;
-
     const playWithUrl = (url: string) => {
         const player = audioPool[poolIndex];
         poolIndex = (poolIndex + 1) % POOL_SIZE;
@@ -75,21 +127,13 @@ export function playSound(capture: boolean, check: boolean) {
                 // fails if Tauri APIs are unavailable (e.g., in tests)
             });
     } else {
-        const path = `sound/${collection}/${type}.mp3`;
-
-        if (soundUrlCache.has(cacheKey)) {
-            playWithUrl(soundUrlCache.get(cacheKey)!);
-            return;
-        }
-        resolveResource(path)
-            .then((filePath) => {
-                const assetUrl = convertFileSrc(filePath);
-                soundUrlCache.set(cacheKey, assetUrl);
-
-                playWithUrl(assetUrl);
-            })
-            .catch(() => {
-                // fails if Tauri APIs are unavailable (e.g., in tests)
-            });
+        loadSound(collection, type)
+            .then(
+                (buffer) => playBuffer(buffer, volume),
+                () => {
+                    // fails if Tauri APIs are unavailable (e.g., in tests)
+                },
+            )
+            .catch((e) => console.error("Audio playback error:", e));
     }
 }

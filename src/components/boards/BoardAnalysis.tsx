@@ -27,9 +27,11 @@ import {
   enableAllAtom,
   isCompactLayoutAtom,
   practiceStateAtom,
+  soundCollectionAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { defaultPGN } from "@/utils/chess";
+import { preloadSounds } from "@/utils/sound";
 import { getTabFile, saveToFile } from "@/utils/tabs";
 import DetachedEval from "../common/DetachedEval";
 import GameNotation from "../common/GameNotation";
@@ -93,6 +95,11 @@ function BoardAnalysis() {
       saveFile();
     }
   }, [hasPersistentOrigin, saveFile, autoSave, dirty]);
+
+  const soundCollection = useAtomValue(soundCollectionAtom);
+  useEffect(() => {
+    preloadSounds(soundCollection);
+  }, [soundCollection]);
 
   const addGame = useCallback(() => {
     if (!tabFile) return;
