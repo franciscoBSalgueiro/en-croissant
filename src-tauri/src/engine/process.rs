@@ -150,6 +150,22 @@ impl BaseEngine {
         self.send("quit").await
     }
 
+    /// Report engines are disposable. Unlike shared live-engine `quit`, this
+    /// forcibly terminates and waits, including engines that ignore UCI commands.
+    pub async fn terminate_report(&mut self) -> Result<(), Error> {
+        if self.child.try_wait()?.is_some() {
+            return Ok(());
+        }
+        if let Err(error) = self.child.kill().await {
+            // The child may have exited between try_wait and kill. Only a
+            // successfully collected exit status proves cleanup in that case.
+            if self.child.try_wait()?.is_none() {
+                return Err(error.into());
+            }
+        }
+        Ok(())
+    }
+
     pub async fn wait_for_bestmove(&mut self) -> Result<String, Error> {
         let reader = self.reader.as_mut().ok_or(Error::EngineDisconnected)?;
         while let Some(line) = reader.next_line().await? {

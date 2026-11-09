@@ -78,6 +78,9 @@ duckdb = { git = "https://github.com/duckdb/duckdb-rs", rev = "4acbea84794582c4c
 r2d2 = "0.8.10"
 lazy-regex = "3.5"
 
+[dev-dependencies]
+tauri = { version = "2.10.2", features = ["test"] }
+
 [features]
 # by default Tauri runs in production mode
 # when `tauri dev` runs it is executed with `cargo run --no-default-features` if `devPath` is an URL
