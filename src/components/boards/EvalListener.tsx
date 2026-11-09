@@ -150,8 +150,6 @@ function EngineListener({
       ) {
         startTransition(() => {
           setProgress(payload.progress);
-          // An engine can stop before producing a complete MultiPV set. Keep the
-          // previously rendered lines instead of dereferencing an empty array.
           if (ev.length === 0) {
             return;
           }

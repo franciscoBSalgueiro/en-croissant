@@ -408,10 +408,6 @@ pub async fn get_best_moves(
                                         GoMode::PlayersTime(_) => 99.99,
                                         GoMode::Infinite => 99.99,
                                     };
-                                    // Store the latest state even when the update is throttled.
-                                    // A fast search finishes before the rate limiter allows the
-                                    // final update, and the `bestmove` payload below must still
-                                    // report the depth the engine actually reached.
                                     proc.last_depth = cur_depth;
                                     proc.last_best_moves = proc.best_moves.clone();
                                     proc.last_progress = progress as f32;
@@ -450,9 +446,6 @@ pub async fn get_best_moves(
                 }
                 .emit(&app)?;
                 proc.last_progress = 100.0;
-                // The search finished on its own; keep the state consistent with the
-                // running flag so a later `get_best_moves` starts a new search instead
-                // of returning this as a cached (still running) result.
                 proc.running = false;
             }
             _ => {}
