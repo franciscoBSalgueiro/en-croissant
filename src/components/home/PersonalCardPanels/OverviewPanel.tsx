@@ -30,13 +30,11 @@ function fillMissingMonths(data: ActivityData[]): ActivityData[] {
   const startDate = new Date(`${data[0].name}-01`);
   const endDate = new Date(`${data[data.length - 1].name}-01`);
 
-  const timezoneOffset = new Date().getTimezoneOffset() * 60 * 1000; // milliseconds
   const currDate = new Date(startDate);
   while (currDate <= endDate) {
-    const localCurrDate = new Date(currDate.getTime() - timezoneOffset);
-    const monthString = localCurrDate.toISOString().slice(0, 7);
+    const monthString = currDate.toISOString().slice(0, 7);
     monthStrings.push(monthString);
-    currDate.setMonth(currDate.getMonth() + 1);
+    currDate.setUTCMonth(currDate.getUTCMonth() + 1);
   }
 
   const dataMap = new Map(data.map((item) => [item.name, item]));
