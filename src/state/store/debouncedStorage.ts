@@ -6,7 +6,7 @@ const pendingWrites = new Map<string, StorageValue<unknown>>();
 let flushTimeout: ReturnType<typeof setTimeout> | null = null;
 let flushHandlersBound = false;
 
-function flush() {
+export function flushPendingSessionStorage() {
     if (pendingWrites.size === 0) {
         return;
     }
@@ -25,7 +25,7 @@ function scheduleFlush(delay: number) {
 
     flushTimeout = setTimeout(() => {
         flushTimeout = null;
-        flush();
+        flushPendingSessionStorage();
     }, delay);
 }
 
@@ -40,7 +40,7 @@ function bindFlushHandlers() {
             flushTimeout = null;
         }
 
-        flush();
+        flushPendingSessionStorage();
     };
 
     window.addEventListener("beforeunload", flushAndClearTimeout);
@@ -56,7 +56,8 @@ export function createDebouncedSessionStorage<S>(delay = DEBOUNCE_MS): PersistSt
         getItem: (name) => {
             const pending = pendingWrites.get(name);
             if (pending) {
-                return pending as StorageValue<S>;
+                // Match persisted JSON: never hydrate another store's bound action functions.
+                return JSON.parse(JSON.stringify(pending)) as StorageValue<S>;
             }
 
             const stored = sessionStorage.getItem(name);
