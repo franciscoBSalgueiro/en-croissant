@@ -51,6 +51,37 @@ export async function getEnginesDir(): Promise<string> {
     return ensureDirectory(await resolve(await appDataDir(), "engines"));
 }
 
+async function fileExists(path: string): Promise<boolean> {
+    try {
+        return await exists(path);
+    } catch {
+        // `exists` throws for invalid paths (e.g. Windows os error 267)
+        return false;
+    }
+}
+
+/**
+ * Engines are stored in `engines.json` with an absolute path taken when they
+ * were added. After the engines directory is changed, those paths still point
+ * at the old location, so fall back to a file with the same name inside the
+ * current engines directory.
+ */
+export async function resolveEnginePath(path: string): Promise<string> {
+    if (await fileExists(path)) return path;
+
+    const filename = path.split(/[\\/]/).pop();
+    if (!filename) return path;
+
+    try {
+        const candidate = await resolve(await getEnginesDir(), filename);
+        if (await fileExists(candidate)) return candidate;
+    } catch {
+        // keep the stored path so callers report the real location
+    }
+
+    return path;
+}
+
 export async function getPuzzlesDir(): Promise<string> {
     const customDir = getStoredDirectory("puzzles-dir");
     if (customDir) {

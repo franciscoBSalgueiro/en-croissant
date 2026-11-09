@@ -43,6 +43,7 @@ import { match, P } from "ts-pattern";
 import { commands } from "@/bindings";
 import { Route } from "@/routes/engines";
 import { enginesAtom } from "@/state/atoms";
+import { resolveEnginePath } from "@/utils/directories";
 import {
   type Engine,
   engineSchema,
@@ -273,7 +274,7 @@ function EngineSettings({
   const [engines, setEngines] = useAtom(enginesAtom);
   const engine = engines![selected] as LocalEngine;
   const { data: options } = useSWRImmutable(["engine-config", engine.path], async ([, path]) => {
-    return unwrap(await commands.getEngineConfig(path));
+    return unwrap(await commands.getEngineConfig(await resolveEnginePath(path)));
   });
 
   function setEngine(newEngine: LocalEngine) {
@@ -678,7 +679,7 @@ function EngineName({ engine }: { engine: Engine }) {
     async ([, path]) => {
       if (path === null) return false;
       if (engine.type !== "local") return true;
-      const res = await commands.fileExists(path);
+      const res = await commands.fileExists(await resolveEnginePath(path));
       return res.status === "ok";
     },
   );
