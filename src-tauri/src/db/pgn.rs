@@ -93,6 +93,16 @@ impl StoredGame {
         )
     }
 
+    /// Assigns today's date when the game carries no usable one, so that
+    /// manually saved games are never stored with a NULL timestamp.
+    pub fn ensure_today_date(&mut self) {
+        if self.timestamp().is_none() {
+            self.headers
+                .utc_date
+                .get_or_insert_with(|| chrono::Utc::now().format("%Y.%m.%d").to_string());
+        }
+    }
+
     pub fn database_values(self) -> Vec<Value> {
         let timestamp = self
             .timestamp()

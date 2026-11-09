@@ -6,6 +6,7 @@ import type { StoreApi } from "zustand";
 import { commands } from "@/bindings";
 import { type FileMetadata, fileMetadataSchema } from "@/components/files/file";
 import type { TreeStoreState } from "@/state/store/tree";
+import { type SuccessDatabaseInfo } from "@/utils/db";
 import { getPGN, parsePGN } from "./chess";
 import { type GameHeaders, getGameName } from "./treeReducer";
 import { unwrap } from "./unwrap";
@@ -242,4 +243,42 @@ export async function saveToFile({
     }
     unwrap(await commands.writeGame(filePath, fileOrigin?.gameNumber ?? 0, pgn));
     store.getState().save();
+}
+
+export async function saveToDatabase({
+    database,
+    tab,
+    setCurrentTab,
+    store,
+}: {
+    database: SuccessDatabaseInfo;
+    tab: Tab | undefined;
+    setCurrentTab: React.Dispatch<React.SetStateAction<Tab>>;
+    store: StoreApi<TreeStoreState>;
+}) {
+    if (tab?.gameOrigin.kind === "database" && tab.gameOrigin.database === database.file) {
+        unwrap(await commands.writeDbGame(database.file, tab.gameOrigin.gameId, getGamePgn(store)));
+        store.getState().save();
+        return;
+    }
+
+    const gameId = unwrap(await commands.insertDbGame(database.file, getGamePgn(store)));
+    setCurrentTab((prev) => {
+        if (!prev) return prev;
+        return {
+            ...prev,
+            gameOrigin: { kind: "database", database: database.file, gameId },
+        };
+    });
+    store.getState().save();
+}
+
+function getGamePgn(store: StoreApi<TreeStoreState>) {
+    return `${getPGN(store.getState().root, {
+        headers: store.getState().headers,
+        comments: true,
+        extraMarkups: true,
+        glyphs: true,
+        variations: true,
+    })}\n\n`;
 }

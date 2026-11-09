@@ -261,10 +261,6 @@ pub async fn convert_pgn(
     description: Option<String>,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    if files.is_empty() {
-        return Ok(());
-    }
-
     let db_exists = db_path.exists();
 
     let db_pool = get_duckdb_pool(&state, &db_path)?;
@@ -274,60 +270,63 @@ pub async fn convert_pgn(
     prepare_pgn_import(&db, db_exists, &title, description.as_deref())?;
 
     let start = Instant::now();
-    let appender = game_appender(&db)?;
-    let mut proc = pgn::PgnProcessor::new(appender, AixCompressionLevel::Low, true, timestamp);
-    let mut next_progress_emit = 10_000u32;
+    if !files.is_empty() {
+        let appender = game_appender(&db)?;
+        let mut proc = pgn::PgnProcessor::new(appender, AixCompressionLevel::Low, true, timestamp);
+        let mut next_progress_emit = 10_000u32;
 
-    for file_path in files {
-        let file = File::open(&file_path)?;
-        let uncompressed: Box<dyn std::io::Read> =
-            if file_path.extension().and_then(|s| s.to_str()) == Some("bz2") {
-                Box::new(bzip2::read::MultiBzDecoder::new(file))
-            } else if file_path.extension().and_then(|s| s.to_str()) == Some("zst") {
-                Box::new(zstd::Decoder::new(file)?)
-            } else {
-                Box::new(file)
-            };
+        for file_path in files {
+            let file = File::open(&file_path)?;
+            let uncompressed: Box<dyn std::io::Read> =
+                if file_path.extension().and_then(|s| s.to_str()) == Some("bz2") {
+                    Box::new(bzip2::read::MultiBzDecoder::new(file))
+                } else if file_path.extension().and_then(|s| s.to_str()) == Some("zst") {
+                    Box::new(zstd::Decoder::new(file)?)
+                } else {
+                    Box::new(file)
+                };
 
-        let current_file_name = file_path
-            .file_name()
-            .map(|name| name.to_string_lossy().into_owned())
-            .unwrap_or_else(|| file_path.to_string_lossy().into_owned());
+            let current_file_name = file_path
+                .file_name()
+                .map(|name| name.to_string_lossy().into_owned())
+                .unwrap_or_else(|| file_path.to_string_lossy().into_owned());
 
-        let mut reader = pgn_reader::Reader::new(uncompressed);
-        loop {
-            let games_read = proc.read_batch(&mut reader).map_err(|error| {
-                std::io::Error::new(
-                    std::io::ErrorKind::InvalidData,
-                    format!("Failed to import '{}': {error}", file_path.display()),
-                )
-            })?;
-            if games_read == 0 {
-                break;
-            }
+            let mut reader = pgn_reader::Reader::new(uncompressed);
+            loop {
+                let games_read = proc.read_batch(&mut reader).map_err(|error| {
+                    std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        format!("Failed to import '{}': {error}", file_path.display()),
+                    )
+                })?;
+                if games_read == 0 {
+                    break;
+                }
 
-            let imported_games = proc.count();
-            while imported_games >= next_progress_emit {
-                let elapsed = start.elapsed().as_millis() as u32;
-                app.emit(
-                    "convert_progress",
-                    (imported_games, elapsed, Some(current_file_name.clone())),
-                )
-                .unwrap();
-                next_progress_emit += 10_000;
+                let imported_games = proc.count();
+                while imported_games >= next_progress_emit {
+                    let elapsed = start.elapsed().as_millis() as u32;
+                    app.emit(
+                        "convert_progress",
+                        (imported_games, elapsed, Some(current_file_name.clone())),
+                    )
+                    .unwrap();
+                    next_progress_emit += 10_000;
+                }
             }
         }
+
+        proc.flush()?;
+
+        let total_games = proc.count();
+        let elapsed = start.elapsed().as_millis() as u32;
+        let _ = app.emit(
+            "convert_progress",
+            (total_games, elapsed, Option::<String>::None),
+        );
     }
 
-    proc.flush()?;
     db.execute("CHECKPOINT", [])?;
-
-    let total_games = proc.count();
-    let elapsed = start.elapsed().as_millis() as u32;
-    let _ = app.emit(
-        "convert_progress",
-        (total_games, elapsed, Option::<String>::None),
-    );
 
     Ok(())
 }
@@ -1450,8 +1449,9 @@ pub async fn write_db_game(
 }
 
 fn update_game(db: &Connection, game_id: i32, pgn: &str) -> Result<(), Error> {
-    let game = pgn::parse_single_game(pgn)
+    let mut game = pgn::parse_single_game(pgn)
         .map_err(|msg| std::io::Error::new(std::io::ErrorKind::InvalidData, msg))?;
+    game.ensure_today_date();
     let mut values = game.database_values();
     values.push(game_id.into());
     // A single statement atomically replaces the move tree, annotations and
@@ -1468,6 +1468,36 @@ fn update_game(db: &Connection, game_id: i32, pgn: &str) -> Result<(), Error> {
         return Err(Error::GameNotFound(game_id.to_string()));
     }
     Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn insert_db_game(
+    file: PathBuf,
+    pgn: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<i32, Error> {
+    let db_pool = get_duckdb_pool(&state, &file)?;
+    let db = db_pool.get()?;
+
+    let _invalidate_caches = DatabaseCacheInvalidation::new(&state, &file);
+    insert_game(&db, &pgn)
+}
+
+fn insert_game(db: &Connection, pgn: &str) -> Result<i32, Error> {
+    let mut game = pgn::parse_single_game(pgn)
+        .map_err(|msg| std::io::Error::new(std::io::ErrorKind::InvalidData, msg))?;
+    game.ensure_today_date();
+    let values = game.database_values();
+    let sql = format!(
+        "INSERT INTO games ({}) VALUES ({}) RETURNING id;",
+        GAME_COLUMNS.join(", "),
+        vec!["?"; GAME_COLUMNS.len()].join(", ")
+    );
+    let id = db.query_row(&sql, duckdb::params_from_iter(values), |row| {
+        row.get::<_, i32>(0)
+    })?;
+    Ok(id)
 }
 
 #[tauri::command]
