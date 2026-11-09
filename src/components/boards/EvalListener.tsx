@@ -149,6 +149,10 @@ function EngineListener({
         !isGameOver
       ) {
         startTransition(() => {
+          setProgress(payload.progress);
+          if (ev.length === 0) {
+            return;
+          }
           setEngineVariation((prev) => {
             const newMap = new Map(prev);
             newMap.set(`${searchingFen}:${searchingMoves.join(",")}`, ev);
@@ -159,7 +163,6 @@ function EngineListener({
             }
             return newMap;
           });
-          setProgress(payload.progress);
           const shouldSetScore =
             firstEngineWithLines === engine.id || firstEngineWithLines === null;
           if (shouldSetScore) {
