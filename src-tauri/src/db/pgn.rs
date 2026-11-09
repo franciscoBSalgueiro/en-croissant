@@ -461,13 +461,22 @@ impl<'a> Visitor for PgnProcessor<'a> {
     }
 }
 
+/// Parses a rating tag, normalizing every unusable value to the "unrated" sentinel `0`.
+fn parse_rating(value: RawTag<'_>) -> i16 {
+    value
+        .decode_utf8_lossy()
+        .trim()
+        .parse::<i16>()
+        .map_or(0, |rating| rating.max(0))
+}
+
 fn apply_tag(tags: &mut Headers, key: &[u8], value: RawTag<'_>) {
     match key {
         b"White" => tags.white = Some(value.decode_utf8_lossy().into_owned()),
         b"Black" => tags.black = Some(value.decode_utf8_lossy().into_owned()),
         b"Round" => tags.round = Some(value.decode_utf8_lossy().into_owned()),
-        b"WhiteElo" => tags.white_rating = value.decode_utf8_lossy().parse().ok(),
-        b"BlackElo" => tags.black_rating = value.decode_utf8_lossy().parse().ok(),
+        b"WhiteElo" => tags.white_rating = Some(parse_rating(value)),
+        b"BlackElo" => tags.black_rating = Some(parse_rating(value)),
         b"Result" => tags.result = Some(value.decode_utf8_lossy().into_owned()),
         b"TimeControl" => tags.time_control = Some(value.decode_utf8_lossy().into_owned()),
         b"Site" => tags.site = Some(value.decode_utf8_lossy().into_owned()),
@@ -572,4 +581,53 @@ fn parse_component(component: &str, unknown_default: Option<u32>) -> Option<u32>
         .chars()
         .all(|ch| ch.is_ascii_digit())
         .then(|| component.parse().ok())?
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ratings(pgn: &str) -> (Option<i16>, Option<i16>) {
+        let game = parse_single_game(pgn).expect("PGN should parse");
+        (game.headers.white_rating, game.headers.black_rating)
+    }
+
+    fn ratings_for(value: &str) -> (Option<i16>, Option<i16>) {
+        let pgn = format!("[WhiteElo \"{value}\"]\n[BlackElo \"{value}\"]\n\n1. e4 *");
+        ratings(&pgn)
+    }
+
+    #[test]
+    fn unusable_rating_tags_become_unrated() {
+        for value in [
+            "?", "??", "-", "0", "0000", "", "N/A", "unrated", "invalid", "-5", "999999",
+        ] {
+            assert_eq!(
+                ratings_for(value),
+                (Some(0), Some(0)),
+                "rating value {value:?} should normalize to unrated"
+            );
+        }
+    }
+
+    #[test]
+    fn numeric_rating_tags_are_trimmed_and_parsed() {
+        for (value, expected) in [
+            ("2100", 2100),
+            ("02300", 2300),
+            ("+2100", 2100),
+            (" 2100 ", 2100),
+        ] {
+            assert_eq!(
+                ratings_for(value),
+                (Some(expected), Some(expected)),
+                "rating value {value:?} should parse as {expected}"
+            );
+        }
+    }
+
+    #[test]
+    fn absent_rating_tags_stay_unknown() {
+        assert_eq!(ratings("1. e4 *"), (None, None));
+    }
 }
