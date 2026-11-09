@@ -30,7 +30,6 @@ import { useLoaderData } from "@tanstack/react-router";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useAtom } from "jotai";
 import { RESET } from "jotai/utils";
-import posthog from "posthog-js";
 import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -64,6 +63,7 @@ import {
   telemetryEnabledAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
+import { setTelemetryEnabled } from "@/utils/telemetry";
 import FileInput from "../common/FileInput";
 import BoardSelect from "./BoardSelect";
 import ColorControl from "./ColorControl";
@@ -140,11 +140,7 @@ function TelemetrySwitch() {
       onChange={(event) => {
         const newValue = event.currentTarget.checked;
         setEnabled(newValue);
-        if (newValue) {
-          posthog.opt_in_capturing();
-        } else {
-          posthog.opt_out_capturing();
-        }
+        setTelemetryEnabled(newValue);
       }}
       styles={{
         track: { cursor: "pointer" },
