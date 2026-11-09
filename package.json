@@ -3,9 +3,6 @@
   "version": "0.15.1",
   "private": true,
   "type": "module",
-  "engines": {
-    "node": ">=20.19.0"
-  },
   "scripts": {
     "prepare:aix-extension": "node ./scripts/prepare-aix-extension.mjs",
     "start-vite": "vite",
