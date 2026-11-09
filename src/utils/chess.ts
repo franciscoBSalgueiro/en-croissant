@@ -203,10 +203,6 @@ export function getVariationLine(
 /** Highest rating representable by the database `SMALLINT` rating columns. */
 const MAX_RATING = 32767;
 
-/**
- * Formats a rating for PGN export, using the PGN convention for unrated games
- * (`-`). Non-integer or out-of-range values can never reach the output.
- */
 function formatRatingTag(rating: number): string {
     return Number.isInteger(rating) && rating > 0 && rating <= MAX_RATING ? `${rating}` : "-";
 }
@@ -521,10 +517,6 @@ export async function parsePGN(pgn: string, initialFen?: string): Promise<TreeSt
 
 /**
  * Normalizes a PGN rating tag to the app's "unrated" sentinel `0`.
- *
- * PGN allows `-` or `?` for an unknown rating and some exporters write `0`,
- * so every present value that is not a positive rating becomes `0`. An absent
- * tag stays `undefined` (unknown).
  */
 function parseRatingTag(value: string | undefined): number | undefined {
     if (value === undefined) return undefined;

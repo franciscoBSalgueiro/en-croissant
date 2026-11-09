@@ -462,10 +462,6 @@ impl<'a> Visitor for PgnProcessor<'a> {
 }
 
 /// Parses a rating tag, normalizing every unusable value to the "unrated" sentinel `0`.
-///
-/// PGN uses `-` or `?` for an unknown rating, and some exporters write `0`
-/// instead. The app has used `0` to mean unrated since #340, so a present tag
-/// that is not a positive rating becomes `0` instead of being dropped to `NULL`.
 fn parse_rating(value: RawTag<'_>) -> i16 {
     value
         .decode_utf8_lossy()
