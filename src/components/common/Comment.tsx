@@ -2,9 +2,7 @@ import { Typography } from "@mantine/core";
 import { memo } from "react";
 
 import Markdown from "react-markdown";
-import rehypeRaw from "rehype-raw";
-import remarkGfm from "remark-gfm";
-import { isPlainText } from "@/utils/markdown";
+import { commentRehypePlugins, isPlainText } from "@/utils/markdown";
 
 function normalizeTiptapMarkdown(comment: string) {
   return comment.replace(/\+\+([\s\S]+?)\+\+/g, "<u>$1</u>");
@@ -36,7 +34,7 @@ function Comment({ comment }: { comment: string }) {
           a: ({ node: _node, ...props }) => <a {...props} target="_blank" rel="noreferrer" />,
           p: ({ node: _node, ...props }) => (multipleLine ? <p {...props} /> : <span {...props} />),
         }}
-        rehypePlugins={[rehypeRaw, remarkGfm]}
+        rehypePlugins={commentRehypePlugins}
       >
         {normalizedComment}
       </Markdown>
