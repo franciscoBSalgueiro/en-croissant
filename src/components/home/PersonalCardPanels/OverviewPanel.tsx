@@ -19,7 +19,7 @@ import TimeControlSelector from "./TimeControlSelector";
 import WebsiteAccountSelector from "./WebsiteAccountSelector";
 import classes from "../PersonalCard.module.css";
 
-type ActivityData = { name: string; count: number; won: number; draw: number; lost: number };
+type ActivityData = { name: string; count: number };
 
 function fillMissingMonths(data: ActivityData[]): ActivityData[] {
   if (data.length === 0) return data;
@@ -40,7 +40,7 @@ function fillMissingMonths(data: ActivityData[]): ActivityData[] {
   const dataMap = new Map(data.map((item) => [item.name, item]));
   const filledData = monthStrings.map((month) => {
     const item = dataMap.get(month);
-    return item ?? { name: month, count: 0, won: 0, draw: 0, lost: 0 };
+    return item ?? { name: month, count: 0 };
   });
 
   return filledData;
@@ -49,15 +49,12 @@ function fillMissingMonths(data: ActivityData[]): ActivityData[] {
 function mergeYears(data: ActivityData[]): ActivityData[] {
   const yearCounts: { [year: string]: ActivityData } = {};
 
-  for (const { name, count, won, draw, lost } of data) {
+  for (const { name, count } of data) {
     const year = name.slice(0, 4);
-    const previous = yearCounts[year] ?? { name: year, count: 0, won: 0, draw: 0, lost: 0 };
+    const previous = yearCounts[year] ?? { name: year, count: 0 };
     yearCounts[year] = {
       name: year,
       count: previous.count + count,
-      won: previous.won + won,
-      draw: previous.draw + draw,
-      lost: previous.lost + lost,
     };
   }
 
@@ -77,12 +74,8 @@ function extractGameStats(games: StatsData[]) {
     const row = monthCounts[monthString] ?? {
       name: monthString,
       count: 0,
-      won: 0,
-      draw: 0,
-      lost: 0,
     };
     row.count++;
-    row[game.result === "Won" ? "won" : game.result === "Drawn" ? "draw" : "lost"]++;
     monthCounts[monthString] = row;
   }
 
@@ -104,6 +97,7 @@ function OverviewPanel({
   const [website, setWebsite] = useState<string | null>("All websites");
   const [account, setAccount] = useState<string | null>("All accounts");
   const [timeControl, setTimeControl] = useState<string | null>(null);
+  const [color, setColor] = useState<string | null>("all");
 
   const games =
     info?.site_stats_data
@@ -116,7 +110,10 @@ function OverviewPanel({
           timeControl === "any" ||
           getTimeControl(website, game.time_control) === timeControl,
       ) ?? [];
-  const { total, won, draw, lost, dataPerMonth } = extractGameStats(games);
+  const { dataPerMonth } = extractGameStats(games);
+  const { total, won, draw, lost } = extractGameStats(
+    games.filter((game) => color === "all" || game.is_player_white === (color === "white")),
+  );
 
   return (
     <Stack gap="sm" className={classes.overview}>
@@ -130,6 +127,17 @@ function OverviewPanel({
           />
         </Group>
       )}
+      <Select
+        label={t("Home.Personal.Color", { defaultValue: "Color" })}
+        value={color}
+        onChange={setColor}
+        allowDeselect={false}
+        data={[
+          { value: "all", label: t("Home.Personal.AllColors", { defaultValue: "Both colors" }) },
+          { value: "white", label: t("Home.Personal.AsWhite") },
+          { value: "black", label: t("Home.Personal.AsBlack") },
+        ]}
+      />
       <Group justify="space-between" gap="sm">
         <Text fw={500} size="sm">
           {t("Home.Personal.GameCount", {
@@ -158,13 +166,13 @@ function OverviewPanel({
             <Text c="dimmed" size="xs">
               {t("Board.Practice.Build.Results")}
             </Text>
-            <ResultsChart won={won} draw={draw} lost={lost} size="1rem" />
+            <ResultsChart won={won} draw={draw} lost={lost} size="2rem" showLabels />
             <div className={classes.overviewLegend}>
               {[
                 {
                   label: t("Home.Personal.Wins"),
                   count: won,
-                  color: "var(--mantine-color-teal-5)",
+                  color: "var(--mantine-color-green-filled)",
                 },
                 {
                   label: t("Home.Personal.Draws"),
@@ -174,7 +182,7 @@ function OverviewPanel({
                 {
                   label: t("Home.Personal.Losses"),
                   count: lost,
-                  color: "var(--mantine-color-red-4)",
+                  color: "var(--mantine-color-red-filled)",
                 },
               ].map((result) => (
                 <Group key={result.label} gap={6} wrap="nowrap">
@@ -186,20 +194,24 @@ function OverviewPanel({
                     {result.count.toLocaleString(i18n.resolvedLanguage)}
                   </Text>
                   <Text size="sm" c="dimmed">
-                    {((result.count / total) * 100).toFixed(0)}%
+                    {((result.count / total) * 100).toFixed(1)}%
                   </Text>
                 </Group>
               ))}
             </div>
           </Stack>
-          <Divider />
-          <DateChart key={playerName} dataPerMonth={dataPerMonth} />
         </>
       )}
       {total === 0 && (
         <Text c="dimmed" size="sm" py="lg" ta="center">
           {t("Home.Personal.NoGames")}
         </Text>
+      )}
+      {games.length > 0 && (
+        <>
+          <Divider />
+          <DateChart key={playerName} dataPerMonth={dataPerMonth} />
+        </>
       )}
     </Stack>
   );
@@ -285,7 +297,11 @@ function DateChart({ dataPerMonth }: { dataPerMonth: ActivityData[] }) {
               }
             }}
           >
-            <CartesianGrid stroke="var(--mantine-color-default-border)" vertical={false} />
+            <CartesianGrid
+              stroke="var(--mantine-color-default-border)"
+              strokeDasharray="3 3"
+              vertical={false}
+            />
             <XAxis
               dataKey="name"
               tickLine={false}
@@ -309,24 +325,7 @@ function DateChart({ dataPerMonth }: { dataPerMonth: ActivityData[] }) {
                 stroke: "1px solid var(--chart-grid-color)",
               }}
             />
-            <Bar
-              dataKey="won"
-              stackId="results"
-              fill="var(--mantine-color-teal-5)"
-              name={t("Home.Personal.Wins")}
-            />
-            <Bar
-              dataKey="draw"
-              stackId="results"
-              fill="var(--mantine-color-gray-6)"
-              name={t("Home.Personal.Draws")}
-            />
-            <Bar
-              dataKey="lost"
-              stackId="results"
-              fill="var(--mantine-color-red-4)"
-              name={t("Home.Personal.Losses")}
-            />
+            <Bar dataKey="count" fill="var(--mantine-color-blue-7)" name={t("Common.Games")} />
           </BarChart>
         </ResponsiveContainer>
       </Box>
