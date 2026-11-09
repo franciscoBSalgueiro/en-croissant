@@ -1,8 +1,8 @@
 use axum::{extract::Query, response::IntoResponse, routing::get, Extension, Router};
 use log::info;
 use oauth2::{
-    basic::BasicClient, reqwest::async_http_client, AuthUrl, AuthorizationCode, ClientId,
-    CsrfToken, PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, Scope, TokenResponse, TokenUrl,
+    basic::BasicClient, reqwest, AuthUrl, AuthorizationCode, ClientId, CsrfToken, EndpointNotSet,
+    EndpointSet, PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, Scope, TokenResponse, TokenUrl,
 };
 use serde::Deserialize;
 use std::{
@@ -14,12 +14,17 @@ use tauri_plugin_opener::OpenerExt;
 
 use crate::{error::Error, AppState};
 
-fn create_client(redirect_url: RedirectUrl) -> BasicClient {
+type LichessClient =
+    BasicClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet>;
+
+fn create_client(redirect_url: RedirectUrl) -> LichessClient {
     let client_id = ClientId::new("org.encroissant.app".to_string());
     let auth_url = AuthUrl::new("https://lichess.org/oauth".to_string());
     let token_url = TokenUrl::new("https://lichess.org/api/token".to_string());
 
-    BasicClient::new(client_id, None, auth_url.unwrap(), token_url.ok())
+    BasicClient::new(client_id)
+        .set_auth_uri(auth_url.unwrap())
+        .set_token_uri(token_url.unwrap())
         .set_redirect_uri(redirect_url)
 }
 
@@ -35,7 +40,7 @@ fn get_available_addr() -> SocketAddr {
 pub struct AuthState {
     pub csrf_token: CsrfToken,
     pub pkce: Arc<(PkceCodeChallenge, String)>,
-    pub client: Arc<BasicClient>,
+    pub client: Arc<LichessClient>,
     pub socket_addr: SocketAddr,
 }
 
@@ -94,11 +99,15 @@ async fn authorize(
         return "authorized".to_string(); // never let them know your next move
     }
 
+    let http_client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .expect("OAuth HTTP client should build");
     let token = auth
         .client
         .exchange_code(query.code.clone())
         .set_pkce_verifier(PkceCodeVerifier::new(auth.pkce.1.clone()))
-        .request_async(async_http_client)
+        .request_async(&http_client)
         .await
         .unwrap();
 
