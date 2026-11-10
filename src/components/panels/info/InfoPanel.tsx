@@ -11,7 +11,7 @@ import {
 } from "@mantine/core";
 import { useToggle } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useStore as useAtomStore } from "jotai";
 import { use, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
@@ -20,7 +20,7 @@ import { commands } from "@/bindings";
 import GameInfo from "@/components/common/GameInfo";
 import { TreeStateContext } from "@/components/common/TreeStateContext";
 import ConfirmChangesModal from "@/components/tabs/ConfirmChangesModal";
-import { currentTabAtom } from "@/state/atoms";
+import { currentTabAtom, tabsAtom } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { parsePGN } from "@/utils/chess";
 import { formatNumber } from "@/utils/format";
@@ -140,6 +140,7 @@ function GameSelectorAccordion({
   const dirty = useStore(store, (s) => s.dirty);
   const setState = useStore(store, (s) => s.setState);
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
+  const atomStore = useAtomStore();
 
   const [confirmChanges, toggleConfirmChanges] = useToggle();
   const [tempPage, setTempPage] = useState(0);
@@ -166,18 +167,23 @@ function GameSelectorAccordion({
     enabled: !!tabFile,
   });
 
-  if (!tabFile) return null;
+  if (!currentTab || !tabFile) return null;
+  const tabId = currentTab.value;
   const filePath = tabFile.path;
 
   async function setPage(page: number, forced?: boolean) {
+    if (confirmChanges && !forced) return;
     if (!forced && dirty) {
       setTempPage(page);
       toggleConfirmChanges();
       return;
     }
 
-    const data = unwrap(await commands.readGames(filePath, page, page));
+    const file = getTabFile(atomStore.get(tabsAtom).find((tab) => tab.value === tabId));
+    if (!file) return;
+    const data = unwrap(await commands.readGames(file.path, page, page));
     const tree = await parsePGN(data[0]);
+    if (atomStore.get(currentTabAtom)?.value !== tabId) return;
     setState(tree);
 
     setCurrentTab((prev) => {
@@ -218,8 +224,10 @@ function GameSelectorAccordion({
     <>
       <ConfirmChangesModal
         opened={confirmChanges}
-        toggle={toggleConfirmChanges}
-        closeTab={() => {
+        tab={currentTab}
+        getStore={() => store}
+        onClose={() => toggleConfirmChanges(false)}
+        onConfirm={() => {
           void setPage(tempPage, true);
         }}
       />

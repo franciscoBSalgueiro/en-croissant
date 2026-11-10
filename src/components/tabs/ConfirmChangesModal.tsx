@@ -1,36 +1,73 @@
 import { Button, Group, Modal, Stack, Text } from "@mantine/core";
 import { useLoaderData } from "@tanstack/react-router";
-import { useAtom } from "jotai";
-import { useContext } from "react";
-import { currentTabAtom } from "@/state/atoms";
-import { saveToFile } from "@/utils/tabs";
-import { TreeStateContext } from "../common/TreeStateContext";
+import { useSetAtom } from "jotai";
+import { useState } from "react";
+import { tabsAtom } from "@/state/atoms";
+import type { TreeStore } from "@/state/store/tree";
+import { saveToFile, type Tab } from "@/utils/tabs";
 
 function ConfirmChangesModal({
   opened,
-  toggle,
-  closeTab,
+  onClose,
+  onConfirm,
+  tab,
+  getStore,
 }: {
   opened: boolean;
-  toggle: () => void;
-  closeTab: () => void;
+  onClose: () => void;
+  onConfirm: () => void;
+  tab: Tab;
+  getStore: () => TreeStore | undefined;
 }) {
-  const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
-  const store = useContext(TreeStateContext)!;
+  const setTabs = useSetAtom(tabsAtom);
   const { documentDir } = useLoaderData({ from: "/" });
+  const [saving, setSaving] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
 
-  function save() {
-    saveToFile({
-      dir: documentDir,
-      setCurrentTab,
-      tab: currentTab,
-      store,
-      isUserSave: true,
-    });
+  function dismiss() {
+    setSaveFailed(false);
+    onClose();
+  }
+
+  function confirm() {
+    onConfirm();
+    dismiss();
+  }
+
+  async function saveAndConfirm() {
+    setSaving(true);
+    setSaveFailed(false);
+    let saved: boolean;
+    try {
+      const store = getStore();
+      if (!store) {
+        setSaveFailed(true);
+        return;
+      }
+      saved = await saveToFile({
+        dir: documentDir,
+        setTabs,
+        tab,
+        store,
+        isUserSave: true,
+      });
+    } catch {
+      setSaveFailed(true);
+      return;
+    } finally {
+      setSaving(false);
+    }
+    if (saved) confirm();
   }
 
   return (
-    <Modal withCloseButton={false} opened={opened} onClose={toggle}>
+    <Modal
+      withCloseButton={false}
+      opened={opened}
+      onClose={dismiss}
+      closeOnEscape={!saving}
+      closeOnClickOutside={!saving}
+    >
       <Stack>
         <div>
           <Text fz="lg" fw="bold" mb={10}>
@@ -39,23 +76,16 @@ function ConfirmChangesModal({
           <Text>You have unsaved changes. Do you want to save them before closing?</Text>
         </div>
 
+        {saveFailed && (
+          <Text role="alert" c="red">
+            Could not save changes. Please try again.
+          </Text>
+        )}
         <Group justify="right">
-          <Button
-            variant="default"
-            onClick={() => {
-              closeTab();
-              toggle();
-            }}
-          >
+          <Button variant="default" disabled={saving} onClick={confirm}>
             Close Without Saving
           </Button>
-          <Button
-            onClick={() => {
-              save();
-              closeTab();
-              toggle();
-            }}
-          >
+          <Button loading={saving} onClick={saveAndConfirm}>
             Save and Close
           </Button>
         </Group>
