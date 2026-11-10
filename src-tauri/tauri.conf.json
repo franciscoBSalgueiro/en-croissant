@@ -27,6 +27,7 @@
     "shortDescription": "Ultimate Chess Toolkit",
     "longDescription": "",
     "macOS": {
+      "hardenedRuntime": false,
       "entitlements": null,
       "exceptionDomain": "",
       "frameworks": [],
