@@ -37,8 +37,8 @@ import type { DatabaseInfo } from "@/bindings";
 import { commands } from "@/bindings";
 import {
   databaseConversionStateAtom,
-  referenceDbAtom,
   storedDatabasesDirAtom,
+  storedReferenceDbAtom,
   tabsAtom,
 } from "@/state/atoms";
 import { useActiveDatabaseViewStore } from "@/state/store/database";
@@ -59,7 +59,7 @@ export default function DatabasesPage() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
-  const [referenceDatabase, setReferenceDatabase] = useAtom(referenceDbAtom);
+  const [referenceDatabase, setReferenceDatabase] = useAtom(storedReferenceDbAtom);
   const [conversionState, setConversionState] = useAtom(databaseConversionStateAtom);
   const selectedDatabase = useMemo(
     () => (databases ?? []).find((db) => db.file === selected) ?? null,
@@ -101,12 +101,9 @@ export default function DatabasesPage() {
   const [deleteModal, toggleDeleteModal] = useToggle();
   const [exportLoading, setExportLoading] = useState(false);
 
-  function changeReferenceDatabase(file: string) {
-    if (file === referenceDatabase) {
-      setReferenceDatabase(null);
-    } else {
-      setReferenceDatabase(file);
-    }
+  function changeReferenceDatabase(database: DatabaseInfo) {
+    if (database.type !== "success") return;
+    setReferenceDatabase((current) => (current === database.file ? null : database.file));
   }
   const navigate = useNavigate();
 
@@ -119,7 +116,9 @@ export default function DatabasesPage() {
         onClose={toggleDeleteModal}
         onConfirm={() => {
           if (!selectedDatabase) return;
-          commands.deleteDatabase(selectedDatabase.file).then(() => {
+          commands.deleteDatabase(selectedDatabase.file).then((result) => {
+            if (result.status !== "ok") return;
+            setReferenceDatabase((current) => (current === selectedDatabase.file ? null : current));
             mutate();
             setSelected(null);
           });
@@ -251,10 +250,12 @@ export default function DatabasesPage() {
                           </Group>
                           <Rating
                             readOnly={item.type !== "success"}
-                            value={referenceDatabase === item.file ? 1 : 0}
+                            value={
+                              item.type === "success" && referenceDatabase === item.file ? 1 : 0
+                            }
                             count={1}
                             onChange={() => {
-                              changeReferenceDatabase(item.file);
+                              changeReferenceDatabase(item);
                             }}
                           />
                         </Group>
@@ -354,8 +355,9 @@ export default function DatabasesPage() {
                           unwrap(
                             await commands.convertLegacyDatabase(selectedDatabase.file, destFile),
                           );
-                          if (referenceDatabase === selectedDatabase.file)
-                            setReferenceDatabase(destFile);
+                          setReferenceDatabase((current) =>
+                            current === selectedDatabase.file ? destFile : current,
+                          );
                           await mutate();
                           setSelected(destFile);
                         } catch {
@@ -387,7 +389,7 @@ export default function DatabasesPage() {
                       label={t("Databases.Settings.ReferenceDatabase")}
                       checked={isReference}
                       onChange={() => {
-                        changeReferenceDatabase(selectedDatabase.file);
+                        changeReferenceDatabase(selectedDatabase);
                       }}
                     />
 

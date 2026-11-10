@@ -10,7 +10,7 @@ import {
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import { Link } from "@tanstack/react-router";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { memo, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useSWR from "swr/immutable";
@@ -26,6 +26,7 @@ import {
   masterOptionsAtom,
   referenceDbAtom,
   sessionsAtom,
+  storedReferenceDbAtom,
 } from "@/state/atoms";
 import { getDatabases, type Opening, query_games, searchPosition } from "@/utils/db";
 import { formatNumber } from "@/utils/format";
@@ -107,12 +108,14 @@ function DatabasePanel() {
 
   const store = useContext(TreeStateContext)!;
   const fen = useStore(store, (s) => s.currentNode().fen);
-  const [referenceDatabase, setReferenceDatabase] = useAtom(referenceDbAtom);
+  const referenceDatabase = useAtomValue(referenceDbAtom);
+  const setReferenceDatabase = useSetAtom(storedReferenceDbAtom);
   const sessions = useAtomValue(sessionsAtom);
   const [debouncedFen] = useDebouncedValue(fen, 50);
   const [lichessOptions, setLichessOptions] = useAtom(lichessOptionsAtom);
   const [masterOptions, setMasterOptions] = useAtom(masterOptionsAtom);
-  const [localOptions, setLocalOptions] = useAtom(currentLocalOptionsAtom);
+  const [localFilters, setLocalOptions] = useAtom(currentLocalOptionsAtom);
+  const localOptions: LocalOptions = { ...localFilters, path: referenceDatabase };
   const [db, setDb] = useAtom(currentDbTypeAtom);
   const explorerToken = sessions.find((session) => session.lichess?.accessToken)?.lichess
     ?.accessToken;
@@ -132,12 +135,6 @@ function DatabasePanel() {
       }));
     }
   }, [debouncedFen, setLocalOptions, setMasterOptions, setLichessOptions, db]);
-
-  useEffect(() => {
-    if (db === "local") {
-      setLocalOptions((q) => ({ ...q, path: referenceDatabase }));
-    }
-  }, [referenceDatabase, setLocalOptions, db]);
 
   const dbType: DBType = match(db)
     .with("local", (v) => ({
@@ -301,7 +298,10 @@ function DatabasePanel() {
         >
           <ScrollArea flex={1} offsetScrollbars pt="sm">
             {match(db)
-              .with("local", () => <LocalOptionsPanel />)
+              .with(
+                "local",
+                () => referenceDatabase && <LocalOptionsPanel file={referenceDatabase} />,
+              )
               .with("lch_all", () => <LichessOptionsPanel />)
               .with("lch_master", () => <MasterOptionsPanel />)
               .exhaustive()}

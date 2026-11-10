@@ -2,13 +2,13 @@ import { Button, Group, SegmentedControl, Stack, Text, ThemeIcon } from "@mantin
 import { IconArrowRight, IconBook, IconChess } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { INITIAL_FEN } from "chessops/fen";
-import { useAtom, useStore } from "jotai";
+import { useAtom, useSetAtom, useStore } from "jotai";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   activeTabAtom,
   tabsAtom,
-  referenceDbAtom,
+  storedReferenceDbAtom,
   tabFamily,
   currentDbTypeAtom,
   currentDbTabAtom,
@@ -34,17 +34,16 @@ function OpeningsPanel({
   const store = useStore();
   const [, setTabs] = useAtom(tabsAtom);
   const [, setActiveTab] = useAtom(activeTabAtom);
-  const [referenceDatabase, setReferenceDatabase] = useAtom(referenceDbAtom);
+  const setReferenceDatabase = useSetAtom(storedReferenceDbAtom);
   const [color, setColor] = useState<"white" | "black">("white");
   const sources = openingSources ?? [];
 
   const openDatabaseInTabs = async () => {
     const source = sources.find((source) => source.player === playerName) ?? sources[0];
-    const preferredDb = source?.file || referenceDatabase;
     const player = source?.player || playerName;
 
-    if (preferredDb) {
-      setReferenceDatabase(preferredDb);
+    if (source) {
+      setReferenceDatabase(source.file);
     }
 
     const tabId = await createTab({
@@ -63,7 +62,6 @@ function OpeningsPanel({
     store.set(currentDbTabAtom, "stats");
     store.set(currentLocalOptionsAtom, (prev) => ({
       ...prev,
-      path: preferredDb ?? prev.path,
       position: { fen: INITIAL_FEN, type_: "exact" },
       player1: color === "white" ? player : undefined,
       player2: color === "black" ? player : undefined,
