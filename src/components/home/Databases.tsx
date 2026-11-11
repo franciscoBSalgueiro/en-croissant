@@ -28,6 +28,13 @@ type DatabaseInfo = PlainDatabaseInfo & {
   username?: string;
 };
 
+// In alphabetical order, so the player picker opens on the first one
+function playerNames(sessions: Session[]) {
+  return Array.from(
+    new Set(sessions.map((s) => s.player || s.lichess?.username || s.chessCom?.username || "")),
+  ).sort((a, b) => a.localeCompare(b));
+}
+
 function getSessionUsername(session: Session): string {
   const username = session.lichess?.account.username || session.chessCom?.username;
   if (username === undefined) {
@@ -54,9 +61,7 @@ function Databases() {
   const { t } = useTranslation();
   const sessions = useAtomValue(sessionsAtom);
 
-  const players = Array.from(
-    new Set(sessions.map((s) => s.player || s.lichess?.username || s.chessCom?.username || "")),
-  );
+  const players = playerNames(sessions);
   const playerDbNames = players.map((name) => ({
     name,
     databases: sessions
@@ -71,7 +76,7 @@ function Databases() {
   const [name, setName] = useState("");
   useEffect(() => {
     if (sessions.length > 0) {
-      setName(sessions[0].player || getSessionUsername(sessions[0]));
+      setName(playerNames(sessions)[0]);
     }
   }, [sessions]);
 
