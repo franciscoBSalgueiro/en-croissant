@@ -17,12 +17,14 @@ function GamePreviewWrapper({
   hideControls,
   showOpening,
   startAtEnd,
+  fitHeight,
 }: {
   pgn: string;
   headers?: GameHeaders;
   hideControls?: boolean;
   showOpening?: boolean;
   startAtEnd?: boolean;
+  fitHeight?: boolean;
 }) {
   const { data: parsedGame } = useSWRImmutable([pgn, headers?.fen], async ([pgn, fen]) => {
     return await parsePGN(pgn, fen);
@@ -37,6 +39,7 @@ function GamePreviewWrapper({
           hideControls={hideControls}
           showOpening={showOpening}
           startAtEnd={startAtEnd}
+          fitHeight={fitHeight}
         />
       )}
     </>
@@ -48,13 +51,17 @@ function GamePreview({
   hideControls,
   showOpening,
   startAtEnd,
+  fitHeight,
 }: {
   game: TreeState;
   hideControls?: boolean;
   showOpening?: boolean;
   startAtEnd?: boolean;
+  // Limit the board to the container height (needs a parent with a fixed height)
+  fitHeight?: boolean;
 }) {
   const { ref: boardRef, height } = useElementSize();
+  const { ref: containerRef, height: containerHeight } = useElementSize();
   const initialGame = useMemo(
     () => (startAtEnd ? { ...game, position: Array(countMainPly(game.root)).fill(0) } : game),
     [game, startAtEnd],
@@ -63,10 +70,18 @@ function GamePreview({
   return (
     <TreeStateProvider initial={initialGame}>
       {showOpening && <OpeningName />}
-      <Group align="end" grow style={{ overflow: "hidden", height: "100%" }}>
-        <Box ref={boardRef}>
-          <PreviewBoard />
-        </Box>
+      <Group ref={containerRef} align="end" grow style={{ overflow: "hidden", height: "100%" }}>
+        {fitHeight ? (
+          <Box>
+            <Box ref={boardRef} ms="auto" maw={containerHeight || undefined}>
+              <PreviewBoard />
+            </Box>
+          </Box>
+        ) : (
+          <Box ref={boardRef}>
+            <PreviewBoard />
+          </Box>
+        )}
         {!hideControls && (
           <Stack style={{ height }} gap="xs">
             <GameNotation />

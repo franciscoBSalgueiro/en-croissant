@@ -98,7 +98,7 @@ function FileCard({
             <Divider />
           </Box>
           <Box h="55%" px="xs" pb="xs">
-            <GamePreview pgn={selectedGame} />
+            <GamePreview pgn={selectedGame} fitHeight />
           </Box>
         </>
       )}
