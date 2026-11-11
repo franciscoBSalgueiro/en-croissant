@@ -32,7 +32,7 @@ pub async fn download_file(
 ) -> Result<(), Error> {
     let finalize = finalize.unwrap_or(true);
     info!("Downloading file from {}", url);
-    let client = Client::new();
+    let client = download_client(&url)?;
 
     let mut req = client.get(&url);
     // add Bearer if token is present
@@ -41,7 +41,7 @@ pub async fn download_file(
         header_map.insert("Authorization", format!("Bearer {token}").parse().unwrap());
         req = req.headers(header_map);
     }
-    let res = req.send().await?;
+    let res = req.send().await?.error_for_status()?;
     let total_size = if let Some(total_size) = total_size {
         Some(total_size as u64)
     } else {
@@ -83,6 +83,28 @@ pub async fn download_file(
     }
     // remove_file(&path).await;
     Ok(())
+}
+
+fn needs_komodo_certificate_exception(url: &str) -> bool {
+    let Ok(url) = reqwest::Url::parse(url) else {
+        return false;
+    };
+    url.scheme() == "https"
+        && url.host_str() == Some("komodochess.com")
+        && url.port_or_known_default() == Some(443)
+        && matches!(url.path(), "/pub/komodo-14.zip" | "/pub/dragon.zip")
+}
+
+fn download_client(url: &str) -> Result<Client, reqwest::Error> {
+    let mut builder = Client::builder();
+    if needs_komodo_certificate_exception(url) {
+        // These legacy downloads have a broken certificate chain. Do not let
+        // their certificate exception follow redirects to another server.
+        builder = builder
+            .danger_accept_invalid_certs(true)
+            .redirect(reqwest::redirect::Policy::none());
+    }
+    builder.build()
 }
 
 fn unpack_tar_gz(path: &Path, file: Vec<u8>) -> Result<(), Error> {
@@ -179,4 +201,29 @@ pub async fn get_file_metadata(path: String) -> Result<FileMetadata, Error> {
     Ok(FileMetadata {
         last_modified: last_modified.as_secs() as u32,
     })
+}
+
+#[cfg(test)]
+mod download_tests {
+    use super::needs_komodo_certificate_exception;
+
+    #[test]
+    fn certificate_exception_is_limited_to_legacy_komodo_downloads() {
+        for file in ["komodo-14.zip", "dragon.zip"] {
+            assert!(needs_komodo_certificate_exception(&format!(
+                "https://komodochess.com/pub/{file}"
+            )));
+        }
+        for url in [
+            "https://github.com/official-stockfish/Stockfish/releases/download/stockfish.zip",
+            "https://komodochess.com.example.com/pub/dragon.zip",
+            "https://komodochess.com@evil.example/pub/dragon.zip",
+            "https://komodochess.com:8443/pub/dragon.zip",
+            "https://komodochess.com/other.zip",
+            "http://komodochess.com/pub/dragon.zip",
+            "invalid URL",
+        ] {
+            assert!(!needs_komodo_certificate_exception(url), "{url}");
+        }
+    }
 }
