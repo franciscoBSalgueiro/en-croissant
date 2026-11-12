@@ -3,10 +3,10 @@ import { StateFlags } from "@tauri-apps/plugin-window-state";
 import { showAppWindow } from "../window";
 
 const mocks = vi.hoisted(() => ({
-  setDecorations: vi.fn<(decorated: boolean) => Promise<void>>(),
-  restore: vi.fn<(flags: StateFlags) => Promise<void>>(),
-  show: vi.fn<() => Promise<void>>(),
-  error: vi.fn<(message: string) => Promise<void>>().mockResolvedValue(undefined),
+    setDecorations: vi.fn<(decorated: boolean) => Promise<void>>(),
+    restore: vi.fn<(flags: StateFlags) => Promise<void>>(),
+    show: vi.fn<() => Promise<void>>(),
+    error: vi.fn<(message: string) => Promise<void>>().mockResolvedValue(undefined),
 }));
 
 vi.mock("@tauri-apps/api/window", () => ({
