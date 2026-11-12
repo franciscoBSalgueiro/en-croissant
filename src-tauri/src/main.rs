@@ -11,6 +11,7 @@ mod game;
 mod vision;
 
 mod fs;
+mod launch;
 mod lexer;
 mod oauth;
 mod opening;
@@ -27,6 +28,7 @@ use dashmap::DashMap;
 use db::{convert_legacy_database, convert_pgn, DatabaseProgress};
 use derivative::Derivative;
 use game::GameManager;
+use launch::file_from_args;
 use progress::{clear_progress, get_progress, ProgressEvent, ProgressStore};
 
 use log::LevelFilter;
@@ -101,28 +103,10 @@ async fn close_splashscreen(window: Window) -> Result<(), String> {
     Ok(())
 }
 
-pub fn file_from_args(args: &[String], cwd: &str) -> Option<String> {
-    let mut args = args.iter().skip(1);
-    let first = args.next()?;
-    let file = if first == "--" {
-        args.next()?
-    } else if first.starts_with('-') {
-        return None;
-    } else {
-        first
-    };
-    if args.next().is_some() || file.to_ascii_lowercase().starts_with("encroissant:") {
-        return None;
-    }
-    Some(
-        std::path::Path::new(cwd)
-            .join(file)
-            .to_string_lossy()
-            .into_owned(),
-    )
-}
-
 fn main() {
+    #[cfg(target_os = "linux")]
+    launch::configure_display_backend();
+
     let specta_builder = tauri_specta::Builder::new()
         .commands(tauri_specta::collect_commands!(
             close_splashscreen,
