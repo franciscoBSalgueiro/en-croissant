@@ -231,14 +231,16 @@ fn main() {
             }
         }))
         .plugin(tauri_plugin_deep_link::init())
-        // Don't restore visibility: the window stays hidden until the frontend
-        // has rendered (see close_splashscreen), avoiding a white flash.
+        // The frontend restores the main window after applying its title-bar
+        // preference, then shows it (see showAppWindow).
         .plugin(
             tauri_plugin_window_state::Builder::new()
                 .with_state_flags(
                     tauri_plugin_window_state::StateFlags::all()
-                        & !tauri_plugin_window_state::StateFlags::VISIBLE,
+                        & !(tauri_plugin_window_state::StateFlags::VISIBLE
+                            | tauri_plugin_window_state::StateFlags::DECORATIONS),
                 )
+                .skip_initial_state("main")
                 .build(),
         )
         .plugin(tauri_plugin_process::init())
