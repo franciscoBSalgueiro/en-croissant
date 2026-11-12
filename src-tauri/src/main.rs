@@ -12,6 +12,8 @@ mod vision;
 
 mod fs;
 mod lexer;
+#[cfg(target_os = "linux")]
+mod linux_window;
 mod oauth;
 mod opening;
 mod pgn;
@@ -257,6 +259,11 @@ fn main() {
         .manage(AppState::default())
         .setup(move |app| {
             log::info!("Setting up application");
+
+            #[cfg(target_os = "linux")]
+            if let Some(window) = app.get_webview_window("main") {
+                linux_window::prepare_title_bar(&window.gtk_window()?);
+            }
 
             let resource_dir = app
                 .path()
