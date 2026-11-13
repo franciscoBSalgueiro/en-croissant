@@ -13,6 +13,7 @@ import {
   Paper,
   Rating,
   ScrollArea,
+  Select,
   SimpleGrid,
   Skeleton,
   Stack,
@@ -49,7 +50,9 @@ import ConfirmModal from "../common/ConfirmModal";
 import GenericCard from "../common/GenericCard";
 import OpenFolderButton from "../common/OpenFolderButton";
 import AddDatabase from "./AddDatabase";
+import { EventSearchInput } from "./EventSearchInput";
 import { PlayerSearchInput } from "./PlayerSearchInput";
+import { SiteSearchInput } from "./SiteSearchInput";
 
 export default function DatabasesPage() {
   const { t } = useTranslation();
@@ -577,7 +580,7 @@ function AdvancedSettings({
 }) {
   return (
     <Stack>
-      <PlayerMerger selectedDatabase={selectedDatabase} />
+      <DatabaseFieldMerger selectedDatabase={selectedDatabase} />
       <DuplicateRemover selectedDatabase={selectedDatabase} reload={reload} />
       <DatabaseCompactor
         key={selectedDatabase.file}
@@ -652,49 +655,115 @@ function DatabaseCompactor({
   );
 }
 
-function PlayerMerger({ selectedDatabase }: { selectedDatabase: DatabaseInfo }) {
+type MergeField = "player" | "event" | "site";
+
+function DatabaseFieldMerger({ selectedDatabase }: { selectedDatabase: DatabaseInfo }) {
   const { t } = useTranslation();
-
-  const [player1, setPlayer1] = useState<string | undefined>(undefined);
-  const [player2, setPlayer2] = useState<string | undefined>(undefined);
+  const { mutate } = useSWRConfig();
+  const [field, setField] = useState<MergeField>("player");
+  const [source, setSource] = useState<string | undefined>();
+  const [destination, setDestination] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  async function mergePlayers() {
-    if (player1 === undefined || player2 === undefined) {
-      return;
+  const inputProps = {
+    file: selectedDatabase.file,
+  };
+  function renderInput(
+    label: string,
+    value: string | undefined,
+    setValue: (value: string | undefined) => void,
+  ) {
+    const props = { ...inputProps, label, value, setValue };
+    switch (field) {
+      case "player":
+        return <PlayerSearchInput {...props} />;
+      case "event":
+        return <EventSearchInput {...props} />;
+      case "site":
+        return <SiteSearchInput {...props} />;
     }
-    setLoading(true);
-    const res = await commands.mergePlayers(selectedDatabase.file, player1, player2);
-    setLoading(false);
-    unwrap(res);
   }
+
+  async function mergeEntries() {
+    if (!source?.trim() || !destination?.trim() || source === destination) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await commands.mergeDatabaseField(
+        selectedDatabase.file,
+        field,
+        source,
+        destination,
+      );
+      if (result.status === "error") {
+        setError(result.error);
+        return;
+      }
+      setSource(undefined);
+      setDestination(undefined);
+      await mutate((key) => Array.isArray(key) && key.includes(selectedDatabase.file), undefined, {
+        revalidate: true,
+      });
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const sourceLabels = {
+    player: t("Databases.Settings.MergeSource.player"),
+    event: t("Databases.Settings.MergeSource.event"),
+    site: t("Databases.Settings.MergeSource.site"),
+  };
+
+  const destinationLabels = {
+    player: t("Databases.Settings.MergeDestination.player"),
+    event: t("Databases.Settings.MergeDestination.event"),
+    site: t("Databases.Settings.MergeDestination.site"),
+  };
 
   return (
     <Stack>
       <Text fz="lg" fw="bold">
-        {t("Databases.Settings.MergePlayers")}
+        {t("Databases.Settings.MergeEntries")}
       </Text>
-      <Text fz="sm">{t("Databases.Settings.MergePlayers.Desc")}</Text>
-      <Group grow>
-        <PlayerSearchInput
-          label={t("Databases.Player.One")}
-          file={selectedDatabase.file}
-          value={player1}
-          setValue={setPlayer1}
+      <Text fz="sm">{t("Databases.Settings.MergeEntries.Desc")}</Text>
+      {error && <Alert color="red">{error}</Alert>}
+      <Group align="end" wrap="nowrap">
+        <Select
+          w={180}
+          label={t("Databases.Settings.MergeField")}
+          data={[
+            { value: "player", label: t("Databases.Settings.MergeField.Players") },
+            { value: "event", label: t("Databases.Settings.MergeField.Events") },
+            { value: "site", label: t("Databases.Settings.MergeField.Sites") },
+          ]}
+          value={field}
+          allowDeselect={false}
+          onChange={(value) => {
+            if (value !== "player" && value !== "event" && value !== "site") return;
+            setField(value);
+            setSource(undefined);
+            setDestination(undefined);
+            setError(null);
+          }}
         />
+        <Box style={{ flex: 1, minWidth: 0 }}>
+          {renderInput(sourceLabels[field], source, setSource)}
+        </Box>
         <Button
           loading={loading}
-          onClick={mergePlayers}
+          disabled={!source?.trim() || !destination?.trim() || source === destination}
+          onClick={mergeEntries}
           rightSection={<IconArrowRight size="1rem" />}
         >
           {t("Databases.Settings.Merge")}
         </Button>
-        <PlayerSearchInput
-          label={t("Databases.Player.Two")}
-          file={selectedDatabase.file}
-          value={player2}
-          setValue={setPlayer2}
-        />
+        <Box style={{ flex: 1, minWidth: 0 }}>
+          {renderInput(destinationLabels[field], destination, setDestination)}
+        </Box>
       </Group>
     </Stack>
   );

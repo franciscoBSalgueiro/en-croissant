@@ -160,6 +160,22 @@ async mergePlayers(file: string, player1Name: string, player2Name: string) : Pro
     else return { status: "error", error: e  as any };
 }
 },
+async mergeDatabaseField(file: string, field: MergeField, source: string, destination: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("merge_database_field", { file, field, source, destination }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getSites(file: string, name: string) : Promise<Result<string[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_sites", { file, name }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async convertPgn(files: string[], dbPath: string, timestamp: number | null, title: string, description: string | null) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("convert_pgn", { files, dbPath, timestamp, title, description }) };
@@ -541,6 +557,10 @@ export type GameSort = "id" | "date" | "whiteElo" | "blackElo" | "averageElo" | 
 export type GameState = { gameId: string; status: GameStatus; initialFen: string; moves: GameMove[]; currentFen: string; ply: number; turn: string; whiteTime: bigint | null; blackTime: bigint | null; whitePlayer: string; blackPlayer: string }
 export type GameStatus = "playing" | { finished: { result: GameResult } }
 export type GoMode = { t: "PlayersTime"; c: PlayersTime } | { t: "Depth"; c: number } | { t: "Time"; c: number } | { t: "Nodes"; c: number } | { t: "Infinite" }
+/**
+ * Supported merge targets. Deliberately not a raw SQL column name from the caller.
+ */
+export type MergeField = "player" | "event" | "site"
 export type MoveAnalysis = { best: BestMoves[]; novelty: boolean; is_sacrifice: boolean }
 export type NormalizedGame = { id: number; fen: string; event: string; site: string; date?: string | null; time?: string | null; round?: string | null; white: string; white_elo?: number | null; black: string; black_elo?: number | null; result: Outcome; ply_count?: number | null; moves: string; time_control?: string | null; other?: Partial<{ [key in string]: string }> | null }
 export type OpeningBookConfig = { path: string; maxPly?: bigint }
