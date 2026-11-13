@@ -94,6 +94,9 @@ export const Route = createRootRouteWithContext<{
 
 function RootLayout() {
   const isNative = useAtomValue(nativeBarAtom);
+  const useNativeBar =
+    isNative ||
+    (import.meta.env.VITE_PLATFORM !== "win32" && import.meta.env.VITE_PLATFORM !== "linux");
   const navigate = useNavigate();
 
   const [, setTabs] = useAtom(tabsAtom);
@@ -372,19 +375,23 @@ function RootLayout() {
 
   const { data: menu } = useSWRImmutable(["menu", menuActions], () => createMenu(menuActions));
 
+  // Decoration changes must also run when native menu creation fails.
+  useEffect(() => {
+    getCurrentWindow()
+      .setDecorations(useNativeBar)
+      .catch((cause) => {
+        void error(`Failed to configure window decorations: ${cause}`).catch(console.error);
+      });
+  }, [useNativeBar]);
+
   useEffect(() => {
     if (!menu) return;
-    if (
-      isNative ||
-      (import.meta.env.VITE_PLATFORM !== "win32" && import.meta.env.VITE_PLATFORM !== "linux")
-    ) {
+    if (useNativeBar) {
       menu.setAsAppMenu();
-      getCurrentWindow().setDecorations(true);
     } else {
       Menu.new().then((m) => m.setAsAppMenu());
-      getCurrentWindow().setDecorations(false);
     }
-  }, [menu, isNative]);
+  }, [menu, useNativeBar]);
 
   useEffect(() => {
     const unlisten = getCurrentWindow().listen(TauriEvent.DRAG_DROP, (event) => {
@@ -417,8 +424,7 @@ function RootLayout() {
         },
       }}
       header={
-        isNative ||
-        (import.meta.env.VITE_PLATFORM !== "win32" && import.meta.env.VITE_PLATFORM !== "linux")
+        useNativeBar
           ? undefined
           : {
               height: "2.25rem",
@@ -432,13 +438,11 @@ function RootLayout() {
       }}
     >
       <AboutModal opened={opened} setOpened={setOpened} />
-      {!isNative &&
-        (import.meta.env.VITE_PLATFORM === "win32" ||
-          import.meta.env.VITE_PLATFORM === "linux") && (
-          <AppShell.Header>
-            <TopBar menuActions={menuActions} />
-          </AppShell.Header>
-        )}
+      {!useNativeBar && (
+        <AppShell.Header>
+          <TopBar menuActions={menuActions} />
+        </AppShell.Header>
+      )}
       {showSidebar && (
         <AppShell.Navbar>
           <SideBar />

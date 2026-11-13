@@ -12,12 +12,16 @@ mod vision;
 
 mod fs;
 mod lexer;
+#[cfg(target_os = "linux")]
+mod linux_window;
 mod oauth;
 mod opening;
 mod pgn;
 mod progress;
 mod puzzle;
 mod sound;
+#[cfg(target_os = "linux")]
+mod linux_window_state;
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -93,11 +97,13 @@ pub struct AppState {
 #[tauri::command]
 #[specta::specta]
 async fn close_splashscreen(window: Window) -> Result<(), String> {
-    window
+    let main_window = window
         .get_webview_window("main")
-        .expect("no window labeled 'main' found")
-        .show()
-        .unwrap();
+        .ok_or("no window labeled 'main' found")?;
+    #[cfg(target_os = "linux")]
+    linux_window_state::show(&main_window)?;
+    #[cfg(not(target_os = "linux"))]
+    main_window.show().map_err(|error| error.to_string())?;
     Ok(())
 }
 
@@ -257,6 +263,11 @@ fn main() {
         .manage(AppState::default())
         .setup(move |app| {
             log::info!("Setting up application");
+
+            #[cfg(target_os = "linux")]
+            if let Some(window) = app.get_webview_window("main") {
+                linux_window::prepare_title_bar(&window.gtk_window()?);
+            }
 
             let resource_dir = app
                 .path()
