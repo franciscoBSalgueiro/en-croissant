@@ -1480,6 +1480,80 @@ fn update_game(db: &Connection, game_id: i32, pgn: &str) -> Result<(), Error> {
     Ok(())
 }
 
+/// Supported merge targets. Deliberately not a raw SQL column name from the caller.
+#[derive(Debug, Clone, Deserialize, Type)]
+#[serde(rename_all = "lowercase")]
+pub enum MergeField {
+    Player,
+    Event,
+    Site,
+}
+
+fn merge_database_field_rows(
+    db: &Connection,
+    field: MergeField,
+    source: &str,
+    destination: &str,
+) -> Result<(), Error> {
+    if source.trim().is_empty() || destination.trim().is_empty() || source == destination {
+        return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Enter two different, non-empty names").into());
+    }
+    let columns: &[&str] = match field {
+        MergeField::Player => &["white", "black"],
+        MergeField::Event => &["event"],
+        MergeField::Site => &["site"],
+    };
+    db.execute_batch("BEGIN TRANSACTION;")?;
+    let result = (|| -> Result<(), Error> {
+        for column in columns {
+            // All column names are compile-time constants, never supplied by the caller.
+            db.execute(
+                &format!("UPDATE games SET {column} = ? WHERE {column} = ?;"),
+                params![destination, source],
+            )?;
+        }
+        Ok(())
+    })();
+    match result {
+        Ok(()) => { db.execute_batch("COMMIT;")?; Ok(()) }
+        Err(error) => { let _ = db.execute_batch("ROLLBACK;"); Err(error) }
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn merge_database_field(
+    file: PathBuf,
+    field: MergeField,
+    source: String,
+    destination: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), Error> {
+    let db_pool = get_duckdb_pool(&state, &file)?;
+    let db = db_pool.get()?;
+    let _invalidate_caches = DatabaseCacheInvalidation::new(&state, &file);
+    merge_database_field_rows(&db, field, &source, &destination)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn get_sites(
+    file: PathBuf,
+    name: String,
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<String>, Error> {
+    let db_pool = get_duckdb_pool(&state, &file)?;
+    let db = db_pool.get()?;
+    let mut statement = db.prepare(
+        "SELECT DISTINCT site FROM games
+         WHERE site IS NOT NULL AND site != '' AND contains(lower(site), lower(?))
+         ORDER BY site LIMIT 10;",
+    )?;
+    let sites = statement.query_map(params![name], |row| row.get::<_, String>(0))?
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(sites)
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn merge_players(
@@ -1508,6 +1582,29 @@ pub async fn merge_players(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn merges_players_events_and_sites_without_changing_other_fields() {
+        let db = Connection::open_in_memory().unwrap();
+        db.execute_batch("CREATE TABLE games (white VARCHAR, black VARCHAR, event VARCHAR, site VARCHAR);
+            INSERT INTO games VALUES ('A', 'B', 'Old event', 'Old site');
+            INSERT INTO games VALUES ('B', 'A', 'Other event', 'Other site');").unwrap();
+        merge_database_field_rows(&db, MergeField::Player, "A", "B").unwrap();
+        merge_database_field_rows(&db, MergeField::Event, "Old event", "New event").unwrap();
+        merge_database_field_rows(&db, MergeField::Site, "Old site", "New site").unwrap();
+        let first: (String, String, String, String) = db.query_row(
+            "SELECT white, black, event, site FROM games LIMIT 1", [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        ).unwrap();
+        assert_eq!(first, ("B".into(), "B".into(), "New event".into(), "New site".into()));
+        let second: (String, String, String, String) = db.query_row(
+            "SELECT white, black, event, site FROM games OFFSET 1 LIMIT 1", [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        ).unwrap();
+        assert_eq!(second, ("B".into(), "B".into(), "Other event".into(), "Other site".into()));
+        assert!(merge_database_field_rows(&db, MergeField::Event, "", "X").is_err());
+        assert!(merge_database_field_rows(&db, MergeField::Site, "Same", "Same").is_err());
+    }
 
     #[test]
     fn game_ids_survive_checkpoints_reopening_and_compaction() {
