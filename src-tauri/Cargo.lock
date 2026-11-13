@@ -1879,6 +1879,7 @@ dependencies = [
  "flate2",
  "futures-util",
  "governor",
+ "gtk",
  "image",
  "lazy-regex",
  "lazy_static",
