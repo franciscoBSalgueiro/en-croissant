@@ -762,11 +762,7 @@ function DatabaseFieldMerger({ selectedDatabase }: { selectedDatabase: DatabaseI
           {t("Databases.Settings.Merge")}
         </Button>
         <Box style={{ flex: 1, minWidth: 0 }}>
-          {renderInput(
-            destinationLabels[field],
-            destination,
-            setDestination,
-          )}
+          {renderInput(destinationLabels[field], destination, setDestination)}
         </Box>
       </Group>
     </Stack>
