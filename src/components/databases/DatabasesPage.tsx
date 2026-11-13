@@ -669,12 +669,19 @@ function DatabaseFieldMerger({ selectedDatabase }: { selectedDatabase: DatabaseI
   const inputProps = {
     file: selectedDatabase.file,
   };
-  function renderInput(label: string, value: string | undefined, setValue: (value: string | undefined) => void) {
+  function renderInput(
+    label: string,
+    value: string | undefined,
+    setValue: (value: string | undefined) => void,
+  ) {
     const props = { ...inputProps, label, value, setValue };
     switch (field) {
-      case "player": return <PlayerSearchInput {...props} />;
-      case "event": return <EventSearchInput {...props} />;
-      case "site": return <SiteSearchInput {...props} />;
+      case "player":
+        return <PlayerSearchInput {...props} />;
+      case "event":
+        return <EventSearchInput {...props} />;
+      case "site":
+        return <SiteSearchInput {...props} />;
     }
   }
 
@@ -683,14 +690,21 @@ function DatabaseFieldMerger({ selectedDatabase }: { selectedDatabase: DatabaseI
     setLoading(true);
     setError(null);
     try {
-      const result = await commands.mergeDatabaseField(selectedDatabase.file, field, source, destination);
+      const result = await commands.mergeDatabaseField(
+        selectedDatabase.file,
+        field,
+        source,
+        destination,
+      );
       if (result.status === "error") {
         setError(result.error);
         return;
       }
       setSource(undefined);
       setDestination(undefined);
-      await mutate((key) => Array.isArray(key) && key.includes(selectedDatabase.file), undefined, { revalidate: true });
+      await mutate((key) => Array.isArray(key) && key.includes(selectedDatabase.file), undefined, {
+        revalidate: true,
+      });
     } catch (err) {
       setError(String(err));
     } finally {
@@ -700,7 +714,9 @@ function DatabaseFieldMerger({ selectedDatabase }: { selectedDatabase: DatabaseI
 
   return (
     <Stack>
-      <Text fz="lg" fw="bold">{t("Databases.Settings.MergeEntries")}</Text>
+      <Text fz="lg" fw="bold">
+        {t("Databases.Settings.MergeEntries")}
+      </Text>
       <Text fz="sm">{t("Databases.Settings.MergeEntries.Desc")}</Text>
       {error && <Alert color="red">{error}</Alert>}
       <Group align="end" wrap="nowrap">
@@ -723,11 +739,7 @@ function DatabaseFieldMerger({ selectedDatabase }: { selectedDatabase: DatabaseI
           }}
         />
         <Box style={{ flex: 1, minWidth: 0 }}>
-          {renderInput(
-            t(`Databases.Settings.MergeSource.${field}`),
-            source,
-            setSource,
-          )}
+          {renderInput(t(`Databases.Settings.MergeSource.${field}`), source, setSource)}
         </Box>
         <Button
           loading={loading}

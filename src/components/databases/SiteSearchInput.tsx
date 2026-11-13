@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import { commands } from "@/bindings";
 
 export function SiteSearchInput({
-  label, value, file, setValue,
+  label,
+  value,
+  file,
+  setValue,
 }: {
   label: string;
   value?: string;
@@ -27,7 +30,10 @@ export function SiteSearchInput({
         if (active) setSuggestions([]);
       }
     }, 100);
-    return () => { active = false; clearTimeout(timeout); };
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+    };
   }, [file, name]);
 
   return (
