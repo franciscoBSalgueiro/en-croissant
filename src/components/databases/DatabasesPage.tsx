@@ -712,6 +712,18 @@ function DatabaseFieldMerger({ selectedDatabase }: { selectedDatabase: DatabaseI
     }
   }
 
+  const sourceLabels = {
+    player: t("Databases.Settings.MergeSource.player"),
+    event: t("Databases.Settings.MergeSource.event"),
+    site: t("Databases.Settings.MergeSource.site"),
+  };
+
+  const destinationLabels = {
+    player: t("Databases.Settings.MergeDestination.player"),
+    event: t("Databases.Settings.MergeDestination.event"),
+    site: t("Databases.Settings.MergeDestination.site"),
+  };
+
   return (
     <Stack>
       <Text fz="lg" fw="bold">
@@ -739,7 +751,7 @@ function DatabaseFieldMerger({ selectedDatabase }: { selectedDatabase: DatabaseI
           }}
         />
         <Box style={{ flex: 1, minWidth: 0 }}>
-          {renderInput(t(`Databases.Settings.MergeSource.${field}`), source, setSource)}
+          {renderInput(sourceLabels[field], source, setSource)}
         </Box>
         <Button
           loading={loading}
@@ -751,7 +763,7 @@ function DatabaseFieldMerger({ selectedDatabase }: { selectedDatabase: DatabaseI
         </Button>
         <Box style={{ flex: 1, minWidth: 0 }}>
           {renderInput(
-            t(`Databases.Settings.MergeDestination.${field}`),
+            destinationLabels[field],
             destination,
             setDestination,
           )}
