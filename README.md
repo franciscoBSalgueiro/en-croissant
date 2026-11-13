@@ -47,6 +47,24 @@ pnpm build
 
 The built app can be found at `src-tauri/target/release`
 
+## Linux window placement
+
+On a Wayland desktop, launch with `--x11` to use XWayland and allow restoration of
+the saved window position and size:
+
+```bash
+./en-croissant.AppImage --x11
+```
+
+This requires XWayland to be available. Close any running En Croissant instance
+before changing the display backend. The flag can also be added to your desktop
+launcher's command, and accepts a PGN file, for example
+`./en-croissant.AppImage --x11 "my game.pgn"`.
+
+Without this flag, the desktop's default display backend is used. The flag
+overrides `GDK_BACKEND` for that launch. Native Wayland leaves window positioning
+to the compositor, so reopening at an exact saved screen position is not guaranteed.
+
 ## Donate
 
 If you wish to support the development of this GUI, you can do so [here](https://encroissant.org/support). All donations are greatly appreciated!

@@ -27,6 +27,7 @@ import {
   databaseConversionStateAtom,
   fontSizeAtom,
   is3dAtom,
+  nativeBarAtom,
   pieceSetAtom,
   primaryColorAtom,
   spellCheckAtom,
@@ -52,8 +53,8 @@ import "mantine-datatable/styles.css";
 
 import "@/styles/global.css";
 
-import { commands } from "./bindings";
 import { handleDeepLink, openCommandLineFile } from "./utils/launch";
+import { showAppWindow } from "./utils/window";
 
 const colorSchemeManager = localStorageColorSchemeManager({
   key: "mantine-color-scheme",
@@ -148,7 +149,7 @@ function useAppStartup() {
     initialized.current = true;
 
     const startupSequence = async () => {
-      await commands.closeSplashscreen();
+      await showAppWindow(getDefaultStore().get(nativeBarAtom));
       await initUserAgent();
 
       const detach = await attachConsole();

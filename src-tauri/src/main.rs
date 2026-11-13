@@ -11,6 +11,7 @@ mod game;
 mod vision;
 
 mod fs;
+mod launch;
 mod lexer;
 mod oauth;
 mod opening;
@@ -18,6 +19,8 @@ mod pgn;
 mod progress;
 mod puzzle;
 mod sound;
+#[cfg(target_os = "linux")]
+mod linux_window_state;
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -27,6 +30,7 @@ use dashmap::DashMap;
 use db::{convert_legacy_database, convert_pgn, DatabaseProgress};
 use derivative::Derivative;
 use game::GameManager;
+use launch::file_from_args;
 use progress::{clear_progress, get_progress, ProgressEvent, ProgressStore};
 
 use log::LevelFilter;
@@ -93,36 +97,20 @@ pub struct AppState {
 #[tauri::command]
 #[specta::specta]
 async fn close_splashscreen(window: Window) -> Result<(), String> {
-    window
+    let main_window = window
         .get_webview_window("main")
-        .expect("no window labeled 'main' found")
-        .show()
-        .unwrap();
+        .ok_or("no window labeled 'main' found")?;
+    #[cfg(target_os = "linux")]
+    linux_window_state::show(&main_window)?;
+    #[cfg(not(target_os = "linux"))]
+    main_window.show().map_err(|error| error.to_string())?;
     Ok(())
 }
 
-pub fn file_from_args(args: &[String], cwd: &str) -> Option<String> {
-    let mut args = args.iter().skip(1);
-    let first = args.next()?;
-    let file = if first == "--" {
-        args.next()?
-    } else if first.starts_with('-') {
-        return None;
-    } else {
-        first
-    };
-    if args.next().is_some() || file.to_ascii_lowercase().starts_with("encroissant:") {
-        return None;
-    }
-    Some(
-        std::path::Path::new(cwd)
-            .join(file)
-            .to_string_lossy()
-            .into_owned(),
-    )
-}
-
 fn main() {
+    #[cfg(target_os = "linux")]
+    launch::configure_display_backend();
+
     let specta_builder = tauri_specta::Builder::new()
         .commands(tauri_specta::collect_commands!(
             close_splashscreen,
@@ -231,14 +219,16 @@ fn main() {
             }
         }))
         .plugin(tauri_plugin_deep_link::init())
-        // Don't restore visibility: the window stays hidden until the frontend
-        // has rendered (see close_splashscreen), avoiding a white flash.
+        // The frontend restores the main window after applying its title-bar
+        // preference, then shows it (see showAppWindow).
         .plugin(
             tauri_plugin_window_state::Builder::new()
                 .with_state_flags(
                     tauri_plugin_window_state::StateFlags::all()
-                        & !tauri_plugin_window_state::StateFlags::VISIBLE,
+                        & !(tauri_plugin_window_state::StateFlags::VISIBLE
+                            | tauri_plugin_window_state::StateFlags::DECORATIONS),
                 )
+                .skip_initial_state("main")
                 .build(),
         )
         .plugin(tauri_plugin_process::init())

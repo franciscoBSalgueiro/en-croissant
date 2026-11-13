@@ -1,4 +1,20 @@
 {
+  "plugins": {
+    "cli": {
+      "args": [
+        {
+          "name": "file",
+          "index": 1,
+          "takesValue": true
+        },
+        {
+          "name": "x11",
+          "description": "Use X11/XWayland to allow restoring the saved window position",
+          "takesValue": false
+        }
+      ]
+    }
+  },
   "bundle": {
     "resources": {
       "../aixchess.duckdb_extension": null
