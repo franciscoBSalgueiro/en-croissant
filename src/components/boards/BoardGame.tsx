@@ -546,6 +546,14 @@ function BoardGame() {
     return "none";
   }, [players]);
 
+  // Whether the smart board may drive the game (only on the human's turn).
+  const smartBoardInputActive = useMemo(() => {
+    if (gameState !== "playing") return false;
+    if (movable === "turn") return true;
+    if (movable === "none" || !pos) return false;
+    return pos.turn === movable;
+  }, [gameState, movable, pos]);
+
   const [sameTimeControl, setSameTimeControl] = useAtom(gameSameTimeControlAtom);
 
   const onePlayerIsEngine = players.white.type !== players.black.type;
@@ -607,6 +615,7 @@ function BoardGame() {
           whiteTime={gameState === "playing" ? (whiteTime ?? undefined) : undefined}
           blackTime={gameState === "playing" ? (blackTime ?? undefined) : undefined}
           onMove={handleHumanMove}
+          smartboardInput={smartBoardInputActive}
           selectedPiece={selectedPiece}
           cgRef={cgRef}
           enablePremoves={isPlayerVsEngine && gameState === "playing"}

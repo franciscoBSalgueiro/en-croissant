@@ -6,6 +6,7 @@ import { IconChevronRight } from "@tabler/icons-react";
 import {
   makeSquare,
   makeUci,
+  type Move,
   type NormalMove,
   type Piece,
   parseSquare,
@@ -16,13 +17,14 @@ import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { makeFen, parseFen } from "chessops/fen";
 import { makeSan } from "chessops/san";
 import { useAtom, useAtomValue } from "jotai";
-import { memo, useCallback, useContext, useMemo, useState } from "react";
+import { memo, useCallback, useContext, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 import { match } from "ts-pattern";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import { Chessground, type ChessgroundRef } from "@/chessground/Chessground";
+import { useSmartBoardInput } from "@/hooks/useSmartBoardInput";
 import {
   autoPromoteAtom,
   bestMovesFamily,
@@ -83,6 +85,7 @@ interface ChessboardProps {
   onMove?: (uci: string) => void;
   cgRef?: React.Ref<ChessgroundRef>;
   enablePremoves?: boolean;
+  smartboardInput?: boolean;
 }
 
 function Board({
@@ -98,6 +101,7 @@ function Board({
   onMove,
   cgRef,
   enablePremoves = false,
+  smartboardInput = false,
 }: ChessboardProps) {
   const { t } = useTranslation();
 
@@ -239,6 +243,35 @@ function Board({
       }
     }
   }
+
+  // Smart board: apply moves (and position setups while editing) played on
+  // the physical board to this tree.
+  const smartboardApplyMoveRef = useRef<(move: NormalMove) => void>(() => {});
+  smartboardApplyMoveRef.current = (move: NormalMove) => {
+    void makeMove(move);
+  };
+  const smartboardApplyPositionRef = useRef<((placement: string) => void) | null>(null);
+  smartboardApplyPositionRef.current = editingMode
+    ? (placement) => {
+        const newFen = `${placement} ${currentNode.fen.split(" ").slice(1).join(" ")}`;
+        if (newFen !== currentNode.fen) {
+          setFen(newFen);
+        }
+      }
+    : null;
+  const smartboardApplyMoveCb = useCallback(
+    (_uci: string, move: Move) => smartboardApplyMoveRef.current(move as NormalMove),
+    [],
+  );
+  const smartboardApplyPositionCb = useCallback(
+    (placement: string) => smartboardApplyPositionRef.current?.(placement),
+    [],
+  );
+  useSmartBoardInput({
+    enabled: smartboardInput && !practicing,
+    applyMove: smartboardApplyMoveCb,
+    applyPosition: smartboardInput && editingMode ? smartboardApplyPositionCb : undefined,
+  });
 
   let shapes: DrawShape[] = [];
   if (showArrows && evalOpen && arrows.size > 0 && pos) {

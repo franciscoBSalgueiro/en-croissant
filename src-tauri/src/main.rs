@@ -3,6 +3,7 @@
     windows_subsystem = "windows"
 )]
 
+mod board;
 mod chess;
 mod db;
 mod engine;
@@ -22,6 +23,10 @@ mod sound;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
+use board::{
+    smartboard_connect, smartboard_disconnect, smartboard_set_leds, smartboard_status,
+    BoardManager, BoardPositionEvent, BoardStatusEvent,
+};
 use chess::{BestMovesPayload, EngineProcess};
 use dashmap::DashMap;
 use db::{convert_legacy_database, convert_pgn, DatabaseProgress};
@@ -71,7 +76,6 @@ use crate::{
     },
 };
 use std::sync::atomic::AtomicBool;
-use tokio::sync::Semaphore;
 
 #[derive(Derivative)]
 #[derivative(Default)]
@@ -187,7 +191,11 @@ fn main() {
             get_game_engine_logs,
             get_progress,
             clear_progress,
-            get_sound_server_port
+            get_sound_server_port,
+            smartboard_connect,
+            smartboard_disconnect,
+            smartboard_status,
+            smartboard_set_leds
         ))
         .events(tauri_specta::collect_events!(
             BestMovesPayload,
@@ -195,7 +203,9 @@ fn main() {
             ProgressEvent,
             GameMoveEvent,
             ClockUpdateEvent,
-            GameOverEvent
+            GameOverEvent,
+            BoardPositionEvent,
+            BoardStatusEvent
         ));
 
     #[cfg(debug_assertions)]
@@ -255,6 +265,7 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_os::init())
         .manage(AppState::default())
+        .manage(BoardManager::default())
         .setup(move |app| {
             log::info!("Setting up application");
 
@@ -323,6 +334,7 @@ fn main() {
                         process.kill_sync();
                     }
                 }
+                board::teardown(&app.state::<BoardManager>());
             }
         });
 }
