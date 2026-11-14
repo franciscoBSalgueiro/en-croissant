@@ -12,20 +12,27 @@ export function getEngineArrowShapes({
     arrows,
     pos,
     showConsecutiveArrows,
+    threat = false,
 }: {
     arrows: Map<number, { pv: string[]; winChance: number }[]>;
     pos: Position;
     showConsecutiveArrows: boolean;
+    threat?: boolean;
 }): DrawShape[] {
     const shapes: DrawShape[] = [];
     const entries = Array.from(arrows.entries()).sort((a, b) => a[0] - b[0]);
+    const searchPosition = pos.clone();
+    // EvalListener searches the opposite turn for threats, except while in check.
+    if (threat && !pos.isCheck()) {
+        searchPosition.turn = pos.turn === "white" ? "black" : "white";
+    }
 
     for (const [i, moves] of entries) {
         if (i >= 4 || moves.length === 0) continue;
 
         const bestWinChance = moves[0].winChance;
         for (const [j, { pv, winChance }] of moves.entries()) {
-            const posClone = pos.clone();
+            const posClone = searchPosition.clone();
             let prevSquare = null;
 
             for (const [ii, uci] of pv.entries()) {

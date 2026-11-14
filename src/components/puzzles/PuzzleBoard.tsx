@@ -11,6 +11,7 @@ import { useShallow } from "zustand/react/shallow";
 import { Chessground } from "@/chessground/Chessground";
 import {
   bestMovesFamily,
+  currentThreatAtom,
   eraseDrawablesOnClickAtom,
   jumpToNextPuzzleAtom,
   moveHighlightAtom,
@@ -97,6 +98,7 @@ function PuzzleBoard({
   const showCoordinates = useAtomValue(showCoordinatesAtom);
   const showArrows = useAtomValue(showArrowsAtom);
   const showConsecutiveArrows = useAtomValue(showConsecutiveArrowsAtom);
+  const threat = useAtomValue(currentThreatAtom);
   const engineArrows = useAtomValue(bestMovesFamily({ fen: root.fen, gameMoves: moves }));
   const autoShapes =
     reviewMode && showArrows && pos && engineArrows.size > 0
@@ -104,6 +106,7 @@ function PuzzleBoard({
           arrows: engineArrows,
           pos,
           showConsecutiveArrows,
+          threat,
         }).concat(boardShapes)
       : boardShapes;
 

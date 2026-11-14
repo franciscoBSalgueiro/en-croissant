@@ -29,6 +29,7 @@ import {
   currentEvalOpenAtom,
   currentShowCommentsAtom,
   currentTabAtom,
+  currentThreatAtom,
   deckAtomFamily,
   enableBoardScrollAtom,
   eraseDrawablesOnClickAtom,
@@ -137,6 +138,7 @@ function Board({
   const showArrows = useAtomValue(showArrowsAtom);
   const showVariationArrows = useAtomValue(showVariationArrowsAtom);
   const showConsecutiveArrows = useAtomValue(showConsecutiveArrowsAtom);
+  const threat = useAtomValue(currentThreatAtom);
   const eraseDrawablesOnClick = useAtomValue(eraseDrawablesOnClickAtom);
   const autoPromote = useAtomValue(autoPromoteAtom);
   const forcedEP = useAtomValue(forcedEnPassantAtom);
@@ -240,7 +242,7 @@ function Board({
 
   let shapes: DrawShape[] = [];
   if (showArrows && evalOpen && arrows.size > 0 && pos) {
-    shapes = getEngineArrowShapes({ arrows, pos, showConsecutiveArrows });
+    shapes = getEngineArrowShapes({ arrows, pos, showConsecutiveArrows, threat });
   }
 
   // Variation arrows: show all children moves when there are alternatives
