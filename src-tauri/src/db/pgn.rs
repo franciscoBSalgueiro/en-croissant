@@ -360,6 +360,11 @@ impl<'a> Visitor for PgnProcessor<'a> {
     fn begin_movetext(&mut self, tags: Self::Tags) -> ControlFlow<Self::Output, Self::Movetext> {
         match GameInProcessing::new(tags, self.level) {
             Ok(game) => ControlFlow::Continue(game),
+            // e.g. a custom or odds start position: skip the game, not the import
+            Err(error) if self.continue_on_invalid_move => {
+                eprintln!("{error}");
+                ControlFlow::Break(Ok(()))
+            }
             Err(error) => ControlFlow::Break(Err(invalid_pgn(error))),
         }
     }
@@ -629,5 +634,21 @@ mod tests {
     #[test]
     fn absent_rating_tags_stay_unknown() {
         assert_eq!(ratings("1. e4 *"), (None, None));
+    }
+
+    #[test]
+    fn import_skips_game_with_invalid_start_position() {
+        let db = duckdb::Connection::open_in_memory().unwrap();
+        db.execute_batch(include_str!("init-database.sql")).unwrap();
+        let appender = db
+            .appender_with_columns("games", super::super::GAME_COLUMNS)
+            .unwrap();
+        let mut processor = PgnProcessor::new(appender, CompressionLevel::Low, true, None);
+        let pgn = "[White \"A\"]\n\n1. e4 e5 1-0\n\n\
+            [SetUp \"1\"]\n[FEN \"rnbqkbnr/pppppppp/8/8/8/8/QQQQQQQQ/QQQQKQQQ w kq - 0 1\"]\n\n1. Qxb7 1-0\n\n\
+            [White \"B\"]\n\n1. d4 d5 0-1\n";
+        let mut reader = Reader::new(pgn.as_bytes());
+        assert_eq!(processor.read_batch(&mut reader).unwrap(), 3);
+        assert_eq!(processor.count(), 2);
     }
 }
