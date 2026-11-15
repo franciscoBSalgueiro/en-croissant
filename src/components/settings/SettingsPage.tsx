@@ -15,6 +15,7 @@ import {
 import { useHotkeys } from "@mantine/hooks";
 import {
   IconBook,
+  IconBluetooth,
   IconBrush,
   IconChess,
   IconFlag,
@@ -74,6 +75,7 @@ import PiecesSelect from "./PiecesSelect";
 import RepertoireMinGamesSetting from "./RepertoireMinGamesSetting";
 import classes from "./SettingsPage.module.css";
 import SettingsSwitch from "./SettingsSwitch";
+import SmartBoardControl from "./SmartBoardControl";
 import SoundSelect from "./SoundSelect";
 import ThemeButton from "./ThemeButton";
 import VolumeSlider from "./VolumeSlider";
@@ -87,7 +89,8 @@ type SettingCategory =
   | "keybinds"
   | "directories"
   | "repertoire"
-  | "privacy";
+  | "privacy"
+  | "hardware";
 
 interface SettingItem {
   id: string;
@@ -681,6 +684,15 @@ export default function Page() {
         keywords: ["telemetry", "privacy", "analytics", "tracking"],
         render: () => <TelemetrySwitch />,
       },
+      // Hardware settings
+      {
+        id: "smart-board",
+        category: "hardware",
+        title: t("Settings.Hardware.SmartBoard"),
+        description: t("Settings.Hardware.SmartBoard.Desc"),
+        keywords: ["smart board", "chessnut", "bluetooth", "hardware", "physical"],
+        render: () => <SmartBoardControl />,
+      },
     ],
     [
       t,
@@ -763,6 +775,11 @@ export default function Page() {
         title: t("Settings.Privacy"),
         description: t("Settings.Privacy.Desc"),
         icon: <IconShield size="1rem" />,
+      },
+      hardware: {
+        title: t("Settings.Hardware"),
+        description: t("Settings.Hardware.Desc"),
+        icon: <IconBluetooth size="1rem" />,
       },
     }),
     [t],
@@ -904,6 +921,9 @@ export default function Page() {
             <Tabs.Tab value="privacy" leftSection={<IconShield size="1rem" />}>
               {t("Settings.Privacy")}
             </Tabs.Tab>
+            <Tabs.Tab value="hardware" leftSection={<IconBluetooth size="1rem" />}>
+              {t("Settings.Hardware")}
+            </Tabs.Tab>
           </Tabs.List>
           <Stack flex={1} px="md">
             <ScrollArea>
@@ -1026,6 +1046,16 @@ export default function Page() {
                     {t("Settings.Privacy.Desc")}
                   </Text>
                   {renderCategorySettings("privacy")}
+                </Tabs.Panel>
+
+                <Tabs.Panel value="hardware">
+                  <Text size="lg" fw={500} className={classes.title}>
+                    {t("Settings.Hardware")}
+                  </Text>
+                  <Text size="xs" c="dimmed" mt={3} mb="lg">
+                    {t("Settings.Hardware.Desc")}
+                  </Text>
+                  {renderCategorySettings("hardware")}
                 </Tabs.Panel>
               </Card>
             </ScrollArea>

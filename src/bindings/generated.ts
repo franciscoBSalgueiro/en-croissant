@@ -488,6 +488,45 @@ async getSoundServerPort() : Promise<Result<number, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async smartboardConnect(name: string | null) : Promise<Result<BoardStatus, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("smartboard_connect", { name }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async smartboardDisconnect() : Promise<Result<BoardStatus, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("smartboard_disconnect") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async smartboardStatus() : Promise<Result<BoardStatus, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("smartboard_status") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Writes an LED command to the board.
+ * 
+ * `ranks` must hold one byte per rank, far rank first (`ranks[0]` = rank 8,
+ * `ranks[7]` = rank 1). For a rank byte, the file bit for file `f`
+ * (`f = 0` is the `a` file) is `1 << (7 - f)`. All-zero bytes clear the LEDs.
+ */
+async smartboardSetLeds(ranks: number[]) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("smartboard_set_leds", { ranks }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -496,6 +535,8 @@ async getSoundServerPort() : Promise<Result<number, string>> {
 
 export const events = __makeEvents__<{
 bestMovesPayload: BestMovesPayload,
+boardPositionEvent: BoardPositionEvent,
+boardStatusEvent: BoardStatusEvent,
 clockUpdateEvent: ClockUpdateEvent,
 databaseProgress: DatabaseProgress,
 gameMoveEvent: GameMoveEvent,
@@ -503,6 +544,8 @@ gameOverEvent: GameOverEvent,
 progressEvent: ProgressEvent
 }>({
 bestMovesPayload: "best-moves-payload",
+boardPositionEvent: "board-position-event",
+boardStatusEvent: "board-status-event",
 clockUpdateEvent: "clock-update-event",
 databaseProgress: "database-progress",
 gameMoveEvent: "game-move-event",
@@ -519,6 +562,14 @@ progressEvent: "progress-event"
 export type AnalysisOptions = { fen: string; moves: string[]; annotateNovelties: boolean; referenceDb: string | null; reversed: boolean }
 export type BestMoves = { nodes: number; depth: number; score: Score; uciMoves: string[]; sanMoves: string[]; multipv: number; nps: number }
 export type BestMovesPayload = { bestLines: BestMoves[]; engine: string; tab: string; fen: string; moves: string[]; progress: number }
+export type BoardPositionEvent = { 
+/**
+ * The board placement (first FEN field) currently on the smart board.
+ */
+placement: string }
+export type BoardStatus = { status: BoardStatusKind; device: string | null; message: string | null }
+export type BoardStatusEvent = { status: BoardStatus }
+export type BoardStatusKind = "disconnected" | "scanning" | "connecting" | "connected" | "error"
 export type ClockUpdateEvent = { gameId: string; whiteTime: bigint | null; blackTime: bigint | null }
 export type DatabaseInfo = { needs_conversion: boolean; title: string; description: string; player_count: number; event_count: number; game_count: number; storage_size: bigint; filename: string }
 export type DatabaseProgress = { id: string; progress: number }

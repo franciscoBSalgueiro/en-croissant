@@ -63,6 +63,21 @@ pub enum Error {
     #[error("No opening found")]
     NoOpeningFound,
 
+    #[error("Bluetooth adapter not found or unavailable")]
+    BluetoothUnavailable,
+
+    #[error("Smart board not found")]
+    BoardNotFound,
+
+    #[error("Smart board not connected")]
+    BoardNotConnected,
+
+    #[error("Invalid LED command (expected 8 rank bytes)")]
+    InvalidLedCommand,
+
+    #[error(transparent)]
+    Bluest(Box<bluest::Error>),
+
     #[error("No puzzles")]
     NoPuzzles,
 
@@ -181,6 +196,12 @@ impl From<r2d2::Error> for Error {
 impl From<std::time::SystemTimeError> for Error {
     fn from(value: std::time::SystemTimeError) -> Self {
         Self::SystemTime(Box::new(value))
+    }
+}
+
+impl From<bluest::Error> for Error {
+    fn from(value: bluest::Error) -> Self {
+        Self::Bluest(Box::new(value))
     }
 }
 

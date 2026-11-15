@@ -9,7 +9,7 @@ import {
   TextInput,
   v8CssVariablesResolver,
 } from "@mantine/core";
-import { Notifications } from "@mantine/notifications";
+import { Notifications, notifications } from "@mantine/notifications";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { getMatches } from "@tauri-apps/plugin-cli";
 import { listen } from "@tauri-apps/api/event";
@@ -18,6 +18,7 @@ import { getDefaultStore, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { ContextMenuProvider } from "mantine-contextmenu";
 import posthog from "posthog-js";
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link";
 
 import { DndProvider } from "react-dnd";
@@ -54,6 +55,7 @@ import "@/styles/global.css";
 
 import { commands } from "./bindings";
 import { handleDeepLink, openCommandLineFile } from "./utils/launch";
+import { initSmartboardBridge, onBoardStatus } from "./utils/smartboard";
 
 const colorSchemeManager = localStorageColorSchemeManager({
   key: "mantine-color-scheme",
@@ -154,6 +156,8 @@ function useAppStartup() {
       const detach = await attachConsole();
       info("React app started successfully");
 
+      void initSmartboardBridge();
+
       checkForUpdates();
 
       const store = getDefaultStore();
@@ -224,6 +228,7 @@ function useAppStartup() {
 }
 
 export default function App() {
+  const { t } = useTranslation();
   const primaryColor = useAtomValue(primaryColorAtom);
   const pieceSet = useAtomValue(pieceSetAtom);
   const fontSize = useAtomValue(fontSizeAtom);
@@ -257,6 +262,30 @@ export default function App() {
       unlisten?.();
     };
   }, [setDatabaseConversionState]);
+
+  // Smart board connection feedback (connection state changes that happen
+  // outside the settings UI, e.g. the board dropping its BLE connection).
+  useEffect(() => {
+    return onBoardStatus((boardStatusEvent) => {
+      const status = boardStatusEvent.status;
+      switch (status.status) {
+        case "connected":
+          notifications.show({
+            title: t("Settings.Hardware.Connected"),
+            message: status.device ?? undefined,
+            color: "green",
+          });
+          break;
+        case "disconnected":
+          notifications.show({
+            title: t("Settings.Hardware.Disconnected"),
+            message: status.message ?? undefined,
+            color: "gray",
+          });
+          break;
+      }
+    });
+  }, [t]);
 
   const theme = createTheme({
     defaultRadius: "sm",

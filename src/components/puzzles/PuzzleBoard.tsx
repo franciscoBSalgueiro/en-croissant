@@ -5,9 +5,10 @@ import { chessgroundDests, chessgroundMove } from "chessops/compat";
 import { parseFen } from "chessops/fen";
 import equal from "fast-deep-equal";
 import { useAtom, useAtomValue } from "jotai";
-import { useContext, useState } from "react";
+import { useCallback, useContext, useRef, useState } from "react";
 import { useStore } from "zustand";
 import { Chessground } from "@/chessground/Chessground";
+import { useSmartBoardInput } from "@/hooks/useSmartBoardInput";
 import {
   eraseDrawablesOnClickAtom,
   jumpToNextPuzzleAtom,
@@ -122,6 +123,28 @@ function PuzzleBoard({
     }
     reset();
   }
+
+  // Whether the puzzle board accepts input (same condition as the
+  // chessground `movable.color` below): only on the puzzle's own move.
+  const puzzleInputActive =
+    !!puzzle &&
+    equal(position, Array(currentMove).fill(0)) &&
+    (puzzle.completion === "incomplete" || puzzle.completion === "incorrect");
+
+  // Smart board: apply moves played on the physical board to the puzzle and
+  // keep the LEDs in sync with the physical vs. app placement.
+  const smartboardCheckMoveRef = useRef<(move: Move) => void>(() => {});
+  smartboardCheckMoveRef.current = (move) => {
+    void checkMove(move);
+  };
+  const smartboardApplyMoveCb = useCallback(
+    (_uci: string, move: Move) => smartboardCheckMoveRef.current(move),
+    [],
+  );
+  useSmartBoardInput({
+    enabled: puzzleInputActive,
+    applyMove: smartboardApplyMoveCb,
+  });
 
   const { ref: parentRef, height: parentHeight } = useElementSize();
 

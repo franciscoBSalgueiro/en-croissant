@@ -216,6 +216,7 @@ function BoardAnalysis() {
           editingMode={editingMode}
           boardRef={boardRef}
           selectedPiece={selectedPiece}
+          smartboardInput={!practicing}
         />
       </Portal>
       <Portal target="#topRight" style={{ height: "100%" }}>
