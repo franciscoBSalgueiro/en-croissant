@@ -68,6 +68,10 @@ pub fn decode_movetext(bytes: &[u8], fen: Option<&str>) -> Result<String, String
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct Annotations {
     pub events: BTreeMap<usize, Vec<Annotation>>,
+    /// PGN metadata not represented exactly by the indexed database columns.
+    /// Default keeps existing events-only payloads readable without migration.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub tags: BTreeMap<String, String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -83,7 +87,7 @@ impl Annotations {
     }
 
     pub fn encode(&self) -> Option<Vec<u8>> {
-        if self.events.is_empty() {
+        if self.events.is_empty() && self.tags.is_empty() {
             return None;
         }
         let json = serde_json::to_vec(self).unwrap();
@@ -94,6 +98,12 @@ impl Annotations {
 fn decode(data: &[u8]) -> Result<Annotations, String> {
     let decoder = zstd::stream::read::Decoder::new(data).map_err(|e| e.to_string())?;
     serde_json::from_reader(std::io::BufReader::new(decoder)).map_err(|e| e.to_string())
+}
+
+pub fn restored_tags(data: Option<&[u8]>) -> Result<BTreeMap<String, String>, String> {
+    data.map(decode)
+        .transpose()
+        .map(|annotations| annotations.unwrap_or_default().tags)
 }
 
 /// Aix returns annotation-free PGN with whitespace-delimited move numbers and

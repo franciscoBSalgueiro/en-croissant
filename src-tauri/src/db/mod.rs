@@ -717,6 +717,18 @@ fn parse_normalized_game(row: &duckdb::Row) -> duckdb::Result<NormalizedGame> {
     let bare_moves =
         annotations::decode_movetext(&row.get::<_, Vec<u8>>("movedata")?, initial_fen.as_deref())
             .map_err(duckdb::Error::InvalidParameterName)?;
+    let annotation_data = row.get::<_, Option<Vec<u8>>>("annotations")?;
+    let mut other = annotations::restored_tags(annotation_data.as_deref())
+        .map_err(duckdb::Error::InvalidParameterName)?;
+    // These two fields are separately editable in the frontend. Do not leave
+    // duplicate values in `other` that could resurrect a cleared date/time.
+    let date = other.remove("Date").or(row.get("date")?);
+    let time = other.remove("UTCTime").or(row.get("time")?);
+    for (key, column) in [("WhiteTitle", "white_title"), ("BlackTitle", "black_title")] {
+        if let Some(value) = row.get::<_, Option<String>>(column)? {
+            other.insert(key.into(), value);
+        }
+    }
 
     Ok(NormalizedGame {
         id: row.get("id")?,
@@ -733,23 +745,12 @@ fn parse_normalized_game(row: &duckdb::Row) -> duckdb::Result<NormalizedGame> {
         result,
 
         ply_count: row.get("ply_count")?,
-        date: row.get("date")?,
-        time: row.get("time")?,
-        moves: annotations::restore_movetext(
-            &bare_moves,
-            row.get::<_, Option<Vec<u8>>>("annotations")?.as_deref(),
-        )
-        .map_err(duckdb::Error::InvalidParameterName)?,
+        date,
+        time,
+        moves: annotations::restore_movetext(&bare_moves, annotation_data.as_deref())
+            .map_err(duckdb::Error::InvalidParameterName)?,
         time_control: row.get("time_control")?,
-        other: Some(
-            [
-                ("WhiteTitle", row.get::<_, Option<String>>("white_title")?),
-                ("BlackTitle", row.get::<_, Option<String>>("black_title")?),
-            ]
-            .into_iter()
-            .filter_map(|(key, value)| value.map(|value| (key.to_owned(), value)))
-            .collect(),
-        ),
+        other: Some(other.into_iter().collect()),
     })
 }
 
@@ -1354,7 +1355,11 @@ fn format_rating_tag(rating: i32) -> String {
 
 fn export_game(row: &duckdb::Row) -> duckdb::Result<String> {
     let game = parse_normalized_game(row)?;
-    let mut tags = std::collections::BTreeMap::new();
+    let mut tags = game
+        .other
+        .unwrap_or_default()
+        .into_iter()
+        .collect::<std::collections::BTreeMap<_, _>>();
     for (key, value) in [
         ("Event", game.event),
         ("Site", game.site),
@@ -1682,7 +1687,7 @@ mod tests {
         movedata, annotations FROM games WHERE id = 0";
 
     #[test]
-    fn supported_headers_export_from_columns_and_utc_timestamp() {
+    fn original_dates_and_extra_headers_survive_timestamp_indexing() {
         let db = Connection::open_in_memory().unwrap();
         db.execute_batch(include_str!("init-database.sql")).unwrap();
         let input = "[Event \"Test\"]\n[Site \"Lisboa\"]\n[Round \"1\"]\n[White \"White\"]\n[Black \"Black\"]\n[Date \"2020.??.??\"]\n[Time \"01:02:03\"]\n[UTCDate \"2026.10.15\"]\n[UTCTime \"12:34:56\"]\n[WhiteElo \"02300\"]\n[BlackElo \"invalid\"]\n[UnknownTag \"discard\"]\n\n1. e4 *";
@@ -1695,11 +1700,13 @@ mod tests {
             appender.flush().unwrap();
         }
         let exported = db.query_row(READ_TEST_GAME, [], export_game).unwrap();
-        assert!(exported.contains("[Date \"2026.10.15\"]"));
+        assert!(exported.contains("[Date \"2020.??.??\"]"));
+        assert!(exported.contains("[UTCDate \"2026.10.15\"]"));
+        assert!(exported.contains("[Time \"01:02:03\"]"));
         assert!(exported.contains("[UTCTime \"12:34:56\"]"));
         assert!(exported.contains("[WhiteElo \"2300\"]"));
         assert!(exported.contains("[BlackElo \"-\"]"));
-        assert!(!exported.contains("[UnknownTag "));
+        assert!(exported.contains("[UnknownTag \"discard\"]"));
         let original = pgn::parse_single_game(input).unwrap().database_values();
         let restored = pgn::parse_single_game(&exported).unwrap().database_values();
         assert_eq!(original, restored);
@@ -1777,6 +1784,76 @@ mod tests {
     }
 
     #[test]
+    fn metadata_only_games_survive_reopen_edit_and_explicit_clearing() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("metadata.duckdb");
+        {
+            let db = Connection::open(&path).unwrap();
+            db.execute_batch(include_str!("init-database.sql")).unwrap();
+            let game = pgn::parse_single_game(
+                "[Date \"1963.03.??\"]\n[ECO \"C52\"]\n[Annotator \"A\\\"B\\\\C\"]\n\n1. e4 *",
+            )
+            .unwrap();
+            let mut appender = game_appender(&db).unwrap();
+            appender
+                .append_row(duckdb::appender_params_from_iter(game.database_values()))
+                .unwrap();
+            appender.flush().unwrap();
+        }
+        let db = Connection::open(&path).unwrap();
+        let game = db
+            .query_row(READ_TEST_GAME, [], parse_normalized_game)
+            .unwrap();
+        assert_eq!(game.date.as_deref(), Some("1963.03.??"));
+        assert_eq!(game.other.as_ref().unwrap()["ECO"], "C52");
+        assert!(!game.other.as_ref().unwrap().contains_key("Date"));
+        let exported = db.query_row(READ_TEST_GAME, [], export_game).unwrap();
+        assert!(exported.contains("[Date \"1963.03.??\"]"));
+        assert!(exported.contains("[ECO \"C52\"]"));
+        update_game(
+            &db,
+            0,
+            &exported.replace("[White \"\"]", "[White \"Edited\"]"),
+        )
+        .unwrap();
+        assert!(db
+            .query_row(READ_TEST_GAME, [], export_game)
+            .unwrap()
+            .contains("[ECO \"C52\"]"));
+        // Replacing a game must replace its metadata too, rather than merging
+        // stale tags from the previous annotation payload.
+        update_game(&db, 0, "[Date \"2026.11.15\"]\n\n1. d4 *").unwrap();
+        let cleared = db.query_row(READ_TEST_GAME, [], export_game).unwrap();
+        assert!(cleared.contains("[Date \"2026.11.15\"]"));
+        assert!(!cleared.contains("[ECO "));
+        assert!(!cleared.contains("[Annotator "));
+        assert!(!cleared.contains("1963"));
+    }
+
+    #[test]
+    fn old_annotation_payloads_and_tags_only_payloads_remain_readable() {
+        let old = zstd::bulk::compress(
+            br#"{"events":{"0":[{"type":"Comment","value":"Old comment"}]}}"#,
+            3,
+        )
+        .unwrap();
+        assert_eq!(
+            annotations::restore_movetext("1. e4", Some(&old)).unwrap(),
+            "{Old comment} 1. e4"
+        );
+        assert!(annotations::restored_tags(Some(&old)).unwrap().is_empty());
+        let game = pgn::parse_single_game("[ECO \"C20\"]\n\n1. e4 *").unwrap();
+        assert_eq!(
+            annotations::restore_movetext("1. e4", game.annotations.as_deref()).unwrap(),
+            "1. e4"
+        );
+        assert_eq!(
+            annotations::restored_tags(game.annotations.as_deref()).unwrap()["ECO"],
+            "C20"
+        );
+    }
+
+    #[test]
     fn annotations_survive_import_reopen_edit_and_export() {
         let temp = tempfile::tempdir().unwrap();
         let path = temp.path().join("annotations.duckdb");
@@ -1798,13 +1875,13 @@ mod tests {
         let game = db
             .query_row(READ_TEST_GAME, [], parse_normalized_game)
             .unwrap();
-        assert_eq!(game.date.as_deref(), Some("2026.01.01"));
+        assert_eq!(game.date.as_deref(), Some("2026.??.??"));
         assert_eq!(game.time_control.as_deref(), Some("300+3"));
         let other = game.other.as_ref().unwrap();
         assert_eq!(other["WhiteTitle"], "IM");
         assert_eq!(other["BlackTitle"], "GM");
-        assert!(!other.contains_key("ECO"));
-        assert!(!other.contains_key("Annotator"));
+        assert_eq!(other["ECO"], "C20");
+        assert_eq!(other["Annotator"], "Ana \"Quoted\" \\ Name");
         assert_eq!(game.ply_count, Some(3));
         for text in [
             "Root comentário",
@@ -1829,14 +1906,14 @@ mod tests {
         assert_eq!(first.movedata, restored.movedata);
         assert_eq!(first.annotations, restored.annotations);
         assert_eq!(first.database_values(), restored.database_values());
-        assert!(!exported.contains("[ECO "));
-        assert!(!exported.contains("[Annotator "));
+        assert!(exported.contains("[ECO \"C20\"]"));
+        assert!(exported.contains("[Annotator "));
 
         let edited = exported
             .replace("Original", "Edited")
             .replace("Root comentário", "Edited root")
             .replace("2. Nf3", "2. Bc4")
-            .replace("2026.01.01", "2026.10.15")
+            .replace("2026.??.??", "2026.10.15")
             .replace("2100", "2300")
             .replace("300+3", "600+5")
             .replace("*", "1-0");
@@ -1950,7 +2027,7 @@ mod tests {
         let count: i32 = db
             .query_row("SELECT COUNT(*) FROM games", [], |row| row.get(0))
             .unwrap();
-        assert_eq!(count, 4);
+        assert_eq!(count, 5);
         let empty_annotated: i32 = db
             .query_row(
                 "SELECT COUNT(*) FROM games WHERE ply_count = 0 AND annotations IS NOT NULL",

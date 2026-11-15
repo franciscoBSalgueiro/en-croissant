@@ -31,13 +31,16 @@ function GameInfo({
   const disabled = store === EMPTY_STORE;
   const setHeaders = useStore(store, (s) => s.setHeaders);
   const [player, setPlayer] = useState<"white" | "black" | null>(null);
+  const [editingRawDate, setEditingRawDate] = useState(false);
   const event = detail(headers.event);
   const site = detail(headers.site);
   const roundValue = detail(headers.round?.trim());
   const round = /^[-–—]+$/.test(roundValue) ? "" : roundValue;
   const date = detail(headers.date);
   const parsedDate =
-    date && dayjs(date, "YYYY.MM.DD").isValid() ? dayjs(date, "YYYY.MM.DD").toDate() : null;
+    /^\d{4}\.\d{2}\.\d{2}$/.test(date) && dayjs(date, "YYYY.MM.DD", true).isValid()
+      ? dayjs(date, "YYYY.MM.DD", true).toDate()
+      : null;
   const siteName = site.startsWith("https://lichess.org/")
     ? "Lichess"
     : site.startsWith("https://www.chess.com/")
@@ -220,6 +223,18 @@ function GameInfo({
             )}
             {disabled ? (
               date && <span>{date}</span>
+            ) : editingRawDate || (date && !parsedDate) ? (
+              <input
+                className={classes.input}
+                style={{ width: "6rem" }}
+                value={headers.date ?? ""}
+                placeholder="????.??.??"
+                onFocus={() => setEditingRawDate(true)}
+                onBlur={() => setEditingRawDate(false)}
+                onChange={(e) =>
+                  setHeaders({ ...headers, date: e.currentTarget.value || undefined })
+                }
+              />
             ) : (
               <DateInput
                 w="6rem"
