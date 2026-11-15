@@ -149,7 +149,8 @@ pub async fn get_puzzle_db_info(file: PathBuf) -> Result<Option<PuzzleDatabaseIn
 fn database_info(path: PathBuf) -> Result<Option<PuzzleDatabaseInfo>, Error> {
     match is_legacy_database(&path) {
         Ok(true) => {
-            delete_puzzle_database(path.to_string_lossy().into_owned())?;
+            // Discovery must not delete user data. Unsupported databases can be
+            // replaced or converted separately while the original stays intact.
             return Ok(None);
         }
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
@@ -209,4 +210,43 @@ pub fn get_themes_for_puzzle(file: String, puzzle_id: i32) -> Result<Vec<String>
         .query_map([puzzle_id], |row| row.get(0))?
         .collect::<Result<_, _>>()?;
     Ok(result)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn discovering_legacy_puzzles_preserves_the_database() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("legacy.db3");
+        let legacy = rusqlite::Connection::open(&path).unwrap();
+        legacy
+            .execute_batch(
+                "CREATE TABLE puzzles (id INTEGER PRIMARY KEY); INSERT INTO puzzles VALUES (1);",
+            )
+            .unwrap();
+        drop(legacy);
+        let before = std::fs::read(&path).unwrap();
+
+        assert!(database_info(path.clone()).unwrap().is_none());
+        assert_eq!(std::fs::read(&path).unwrap(), before);
+        assert!(database_info(path.clone()).unwrap().is_none());
+        assert_eq!(std::fs::read(&path).unwrap(), before);
+    }
+
+    #[test]
+    fn discovering_current_puzzles_reports_their_count() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("current.duckdb");
+        let database = Connection::open(&path).unwrap();
+        database
+            .execute_batch("CREATE TABLE puzzles (id INTEGER PRIMARY KEY); INSERT INTO puzzles VALUES (1), (2);")
+            .unwrap();
+        drop(database);
+
+        let info = database_info(path.clone()).unwrap().unwrap();
+        assert_eq!(info.puzzle_count, 2);
+        assert!(path.exists());
+    }
 }
