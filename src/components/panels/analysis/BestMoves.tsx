@@ -411,6 +411,7 @@ export default memo(BestMovesComponent, (prev, next) => {
     prev.fen === next.fen &&
     equal(prev.moves, next.moves) &&
     prev.halfMoves === next.halfMoves &&
-    prev.orientation === next.orientation
+    prev.orientation === next.orientation &&
+    prev.onEnabledChange === next.onEnabledChange
   );
 });
