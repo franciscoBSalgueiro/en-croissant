@@ -6,6 +6,7 @@ use duckdb::types::{TimeUnit, Value};
 use duckdb::{appender_params_from_iter, Appender};
 use pgn_reader::{Nag, RawComment, RawTag, Reader, SanPlus, Skip, Visitor};
 use shakmaty::{fen::Fen as ShakmatyFen, CastlingMode, Chess, FromSetup, Position};
+use std::collections::BTreeMap;
 use std::ops::ControlFlow;
 
 pub struct PgnProcessor<'a> {
@@ -36,6 +37,35 @@ pub struct Headers {
     utc_date: Option<String>,
     time: Option<String>,
     utc_time: Option<String>,
+    other: BTreeMap<String, String>,
+}
+
+impl Headers {
+    fn preserved_tags(&self) -> BTreeMap<String, String> {
+        let mut tags = self.other.clone();
+        let normalized = self
+            .utc_date
+            .as_deref()
+            .or(self.date.as_deref())
+            .and_then(|date| {
+                parse_pgn_datetime(date, self.utc_time.as_deref().or(self.time.as_deref()))
+            });
+        let date = normalized.map(|value| value.format("%Y.%m.%d").to_string());
+        let time = normalized.map(|value| value.format("%H:%M:%S").to_string());
+        // Keep exact spelling/precision when the timestamp cannot represent it.
+        // Full Date/UTCTime values already represented by columns need no copy.
+        for (name, value, equivalent) in [
+            ("Date", self.date.as_ref(), date.as_ref()),
+            ("UTCTime", self.utc_time.as_ref(), time.as_ref()),
+            ("UTCDate", self.utc_date.as_ref(), None),
+            ("Time", self.time.as_ref(), None),
+        ] {
+            if let Some(value) = value.filter(|value| Some(*value) != equivalent) {
+                tags.insert(name.into(), value.clone());
+            }
+        }
+        tags
+    }
 }
 
 impl<'a> PgnProcessor<'a> {
@@ -280,6 +310,7 @@ impl GameInProcessing<'_> {
 
     fn finish(mut self) -> StoredGame {
         self.close_variations();
+        self.annotations.tags = self.headers.preserved_tags();
         StoredGame {
             annotations: self.annotations.encode(),
             headers: self.headers,
@@ -488,7 +519,14 @@ fn apply_tag(tags: &mut Headers, key: &[u8], value: RawTag<'_>) {
         b"UTCDate" => tags.utc_date = Some(value.decode_utf8_lossy().into_owned()),
         b"UTCTime" => tags.utc_time = Some(value.decode_utf8_lossy().into_owned()),
         b"FEN" => tags.fen = Some(value.decode_utf8_lossy().into_owned()),
-        _ => {}
+        // These are reconstructed from the move tree on export.
+        b"SetUp" | b"PlyCount" => {}
+        _ => {
+            tags.other.insert(
+                String::from_utf8_lossy(key).into_owned(),
+                value.decode_utf8_lossy().into_owned(),
+            );
+        }
     };
 }
 

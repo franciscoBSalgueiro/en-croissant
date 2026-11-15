@@ -52,9 +52,7 @@ fn matching_ids(db: &Connection, query: &GameQuery) -> Result<Vec<i32>, Error> {
     } else {
         clauses.join(" AND ")
     };
-    let mut stmt = db.prepare(&format!(
-        "SELECT id FROM games WHERE {filter} ORDER BY id"
-    ))?;
+    let mut stmt = db.prepare(&format!("SELECT id FROM games WHERE {filter} ORDER BY id"))?;
     let ids = stmt
         .query_map([], |row| row.get(0))?
         .collect::<Result<Vec<_>, _>>()?;
@@ -283,7 +281,7 @@ mod tests {
     fn selected_export_round_trips_comments_and_variations() {
         let db = Connection::open_in_memory().unwrap();
         db.execute_batch(include_str!("init-database.sql")).unwrap();
-        let input = "[White \"Selected\"]\n[Black \"Opponent\"]\n[Result \"*\"]\n\n{Root} 1. e4 {Comment} (1. d4 d5 (1... Nf6 {Nested})) e5 *";
+        let input = "[White \"Selected\"]\n[Black \"Opponent\"]\n[Result \"*\"]\n[Date \"2024.??.??\"]\n[ECO \"C20\"]\n\n{Root} 1. e4 {Comment} (1. d4 d5 (1... Nf6 {Nested})) e5 *";
         let original = pgn::parse_single_game(input).unwrap();
         let expected_annotations = original.annotations.clone();
         {
@@ -303,6 +301,8 @@ mod tests {
         assert!(!exported.contains("Excluded"));
         assert!(exported.contains("{Comment}"));
         assert!(exported.contains("{Nested}"));
+        assert!(exported.contains("[Date \"2024.??.??\"]"));
+        assert!(exported.contains("[ECO \"C20\"]"));
         assert_eq!(
             pgn::parse_single_game(&exported).unwrap().annotations,
             expected_annotations

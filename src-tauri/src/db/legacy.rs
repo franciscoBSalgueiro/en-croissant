@@ -82,6 +82,7 @@ fn game_pgn(row: &rusqlite::Row<'_>) -> Result<String, Error> {
         ("black_elo", "BlackElo"),
         ("result", "Result"),
         ("time_control", "TimeControl"),
+        ("eco", "ECO"),
     ] {
         if let Some(value) = row.get::<_, Option<String>>(column).map_err(sqlite_error)? {
             tags.insert(tag.into(), value);
@@ -131,7 +132,7 @@ fn convert(
             g.Date AS date, g.UTCTime AS time, CAST(g.Round AS TEXT) AS round,
             w.Name AS white, b.Name AS black,
             CAST(g.WhiteElo AS TEXT) AS white_elo, CAST(g.BlackElo AS TEXT) AS black_elo,
-            CAST(g.Result AS TEXT) AS result, g.TimeControl AS time_control,
+            CAST(g.Result AS TEXT) AS result, g.TimeControl AS time_control, g.ECO AS eco,
             g.FEN AS fen, g.Moves AS moves
          FROM Games g LEFT JOIN Events e ON e.ID = g.EventID
          LEFT JOIN Sites s ON s.ID = g.SiteID
@@ -209,6 +210,7 @@ fn convert_file(file: &Path, dest_file: &Path, progress: impl FnMut(u32)) -> Res
 #[cfg(test)]
 mod tests {
     use super::*;
+
 
     fn fixture() -> Sqlite {
         let db = Sqlite::open_in_memory().unwrap();
@@ -313,6 +315,18 @@ mod tests {
         assert_eq!(timestamp, "2020.01.01 12:34:56");
         assert_eq!(round, "3");
         assert_eq!(rating, 2400);
+        let query = "SELECT *, strftime(utc_timestamp, '%Y.%m.%d') AS date,
+            strftime(utc_timestamp, '%H:%M:%S') AS time FROM games";
+        let game = destination
+            .query_row(query, [], super::super::parse_normalized_game)
+            .unwrap();
+        assert_eq!(game.date.as_deref(), Some("2020.??.??"));
+        assert_eq!(game.other.as_ref().unwrap()["ECO"], "C20");
+        let exported = destination
+            .query_row(query, [], super::super::export_game)
+            .unwrap();
+        assert!(exported.contains("[Date \"2020.??.??\"]"));
+        assert!(exported.contains("[ECO \"C20\"]"));
         let title: String = destination
             .query_row(
                 "SELECT value FROM db_info WHERE name = 'title'",

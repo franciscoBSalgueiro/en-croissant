@@ -152,6 +152,57 @@ export async function isInTempDir(filePath: string): Promise<boolean> {
     return normalize(filePath).startsWith(normalize(tmp));
 }
 
+function snapshotPGN({ root, headers }: Pick<TreeStoreState, "root" | "headers">) {
+    return `${getPGN(root, {
+        headers,
+        comments: true,
+        extraMarkups: true,
+        glyphs: true,
+        variations: true,
+    })}\n\n`;
+}
+
+const pendingDatabaseSaves = new WeakMap<
+    StoreApi<TreeStoreState>,
+    { database: string; gameId: number; promise: Promise<boolean> }
+>();
+
+function saveDatabaseGame(
+    origin: Extract<GameOrigin, { kind: "database" }>,
+    store: StoreApi<TreeStoreState>,
+): Promise<boolean> {
+    const pending = pendingDatabaseSaves.get(store);
+    if (pending) {
+        if (pending.database === origin.database && pending.gameId === origin.gameId) {
+            return pending.promise;
+        }
+        return pending.promise.then(() => saveDatabaseGame(origin, store));
+    }
+
+    const saveLatest = async () => {
+        while (true) {
+            const snapshot = store.getState();
+            unwrap(
+                await commands.writeDbGame(origin.database, origin.gameId, snapshotPGN(snapshot)),
+            );
+            const current = store.getState();
+            // Edits made during the write must reach disk before clearing dirty.
+            // Root and headers are immutable; navigation alone need not resave.
+            if (current.root === snapshot.root && current.headers === snapshot.headers) {
+                current.save();
+                return true;
+            }
+        }
+    };
+    const promise = saveLatest().finally(() => {
+        if (pendingDatabaseSaves.get(store)?.promise === promise) {
+            pendingDatabaseSaves.delete(store);
+        }
+    });
+    pendingDatabaseSaves.set(store, { ...origin, promise });
+    return promise;
+}
+
 export async function saveToFile({
     dir,
     tab,
@@ -174,19 +225,10 @@ export async function saveToFile({
             : undefined;
     const databaseOrigin = currentOrigin?.kind === "database" ? currentOrigin : undefined;
     const isTempFile = currentOrigin?.kind === "temp_file";
-    const pgn = `${getPGN(store.getState().root, {
-        headers: store.getState().headers,
-        comments: true,
-        extraMarkups: true,
-        glyphs: true,
-        variations: true,
-    })}\n\n`;
-
     if (databaseOrigin) {
-        unwrap(await commands.writeDbGame(databaseOrigin.database, databaseOrigin.gameId, pgn));
-        store.getState().save();
-        return true;
+        return saveDatabaseGame(databaseOrigin, store);
     }
+    const pgn = snapshotPGN(store.getState());
 
     if (fileOrigin && !(isTempFile && isUserSave)) {
         filePath = fileOrigin.file.path;
