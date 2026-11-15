@@ -141,10 +141,8 @@ function BoardAnalysis() {
     }
   }, [practicing, setPracticePath]);
 
-  useHotkeys([
-    [keyMap.SAVE_FILE.keys, () => userSaveFile()],
-    [keyMap.CLEAR_SHAPES.keys, () => clearShapes()],
-  ]);
+  useHotkeys([[keyMap.SAVE_FILE.keys, () => userSaveFile()]], []);
+  useHotkeys([[keyMap.CLEAR_SHAPES.keys, () => clearShapes()]]);
   useHotkeys([
     [keyMap.ANNOTATION_BRILLIANT.keys, () => !isPracticeRating && setAnnotation("!!")],
     [keyMap.ANNOTATION_GOOD.keys, () => !isPracticeRating && setAnnotation("!")],
