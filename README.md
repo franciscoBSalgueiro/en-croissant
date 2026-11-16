@@ -58,3 +58,4 @@ For contributing to this project please refer to the [Contributing guide](./CONT
 ## License
 
 This software is licensed under GPL-3.0 License.
+Some bundled chess piece sets are distributed under separate licenses.

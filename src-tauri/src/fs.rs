@@ -117,8 +117,8 @@ pub async fn unzip_file(path: &Path, file: Vec<u8>) -> Result<(), Error> {
     let mut archive = zip::ZipArchive::new(Cursor::new(file))?;
     for i in 0..archive.len() {
         let mut file = archive.by_index(i)?;
-        let outpath = path.join(file.mangled_name());
-        if (*file.name()).ends_with('/') {
+        let outpath = path.join(file.mangled_name()?);
+        if file.name()?.ends_with('/') {
             info!(
                 "File {} extracted to \"{}\"",
                 i,

@@ -3,15 +3,15 @@ import { useAtom } from "jotai";
 import { currentLocalOptionsAtom } from "@/state/atoms";
 import { GameFilters } from "@/components/databases/GameFilters";
 
-function LocalOptionsPanel() {
+function LocalOptionsPanel({ file }: { file: string }) {
   const [options, setOptions] = useAtom(currentLocalOptionsAtom);
 
   return (
     <Box px="xs">
       <GameFilters
         query={options}
-        setQuery={(val) => setOptions({ ...val, path: options.path })}
-        file={options.path!}
+        setQuery={setOptions}
+        file={file}
         hidePositionSearch
         alwaysExpanded
       />

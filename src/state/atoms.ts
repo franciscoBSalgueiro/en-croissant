@@ -20,7 +20,7 @@ import type {
 } from "jotai/vanilla/utils/atomWithStorage";
 import type { ReviewLog } from "ts-fsrs";
 import { z } from "zod";
-import type { BestMoves, GoMode } from "@/bindings";
+import { commands, type BestMoves, type GoMode } from "@/bindings";
 import { DEFAULT_TIME_CONTROL, type OpponentSettings } from "@/components/boards/OpponentForm";
 import { type Position, positionSchema } from "@/components/files/opening";
 import type { LocalOptions } from "@/components/panels/database/DatabasePanel";
@@ -277,7 +277,22 @@ export const addRecentFileAtom = atom(null, (get, set, file: Omit<RecentFile, "l
 
 // Database
 
-export const referenceDbAtom = atomWithStorage<string | null>("reference-database", null);
+export const storedReferenceDbAtom = atomWithStorage<string | null>("reference-database", null);
+
+export const referenceDbAtom = unwrap(
+    atom(async (get) => {
+        const path = get(storedReferenceDbAtom);
+        if (!path) return null;
+
+        try {
+            const result = await commands.getDbInfo(path);
+            return result.status === "ok" && !result.data.needs_conversion ? path : null;
+        } catch {
+            return null;
+        }
+    }),
+    () => null,
+);
 
 export const selectedPuzzleDbAtom = atomWithStorage<string | null>("puzzle-db", null);
 
@@ -423,11 +438,7 @@ export const currentTabSelectedAtom = tabValue(tabFamily);
 const reportModalOpenFamily = atomFamily((_tab: string) => atom(false));
 export const currentReportModalOpenAtom = tabValue(reportModalOpenFamily);
 
-const localOptionsFamily = atomFamily((_tab: string) =>
-    atom<LocalOptions>({
-        path: null,
-    }),
-);
+const localOptionsFamily = atomFamily((_tab: string) => atom<Omit<LocalOptions, "path">>({}));
 export const currentLocalOptionsAtom = tabValue(localOptionsFamily);
 
 export const lichessOptionsAtom = atomWithStorage<LichessGamesOptions>(

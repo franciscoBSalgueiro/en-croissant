@@ -1,10 +1,8 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import Markdown from "react-markdown";
-import rehypeRaw from "rehype-raw";
-import remarkGfm from "remark-gfm";
 import { expect, test } from "vitest";
-import { isPlainText } from "../markdown";
+import { commentRehypePlugins, isPlainText } from "../markdown";
 
 // The Markdown setup of Comment.tsx for a single line comment
 function markdown(text: string) {
@@ -13,7 +11,7 @@ function markdown(text: string) {
       Markdown,
       {
         components: { p: ({ node: _node, ...props }) => createElement("span", props) },
-        rehypePlugins: [rehypeRaw, remarkGfm],
+        rehypePlugins: commentRehypePlugins,
       },
       text,
     ),
@@ -63,4 +61,36 @@ test("only plain text skips Markdown, and renders exactly like it", () => {
   for (const text of formatted) {
     expect({ text, plain: isPlainText(text) }).toEqual({ text, plain: false });
   }
+});
+
+test("raw HTML in comments is sanitized", () => {
+  const hostile = [
+    '<img src="x" onerror="alert(1)">',
+    "<script>alert(1)</script>",
+    '<iframe srcdoc="<script>alert(1)</script>"></iframe>',
+    '<a href="javascript:alert(1)">click</a>',
+    '<div style="background:url(javascript:alert(1))" onclick="alert(1)">x</div>',
+    '<svg><animate onbegin="alert(1)" attributeName="x"/></svg>',
+    '<object data="data:text/html,<script>alert(1)</script>"></object>',
+  ];
+  for (const text of hostile) {
+    const html = markdown(text);
+    expect({ text, html }).toEqual({
+      text,
+      html: expect.not.stringMatching(
+        /<script|<iframe|<object|<svg|\son\w+=|javascript:|srcdoc|style=/i,
+      ),
+    });
+  }
+});
+
+test("formatting the comment editor produces survives sanitizing", () => {
+  expect(markdown("<u>underline</u>")).toBe("<span><u>underline</u></span>");
+  expect(markdown("**bold** and *italic*")).toBe(
+    "<span><strong>bold</strong> and <em>italic</em></span>",
+  );
+  expect(markdown("~~struck~~")).toBe("<span><del>struck</del></span>");
+  expect(markdown("[link](https://lichess.org)")).toBe(
+    '<span><a href="https://lichess.org">link</a></span>',
+  );
 });

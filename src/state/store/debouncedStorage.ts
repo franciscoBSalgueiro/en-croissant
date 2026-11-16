@@ -49,7 +49,7 @@ function bindFlushHandlers() {
     flushHandlersBound = true;
 }
 
-export function createDebouncedSessionStorage<S>(delay = DEBOUNCE_MS): PersistStorage<S> {
+export function createDebouncedSessionStorage<S>(delay = DEBOUNCE_MS) {
     bindFlushHandlers();
 
     return {
@@ -70,5 +70,5 @@ export function createDebouncedSessionStorage<S>(delay = DEBOUNCE_MS): PersistSt
             pendingWrites.delete(name);
             sessionStorage.removeItem(name);
         },
-    };
+    } satisfies PersistStorage<S>;
 }

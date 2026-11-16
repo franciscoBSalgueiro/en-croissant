@@ -232,7 +232,16 @@ fn main() {
             }
         }))
         .plugin(tauri_plugin_deep_link::init())
-        .plugin(tauri_plugin_window_state::Builder::new().build())
+        // Don't restore visibility: the window stays hidden until the frontend
+        // has rendered (see close_splashscreen), avoiding a white flash.
+        .plugin(
+            tauri_plugin_window_state::Builder::new()
+                .with_state_flags(
+                    tauri_plugin_window_state::StateFlags::all()
+                        & !tauri_plugin_window_state::StateFlags::VISIBLE,
+                )
+                .build(),
+        )
         .plugin(tauri_plugin_process::init())
         .plugin(
             tauri_plugin_log::Builder::default()
@@ -250,13 +259,18 @@ fn main() {
         .setup(move |app| {
             log::info!("Setting up application");
 
-            let aixchess_extension_path = app
+            let resource_dir = app
                 .path()
-                .resolve(
-                    "aixchess.duckdb_extension",
-                    tauri::path::BaseDirectory::Resource,
-                )
-                .expect("failed to resolve aixchess extension resource path");
+                .resource_dir()
+                .expect("failed to resolve application resource directory");
+            let aixchess_extension_path = resource_dir.join("aixchess.duckdb_extension");
+            // linuxdeploy rewrites ELF files under usr/lib, disturbing DuckDB's footer.
+            #[cfg(target_os = "linux")]
+            let aixchess_extension_path = if aixchess_extension_path.is_file() {
+                aixchess_extension_path
+            } else {
+                resource_dir.join("../../libexec/en-croissant/aixchess.duckdb_extension")
+            };
             let state = app.state::<AppState>();
             *state
                 .aixchess_extension_path

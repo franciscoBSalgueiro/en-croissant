@@ -27,7 +27,7 @@
     "shortDescription": "Ultimate Chess Toolkit",
     "longDescription": "",
     "macOS": {
-      "entitlements": null,
+      "entitlements": "Entitlements.plist",
       "exceptionDomain": "",
       "frameworks": [],
       "providerShortName": null,
