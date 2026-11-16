@@ -65,10 +65,9 @@ function AddDatabase({
   const { defaultDatabases, error, isLoading } = useDefaultDatabases(opened);
 
   async function convertDB(paths: string[], title: string, description?: string) {
-    if (paths.length === 0) return;
     setLoading(true);
     const dbPath = await resolve(databaseDir, `${title}.duckdb`);
-    const sourceFileName = await basename(paths[0]);
+    const sourceFileName = paths.length > 0 ? await basename(paths[0]) : null;
     setConversionState((prev) => ({
       ...prev,
       inProgress: true,
@@ -106,9 +105,6 @@ function AddDatabase({
         if (!value) return t("Common.RequireName");
         if (databases.find((e) => e.type === "success" && e.title === value))
           return t("Common.NameAlreadyUsed");
-      },
-      files: (value) => {
-        if (value.length === 0) return t("Common.RequirePath");
       },
     },
   });

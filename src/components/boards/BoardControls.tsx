@@ -1,8 +1,10 @@
 import { ActionIcon, Stack, Tooltip } from "@mantine/core";
+import { useToggle } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import {
   IconArrowBack,
   IconCamera,
+  IconDatabase,
   IconDeviceFloppy,
   IconEdit,
   IconEditOff,
@@ -31,6 +33,7 @@ import {
 import { keyMapAtom } from "@/state/keybinds";
 import { getPGN } from "@/utils/chess";
 import { createTab } from "@/utils/tabs";
+import SaveToDatabaseModal from "./SaveToDatabaseModal";
 
 interface BoardControlsProps {
   editingMode: boolean;
@@ -71,6 +74,7 @@ function BoardControls({
   const eraseDrawablesOnClick = useAtomValue(eraseDrawablesOnClickAtom);
   const creatingPlayTab = useRef(false);
   const [isCreatingPlayTab, setIsCreatingPlayTab] = useState(false);
+  const [saveToDbOpened, toggleSaveToDbOpened] = useToggle();
   const modeActionLabel = t(
     currentTab?.type === "analysis" ? "Board.Action.PlayFromHere" : "Board.Action.AnalyzeGame",
   );
@@ -216,6 +220,15 @@ function BoardControls({
           <IconSwitchVertical size="1.2rem" />
         </ActionIcon>
       </Tooltip>
+      <Tooltip position="right" label={t("Board.Game.SaveToDatabase")}>
+        <ActionIcon
+          onClick={() => toggleSaveToDbOpened()}
+          aria-label={t("Board.Game.SaveToDatabase")}
+        >
+          <IconDatabase size="1.2rem" />
+        </ActionIcon>
+      </Tooltip>
+      {saveToDbOpened && <SaveToDatabaseModal onClose={() => toggleSaveToDbOpened()} />}
     </Stack>
   );
 }
