@@ -24,6 +24,7 @@ import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import {
   activeTabAtom,
+  checkUpdatesOnStartupAtom,
   databaseConversionStateAtom,
   fontSizeAtom,
   is3dAtom,
@@ -154,9 +155,11 @@ function useAppStartup() {
       const detach = await attachConsole();
       info("React app started successfully");
 
-      checkForUpdates();
-
       const store = getDefaultStore();
+      if (store.get(checkUpdatesOnStartupAtom)) {
+        checkForUpdates();
+      }
+
       const telemetryEnabled = store.get(telemetryEnabledAtom);
 
       posthog.init("phc_kgEBtifs0EgWlrl4ROYEbnsQ1b7BS2W5BKLNyXe7f8z", {

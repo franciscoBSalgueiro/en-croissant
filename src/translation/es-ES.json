@@ -629,6 +629,8 @@
     "Settings.PreviewBoard": "Previsualizar tablero",
     "Settings.PreviewBoard.Desc": "Mostrar una previsualización del tablero al pasar el ratón sobre un movimiento en el análisis del motor",
     "Settings.Privacy": "",
+    "Settings.Privacy.CheckUpdates": "",
+    "Settings.Privacy.CheckUpdates.Desc": "",
     "Settings.Privacy.Desc": "",
     "Settings.Privacy.Telemetry": "",
     "Settings.Privacy.Telemetry.Desc": "",

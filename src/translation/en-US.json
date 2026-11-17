@@ -679,6 +679,8 @@
     "Settings.PreviewBoard": "Preview Board",
     "Settings.PreviewBoard.Desc": "Show a preview of the board when hovering over a move in the engine analysis",
     "Settings.Privacy": "Privacy",
+    "Settings.Privacy.CheckUpdates": "Check for Updates on Startup",
+    "Settings.Privacy.CheckUpdates.Desc": "Look for a new version every time the app starts",
     "Settings.Privacy.Desc": "Privacy and data collection settings",
     "Settings.Privacy.Telemetry": "Anonymous Telemetry",
     "Settings.Privacy.Telemetry.Desc": "Help improve En Croissant by sending anonymous usage data",

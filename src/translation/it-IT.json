@@ -629,6 +629,8 @@
     "Settings.PreviewBoard": "Anteprima scacchiera",
     "Settings.PreviewBoard.Desc": "Mostra un'anteprima della scacchiera quando si passa con il mouse su una mossa nell'analisi del motore",
     "Settings.Privacy": "Privacy",
+    "Settings.Privacy.CheckUpdates": "",
+    "Settings.Privacy.CheckUpdates.Desc": "",
     "Settings.Privacy.Desc": "Impostazioni privacy e collezione dati",
     "Settings.Privacy.Telemetry": "Telemetria anonima",
     "Settings.Privacy.Telemetry.Desc": "Contribuisci al miglioramento di En Croissant inviando dati di utilizzo anonimi",

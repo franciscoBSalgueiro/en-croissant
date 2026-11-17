@@ -254,6 +254,12 @@ export const showTabBarAtom = atomWithStorage<boolean>("show-tabbar", true);
 export const telemetryEnabledAtom = atomWithStorage<boolean>("telemetry-enabled", true, undefined, {
     getOnInit: true,
 });
+export const checkUpdatesOnStartupAtom = atomWithStorage<boolean>(
+    "check-updates-on-startup",
+    true,
+    undefined,
+    { getOnInit: true },
+);
 
 // Recent Files
 

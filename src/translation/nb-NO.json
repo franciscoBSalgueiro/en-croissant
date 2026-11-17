@@ -620,6 +620,8 @@
     "Settings.PreviewBoard": "Forhåndshvis brett",
     "Settings.PreviewBoard.Desc": "Vis sjakkbrett når musen er over trekk i komputeranalysen.",
     "Settings.Privacy": "",
+    "Settings.Privacy.CheckUpdates": "",
+    "Settings.Privacy.CheckUpdates.Desc": "",
     "Settings.Privacy.Desc": "",
     "Settings.Privacy.Telemetry": "",
     "Settings.Privacy.Telemetry.Desc": "",

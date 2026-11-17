@@ -638,6 +638,8 @@
     "Settings.PreviewBoard": "Podgląd szachownicy",
     "Settings.PreviewBoard.Desc": "Pokaż podgląd szachownicy po najechaniu kursorem na ruch w analizie silnika",
     "Settings.Privacy": "",
+    "Settings.Privacy.CheckUpdates": "",
+    "Settings.Privacy.CheckUpdates.Desc": "",
     "Settings.Privacy.Desc": "",
     "Settings.Privacy.Telemetry": "",
     "Settings.Privacy.Telemetry.Desc": "",

@@ -36,6 +36,7 @@ import { useTranslation } from "react-i18next";
 import {
   autoPromoteAtom,
   autoSaveAtom,
+  checkUpdatesOnStartupAtom,
   defaultPanelTabAtom,
   enableBoardScrollAtom,
   eraseDrawablesOnClickAtom,
@@ -680,6 +681,14 @@ export default function Page() {
         description: t("Settings.Privacy.Telemetry.Desc"),
         keywords: ["telemetry", "privacy", "analytics", "tracking"],
         render: () => <TelemetrySwitch />,
+      },
+      {
+        id: "check-updates-on-startup",
+        category: "privacy",
+        title: t("Settings.Privacy.CheckUpdates"),
+        description: t("Settings.Privacy.CheckUpdates.Desc"),
+        keywords: ["update", "updates", "startup", "version", "privacy"],
+        render: () => <SettingsSwitch atom={checkUpdatesOnStartupAtom} />,
       },
     ],
     [
