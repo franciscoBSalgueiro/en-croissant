@@ -629,6 +629,8 @@
     "Settings.PreviewBoard": "Tabuleiro de visualização",
     "Settings.PreviewBoard.Desc": "Mostra tabuleiro ao passar rato por cima de uma jogada na análise",
     "Settings.Privacy": "",
+    "Settings.Privacy.CheckUpdates": "",
+    "Settings.Privacy.CheckUpdates.Desc": "",
     "Settings.Privacy.Desc": "",
     "Settings.Privacy.Telemetry": "",
     "Settings.Privacy.Telemetry.Desc": "",

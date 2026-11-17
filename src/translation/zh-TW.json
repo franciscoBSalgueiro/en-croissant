@@ -612,6 +612,8 @@
     "Settings.PreviewBoard": "預覽棋盤",
     "Settings.PreviewBoard.Desc": "滑鼠懸停在引擎分析的著手上時顯示預覽棋盤",
     "Settings.Privacy": "",
+    "Settings.Privacy.CheckUpdates": "",
+    "Settings.Privacy.CheckUpdates.Desc": "",
     "Settings.Privacy.Desc": "",
     "Settings.Privacy.Telemetry": "",
     "Settings.Privacy.Telemetry.Desc": "",

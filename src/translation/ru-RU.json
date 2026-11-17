@@ -652,6 +652,8 @@
     "Settings.PreviewBoard": "Предварительный просмотр доски",
     "Settings.PreviewBoard.Desc": "Показывать доску при наведении курсора на ход в анализе",
     "Settings.Privacy": "",
+    "Settings.Privacy.CheckUpdates": "",
+    "Settings.Privacy.CheckUpdates.Desc": "",
     "Settings.Privacy.Desc": "",
     "Settings.Privacy.Telemetry": "",
     "Settings.Privacy.Telemetry.Desc": "",

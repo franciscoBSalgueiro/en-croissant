@@ -634,6 +634,8 @@
     "Settings.PreviewBoard": "Preview Board",
     "Settings.PreviewBoard.Desc": "Show a preview of the board when hovering over a move in the engine analysis",
     "Settings.Privacy": "",
+    "Settings.Privacy.CheckUpdates": "",
+    "Settings.Privacy.CheckUpdates.Desc": "",
     "Settings.Privacy.Desc": "",
     "Settings.Privacy.Telemetry": "",
     "Settings.Privacy.Telemetry.Desc": "",

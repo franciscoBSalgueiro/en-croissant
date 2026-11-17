@@ -634,6 +634,8 @@
     "Settings.PreviewBoard": "Tahtayı Önizle",
     "Settings.PreviewBoard.Desc": "Motor analizinde bir hareketin üzerine gelindiğinde tahtanın önizlemesini göster",
     "Settings.Privacy": "Gizlilik",
+    "Settings.Privacy.CheckUpdates": "",
+    "Settings.Privacy.CheckUpdates.Desc": "",
     "Settings.Privacy.Desc": "Gizlilik ve veri toplama ayarları",
     "Settings.Privacy.Telemetry": "Anonim Telemetri",
     "Settings.Privacy.Telemetry.Desc": "Anonim kullanım verileri göndererek En Croissant'ın gelişmesine yardımcı olun",
