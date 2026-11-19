@@ -91,7 +91,7 @@ export function defaultTree(fen?: string): TreeState {
             children: [],
             score: null,
             depth: null,
-            halfMoves: pos?.turn === "black" ? 1 : 0,
+            halfMoves: pos ? (pos.fullmoves - 1) * 2 + (pos.turn === "black" ? 1 : 0) : 0,
             shapes: [],
             annotations: [],
             comment: "",
