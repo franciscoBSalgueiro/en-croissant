@@ -41,7 +41,10 @@ export function normalizeScore(score: ScoreValue, color: Color): number {
         cp *= -1;
     }
     if (score.type === "mate") {
-        cp = CP_CEILING * Math.sign(cp);
+        // `mate 0` means the side to move is already checkmated. In the
+        // annotation/accuracy callers `next` is the position after the move,
+        // so this is a mating move and must not be treated as a 0 cp score.
+        cp = CP_CEILING * (cp === 0 ? 1 : Math.sign(cp));
     }
     return minMax(cp, -CP_CEILING, CP_CEILING);
 }

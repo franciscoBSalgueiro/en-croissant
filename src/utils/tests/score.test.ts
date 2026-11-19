@@ -32,6 +32,21 @@ test("should calculate the cp loss correctly", () => {
     expect(getCPLoss({ type: "mate", value: -1 }, { type: "cp", value: 0 }, "black")).toBe(1000);
 });
 
+test("should not punish a checkmating move (#1102)", () => {
+    // Scores are stored from White's perspective. `mate 0` means the side to
+    // move is checkmated, so the move that produced it delivered mate.
+    const mateInOneForBlack = { type: "mate" as const, value: -1 };
+    const blackDeliveredMate = { type: "mate" as const, value: 0 };
+
+    expect(getCPLoss(mateInOneForBlack, blackDeliveredMate, "black")).toBe(0);
+    expect(getAccuracy(mateInOneForBlack, blackDeliveredMate, "black")).toBe(100);
+    expect(getAnnotation(null, mateInOneForBlack, blackDeliveredMate, "black", [])).toBe("");
+
+    const mateInOneForWhite = { type: "mate" as const, value: 1 };
+    expect(getCPLoss(mateInOneForWhite, blackDeliveredMate, "white")).toBe(0);
+    expect(getAnnotation(null, mateInOneForWhite, blackDeliveredMate, "white", [])).toBe("");
+});
+
 test("should annotate as ??", () => {
     expect(getAnnotation(null, null, { type: "cp", value: -500 }, "white", [])).toBe("??");
     expect(getAnnotation(null, null, { type: "cp", value: 500 }, "black", [])).toBe("??");
