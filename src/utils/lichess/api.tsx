@@ -378,6 +378,14 @@ export async function getPlayerGames(fen: string, player: string, color: Color, 
   return await res.json();
 }
 
+export function buildLichessGamesUrl(player: string, timestamp: number | null) {
+  let url = `${baseURL}/games/user/${player}?perfType=ultraBullet,bullet,blitz,rapid,classical,correspondence&sort=dateAsc`;
+  if (timestamp) {
+    url += `&since=${timestamp}`;
+  }
+  return url;
+}
+
 export async function downloadLichess(
   player: string,
   timestamp: number | null,
@@ -385,10 +393,7 @@ export async function downloadLichess(
   setProgress: (progress: number) => void,
   token?: string,
 ) {
-  let url = `${baseURL}/games/user/${player}?perfType=ultraBullet,bullet,blitz,rapid,classical,correspondence&rated=true&sort=dateAsc`;
-  if (timestamp) {
-    url += `&since=${timestamp}`;
-  }
+  const url = buildLichessGamesUrl(player, timestamp);
   const path = await resolve(await getDatabasesDir(), `${player}_lichess.pgn`);
 
   await commands.downloadFile(
