@@ -3,6 +3,7 @@ import { makeFen } from "chessops/fen";
 import { parseSan } from "chessops/san";
 import { beforeEach, expect, test } from "vitest";
 import { createTreeStore } from "@/state/store/tree";
+import { getMoveText } from "@/utils/chess";
 import { createNode, defaultTree, type TreeState } from "@/utils/treeReducer";
 
 const store = createTreeStore();
@@ -424,8 +425,38 @@ test("should handle setFen", () => {
         root: {
             ...defaultTree().root,
             fen: "rnbq1bnr/ppppkppp/8/4p3/4P3/8/PPPPKPPP/RNBQ1BNR w - - 2 3",
+            halfMoves: 4,
         },
     });
+});
+
+test("should respect the move number when setting a FEN", () => {
+    store.getState().setFen("r3r1k1/pbqn1ppp/1p1ppn2/1B4B1/3P4/2P2N2/PP3PPP/R2QR1K1 b - - 0 13");
+
+    expect(store.getState().root.halfMoves).toBe(25);
+
+    store.getState().makeMove({ payload: "a5" });
+    expect(store.getState().root.children[0].halfMoves).toBe(26);
+    expect(
+        getMoveText(store.getState().root.children[0], {
+            glyphs: false,
+            comments: false,
+            extraMarkups: false,
+            isFirst: true,
+        }),
+    ).toBe("13... a5 ");
+});
+
+test("should derive the half-move counter from a white to move FEN", () => {
+    store.getState().setFen("r3r1k1/pbqn1ppp/1p1ppn2/1B4B1/3P4/2P2N2/PP3PPP/R2QR1K1 w - - 0 13");
+
+    expect(store.getState().root.halfMoves).toBe(24);
+});
+
+test("should keep the half-move counter at zero for move 1", () => {
+    store.getState().setFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+
+    expect(store.getState().root.halfMoves).toBe(0);
 });
 
 test("should handle setScore", () => {
