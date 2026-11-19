@@ -143,7 +143,12 @@ export const createTreeStore = (id?: string, initialTree?: TreeState) => {
                 if (!node || !node.children[childIndex]?.move) return state;
                 const san = node.children[childIndex].san;
                 if (!san) return state;
-                playSound(san.includes("x"), san.includes("+"));
+                playSound(
+                    san.includes("x"),
+                    san.includes("+") || san.includes("#"),
+                    san.startsWith("O-O"),
+                    san.includes("#"),
+                );
                 return {
                     ...state,
                     position: [...state.position, childIndex],
@@ -554,7 +559,12 @@ function makeMove({
     if (san === "--") return; // invalid move
     pos.play(move);
     if (sound) {
-        playSound(san.includes("x"), san.includes("+"));
+        playSound(
+            san.includes("x"),
+            san.includes("+") || san.includes("#"),
+            san.startsWith("O-O"),
+            san.includes("#"),
+        );
     }
     if (changeHeaders && pos.isEnd()) {
         if (pos.isCheckmate()) {

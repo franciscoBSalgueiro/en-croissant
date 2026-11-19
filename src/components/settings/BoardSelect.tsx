@@ -15,6 +15,7 @@ import { boardImageAtom, is3dAtom } from "@/state/atoms";
 
 const boardImages2d: string[] = [
   "blue.png",
+  "blue-icy.png",
   "blue2.jpg",
   "blue3.jpg",
   "blue4.svg",
