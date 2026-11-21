@@ -22,6 +22,7 @@ tauri = { version = "2.12.4", features = ["protocol-asset"] }
 zip = "9.5.0"
 tokio = { version = "1.33", features = ["full"] }
 futures-util = "0.3.24"
+libc = "0.2"
 flate2 = "1"
 reqwest = { version = "0.13.5", features = ["stream", "blocking", "json"] }
 shakmaty = "0.30.0"
