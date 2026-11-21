@@ -372,7 +372,10 @@ pub async fn get_best_moves(
 
     state.engine_processes.insert(key.clone(), process.clone());
 
-    let lim = RateLimiter::direct(Quota::per_second(nonzero!(5u32)));
+    // A fast mate search can reach the maximum depth before the limiter's
+    // second token, leaving the UI on the first depth. Allow one event per
+    // searched depth while keeping the sustained rate.
+    let lim = RateLimiter::direct(Quota::per_second(nonzero!(5u32)).allow_burst(nonzero!(256u32)));
 
     while let Some(line) = reader.next_line().await? {
         let mut proc = process.lock().await;
