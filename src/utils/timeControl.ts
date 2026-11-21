@@ -2,7 +2,7 @@ export function getTimeControl(website: string | null, timeControl: string) {
     if (timeControl.startsWith("1/")) {
         return "daily";
     }
-    if (timeControl === "-") {
+    if (timeControl === "-" || timeControl.endsWith("per move")) {
         return "correspondence";
     }
     const [initial, increment = 0] = timeControl.split("+").map(Number);
