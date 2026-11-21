@@ -13,6 +13,28 @@ use crate::error::Error;
 
 use super::{normalize_uci_moves_for_fen, types::GoMode};
 
+/// A spawned engine owns its Unix process group, including wrapper workers.
+/// Sharing this handle permits cancellation while the engine is initializing.
+#[derive(Clone, Default)]
+pub struct EngineKillHandle {
+    #[cfg(unix)]
+    group: std::sync::Arc<std::sync::atomic::AtomicI32>,
+}
+
+impl EngineKillHandle {
+    pub fn kill_sync(&self) {
+        #[cfg(unix)]
+        {
+            let group = self.group.swap(0, std::sync::atomic::Ordering::SeqCst);
+            if group > 0 {
+                // Only a group created for this child may be signalled. Clearing
+                // it prevents a later Drop from signalling a recycled group ID.
+                unsafe { libc::killpg(group, libc::SIGKILL) };
+            }
+        }
+    }
+}
+
 #[cfg(target_os = "windows")]
 pub const CREATE_NO_WINDOW: u32 = 0x08000000;
 
@@ -30,6 +52,7 @@ pub struct BaseEngine {
     pub reader: Option<EngineReader>,
     #[allow(dead_code)]
     child: Child,
+    kill_handle: EngineKillHandle,
     logs: Vec<EngineLog>,
 }
 
@@ -40,12 +63,22 @@ impl BaseEngine {
         command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
+            .stderr(Stdio::piped())
+            .kill_on_drop(true);
+
+        #[cfg(unix)]
+        command.process_group(0);
 
         #[cfg(target_os = "windows")]
         command.creation_flags(CREATE_NO_WINDOW);
 
         let mut child = command.spawn()?;
+        let kill_handle = EngineKillHandle::default();
+        #[cfg(unix)]
+        kill_handle.group.store(
+            child.id().expect("new child has a process ID") as i32,
+            std::sync::atomic::Ordering::SeqCst,
+        );
 
         let stdin = child.stdin.take().ok_or(Error::NoStdin)?;
         let stdout = child.stdout.take().ok_or(Error::NoStdout)?;
@@ -64,12 +97,27 @@ impl BaseEngine {
             stdin,
             reader: Some(reader),
             child,
+            kill_handle,
             logs: Vec::new(),
         })
     }
 
     pub fn take_reader(&mut self) -> Option<EngineReader> {
         self.reader.take()
+    }
+
+    pub fn kill_handle(&self) -> EngineKillHandle {
+        self.kill_handle.clone()
+    }
+
+    pub async fn shutdown(&mut self) -> Result<(), Error> {
+        use std::time::Duration;
+        // A broken pipe or an unresponsive wrapper must not prevent cleanup.
+        let _ = tokio::time::timeout(Duration::from_millis(100), self.quit()).await;
+        let _ = tokio::time::timeout(Duration::from_millis(300), self.child.wait()).await;
+        self.kill_sync();
+        self.child.wait().await?;
+        Ok(())
     }
 
     pub fn reader_mut(&mut self) -> Option<&mut EngineReader> {
@@ -162,12 +210,13 @@ impl BaseEngine {
     }
 
     pub fn kill_sync(&mut self) {
+        self.kill_handle.kill_sync();
         let _ = self.child.start_kill();
     }
 }
 
 impl Drop for BaseEngine {
     fn drop(&mut self) {
-        let _ = self.child.start_kill();
+        self.kill_sync();
     }
 }

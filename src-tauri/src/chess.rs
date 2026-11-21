@@ -53,6 +53,10 @@ impl EngineProcess {
     async fn new(path: PathBuf) -> Result<(Self, EngineReader), Error> {
         let mut base = BaseEngine::spawn(path).await?;
         base.init_uci().await?;
+        Self::from_ready_base(base)
+    }
+
+    fn from_ready_base(mut base: BaseEngine) -> Result<(Self, EngineReader), Error> {
         let reader = base.take_reader().ok_or(Error::EngineDisconnected)?;
 
         Ok((
@@ -142,7 +146,7 @@ impl EngineProcess {
     }
 
     async fn kill(&mut self) -> Result<(), Error> {
-        self.base.quit().await?;
+        self.base.shutdown().await?;
         self.running = false;
         Ok(())
     }
@@ -251,25 +255,287 @@ pub struct EngineOptions {
     pub extra_options: Vec<EngineOption>,
 }
 
+type EngineKey = (String, String);
+type SharedEngine = Arc<Mutex<EngineProcess>>;
+
+/// The slot is installed before spawning or awaiting UCI readiness. All requests
+/// for one tab/engine share it, even while a slow neural engine loads its model.
+struct EngineSession {
+    update: Mutex<()>,
+    process: std::sync::Mutex<Option<SharedEngine>>,
+    kill_handle: std::sync::Mutex<Option<crate::engine::EngineKillHandle>>,
+    cancelled: tokio::sync::watch::Sender<bool>,
+}
+
+impl Default for EngineSession {
+    fn default() -> Self {
+        Self {
+            update: Mutex::new(()),
+            process: std::sync::Mutex::new(None),
+            kill_handle: std::sync::Mutex::new(None),
+            cancelled: tokio::sync::watch::channel(false).0,
+        }
+    }
+}
+
+impl EngineSession {
+    fn process(&self) -> Option<SharedEngine> {
+        self.process.lock().unwrap().clone()
+    }
+
+    fn cancel(&self) {
+        self.cancelled.send_replace(true);
+    }
+
+    fn is_cancelled(&self) -> bool {
+        *self.cancelled.borrow()
+    }
+
+    async fn cancelled(&self) {
+        let mut receiver = self.cancelled.subscribe();
+        while !*receiver.borrow_and_update() {
+            if receiver.changed().await.is_err() {
+                break;
+            }
+        }
+    }
+
+    fn kill_sync(&self) {
+        self.cancel();
+        if let Some(handle) = self.kill_handle.lock().unwrap().as_ref() {
+            handle.kill_sync();
+        }
+        if let Some(process) = self.process() {
+            if let Ok(mut process) = process.try_lock() {
+                process.kill_sync();
+            }
+        }
+    }
+
+    async fn shutdown(&self) -> Result<(), Error> {
+        self.cancel();
+        // Wait until a cancelled initializer has shut down its local process.
+        let _update = self.update.lock().await;
+        let process = self.process.lock().unwrap().take();
+        if let Some(process) = process {
+            process.lock().await.kill().await?;
+        }
+        Ok(())
+    }
+
+    async fn request(
+        self: &Arc<Self>,
+        registry: &EngineRegistry,
+        key: &EngineKey,
+        path: PathBuf,
+        options: EngineOptions,
+        go_mode: GoMode,
+    ) -> Result<EngineRequest, Error> {
+        let _update = self.update.lock().await;
+        if self.is_cancelled() {
+            return Ok(EngineRequest::Cancelled);
+        }
+        let mut reader = None;
+        let mut startup_guard = None;
+        let process = if let Some(process) = self.process() {
+            process
+        } else {
+            startup_guard = Some(EngineReaderGuard::new(registry, key.clone(), self.clone()));
+            let mut base = BaseEngine::spawn(path).await?;
+            *self.kill_handle.lock().unwrap() = Some(base.kill_handle());
+            let ready = tokio::select! {
+                biased;
+                _ = self.cancelled() => None,
+                ready = base.init_uci() => Some(ready),
+            };
+            match ready {
+                Some(Ok(())) => {}
+                other => {
+                    let _ = base.shutdown().await;
+                    return match other {
+                        Some(Err(error)) => Err(error),
+                        _ => Ok(EngineRequest::Cancelled),
+                    };
+                }
+            }
+            let (process, new_reader) = EngineProcess::from_ready_base(base)?;
+            reader = Some(new_reader);
+            let process = Arc::new(Mutex::new(process));
+            *self.process.lock().unwrap() = Some(process.clone());
+            process
+        };
+        let update = async {
+            if reader.is_none() {
+                {
+                    let mut process = process.lock().await;
+                    if options == process.options && go_mode == process.go_mode && process.running {
+                        return Ok(Some((
+                            process.last_progress,
+                            process.last_best_moves.clone(),
+                        )));
+                    }
+                    process.stop().await?;
+                }
+                // Let the independent reader consume the previous search output.
+                tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+            }
+            let mut process = process.lock().await;
+            process.set_options(options).await?;
+            process.go(&go_mode).await?;
+            Ok::<_, Error>(None)
+        };
+        let cached = tokio::select! {
+            biased;
+            _ = self.cancelled() => return Ok(EngineRequest::Cancelled),
+            result = update => result?,
+        };
+        if let Some(guard) = startup_guard.as_mut() {
+            guard.armed = false;
+        }
+        Ok(match reader {
+            Some(reader) => EngineRequest::Started { reader, process },
+            None => EngineRequest::Existing(cached),
+        })
+    }
+}
+
+enum EngineRequest {
+    Started {
+        reader: EngineReader,
+        process: SharedEngine,
+    },
+    Existing(Option<(f32, Vec<BestMoves>)>),
+    Cancelled,
+}
+
+#[derive(Default)]
+pub struct EngineRegistry {
+    sessions: dashmap::DashMap<EngineKey, Arc<EngineSession>>,
+    closed_tabs: std::sync::Mutex<std::collections::HashSet<String>>,
+}
+
+impl EngineRegistry {
+    fn session(&self, key: &EngineKey) -> Option<Arc<EngineSession>> {
+        self.sessions.get(key).map(|entry| entry.value().clone())
+    }
+
+    async fn request(
+        &self,
+        key: &EngineKey,
+        path: PathBuf,
+        options: EngineOptions,
+        go_mode: GoMode,
+    ) -> Result<(Arc<EngineSession>, EngineRequest), Error> {
+        let session = {
+            // Closing a tab and publishing a pending startup must be ordered.
+            // Tab IDs are unique; late IPC requests cannot reopen a closed tab.
+            let closed_tabs = self.closed_tabs.lock().unwrap();
+            if closed_tabs.iter().any(|tab| key.0.starts_with(tab)) {
+                let session = Arc::new(EngineSession::default());
+                session.cancel();
+                return Ok((session, EngineRequest::Cancelled));
+            }
+            self.sessions.entry(key.clone()).or_default().clone()
+        };
+        let result = session.request(self, key, path, options, go_mode).await;
+        if result.is_err() {
+            self.remove_session(key, &session);
+            let _ = session.shutdown().await;
+        }
+        result.map(|result| (session, result))
+    }
+
+    fn remove_session(&self, key: &EngineKey, session: &Arc<EngineSession>) {
+        session.cancel();
+        self.sessions
+            .remove_if(key, |_, current| Arc::ptr_eq(current, session));
+    }
+
+    async fn release(&self, key: &EngineKey) -> Result<(), Error> {
+        if let Some((_, session)) = self.sessions.remove(key) {
+            session.shutdown().await?;
+        }
+        Ok(())
+    }
+
+    async fn release_tab(&self, tab: &str) -> Result<(), Error> {
+        self.closed_tabs.lock().unwrap().insert(tab.to_owned());
+        let sessions: Vec<_> = self
+            .sessions
+            .iter()
+            .filter(|entry| entry.key().0.starts_with(tab))
+            .map(|entry| (entry.key().clone(), entry.value().clone()))
+            .collect();
+        // Cancel every pending initializer before waiting for any shutdown.
+        for (key, session) in &sessions {
+            self.remove_session(key, session);
+        }
+        let mut failure = None;
+        for (_, session) in sessions {
+            if let Err(error) = session.shutdown().await {
+                failure = Some(error);
+            }
+        }
+        failure.map_or(Ok(()), Err)
+    }
+
+    async fn stop(&self, key: &EngineKey) -> Result<(), Error> {
+        if let Some(session) = self.session(key) {
+            if let Some(process) = session.process() {
+                let _update = session.update.lock().await;
+                if !session.is_cancelled() {
+                    process.lock().await.stop().await?;
+                }
+            } else {
+                // A disabled engine must not finish loading and start searching.
+                self.remove_session(key, &session);
+                session.shutdown().await?;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn kill_all_sync(&self) {
+        for entry in self.sessions.iter() {
+            entry.value().kill_sync();
+        }
+    }
+}
+
+/// EOF, reader errors and cancelled IPC futures may only retire their own
+/// generation, never a replacement created by a later request.
+struct EngineReaderGuard<'a> {
+    registry: &'a EngineRegistry,
+    key: EngineKey,
+    session: Arc<EngineSession>,
+    armed: bool,
+}
+
+impl<'a> EngineReaderGuard<'a> {
+    fn new(registry: &'a EngineRegistry, key: EngineKey, session: Arc<EngineSession>) -> Self {
+        Self {
+            registry,
+            key,
+            session,
+            armed: true,
+        }
+    }
+}
+
+impl Drop for EngineReaderGuard<'_> {
+    fn drop(&mut self) {
+        if !self.armed {
+            return;
+        }
+        self.registry.remove_session(&self.key, &self.session);
+        self.session.kill_sync();
+    }
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn kill_engines(tab: String, state: tauri::State<'_, AppState>) -> Result<(), Error> {
-    let keys: Vec<_> = state
-        .engine_processes
-        .iter()
-        .map(|x| x.key().clone())
-        .collect();
-    for key in keys.clone() {
-        if key.0.starts_with(&tab) {
-            {
-                let process = state.engine_processes.get_mut(&key).unwrap();
-                let mut process = process.lock().await;
-                process.kill().await?;
-            }
-            state.engine_processes.remove(&key);
-        }
-    }
-    Ok(())
+    state.engine_processes.release_tab(&tab).await
 }
 
 #[tauri::command]
@@ -279,13 +545,9 @@ pub async fn kill_engine(
     tab: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    let key = (tab, engine);
-    if let Some(process) = state.engine_processes.get(&key) {
-        let mut process = process.lock().await;
-        process.kill().await?;
-    }
-    Ok(())
+    state.engine_processes.release(&(tab, engine)).await
 }
+
 #[tauri::command]
 #[specta::specta]
 pub async fn stop_engine(
@@ -293,12 +555,7 @@ pub async fn stop_engine(
     tab: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), Error> {
-    let key = (tab, engine);
-    if let Some(process) = state.engine_processes.get(&key) {
-        let mut process = process.lock().await;
-        process.stop().await?;
-    }
-    Ok(())
+    state.engine_processes.stop(&(tab, engine)).await
 }
 
 #[tauri::command]
@@ -308,13 +565,14 @@ pub async fn get_engine_logs(
     tab: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<EngineLog>, Error> {
-    let key = (tab, engine);
-    if let Some(process) = state.engine_processes.get(&key) {
-        let process = process.lock().await;
-        Ok(process.base.get_logs())
-    } else {
-        Ok(Vec::new())
+    if let Some(process) = state
+        .engine_processes
+        .session(&(tab, engine))
+        .and_then(|s| s.process())
+    {
+        return Ok(process.lock().await.base.get_logs());
     }
+    Ok(Vec::new())
 }
 
 #[tauri::command]
@@ -332,50 +590,37 @@ pub async fn get_best_moves(
 
     let key = (tab.clone(), id.clone());
 
-    let setup_validation = parse_fen_and_apply_moves(&options.fen, &options.moves);
-    if let Err(e) = setup_validation {
-        warn!("Invalid position for engine: {:?}", e);
-        if let Some(process) = state.engine_processes.get(&key) {
-            process.lock().await.stop().await?;
-        }
+    if let Err(error) = parse_fen_and_apply_moves(&options.fen, &options.moves) {
+        warn!("Invalid position for engine: {:?}", error);
+        state.engine_processes.stop(&key).await?;
         return Ok(None);
     }
-
-    if state.engine_processes.contains_key(&key) {
-        {
-            let process = state.engine_processes.get_mut(&key).unwrap();
-            let mut process = process.lock().await;
-            if options == process.options && go_mode == process.go_mode && process.running {
-                return Ok(Some((
-                    process.last_progress,
-                    process.last_best_moves.clone(),
-                )));
-            }
-            process.stop().await?;
-        }
-        // give time for engine to stop and process previous lines
-        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-        {
-            let process = state.engine_processes.get_mut(&key).unwrap();
-            let mut process = process.lock().await;
-            process.set_options(options.clone()).await?;
-            process.go(&go_mode).await?;
-        }
-        return Ok(None);
-    }
-
-    let (mut process, mut reader) = EngineProcess::new(path).await?;
-    process.set_options(options.clone()).await?;
-    process.go(&go_mode).await?;
-
-    let process = Arc::new(Mutex::new(process));
-
-    state.engine_processes.insert(key.clone(), process.clone());
+    let (session, request) = state
+        .engine_processes
+        .request(&key, path, options, go_mode)
+        .await?;
+    let (mut reader, process) = match request {
+        EngineRequest::Started { reader, process } => (reader, process),
+        EngineRequest::Existing(cached) => return Ok(cached),
+        EngineRequest::Cancelled => return Ok(None),
+    };
+    let _reader_guard = EngineReaderGuard::new(&state.engine_processes, key, session.clone());
 
     let lim = RateLimiter::direct(Quota::per_second(nonzero!(5u32)));
 
-    while let Some(line) = reader.next_line().await? {
+    loop {
+        let line = tokio::select! {
+            biased;
+            _ = session.cancelled() => break,
+            line = reader.next_line() => match line? {
+                Some(line) => line,
+                None => break,
+            },
+        };
         let mut proc = process.lock().await;
+        if session.is_cancelled() {
+            break;
+        }
         match parse_one(&line) {
             UciMessage::Info(attrs) => {
                 match parse_uci_attrs(attrs, &proc.options.fen.parse()?, &proc.options.moves) {
@@ -453,7 +698,6 @@ pub async fn get_best_moves(
         proc.base.log_engine(&line);
     }
     info!("Engine process finished: tab: {}, engine: {}", tab, engine);
-    state.engine_processes.remove(&key);
     Ok(None)
 }
 
@@ -819,3 +1063,7 @@ pub async fn get_engine_config(path: PathBuf) -> Result<EngineConfig, Error> {
     base.quit().await?;
     Ok(config)
 }
+
+#[cfg(all(test, unix))]
+#[path = "chess_lifecycle_tests.rs"]
+mod lifecycle_tests;

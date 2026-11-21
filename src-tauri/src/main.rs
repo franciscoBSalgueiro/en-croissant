@@ -22,7 +22,7 @@ mod sound;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use chess::{BestMovesPayload, EngineProcess};
+use chess::{BestMovesPayload, EngineRegistry};
 use dashmap::DashMap;
 use db::{convert_legacy_database, convert_pgn, DatabaseProgress};
 use derivative::Derivative;
@@ -83,7 +83,7 @@ pub struct AppState {
     position_caches: DashMap<String, Arc<Mutex<db::PositionCache>>>,
     pgn_offsets: DashMap<String, Vec<u64>>,
 
-    engine_processes: DashMap<(String, String), Arc<tokio::sync::Mutex<EngineProcess>>>,
+    engine_processes: EngineRegistry,
     analysis_cancel_flags: DashMap<String, Arc<AtomicBool>>,
     auth: AuthState,
     game_manager: GameManager,
@@ -318,11 +318,7 @@ fn main() {
         .run(|app, event| {
             if let tauri::RunEvent::ExitRequested { .. } = event {
                 let state = app.state::<AppState>();
-                for entry in state.engine_processes.iter() {
-                    if let Ok(mut process) = entry.value().try_lock() {
-                        process.kill_sync();
-                    }
-                }
+                state.engine_processes.kill_all_sync();
             }
         });
 }
