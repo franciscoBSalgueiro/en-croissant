@@ -424,6 +424,7 @@ test("should handle setFen", () => {
         root: {
             ...defaultTree().root,
             fen: "rnbq1bnr/ppppkppp/8/4p3/4P3/8/PPPPKPPP/RNBQ1BNR w - - 2 3",
+            halfMoves: 4,
         },
     });
 });
