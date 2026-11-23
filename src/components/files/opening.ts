@@ -47,6 +47,16 @@ export function buildFromTree(tree: TreeNode, color: "white" | "black", start: n
     return cards;
 }
 
+export type PositionStatus = "unseen" | "due" | "practiced";
+
+export function getPositionStatus(card: Card, now: Date = new Date()): PositionStatus {
+    if (card.reps === 0) {
+        return "unseen";
+    }
+    const dueDate = new Date(card.due);
+    return dueDate <= now ? "due" : "practiced";
+}
+
 type Stats = {
     unseen: number;
     due: number;
@@ -55,7 +65,7 @@ type Stats = {
     total: number;
 };
 
-export function getStats(positions: Position[]) {
+export function getStats(positions: Position[], now: Date = new Date()) {
     const stats: Stats = {
         unseen: 0,
         due: 0,
@@ -63,15 +73,15 @@ export function getStats(positions: Position[]) {
         nextDue: null,
         total: positions.length,
     };
-    const now = new Date();
     for (const card of positions) {
-        const dueDate = new Date(card.card.due);
-        if (card.card.reps === 0) {
+        const status = getPositionStatus(card.card, now);
+        if (status === "unseen") {
             stats.unseen++;
-        } else if (dueDate <= now) {
+        } else if (status === "due") {
             stats.due++;
         } else {
             stats.practiced++;
+            const dueDate = new Date(card.card.due);
             if (!stats.nextDue || dueDate < stats.nextDue) {
                 stats.nextDue = dueDate;
             }
