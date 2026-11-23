@@ -42,6 +42,7 @@ import {
   formatReviewInterval,
   getCardForReview,
   getNextReviewTimes,
+  getPositionStatus,
   getStats,
   syncDeck,
   updateCardPerformance,
@@ -791,6 +792,7 @@ function PositionsModal({
   const store = useContext(TreeStateContext)!;
   const root = useStore(store, (s) => s.root);
   const goToMove = useStore(store, (s) => s.goToMove);
+  const now = new Date();
   return (
     <Modal
       opened={open}
@@ -803,6 +805,7 @@ function PositionsModal({
         {deck.positions.map((c) => {
           const position = findFen(c.fen, root);
           const node = getNodeAtPath(root, position);
+          const status = getPositionStatus(c.card, now);
           return (
             <Card key={c.fen}>
               <Text>
@@ -817,11 +820,11 @@ function PositionsModal({
                     {t("Board.Practice.Status")}
                   </Text>
                   <Badge
-                    color={c.card.reps === 0 ? "gray" : c.card.due < new Date() ? "yellow" : "blue"}
+                    color={status === "unseen" ? "gray" : status === "due" ? "yellow" : "blue"}
                   >
-                    {c.card.reps === 0
+                    {status === "unseen"
                       ? t("Board.Practice.Unseen")
-                      : c.card.due < new Date()
+                      : status === "due"
                         ? t("Board.Practice.Due")
                         : t("Board.Practice.Practiced")}
                   </Badge>
