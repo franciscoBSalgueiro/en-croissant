@@ -1,6 +1,6 @@
 [package]
 name = "en-croissant"
-version = "0.15.1"
+version = "0.16.1"
 description = "A Modern Chess Database"
 authors = ["Francisco Salgueiro <fgcdbs@gmail.com>"]
 license = "GPL-3.0-only"
@@ -18,21 +18,21 @@ candle-nn = "0.11.0"
 image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "webp", "bmp"] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "2.10.2", features = ["protocol-asset"] }
-zip = "2.1.6"
+tauri = { version = "2.12.4", features = ["protocol-asset"] }
+zip = "9.5.0"
 tokio = { version = "1.33", features = ["full"] }
 futures-util = "0.3.24"
 flate2 = "1"
-reqwest = { version = "0.12.5", features = ["stream", "blocking", "json"] }
+reqwest = { version = "0.13.5", features = ["stream", "blocking", "json"] }
 shakmaty = "0.30.0"
 pgn-reader = "0.29.0"
 aix-chess-compression = { git = "https://github.com/franciscoBSalgueiro/aix", package = "aix-chess-compression" }
 csv = "1.1.6"
 lazy_static = "1.4.0"
 btoi = "0.4.2"
-rusqlite = { version = "0.28.0", features = ["bundled"] }
+rusqlite = { version = "0.41.1", features = ["bundled"] }
 bzip2 = "0.4.3"
-zstd = "0.13"
+zstd = "0.14.3"
 rayon = "1.6.1"
 chrono = "0.4.23"
 derivative = "2.2.0"
@@ -49,24 +49,24 @@ tauri-specta = { version = "^2.0.0-rc.20", features = ["derive", "typescript"] }
 strsim = "0.11.0"
 thiserror = "2"
 log = "0.4.20"
-oauth2 = "4.4.2"
+oauth2 = "5.0.0"
 axum = "0.6.20"
-tar = "0.4.40"
+tar = "0.4.46"
 sysinfo = "0.29.10"
 governor = "0.6.3"
 nonzero_ext = "0.3.0"
 specta-typescript = "0.0.9"
-tauri-plugin-http = "2.5.7"
-tauri-plugin-fs = "2.4.5"
-tauri-plugin-dialog = "2.6.0"
-tauri-plugin-os = "2.3.2"
-tauri-plugin-cli = "2.4.1"
-tauri-plugin-updater = "2.10.0"
-tauri-plugin-process = "2.3.1"
-tauri-plugin-log = "2.8.0"
-tauri-plugin-window-state = "2.4.1"
-tauri-plugin-opener = "2"
-tauri-plugin-deep-link = "2.0.0"
+tauri-plugin-http = "2.8.3"
+tauri-plugin-fs = "2.7.1"
+tauri-plugin-dialog = "2.8.4"
+tauri-plugin-os = "2.4.0"
+tauri-plugin-cli = "2.5.0"
+tauri-plugin-updater = "2.14.1"
+tauri-plugin-process = "2.4.0"
+tauri-plugin-log = "2.10.1"
+tauri-plugin-window-state = "2.5.0"
+tauri-plugin-opener = "2.7.2"
+tauri-plugin-deep-link = "2.6.3"
 tauri-plugin-single-instance = { version = "2.0.0", features = ["deep-link"] }
 polyglot-book-rs = "0.1.0"
 duckdb = { git = "https://github.com/duckdb/duckdb-rs", rev = "4acbea84794582c4cd962ee971a3d7a5dcb72e39", features = [

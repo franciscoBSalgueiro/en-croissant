@@ -155,17 +155,18 @@ export async function isInTempDir(filePath: string): Promise<boolean> {
 export async function saveToFile({
     dir,
     tab,
-    setCurrentTab,
+    setTabs,
     store,
     isUserSave,
 }: {
     dir: string;
     tab: Tab | undefined;
-    setCurrentTab: React.Dispatch<React.SetStateAction<Tab>>;
+    setTabs: React.Dispatch<React.SetStateAction<Tab[]>>;
     store: StoreApi<TreeStoreState>;
     isUserSave?: boolean;
-}) {
+}): Promise<boolean> {
     let filePath: string;
+    let newOrigin: GameOrigin | undefined;
     const currentOrigin = tab?.gameOrigin;
     const fileOrigin =
         currentOrigin?.kind === "file" || currentOrigin?.kind === "temp_file"
@@ -184,7 +185,7 @@ export async function saveToFile({
     if (databaseOrigin) {
         unwrap(await commands.writeDbGame(databaseOrigin.database, databaseOrigin.gameId, pgn));
         store.getState().save();
-        return;
+        return true;
     }
 
     if (fileOrigin && !(isTempFile && isUserSave)) {
@@ -203,7 +204,7 @@ export async function saveToFile({
             ],
         });
         if (userChoice === null) {
-            return;
+            return false;
         }
         if (userChoice.endsWith(".pgn")) {
             filePath = userChoice;
@@ -218,28 +219,29 @@ export async function saveToFile({
         }
 
         const numGames = isTempFile && fileOrigin ? fileOrigin.file.numGames : 1;
-        const gameNumber = fileOrigin?.gameNumber ?? 0;
-        setCurrentTab((prev) => {
-            return {
-                ...prev,
-                gameOrigin: {
-                    kind: "file",
-                    gameNumber,
-                    file: {
-                        type: "file",
-                        name: filePath,
-                        path: filePath,
-                        numGames,
-                        metadata: {
-                            tags: [],
-                            type: "game",
-                        },
-                        lastModified: Date.now(),
-                    },
+        newOrigin = {
+            kind: "file",
+            gameNumber: fileOrigin?.gameNumber ?? 0,
+            file: {
+                type: "file",
+                name: filePath,
+                path: filePath,
+                numGames,
+                metadata: {
+                    tags: [],
+                    type: "game",
                 },
-            };
-        });
+                lastModified: Date.now(),
+            },
+        };
     }
     unwrap(await commands.writeGame(filePath, fileOrigin?.gameNumber ?? 0, pgn));
+    if (newOrigin && tab) {
+        const gameOrigin = newOrigin;
+        setTabs((tabs) =>
+            tabs.map((item) => (item.value === tab.value ? { ...item, gameOrigin } : item)),
+        );
+    }
     store.getState().save();
+    return true;
 }

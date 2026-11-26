@@ -1342,6 +1342,16 @@ fn remove_empty_games(db: &Connection) -> duckdb::Result<()> {
     Ok(())
 }
 
+/// Formats a stored rating for PGN export, using the PGN convention for
+/// unrated games (`-`) instead of the internal sentinel `0`.
+fn format_rating_tag(rating: i32) -> String {
+    if rating > 0 {
+        rating.to_string()
+    } else {
+        "-".to_owned()
+    }
+}
+
 fn export_game(row: &duckdb::Row) -> duckdb::Result<String> {
     let game = parse_normalized_game(row)?;
     let mut tags = std::collections::BTreeMap::new();
@@ -1357,8 +1367,8 @@ fn export_game(row: &duckdb::Row) -> duckdb::Result<String> {
     }
     for (key, value) in [
         ("UTCTime", game.time),
-        ("WhiteElo", game.white_elo.map(|elo| elo.to_string())),
-        ("BlackElo", game.black_elo.map(|elo| elo.to_string())),
+        ("WhiteElo", game.white_elo.map(format_rating_tag)),
+        ("BlackElo", game.black_elo.map(format_rating_tag)),
         ("WhiteTitle", row.get("white_title")?),
         ("BlackTitle", row.get("black_title")?),
         ("TimeControl", game.time_control),
@@ -1688,11 +1698,82 @@ mod tests {
         assert!(exported.contains("[Date \"2026.10.15\"]"));
         assert!(exported.contains("[UTCTime \"12:34:56\"]"));
         assert!(exported.contains("[WhiteElo \"2300\"]"));
-        assert!(!exported.contains("[BlackElo "));
+        assert!(exported.contains("[BlackElo \"-\"]"));
         assert!(!exported.contains("[UnknownTag "));
         let original = pgn::parse_single_game(input).unwrap().database_values();
         let restored = pgn::parse_single_game(&exported).unwrap().database_values();
         assert_eq!(original, restored);
+    }
+
+    #[test]
+    fn unrated_ratings_export_as_dash() {
+        let db = Connection::open_in_memory().unwrap();
+        db.execute_batch(include_str!("init-database.sql")).unwrap();
+        let input = "[WhiteElo \"?\"]\n[BlackElo \"-\"]\n\n1. e4 *";
+        let game = pgn::parse_single_game(input).unwrap();
+        {
+            let mut appender = game_appender(&db).unwrap();
+            appender
+                .append_row(duckdb::appender_params_from_iter(game.database_values()))
+                .unwrap();
+            appender.flush().unwrap();
+        }
+        let exported = db.query_row(READ_TEST_GAME, [], export_game).unwrap();
+        assert!(exported.contains("[WhiteElo \"-\"]"));
+        assert!(exported.contains("[BlackElo \"-\"]"));
+        let restored = pgn::parse_single_game(&exported).unwrap().database_values();
+        assert_eq!(restored[6], duckdb::types::Value::SmallInt(0));
+        assert_eq!(restored[7], duckdb::types::Value::SmallInt(0));
+    }
+
+    #[test]
+    fn ratings_round_trip_canonically_through_import_and_export() {
+        let mut pgn = "[Event \"Test\"]\n[Site \"Lisboa\"]\n[Round \"1\"]\n[White \"White\"]\n[Black \"Black\"]\n[Date \"2026.10.15\"]\n[UTCDate \"2026.10.15\"]\n[UTCTime \"12:34:56\"]\n[WhiteElo \"02300\"]\n[BlackElo \"?\"]\n\n1. e4 *".to_owned();
+        let mut previous_export: Option<String> = None;
+        for generation in 0..2 {
+            let db = Connection::open_in_memory().unwrap();
+            db.execute_batch(include_str!("init-database.sql")).unwrap();
+            let game = pgn::parse_single_game(&pgn).unwrap();
+            let values = game.database_values();
+            if generation == 0 {
+                assert_eq!(values[6], duckdb::types::Value::SmallInt(2300));
+                assert_eq!(values[7], duckdb::types::Value::SmallInt(0));
+            }
+            {
+                let mut appender = game_appender(&db).unwrap();
+                appender
+                    .append_row(duckdb::appender_params_from_iter(values))
+                    .unwrap();
+                appender.flush().unwrap();
+            }
+            let exported = db.query_row(READ_TEST_GAME, [], export_game).unwrap();
+            if generation == 0 {
+                assert!(exported.contains("[WhiteElo \"2300\"]"), "{exported}");
+                assert!(exported.contains("[BlackElo \"-\"]"), "{exported}");
+            } else {
+                assert_eq!(Some(&exported), previous_export.as_ref());
+            }
+            previous_export = Some(exported.clone());
+            pgn = exported;
+        }
+    }
+
+    #[test]
+    fn missing_ratings_omit_rating_tags_on_export() {
+        let db = Connection::open_in_memory().unwrap();
+        db.execute_batch(include_str!("init-database.sql")).unwrap();
+        let input = "[White \"White\"]\n[Black \"Black\"]\n\n1. e4 *";
+        let game = pgn::parse_single_game(input).unwrap();
+        {
+            let mut appender = game_appender(&db).unwrap();
+            appender
+                .append_row(duckdb::appender_params_from_iter(game.database_values()))
+                .unwrap();
+            appender.flush().unwrap();
+        }
+        let exported = db.query_row(READ_TEST_GAME, [], export_game).unwrap();
+        assert!(!exported.contains("[WhiteElo "));
+        assert!(!exported.contains("[BlackElo "));
     }
 
     #[test]

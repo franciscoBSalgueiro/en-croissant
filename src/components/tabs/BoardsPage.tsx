@@ -1,9 +1,9 @@
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import { ActionIcon, Box, ScrollArea, Tabs } from "@mantine/core";
-import { useElementSize, useHotkeys, useToggle } from "@mantine/hooks";
+import { useElementSize, useHotkeys } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { type ReactNode, startTransition, useCallback, useEffect } from "react";
+import { useAtom, useAtomValue, useSetAtom, useStore } from "jotai";
+import { type ReactNode, startTransition, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Mosaic, type MosaicNode } from "react-mosaic-component";
 import { match } from "ts-pattern";
@@ -17,7 +17,10 @@ import {
   tabsAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
+import { createDebouncedSessionStorage } from "@/state/store/debouncedStorage";
+import { createTreeStore } from "@/state/store/tree";
 import { createTab, genID, isPersistentGameOrigin, type Tab } from "@/utils/tabs";
+import type { TreeState } from "@/utils/treeReducer";
 import { unwrap } from "@/utils/unwrap";
 import BoardAnalysis from "../boards/BoardAnalysis";
 import BoardGame from "../boards/BoardGame";
@@ -34,12 +37,16 @@ import { platform } from "@tauri-apps/plugin-os";
 import { atomWithStorage } from "jotai/utils";
 import classes from "./BoardsPage.module.css";
 
+const treeStorage = createDebouncedSessionStorage<TreeState>();
+
 export default function BoardsPage() {
   const { t } = useTranslation();
 
   const [tabs, setTabs] = useAtom(tabsAtom);
   const [activeTab, setActiveTab] = useAtom(activeTabAtom);
-  const [saveModalOpened, toggleSaveModal] = useToggle();
+  const atomStore = useStore();
+  const [pendingClose, setPendingClose] = useState<string | null>(null);
+  const pendingTab = tabs.find((tab) => tab.value === pendingClose);
 
   useEffect(() => {
     if (tabs.length === 0) {
@@ -53,12 +60,17 @@ export default function BoardsPage() {
 
   const closeTab = useCallback(
     async (value: string | null, forced?: boolean) => {
+      if (pendingClose && !forced) return;
       if (value !== null) {
+        const tabs = atomStore.get(tabsAtom);
+        const activeTab = atomStore.get(activeTabAtom);
         const closedTab = tabs.find((tab) => tab.value === value);
-        const tabState = JSON.parse(sessionStorage.getItem(value) || "{}");
-        if (tabState && isPersistentGameOrigin(closedTab) && tabState.state.dirty && !forced) {
-          toggleSaveModal();
-          return;
+        if (!closedTab) return;
+        if (!forced && closedTab.type === "analysis" && isPersistentGameOrigin(closedTab)) {
+          if (treeStorage.getItem(value)?.state?.dirty) {
+            setPendingClose(value);
+            return;
+          }
         }
         if (value === activeTab) {
           const index = tabs.findIndex((tab) => tab.value === value);
@@ -77,7 +89,7 @@ export default function BoardsPage() {
         await commands.abortGame(`${value}-game`);
       }
     },
-    [tabs, activeTab, setTabs, toggleSaveModal, setActiveTab],
+    [atomStore, pendingClose, setTabs, setActiveTab],
   );
 
   function selectTab(index: number) {
@@ -153,7 +165,7 @@ export default function BoardsPage() {
     window.addEventListener("keydown", handler, { capture: true });
 
     return () => window.removeEventListener("keydown", handler, { capture: true });
-  }, [closeTab]);
+  }, [activeTab, closeTab]);
 
   const keyMap = useAtomValue(keyMapAtom);
   const showTabBar = useAtomValue(showTabBarAtom);
@@ -195,6 +207,18 @@ export default function BoardsPage() {
       keepMounted={false}
       className={classes.tabsContainer}
     >
+      {pendingTab && (
+        <ConfirmChangesModal
+          opened
+          tab={pendingTab}
+          getStore={() => {
+            const state = treeStorage.getItem(pendingTab.value)?.state;
+            return state && createTreeStore(undefined, state);
+          }}
+          onClose={() => setPendingClose(null)}
+          onConfirm={() => closeTab(pendingTab.value, true)}
+        />
+      )}
       {showTabBar && (
         <ScrollArea scrollbarSize={6} className={classes.tabsHeader}>
           <DragDropContext
@@ -265,13 +289,7 @@ export default function BoardsPage() {
       )}
       {tabs.map((tab) => (
         <Tabs.Panel key={tab.value} value={tab.value} h="100%" w="100%" pb="sm" px="xs">
-          <TabSwitch
-            tab={tab}
-            saveModalOpened={saveModalOpened}
-            toggleSaveModal={toggleSaveModal}
-            closeTab={closeTab}
-            activeTab={activeTab}
-          />
+          <TabSwitch tab={tab} />
         </Tabs.Panel>
       ))}
     </Tabs>
@@ -347,19 +365,7 @@ function resolveLayoutMode(boardLayout: BoardLayout, isNarrow: boolean): LayoutM
   return boardLayout === "stacked" ? "stacked" : "wide";
 }
 
-function TabSwitch({
-  tab,
-  saveModalOpened,
-  toggleSaveModal,
-  closeTab,
-  activeTab,
-}: {
-  tab: Tab;
-  saveModalOpened: boolean;
-  toggleSaveModal: () => void;
-  closeTab: (value: string | null, forced?: boolean) => void;
-  activeTab: string | null;
-}) {
+function TabSwitch({ tab }: { tab: Tab }) {
   const { ref: containerRef, width } = useElementSize();
   const setIsCompactLayout = useSetAtom(isCompactLayoutAtom);
   const boardLayout = useAtomValue(boardLayoutAtom);
@@ -403,11 +409,6 @@ function TabSwitch({
               resize={{ minimumPaneSizePercentage: 0 }}
             />
             <BoardAnalysis />
-            <ConfirmChangesModal
-              opened={saveModalOpened}
-              toggle={toggleSaveModal}
-              closeTab={() => closeTab(activeTab, true)}
-            />
           </TreeStateProvider>
         ))
         .with("puzzles", () => (

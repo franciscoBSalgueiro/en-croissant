@@ -116,6 +116,7 @@ impl EngineProcess {
         self.options = options.clone();
         self.best_moves.clear();
         self.last_best_moves.clear();
+        self.last_progress = 0.0;
         Ok(())
     }
 
@@ -392,7 +393,6 @@ pub async fn get_best_moves(
                             if multipv == proc.real_multipv {
                                 if proc.best_moves.iter().all(|x| x.depth == cur_depth)
                                     && cur_depth >= proc.last_depth
-                                    && lim.check().is_ok()
                                 {
                                     let progress = match proc.go_mode {
                                         GoMode::Depth(depth) => {
@@ -408,18 +408,20 @@ pub async fn get_best_moves(
                                         GoMode::PlayersTime(_) => 99.99,
                                         GoMode::Infinite => 99.99,
                                     };
-                                    BestMovesPayload {
-                                        best_lines: proc.best_moves.clone(),
-                                        engine: id.clone(),
-                                        tab: tab.clone(),
-                                        fen: proc.options.fen.clone(),
-                                        moves: proc.options.moves.clone(),
-                                        progress,
-                                    }
-                                    .emit(&app)?;
                                     proc.last_depth = cur_depth;
                                     proc.last_best_moves = proc.best_moves.clone();
                                     proc.last_progress = progress as f32;
+                                    if lim.check().is_ok() {
+                                        BestMovesPayload {
+                                            best_lines: proc.best_moves.clone(),
+                                            engine: id.clone(),
+                                            tab: tab.clone(),
+                                            fen: proc.options.fen.clone(),
+                                            moves: proc.options.moves.clone(),
+                                            progress,
+                                        }
+                                        .emit(&app)?;
+                                    }
                                 }
                                 proc.best_moves.clear();
                             }
@@ -444,6 +446,7 @@ pub async fn get_best_moves(
                 }
                 .emit(&app)?;
                 proc.last_progress = 100.0;
+                proc.running = false;
             }
             _ => {}
         }

@@ -1046,7 +1046,7 @@ fn read_zip_inner(path: &str) -> Result<(String, Vec<u8>), Error> {
         .into());
     }
     let mut inner = archive.by_index(0)?;
-    let name = inner.name().to_string();
+    let name = inner.name()?.into_owned();
     let mut buf = Vec::new();
     inner.read_to_end(&mut buf)?;
     Ok((name, buf))

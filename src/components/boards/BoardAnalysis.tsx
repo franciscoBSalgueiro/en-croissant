@@ -11,7 +11,7 @@ import {
 import { useLoaderData } from "@tanstack/react-router";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import type { Piece } from "chessops";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
@@ -27,6 +27,7 @@ import {
   enableAllAtom,
   isCompactLayoutAtom,
   practiceStateAtom,
+  tabsAtom,
 } from "@/state/atoms";
 import { keyMapAtom } from "@/state/keybinds";
 import { defaultPGN } from "@/utils/chess";
@@ -57,6 +58,7 @@ function BoardAnalysis() {
   );
   const [selectedPiece, setSelectedPiece] = useState<Piece | null>(null);
   const [currentTab, setCurrentTab] = useAtom(currentTabAtom);
+  const setTabs = useSetAtom(tabsAtom);
   const tabFile = getTabFile(currentTab);
   const hasPersistentOrigin = currentTab?.gameOrigin.kind !== "none";
   const autoSave = useAtomValue(autoSaveAtom);
@@ -74,20 +76,20 @@ function BoardAnalysis() {
   const saveFile = useCallback(async () => {
     saveToFile({
       dir: documentDir,
-      setCurrentTab,
+      setTabs,
       tab: currentTab,
       store,
     });
-  }, [setCurrentTab, currentTab, documentDir, store]);
+  }, [setTabs, currentTab, documentDir, store]);
   const userSaveFile = useCallback(async () => {
     saveToFile({
       dir: documentDir,
-      setCurrentTab,
+      setTabs,
       tab: currentTab,
       store,
       isUserSave: true,
     });
-  }, [setCurrentTab, currentTab, documentDir, store]);
+  }, [setTabs, currentTab, documentDir, store]);
   useEffect(() => {
     if (hasPersistentOrigin && autoSave && dirty) {
       saveFile();
