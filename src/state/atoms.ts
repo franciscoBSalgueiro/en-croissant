@@ -249,6 +249,10 @@ export const primaryColorAtom = atomWithStorage<MantineColor>("mantine-primary-c
 export const sessionsAtom = atomWithStorage<Session[]>("sessions", []);
 export const nativeBarAtom = atomWithStorage<boolean>("native-bar", false);
 export const isCompactLayoutAtom = atom<boolean>(false);
+export type BoardLayout = "auto" | "sideBySide" | "stacked";
+export const boardLayoutAtom = atomWithStorage<BoardLayout>("board-layout", "auto", undefined, {
+    getOnInit: true,
+});
 export const showSidebarAtom = atomWithStorage<boolean>("show-sidebar", true);
 export const showTabBarAtom = atomWithStorage<boolean>("show-tabbar", true);
 export const telemetryEnabledAtom = atomWithStorage<boolean>("telemetry-enabled", true, undefined, {
